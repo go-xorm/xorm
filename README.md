@@ -22,13 +22,13 @@ SQLite:[github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 
 ### Quick Start
 
-1. Create an database engine (for example: mysql)
+1.Create an database engine (for example: mysql)
 
 ```go
 engine := xorm.Create("mysql://root:123@localhost/test")
 ```
 
-2. Define your struct
+2.Define your struct
 
 ```go
 type User struct {
@@ -59,7 +59,8 @@ user := User{Id:1, Name:"xlw"}
 rows, err := engine.Update(&user)
 ```
 
-3. Fetch a single object by user
+3.Fetch a single object by user
+
 ```go
 var user = User{Id:27}
 engine.Get(&user)
@@ -78,7 +79,8 @@ if err != nil {
 }
 ```
 
-1. Fetch a single object by where
+1.Fetch a single object by where
+
 ```go
 var user Userinfo
 session.Where("id=?", 27).Get(&user)
@@ -93,7 +95,7 @@ var user4 Userinfo
 session.Where("name = ? and age < ?", "john", 88).Get(&user4) // even more complex
 ```
 
-2. Fetch multiple objects
+2.Fetch multiple objects
 
 ```go
 var allusers []Userinfo
@@ -107,12 +109,12 @@ err := session.Find(&everyone)
 ```
 
 ###***About Map Rules***
-1. Struct and struct's fields name should be Pascal style, and the table and column's name default is us
+1.Struct and struct's fields name should be Pascal style, and the table and column's name default is us
 for example: 
 The structs Name 'UserInfo' will turn into the table name 'user_info', the same as the keyname.	
 If the keyname is 'UserName' will turn into the select colum 'user_name'
 
-2. You have two method to change the rule. One is implement your own Map interface according IMapper, you can find the interface in mapper.go and set it to engine.Mapper
+2.You have two method to change the rule. One is implement your own Map interface according IMapper, you can find the interface in mapper.go and set it to engine.Mapper
 
 another is use field tag, field tag support the below keywords:
 [name]                  column name
