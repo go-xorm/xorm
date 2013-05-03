@@ -1,9 +1,9 @@
 xorm
 =====
 
-[中文](README_CN.md)
+[English](README.md)
 
-xorm is an ORM for Go. It lets you map Go structs to tables in a database. 
+xorm 是一个Go语言的ORM（对象关系模型）. It lets you map Go structs to tables in a database. 
 
 Right now, it interfaces with Mysql/SQLite. The goal however is to add support for PostgreSQL/DB2/MS ADODB/ODBC/Oracle in the future. 
 
