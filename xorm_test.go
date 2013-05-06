@@ -3,8 +3,7 @@ package xorm_test
 import (
 	"fmt"
 	_ "github.com/Go-SQL-Driver/MySQL"
-	//_ "github.com/ziutek/mymysql/godrv"
-	//_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3"
 	"testing"
 	"time"
 	"xorm"
@@ -36,21 +35,14 @@ type Userinfo struct {
 
 var engine xorm.Engine
 
-func TestCreateEngine(t *testing.T) {
-	engine = xorm.Create("mysql://root:123@localhost/test")
-	//engine = orm.Create("mymysql://root:123@localhost/test")
-	//engine = orm.Create("sqlite:///test.db")
-	engine.ShowSQL = true
-}
-
-func TestDirectCreateTable(t *testing.T) {
+func directCreateTable(t *testing.T) {
 	err := engine.CreateTables(&Userinfo{})
 	if err != nil {
 		t.Error(err)
 	}
 }
 
-func TestMapper(t *testing.T) {
+func mapper(t *testing.T) {
 	err := engine.UnMap(&Userinfo{})
 	if err != nil {
 		t.Error(err)
@@ -72,7 +64,7 @@ func TestMapper(t *testing.T) {
 	}
 }
 
-func TestInsert(t *testing.T) {
+func insert(t *testing.T) {
 	user := Userinfo{1, "xiaolunwen", "dev", "lunny", time.Now()}
 	_, err := engine.Insert(&user)
 	if err != nil {
@@ -80,7 +72,7 @@ func TestInsert(t *testing.T) {
 	}
 }
 
-func TestInsertAutoIncr(t *testing.T) {
+func insertAutoIncr(t *testing.T) {
 	// auto increment insert
 	user := Userinfo{Username: "xiaolunwen", Departname: "dev", Alias: "lunny", Created: time.Now()}
 	_, err := engine.Insert(&user)
@@ -89,7 +81,7 @@ func TestInsertAutoIncr(t *testing.T) {
 	}
 }
 
-func TestInsertMulti(t *testing.T) {
+func insertMulti(t *testing.T) {
 	user1 := Userinfo{Username: "xlw", Departname: "dev", Alias: "lunny2", Created: time.Now()}
 	user2 := Userinfo{Username: "xlw2", Departname: "dev", Alias: "lunny3", Created: time.Now()}
 	_, err := engine.Insert(&user1, &user2)
@@ -98,7 +90,7 @@ func TestInsertMulti(t *testing.T) {
 	}
 }
 
-func TestUpdate(t *testing.T) {
+func update(t *testing.T) {
 	// update by id
 	user := Userinfo{Uid: 1, Username: "xxx"}
 	_, err := engine.Update(&user)
@@ -107,7 +99,7 @@ func TestUpdate(t *testing.T) {
 	}
 }
 
-func TestDelete(t *testing.T) {
+func delete(t *testing.T) {
 	user := Userinfo{Uid: 1}
 	_, err := engine.Delete(&user)
 	if err != nil {
@@ -115,7 +107,7 @@ func TestDelete(t *testing.T) {
 	}
 }
 
-func TestGet(t *testing.T) {
+func get(t *testing.T) {
 	user := Userinfo{Uid: 2}
 
 	err := engine.Get(&user)
@@ -125,7 +117,7 @@ func TestGet(t *testing.T) {
 	fmt.Println(user)
 }
 
-func TestFind(t *testing.T) {
+func find(t *testing.T) {
 	users := make([]Userinfo, 0)
 
 	err := engine.Find(&users)
@@ -135,8 +127,8 @@ func TestFind(t *testing.T) {
 	fmt.Println(users)
 }
 
-func TestCount(t *testing.T) {
-	user := Userinfo{}
+func count(t *testing.T) {
+	user := Userinfo{Departname: "dev"}
 	total, err := engine.Count(&user)
 	if err != nil {
 		t.Error(err)
@@ -144,47 +136,117 @@ func TestCount(t *testing.T) {
 	fmt.Printf("Total %d records!!!", total)
 }
 
-func TestWhere(t *testing.T) {
+func where(t *testing.T) {
 	users := make([]Userinfo, 0)
-	session, err := engine.MakeSession()
-	defer session.Close()
-	if err != nil {
-		t.Error(err)
-	}
-	err = session.Where("id > ?", 2).Find(&users)
+	err := engine.Where("id > ?", 2).Find(&users)
 	if err != nil {
 		t.Error(err)
 	}
 	fmt.Println(users)
 }
 
-func TestLimit(t *testing.T) {
+func limit(t *testing.T) {
 	users := make([]Userinfo, 0)
-	session, err := engine.MakeSession()
-	defer session.Close()
-	if err != nil {
-		t.Error(err)
-	}
-	err = session.Limit(2, 1).Find(&users)
+	err := engine.Limit(2, 1).Find(&users)
 	if err != nil {
 		t.Error(err)
 	}
 	fmt.Println(users)
 }
 
-func TestOrder(t *testing.T) {
+func order(t *testing.T) {
 	users := make([]Userinfo, 0)
-	session, err := engine.MakeSession()
-	defer session.Close()
-	if err != nil {
-		t.Error(err)
-	}
-	err = session.OrderBy("id desc").Find(&users)
+	err := engine.OrderBy("id desc").Find(&users)
 	if err != nil {
 		t.Error(err)
 	}
 	fmt.Println(users)
 }
 
-func TestTransaction(*testing.T) {
+func transaction(t *testing.T) {
+	counter := func() {
+		total, err := engine.Count(&Userinfo{})
+		if err != nil {
+			t.Error(err)
+		}
+		fmt.Printf("----now total %v records\n", total)
+	}
+
+	counter()
+
+	session, err := engine.MakeSession()
+	defer session.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	defer counter()
+
+	session.Begin()
+	session.IsAutoRollback = true
+	user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
+	_, err = session.Insert(&user1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	user2 := Userinfo{Username: "yyy"}
+	_, err = session.Where("id = ?", 2).Update(&user2)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	_, err = session.Delete(&user2)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	err = session.Commit()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+}
+
+func TestMysql(t *testing.T) {
+	engine = xorm.Create("mysql://root:123@localhost/test")
+	engine.ShowSQL = true
+
+	directCreateTable(t)
+	mapper(t)
+	insert(t)
+	insertAutoIncr(t)
+	insertMulti(t)
+	update(t)
+	delete(t)
+	get(t)
+	find(t)
+	count(t)
+	where(t)
+	limit(t)
+	order(t)
+	transaction(t)
+}
+
+func TestSqlite(t *testing.T) {
+	engine = xorm.Create("sqlite:///test.db")
+	engine.ShowSQL = true
+
+	directCreateTable(t)
+	mapper(t)
+	insert(t)
+	insertAutoIncr(t)
+	insertMulti(t)
+	update(t)
+	delete(t)
+	get(t)
+	find(t)
+	count(t)
+	where(t)
+	limit(t)
+	order(t)
+	transaction(t)
 }

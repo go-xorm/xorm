@@ -6,22 +6,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"time"
-)
-
-type SQLType struct {
-	Name          string
-	DefaultLength int
-}
-
-var (
-	Int     = SQLType{"int", 11}
-	Char    = SQLType{"char", 1}
-	Varchar = SQLType{"varchar", 50}
-	Date    = SQLType{"date", 24}
-	Decimal = SQLType{"decimal", 26}
-	Float   = SQLType{"float", 31}
-	Double  = SQLType{"double", 31}
 )
 
 const (
@@ -31,51 +15,6 @@ const (
 	MYSQL   = "mysql"
 	MYMYSQL = "mymysql"
 )
-
-type Column struct {
-	Name          string
-	FieldName     string
-	SQLType       SQLType
-	Length        int
-	Nullable      bool
-	Default       string
-	IsUnique      bool
-	IsPrimaryKey  bool
-	AutoIncrement bool
-}
-
-type Table struct {
-	Name       string
-	Type       reflect.Type
-	Columns    map[string]Column
-	PrimaryKey string
-}
-
-func (table *Table) ColumnStr() string {
-	colNames := make([]string, 0)
-	for _, col := range table.Columns {
-		if col.Name == "" {
-			continue
-		}
-		colNames = append(colNames, col.Name)
-	}
-	return strings.Join(colNames, ", ")
-}
-
-func (table *Table) PlaceHolders() string {
-	colNames := make([]string, 0)
-	for _, col := range table.Columns {
-		if col.Name == "" {
-			continue
-		}
-		colNames = append(colNames, "?")
-	}
-	return strings.Join(colNames, ", ")
-}
-
-func (table *Table) PKColumn() Column {
-	return table.Columns[table.PrimaryKey]
-}
 
 type Engine struct {
 	Mapper          IMapper
@@ -91,21 +30,27 @@ type Engine struct {
 	AutoIncrement   string
 	ShowSQL         bool
 	QuoteIdentifier string
+	Statement       Statement
+}
+
+func Type(bean interface{}) reflect.Type {
+	sliceValue := reflect.Indirect(reflect.ValueOf(bean))
+	return reflect.TypeOf(sliceValue.Interface())
 }
 
 func (e *Engine) OpenDB() (db *sql.DB, err error) {
 	db = nil
 	err = nil
-	if e.Protocol == "sqlite" {
+	if e.Protocol == SQLITE {
 		// 'sqlite:///foo.db'
 		db, err = sql.Open("sqlite3", e.Others)
 		// 'sqlite:///:memory:'
-	} else if e.Protocol == "mysql" {
+	} else if e.Protocol == MYSQL {
 		// 'mysql://<username>:<passwd>@<host>/<dbname>?charset=<encoding>'
 		connstr := strings.Join([]string{e.UserName, ":",
 			e.Password, "@tcp(", e.Host, ":3306)/", e.DBName, "?charset=", e.Charset}, "")
 		db, err = sql.Open(e.Protocol, connstr)
-	} else if e.Protocol == "mymysql" {
+	} else if e.Protocol == MYMYSQL {
 		//   DBNAME/USER/PASSWD
 		connstr := strings.Join([]string{e.DBName, e.UserName, e.Password}, "/")
 		db, err = sql.Open(e.Protocol, connstr)
@@ -123,51 +68,95 @@ func (engine *Engine) MakeSession() (session Session, err error) {
 	if err != nil {
 		return Session{}, err
 	}
-	if engine.Protocol == "pgsql" {
+	if engine.Protocol == PQSQL {
 		engine.QuoteIdentifier = "\""
-		session = Session{Engine: engine, Db: db, ParamIteration: 1}
-	} else if engine.Protocol == "mssql" {
+		session = Session{Engine: engine, Db: db}
+	} else if engine.Protocol == MSSQL {
 		engine.QuoteIdentifier = ""
-		session = Session{Engine: engine, Db: db, ParamIteration: 1}
+		session = Session{Engine: engine, Db: db}
 	} else {
 		engine.QuoteIdentifier = "`"
-		session = Session{Engine: engine, Db: db, ParamIteration: 1}
+		session = Session{Engine: engine, Db: db}
 	}
 	session.Mapper = engine.Mapper
 	session.Init()
 	return
 }
 
-func (sqlType SQLType) genSQL(length int) string {
-	if sqlType == Date {
-		return " datetime "
+func (engine *Engine) Where(querystring string, args ...interface{}) *Engine {
+	engine.Statement.Where(querystring, args...)
+	return engine
+}
+
+func (engine *Engine) Limit(limit int, start ...int) *Engine {
+	engine.Statement.Limit(limit, start...)
+	return engine
+}
+
+func (engine *Engine) OrderBy(order string) *Engine {
+	engine.Statement.OrderBy(order)
+	return engine
+}
+
+//The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
+func (engine *Engine) Join(join_operator, tablename, condition string) *Engine {
+	engine.Statement.Join(join_operator, tablename, condition)
+	return engine
+}
+
+func (engine *Engine) GroupBy(keys string) *Engine {
+	engine.Statement.GroupBy(keys)
+	return engine
+}
+
+func (engine *Engine) Having(conditions string) *Engine {
+	engine.Statement.Having(conditions)
+	return engine
+}
+
+func (e *Engine) genColumnStr(col *Column) string {
+	sql := "`" + col.Name + "` "
+	if col.SQLType == Date {
+		sql += " datetime "
+	} else {
+		if e.Protocol == SQLITE && col.IsPrimaryKey {
+			sql += "integer"
+		} else {
+			sql += col.SQLType.Name
+		}
+		if e.Protocol != SQLITE {
+			if col.SQLType != Decimal {
+				sql += "(" + strconv.Itoa(col.Length) + ")"
+			} else {
+				sql += "(" + strconv.Itoa(col.Length) + "," + strconv.Itoa(col.Length2) + ")"
+			}
+		}
 	}
-	return sqlType.Name + "(" + strconv.Itoa(length) + ")"
+
+	if col.Nullable {
+		sql += " NULL "
+	} else {
+		sql += " NOT NULL "
+	}
+	//fmt.Println(key)
+	if col.IsPrimaryKey {
+		sql += "PRIMARY KEY "
+	}
+	if col.IsAutoIncrement {
+		sql += e.AutoIncrement + " "
+	}
+	if col.IsUnique {
+		sql += "Unique "
+	}
+	return sql
 }
 
 func (e *Engine) genCreateSQL(table *Table) string {
 	sql := "CREATE TABLE IF NOT EXISTS `" + table.Name + "` ("
 	//fmt.Println(session.Mapper.Obj2Table(session.PrimaryKey))
 	for _, col := range table.Columns {
-		if col.Name != "" {
-			sql += "`" + col.Name + "` " + col.SQLType.genSQL(col.Length) + " "
-			if col.Nullable {
-				sql += " NULL "
-			} else {
-				sql += " NOT NULL "
-			}
-			//fmt.Println(key)
-			if col.IsPrimaryKey {
-				sql += "PRIMARY KEY "
-			}
-			if col.AutoIncrement {
-				sql += e.AutoIncrement + " "
-			}
-			if col.IsUnique {
-				sql += "Unique "
-			}
-			sql += ","
-		}
+		sql += e.genColumnStr(&col)
+		sql += ","
 	}
 	sql = sql[:len(sql)-2] + ");"
 	if e.ShowSQL {
@@ -182,27 +171,6 @@ func (e *Engine) genDropSQL(table *Table) string {
 		fmt.Println(sql)
 	}
 	return sql
-}
-
-func Type(bean interface{}) reflect.Type {
-	sliceValue := reflect.Indirect(reflect.ValueOf(bean))
-	return reflect.TypeOf(sliceValue.Interface())
-}
-
-func Type2SQLType(t reflect.Type) (st SQLType) {
-	switch k := t.Kind(); k {
-	case reflect.Int, reflect.Int32, reflect.Int64:
-		st = Int
-	case reflect.String:
-		st = Varchar
-	case reflect.Struct:
-		if t == reflect.TypeOf(time.Time{}) {
-			st = Date
-		}
-	default:
-		st = Varchar
-	}
-	return
 }
 
 /*
@@ -242,7 +210,7 @@ func (engine *Engine) MapType(t reflect.Type) Table {
 					case "null":
 						col.Nullable = (tags[j-1] != "not")
 					case "autoincr":
-						col.AutoIncrement = true
+						col.IsAutoIncrement = true
 					case "default":
 						col.Default = tags[j+1]
 					case "int":
@@ -255,6 +223,7 @@ func (engine *Engine) MapType(t reflect.Type) Table {
 				if col.SQLType.Name == "" {
 					col.SQLType = Type2SQLType(fieldType)
 					col.Length = col.SQLType.DefaultLength
+					col.Length2 = col.SQLType.DefaultLength2
 				}
 
 				if col.Name == "" {
@@ -266,7 +235,7 @@ func (engine *Engine) MapType(t reflect.Type) Table {
 		if col.Name == "" {
 			sqlType := Type2SQLType(fieldType)
 			col = Column{engine.Mapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
-				sqlType.DefaultLength, true, "", false, false, false}
+				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", false, false, false}
 		}
 		table.Columns[col.Name] = col
 		if strings.ToLower(t.Field(i).Name) == "id" {
@@ -278,7 +247,7 @@ func (engine *Engine) MapType(t reflect.Type) Table {
 		if pkstr != "" {
 			col := table.Columns[pkstr]
 			col.IsPrimaryKey = true
-			col.AutoIncrement = true
+			col.IsAutoIncrement = true
 			col.Nullable = false
 			col.Length = Int.DefaultLength
 			table.PrimaryKey = col.Name
@@ -292,7 +261,6 @@ func (engine *Engine) MapType(t reflect.Type) Table {
 
 func (engine *Engine) Map(beans ...interface{}) (e error) {
 	for _, bean := range beans {
-		//t := getBeanType(bean)
 		tableName := engine.Mapper.Obj2Table(StructName(bean))
 		if _, ok := engine.Tables[tableName]; !ok {
 			table := engine.MapOne(bean)
@@ -304,7 +272,6 @@ func (engine *Engine) Map(beans ...interface{}) (e error) {
 
 func (engine *Engine) UnMap(beans ...interface{}) (e error) {
 	for _, bean := range beans {
-		//t := getBeanType(bean)
 		tableName := engine.Mapper.Obj2Table(StructName(bean))
 		if _, ok := engine.Tables[tableName]; ok {
 			delete(engine.Tables, tableName)
@@ -380,7 +347,9 @@ func (engine *Engine) Insert(beans ...interface{}) (int64, error) {
 	if err != nil {
 		return -1, err
 	}
-
+	defer engine.Statement.Init()
+	engine.Statement.Session = &session
+	session.SetStatement(&engine.Statement)
 	return session.Insert(beans...)
 }
 
@@ -390,7 +359,9 @@ func (engine *Engine) Update(bean interface{}) (int64, error) {
 	if err != nil {
 		return -1, err
 	}
-
+	defer engine.Statement.Init()
+	engine.Statement.Session = &session
+	session.SetStatement(&engine.Statement)
 	return session.Update(bean)
 }
 
@@ -400,7 +371,9 @@ func (engine *Engine) Delete(bean interface{}) (int64, error) {
 	if err != nil {
 		return -1, err
 	}
-
+	defer engine.Statement.Init()
+	engine.Statement.Session = &session
+	session.SetStatement(&engine.Statement)
 	return session.Delete(bean)
 }
 
@@ -410,7 +383,9 @@ func (engine *Engine) Get(bean interface{}) error {
 	if err != nil {
 		return err
 	}
-
+	defer engine.Statement.Init()
+	engine.Statement.Session = &session
+	session.SetStatement(&engine.Statement)
 	return session.Get(bean)
 }
 
@@ -420,7 +395,9 @@ func (engine *Engine) Find(beans interface{}) error {
 	if err != nil {
 		return err
 	}
-
+	defer engine.Statement.Init()
+	engine.Statement.Session = &session
+	session.SetStatement(&engine.Statement)
 	return session.Find(beans)
 }
 
@@ -430,6 +407,8 @@ func (engine *Engine) Count(bean interface{}) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-
+	defer engine.Statement.Init()
+	engine.Statement.Session = &session
+	session.SetStatement(&engine.Statement)
 	return session.Count(bean)
 }
