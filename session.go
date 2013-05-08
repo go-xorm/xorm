@@ -10,36 +10,11 @@ import (
 	"time"
 )
 
-func getTypeName(obj interface{}) (typestr string) {
-	typ := reflect.TypeOf(obj)
-	typestr = typ.String()
-
-	lastDotIndex := strings.LastIndex(typestr, ".")
-	if lastDotIndex != -1 {
-		typestr = typestr[lastDotIndex+1:]
-	}
-
-	return
-}
-
-func StructName(s interface{}) string {
-	v := reflect.TypeOf(s)
-	return Type2StructName(v)
-}
-
-func Type2StructName(v reflect.Type) string {
-	for v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	return v.Name()
-}
-
 type Session struct {
 	Db           *sql.DB
 	Engine       *Engine
 	Tx           *sql.Tx
 	Statement    Statement
-	Mapper       IMapper
 	IsAutoCommit bool
 }
 
@@ -107,23 +82,13 @@ func (session *Session) Commit() error {
 	return session.Tx.Commit()
 }
 
-func (session *Session) TableName(bean interface{}) string {
-	return session.Mapper.Obj2Table(StructName(bean))
-}
-
-func (session *Session) Bean2Table(bean interface{}) *Table {
-	tablName := session.TableName(bean)
-	table := session.Engine.Tables[tablName]
-	return &table
-}
-
 func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]byte) error {
 	dataStruct := reflect.Indirect(reflect.ValueOf(obj))
 	if dataStruct.Kind() != reflect.Struct {
 		return errors.New("expected a pointer to a struct")
 	}
 
-	table := session.Bean2Table(obj)
+	table := session.Engine.Bean2Table(obj)
 
 	for key, data := range objMap {
 		structField := dataStruct.FieldByName(table.Columns[key].FieldName)
@@ -219,7 +184,7 @@ func (session *Session) Get(bean interface{}) error {
 	statement := session.Statement
 	defer session.Statement.Init()
 	statement.Limit(1)
-	table := session.Bean2Table(bean)
+	table := session.Engine.Bean2Table(bean)
 	statement.Table = table
 
 	colNames, args := session.BuildConditions(table, bean)
@@ -249,7 +214,7 @@ func (session *Session) Get(bean interface{}) error {
 func (session *Session) Count(bean interface{}) (int64, error) {
 	statement := session.Statement
 	defer session.Statement.Init()
-	table := session.Bean2Table(bean)
+	table := session.Engine.Bean2Table(bean)
 	statement.Table = table
 
 	colNames, args := session.BuildConditions(table, bean)
@@ -280,8 +245,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 
 	sliceElementType := sliceValue.Type().Elem()
 
-	tableName := session.Mapper.Obj2Table(Type2StructName(sliceElementType))
-	table := session.Engine.Tables[tableName]
+	table := session.Engine.Tables[sliceElementType]
 	statement.Table = &table
 
 	if len(condiBean) > 0 {
@@ -389,7 +353,7 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 }
 
 func (session *Session) InsertOne(bean interface{}) (int64, error) {
-	table := session.Bean2Table(bean)
+	table := session.Engine.Bean2Table(bean)
 
 	colNames := make([]string, 0)
 	colPlaces := make([]string, 0)
@@ -460,7 +424,7 @@ func (session *Session) BuildConditions(table *Table, bean interface{}) ([]strin
 }
 
 func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int64, error) {
-	table := session.Bean2Table(bean)
+	table := session.Engine.Bean2Table(bean)
 	colNames, args := session.BuildConditions(table, bean)
 	var condiColNames []string
 	var condiArgs []interface{}
@@ -508,7 +472,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 }
 
 func (session *Session) Delete(bean interface{}) (int64, error) {
-	table := session.Bean2Table(bean)
+	table := session.Engine.Bean2Table(bean)
 	colNames, args := session.BuildConditions(table, bean)
 
 	var condition = ""

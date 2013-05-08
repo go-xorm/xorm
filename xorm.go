@@ -1,6 +1,7 @@
 package xorm
 
 import (
+	"reflect"
 	"strings"
 )
 
@@ -11,7 +12,7 @@ import (
 func Create(schema string) Engine {
 	engine := Engine{}
 	engine.Mapper = SnakeMapper{}
-	engine.Tables = make(map[string]Table)
+	engine.Tables = make(map[reflect.Type]Table)
 	engine.Statement.Engine = &engine
 	l := strings.Split(schema, "://")
 	if len(l) == 2 {

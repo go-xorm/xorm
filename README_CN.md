@@ -185,14 +185,14 @@ SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 	}
 
 ##Mapping Rules
-1.Struct 和 Struct 的field名字应该为Pascal式命名，默认的映射规则将转换成用下划线连接的命名规则，这个映射是自动进行的，当然，你可以通过修改Engine或者Session的成员IMapper来改变它。
+1.Struct 和 Struct 的field名字应该为Pascal式命名，默认的映射规则将转换成用下划线连接的命名规则，这个映射是自动进行的，当然，你可以通过修改Engine的成员Mapper来改变它。
 
 例如：
 
 结构体的名字UserInfo将会自动对应数据库中的名为user_info的表。	
 UserInfo中的成员UserName将会自动对应名为user_name的字段。
 
-2.当然你也可以改变这个规则，这有两种方法。一是实现你自己的IMapper，你可以在mapper.go中查看到这个借口。然后设置到 engine.Mapper，这将影响所有的Session，或者你可以设置到某一个session，那么只会影响到这个session对应的操作。
+2.当然你也可以改变这个规则，这有两种方法。一是实现你自己的IMapper，你可以在mapper.go中查看到这个接口。然后设置到 engine.Mapper。
 
 另外一种方法就通过Field Tag来进行改变，关于Field Tag请参考Go的语言文档，如下列出了Tag中可用的关键字及其对应的意义：
 

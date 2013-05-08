@@ -26,7 +26,7 @@ type Engine struct {
 	DBName          string
 	Charset         string
 	Others          string
-	Tables          map[string]Table
+	Tables          map[reflect.Type]Table
 	AutoIncrement   string
 	ShowSQL         bool
 	QuoteIdentifier string
@@ -36,6 +36,13 @@ type Engine struct {
 func Type(bean interface{}) reflect.Type {
 	sliceValue := reflect.Indirect(reflect.ValueOf(bean))
 	return reflect.TypeOf(sliceValue.Interface())
+}
+
+func StructName(v reflect.Type) string {
+	for v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	return v.Name()
 }
 
 func (e *Engine) OpenDB() (db *sql.DB, err error) {
@@ -78,7 +85,6 @@ func (engine *Engine) MakeSession() (session Session, err error) {
 		engine.QuoteIdentifier = "`"
 		session = Session{Engine: engine, Db: db}
 	}
-	session.Mapper = engine.Mapper
 	session.Init()
 	return
 }
@@ -261,10 +267,9 @@ func (engine *Engine) MapType(t reflect.Type) Table {
 
 func (engine *Engine) Map(beans ...interface{}) (e error) {
 	for _, bean := range beans {
-		tableName := engine.Mapper.Obj2Table(StructName(bean))
-		if _, ok := engine.Tables[tableName]; !ok {
-			table := engine.MapOne(bean)
-			engine.Tables[table.Name] = table
+		t := Type(bean)
+		if _, ok := engine.Tables[t]; !ok {
+			engine.Tables[t] = engine.MapOne(bean)
 		}
 	}
 	return
@@ -272,12 +277,17 @@ func (engine *Engine) Map(beans ...interface{}) (e error) {
 
 func (engine *Engine) UnMap(beans ...interface{}) (e error) {
 	for _, bean := range beans {
-		tableName := engine.Mapper.Obj2Table(StructName(bean))
-		if _, ok := engine.Tables[tableName]; ok {
-			delete(engine.Tables, tableName)
+		t := Type(bean)
+		if _, ok := engine.Tables[t]; ok {
+			delete(engine.Tables, t)
 		}
 	}
 	return
+}
+
+func (engine *Engine) Bean2Table(bean interface{}) *Table {
+	table := engine.Tables[Type(bean)]
+	return &table
 }
 
 func (e *Engine) DropAll() error {
@@ -293,11 +303,10 @@ func (e *Engine) DropAll() error {
 		_, err = session.Exec(sql)
 		if err != nil {
 			session.Rollback()
-			break
+			return err
 		}
 	}
-	session.Commit()
-	return err
+	return session.Commit()
 }
 
 func (e *Engine) CreateTables(beans ...interface{}) error {
@@ -309,16 +318,15 @@ func (e *Engine) CreateTables(beans ...interface{}) error {
 	}
 	for _, bean := range beans {
 		table := e.MapOne(bean)
-		e.Tables[table.Name] = table
+		e.Tables[table.Type] = table
 		sql := e.genCreateSQL(&table)
 		_, err = session.Exec(sql)
 		if err != nil {
 			session.Rollback()
-			break
+			return err
 		}
 	}
-	session.Commit()
-	return err
+	return session.Commit()
 }
 
 func (e *Engine) CreateAll() error {
