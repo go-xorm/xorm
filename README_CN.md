@@ -1,127 +1,234 @@
-xorm
-=====
+# xorm
+===========
 
 [English](README.md)
 
-xorm 是一个Go语言的ORM（对象关系模型）. It lets you map Go structs to tables in a database. 
+xorm是一个Go语言的ORM库. 通过它可以简化对数据库的操作。
 
-Right now, it interfaces with Mysql/SQLite. The goal however is to add support for PostgreSQL/DB2/MS ADODB/ODBC/Oracle in the future. 
+目前仅支持Mysql和SQLite，当然我们的目标是支持PostgreSQL/DB2/MS ADODB/ODBC/Oracle等等。
 
-All in all, it's not entirely ready for advanced use yet, but it's getting there.
+但是，目前的版本还不可用于正式版本。
 
-Drivers for Go's sql package which support database/sql includes:
+目前支持的Go数据库驱动如下：
 
-Mysql:[github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
+Mysql: [github.com/Go-SQL-Driver/MySQL](https://github.com/Go-SQL-Driver/MySQL)
 
-Mysql:[github.com/Go-SQL-Driver/MySQL](https://github.com/Go-SQL-Driver/MySQL)
+SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 
-SQLite:[github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
+## 安装
 
-### Installing xorm
-    go get github.com/lunny/xorm
+	go get github.com/lunny/xorm
 
-### Quick Start
+## 快速开始
 
-1. Create an database engine (for example: mysql)
+1.创建数据库引擎 (例如: mysql)
 
-```go
-engine := xorm.Create("mysql://root:123@localhost/test")
-```
+	engine := xorm.Create("mysql://root:123@localhost/test")
 
-2. Define your struct
 
-```go
-type User struct {
-    Id int
-    Name string
-    Age int    `xorm:"-"`
-}
-```
+2.定义你的Struct
 
-for Simple Task, just use engine's functions:
 
-begin start, you should create a database and then we create the tables
+	type User struct {
+    	Id int
+    	Name string
+    	Age int    `xorm:"-"`
+	}
 
-```go
-err := engine.CreateTables(&User{})
-```
+
+对于简单的任务，可以只用engine一个对象就可以完成操作。
+首先，需要创建一个数据库，然后使用以下语句创建一个Struct对应的表。
+
+
+	err := engine.CreateTables(&User{})
+
 	
-then, insert an struct to table
+然后，可以将一个结构体作为一条记录插入到表中。
   
-```go
-id, err := engine.Insert(&User{Name:"lunny"})
-```
 
-or you want to update this struct
+	id, err := engine.Insert(&User{Name:"lunny"})
 
-```go
-user := User{Id:1, Name:"xlw"}
-rows, err := engine.Update(&user)
-```
 
-3. Fetch a single object by user
-```go
-var user = User{Id:27}
-engine.Get(&user)
+或者执行更新操作：
 
-var user = User{Name:"xlw"}
-engine.Get(&user)
-```
 
-for deep use, you should create a session, this func will create a connection to db
+	user := User{Name:"xlw"}
+	rows, err := engine.Update(&user, &User{Id:1})
+	// rows, err := engine.Where("id = ?", 1).Update(&user)
 
-```go
-session, err := engine.MakeSession()
-defer session.Close()
-if err != nil {
-    return
-}
-```
 
-1. Fetch a single object by where
-```go
-var user Userinfo
-session.Where("id=?", 27).Get(&user)
+3.获取单个对象，可以用Get方法：
 
-var user2 Userinfo
-session.Where(3).Get(&user2) // this is shorthand for the version above
 
-var user3 Userinfo
-session.Where("name = ?", "john").Get(&user3) // more complex query
+	var user = User{Id:27}
+	err := engine.Get(&user)
 
-var user4 Userinfo
-session.Where("name = ? and age < ?", "john", 88).Get(&user4) // even more complex
-```
+	var user = User{Name:"xlw"}
+	err := engine.Get(&user)
+	
+4.获取多个对象，可以用Find方法：
 
-2. Fetch multiple objects
+	var allusers []Userinfo
+	err := engine.Where("id > ?", "3").Limit(10,20).Find(&allusers) //Get id>3 limit 10 offset 20
 
-```go
-var allusers []Userinfo
-err := session.Where("id > ?", "3").Limit(10,20).Find(&allusers) //Get id>3 limit 10 offset 20
+	var tenusers []Userinfo
+	err := engine.Limit(10).Find(&tenusers, &Userinfo{Name:"xlw"}) //Get All Name="xlw" limit 10  if omit offset the default is 0
 
-var tenusers []Userinfo
-err := session.Where("id > ?", "3").Limit(10).Find(&tenusers) //Get id>3 limit 10  if omit offset the default is 0
+	var everyone []Userinfo
+	err := engine.Find(&everyone)
 
-var everyone []Userinfo
-err := session.Find(&everyone)
-```
+5.另外还有Delete和Count方法：
 
-###***About Map Rules***
-1. Struct and struct's fields name should be Pascal style, and the table and column's name default is us
-for example: 
-The structs Name 'UserInfo' will turn into the table name 'user_info', the same as the keyname.	
-If the keyname is 'UserName' will turn into the select colum 'user_name'
+	err := engine.Delete(&User{Id:1})
+	
+	total, err := engine.Count(&User{Name:"xlw"})
 
-2. You have two method to change the rule. One is implement your own Map interface according IMapper, you can find the interface in mapper.go and set it to engine.Mapper
+##Origin Use
+当然，如果你想直接使用SQL语句进行操作，也是允许的。
 
-another is use field tag, field tag support the below keywords:
-[name]                  column name
-pk                      the field is a primary key
-int(11)/varchar(50)     column type
-autoincr                auto incrment
-[not ]null              if column can be null value
-unique                  unique
--                       this field is not map as a table column
+	sql := "select * from userinfo"
+	results, err := engine.Query(sql)
+	
+	sql = "update userinfo set username=? where id=?"
+	res, err := engine.Exec(sql, "xiaolun", 1) 
+
+##Deep Use
+更高级的用法，我们必须要使用session对象，session对象在创建时会创建一个数据库连接。
+
+
+	session, err := engine.MakeSession()
+	defer session.Close()
+	if err != nil {
+    	return
+	}
+
+
+1.session对象同样也可以查询
+
+	var user Userinfo
+	session.Where("id=?", 27).Get(&user)
+
+	var user2 Userinfo
+	session.Where("name = ?", "john").Get(&user3) // more complex query
+
+	var user3 Userinfo
+	session.Where("name = ? and age < ?", "john", 88).Get(&user4) // even more complex
+
+
+2.获取多个对象
+
+	var allusers []Userinfo
+	err := session.Where("id > ?", "3").Limit(10,20).Find(&allusers) //Get id>3 limit 10 offset 20
+
+	var tenusers []Userinfo
+	err := session.Limit(10).Find(&tenusers, &Userinfo{Name:"xlw"}) //Get All Name="xlw" limit 10  if omit offset the default is 0
+
+	var everyone []Userinfo
+	err := session.Find(&everyone)
+	
+3.事务处理
+
+	// add Begin() before any action
+	session.Begin()	
+	user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
+	_, err = session.Insert(&user1)
+	if err != nil {
+		session.Rollback()
+		return
+	}
+	user2 := Userinfo{Username: "yyy"}
+	_, err = session.Where("id = ?", 2).Update(&user2)
+	if err != nil {
+		session.Rollback()
+		return
+	}
+
+	_, err = session.Delete(&user2)
+	if err != nil {
+		session.Rollback()
+		return
+	}
+
+    // add Commit() after all actions
+	err = session.Commit()
+	if err != nil {
+		return
+	}
+
+4.混合型事务，这个事务中，既有直接的SQL语句，又有其它方法：
+
+	// add Begin() before any action
+	session.Begin()	
+	user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
+	_, err = session.Insert(&user1)
+	if err != nil {
+		session.Rollback()
+		return
+	}
+	user2 := Userinfo{Username: "yyy"}
+	_, err = session.Where("id = ?", 2).Update(&user2)
+	if err != nil {
+		session.Rollback()
+		return
+	}
+
+	_, err = session.Exec("delete from userinfo where username = ?", user2.Username)
+	if err != nil {
+		session.Rollback()
+		return
+	}
+
+    // add Commit() after all actions
+	err = session.Commit()
+	if err != nil {
+		return
+	}
+
+##Mapping Rules
+1.Struct 和 Struct 的field名字应该为Pascal式命名，默认的映射规则将转换成用下划线连接的命名规则，这个映射是自动进行的，当然，你可以通过修改Engine或者Session的成员IMapper来改变它。
+
+例如：
+
+结构体的名字UserInfo将会自动对应数据库中的名为user_info的表。	
+UserInfo中的成员UserName将会自动对应名为user_name的字段。
+
+2.当然你也可以改变这个规则，这有两种方法。一是实现你自己的IMapper，你可以在mapper.go中查看到这个借口。然后设置到 engine.Mapper，这将影响所有的Session，或者你可以设置到某一个session，那么只会影响到这个session对应的操作。
+
+另外一种方法就通过Field Tag来进行改变，关于Field Tag请参考Go的语言文档，如下列出了Tag中可用的关键字及其对应的意义：
+
+<table>
+    <tr>
+        <td>name</td><td>当前field对应的字段的名称，可选</td>
+    </tr>
+    <tr>
+        <td>pk</td><td>是否是Primary Key</td>
+    </tr>
+    <tr>
+        <td>int(11)/varchar(50)</td><td>字段类型</td>
+    </tr>
+    <tr>
+        <td>autoincr</td><td>是否是自增</td>
+    </tr>
+    <tr>
+        <td>[not ]null</td><td>是否可以为空</td>
+    </tr>
+    <tr>
+        <td>unique</td><td>是否是唯一</td>
+    </tr>
+    <tr>
+        <td>-</td><td>这个Field将不进行字段映射</td>
+    </tr>
+</table>
+
+
+##FAQ
+1.xorm的tag和json的tag如何同时起作用？
+  
+  使用空格分开
+
+	type User struct {
+    	User string `json:"user" orm:"user_id"`
+	}
 
 ## LICENSE
 

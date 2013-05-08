@@ -33,6 +33,12 @@ type Userinfo struct {
 	Created    time.Time
 }
 
+type Userdetail struct {
+	Uid     int `xorm:"id pk not null"`
+	Intro   string
+	Profile string
+}
+
 var engine xorm.Engine
 
 func directCreateTable(t *testing.T) {
@@ -48,7 +54,7 @@ func mapper(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = engine.Map(&Userinfo{})
+	err = engine.Map(&Userinfo{}, &Userdetail{})
 	if err != nil {
 		t.Error(err)
 	}
@@ -72,6 +78,24 @@ func insert(t *testing.T) {
 	}
 }
 
+func query(t *testing.T) {
+	sql := "select * from userinfo"
+	results, err := engine.Query(sql)
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println(results)
+}
+
+func exec(t *testing.T) {
+	sql := "update userinfo set username=? where id=?"
+	res, err := engine.Exec(sql, "xiaolun", 1)
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println(res)
+}
+
 func insertAutoIncr(t *testing.T) {
 	// auto increment insert
 	user := Userinfo{Username: "xiaolunwen", Departname: "dev", Alias: "lunny", Created: time.Now()}
@@ -90,10 +114,26 @@ func insertMulti(t *testing.T) {
 	}
 }
 
+func insertTwoTable(t *testing.T) {
+	userinfo := Userinfo{Username: "xlw3", Departname: "dev", Alias: "lunny4", Created: time.Now()}
+	uid, err := engine.Insert(&userinfo)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	userdetail := Userdetail{Uid: int(uid), Intro: "I'm a very beautiful women.", Profile: "sfsaf"}
+	_, err = engine.Insert(&userdetail)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func update(t *testing.T) {
 	// update by id
-	user := Userinfo{Uid: 1, Username: "xxx"}
-	_, err := engine.Update(&user)
+	user := Userinfo{Username: "xxx"}
+	condiUser := Userinfo{Uid: 1}
+	_, err := engine.Update(&user, &condiUser)
 	if err != nil {
 		t.Error(err)
 	}
@@ -163,6 +203,23 @@ func order(t *testing.T) {
 	fmt.Println(users)
 }
 
+func join(t *testing.T) {
+	users := make([]Userinfo, 0)
+	err := engine.Join("LEFT", "userdetail", "userinfo.id=userdetail.id").Find(&users)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func having(t *testing.T) {
+	users := make([]Userinfo, 0)
+	err := engine.GroupBy("username").Having("username='xlw'").Find(&users)
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println(users)
+}
+
 func transaction(t *testing.T) {
 	counter := func() {
 		total, err := engine.Count(&Userinfo{})
@@ -173,7 +230,7 @@ func transaction(t *testing.T) {
 	}
 
 	counter()
-
+	defer counter()
 	session, err := engine.MakeSession()
 	defer session.Close()
 	if err != nil {
@@ -181,25 +238,76 @@ func transaction(t *testing.T) {
 		return
 	}
 
-	defer counter()
-
 	session.Begin()
-	session.IsAutoRollback = true
+	//session.IsAutoRollback = false
 	user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
 	_, err = session.Insert(&user1)
 	if err != nil {
+		session.Rollback()
 		t.Error(err)
 		return
 	}
 	user2 := Userinfo{Username: "yyy"}
-	_, err = session.Where("id = ?", 2).Update(&user2)
+	_, err = session.Where("uid = ?", 0).Update(&user2)
 	if err != nil {
-		t.Error(err)
+		session.Rollback()
+		fmt.Println(err)
+		//t.Error(err)
 		return
 	}
 
 	_, err = session.Delete(&user2)
 	if err != nil {
+		session.Rollback()
+		t.Error(err)
+		return
+	}
+
+	err = session.Commit()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+}
+
+func combineTransaction(t *testing.T) {
+	counter := func() {
+		total, err := engine.Count(&Userinfo{})
+		if err != nil {
+			t.Error(err)
+		}
+		fmt.Printf("----now total %v records\n", total)
+	}
+
+	counter()
+	defer counter()
+	session, err := engine.MakeSession()
+	defer session.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	session.Begin()
+	//session.IsAutoRollback = false
+	user1 := Userinfo{Username: "xiaoxiao2", Departname: "dev", Alias: "lunny", Created: time.Now()}
+	_, err = session.Insert(&user1)
+	if err != nil {
+		session.Rollback()
+		t.Error(err)
+		return
+	}
+	user2 := Userinfo{Username: "zzz"}
+	_, err = session.Where("id = ?", 0).Update(&user2)
+	if err != nil {
+		session.Rollback()
+		t.Error(err)
+		return
+	}
+
+	_, err = session.Exec("delete from userinfo where username = ?", user2.Username)
+	if err != nil {
+		session.Rollback()
 		t.Error(err)
 		return
 	}
@@ -218,6 +326,8 @@ func TestMysql(t *testing.T) {
 	directCreateTable(t)
 	mapper(t)
 	insert(t)
+	query(t)
+	exec(t)
 	insertAutoIncr(t)
 	insertMulti(t)
 	update(t)
@@ -228,7 +338,10 @@ func TestMysql(t *testing.T) {
 	where(t)
 	limit(t)
 	order(t)
+	join(t)
+	having(t)
 	transaction(t)
+	combineTransaction(t)
 }
 
 func TestSqlite(t *testing.T) {
@@ -238,6 +351,8 @@ func TestSqlite(t *testing.T) {
 	directCreateTable(t)
 	mapper(t)
 	insert(t)
+	query(t)
+	exec(t)
 	insertAutoIncr(t)
 	insertMulti(t)
 	update(t)
@@ -248,5 +363,8 @@ func TestSqlite(t *testing.T) {
 	where(t)
 	limit(t)
 	order(t)
+	join(t)
+	having(t)
 	transaction(t)
+	combineTransaction(t)
 }

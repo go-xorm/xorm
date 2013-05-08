@@ -6,7 +6,7 @@ import (
 
 type Statement struct {
 	Table      *Table
-	Session    *Session
+	Engine     *Engine
 	Start      int
 	LimitN     int
 	WhereStr   string
@@ -21,7 +21,6 @@ type Statement struct {
 
 func (statement *Statement) Init() {
 	statement.Table = nil
-	statement.Session = nil
 	statement.Start = 0
 	statement.LimitN = 0
 	statement.WhereStr = ""
@@ -76,13 +75,8 @@ func (statement Statement) genCountSql() string {
 	return statement.genSelectSql("count(*) as total")
 }
 
-func (statement Statement) genExecSql() string {
-	return ""
-}
-
 func (statement Statement) genSelectSql(columnStr string) (a string) {
-	session := statement.Session
-	if session.Engine.Protocol == "mssql" {
+	if statement.Engine.Protocol == "mssql" {
 		if statement.Start > 0 {
 			a = fmt.Sprintf("select ROW_NUMBER() OVER(order by %v )as rownum,%v from %v",
 				statement.Table.PKColumn().Name,
@@ -171,24 +165,3 @@ func (statement Statement) genSelectSql(columnStr string) (a string) {
 	}
 	return
 }
-
-/*func (statement *Statement) genInsertSQL() string {
-	table = statement.Table
-	colNames := make([]string, len(table.Columns))
-	for idx, col := range table.Columns {
-		if col.Name == "" {
-			continue
-		}
-		colNames[idx] = col.Name
-	}
-	return strings.Join(colNames, ", ")
-
-	colNames := make([]string, len(table.Columns))
-	for idx, col := range table.Columns {
-		if col.Name == "" {
-			continue
-		}
-		colNames[idx] = "?"
-	}
-	strings.Join(colNames, ", ")
-}*/

@@ -35,97 +35,75 @@ func Type2StructName(v reflect.Type) string {
 }
 
 type Session struct {
-	Db              *sql.DB
-	Engine          *Engine
-	Tx              *sql.Tx
-	Statements      []Statement
-	Mapper          IMapper
-	IsAutoCommit    bool
-	IsAutoRollback  bool
-	CurStatementIdx int
+	Db           *sql.DB
+	Engine       *Engine
+	Tx           *sql.Tx
+	Statement    Statement
+	Mapper       IMapper
+	IsAutoCommit bool
 }
 
 func (session *Session) Init() {
-	session.Statements = make([]Statement, 0)
-	session.CurStatementIdx = -1
+	session.Statement = Statement{}
 	session.IsAutoCommit = true
-	session.IsAutoRollback = false
 }
 
 func (session *Session) Close() {
-	rollbackfunc := func() {
-		if session.IsAutoRollback {
-			session.Rollback()
-		}
-	}
-	defer rollbackfunc()
 	defer session.Db.Close()
 }
 
-func (session *Session) CurrentStatement() *Statement {
-	if session.CurStatementIdx > -1 {
-		return &session.Statements[session.CurStatementIdx]
-	}
-	return nil
-}
-
-func (session *Session) AutoStatement() *Statement {
-	if session.CurStatementIdx == -1 {
-		session.newStatement()
-	}
-	return session.CurrentStatement()
-}
-
 func (session *Session) Where(querystring string, args ...interface{}) *Session {
-	statement := session.AutoStatement()
-	statement.Where(querystring, args...)
+	session.Statement.Where(querystring, args...)
 	return session
 }
 
 func (session *Session) Limit(limit int, start ...int) *Session {
-	statement := session.AutoStatement()
-	statement.Limit(limit, start...)
+	session.Statement.Limit(limit, start...)
 	return session
 }
 
 func (session *Session) OrderBy(order string) *Session {
-	statement := session.AutoStatement()
-	statement.OrderBy(order)
+	session.Statement.OrderBy(order)
 	return session
 }
 
 //The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
 func (session *Session) Join(join_operator, tablename, condition string) *Session {
-	statement := session.AutoStatement()
-	statement.Join(join_operator, tablename, condition)
+	session.Statement.Join(join_operator, tablename, condition)
 	return session
 }
 
 func (session *Session) GroupBy(keys string) *Session {
-	statement := session.AutoStatement()
-	statement.GroupBy(keys)
+	session.Statement.GroupBy(keys)
 	return session
 }
 
 func (session *Session) Having(conditions string) *Session {
-	statement := session.AutoStatement()
-	statement.Having(conditions)
+	session.Statement.Having(conditions)
 	return session
 }
 
 func (session *Session) Begin() error {
 	session.IsAutoCommit = false
-	session.IsAutoRollback = true
 	tx, err := session.Db.Begin()
 	session.Tx = tx
+	if session.Engine.ShowSQL {
+		fmt.Println("BEGIN TRANSACTION")
+	}
 	return err
 }
 
 func (session *Session) Rollback() error {
+	if session.Engine.ShowSQL {
+		fmt.Println("ROLL BACK")
+	}
 	return session.Tx.Rollback()
 }
 
 func (session *Session) Commit() error {
+	if session.Engine.ShowSQL {
+		fmt.Println("COMMIT")
+	}
 	return session.Tx.Commit()
 }
 
@@ -133,27 +111,10 @@ func (session *Session) TableName(bean interface{}) string {
 	return session.Mapper.Obj2Table(StructName(bean))
 }
 
-func (session *Session) SetStatement(statement *Statement) {
-	if session.CurStatementIdx == len(session.Statements)-1 {
-		session.Statements = append(session.Statements, *statement)
-	} else {
-		session.Statements[session.CurStatementIdx+1] = *statement
-	}
-	session.CurStatementIdx = session.CurStatementIdx + 1
-}
-
-func (session *Session) newStatement() {
-	if session.CurStatementIdx == len(session.Statements)-1 {
-		state := Statement{Session: session}
-		state.Init()
-		session.Statements = append(session.Statements, state)
-	}
-	session.CurStatementIdx = session.CurStatementIdx + 1
-}
-
-func (session *Session) clearStatment() {
-	session.Statements[session.CurStatementIdx].Init()
-	session.CurStatementIdx = session.CurStatementIdx - 1
+func (session *Session) Bean2Table(bean interface{}) *Table {
+	tablName := session.TableName(bean)
+	table := session.Engine.Tables[tablName]
+	return &table
 }
 
 func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]byte) error {
@@ -162,8 +123,7 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 		return errors.New("expected a pointer to a struct")
 	}
 
-	tablName := session.TableName(obj)
-	table := session.Engine.Tables[tablName]
+	table := session.Bean2Table(obj)
 
 	for key, data := range objMap {
 		structField := dataStruct.FieldByName(table.Columns[key].FieldName)
@@ -231,8 +191,8 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 }
 
 //Execute sql
-func (session *Session) Exec(finalQueryString string, args ...interface{}) (sql.Result, error) {
-	rs, err := session.Db.Prepare(finalQueryString)
+func (session *Session) innerExec(sql string, args ...interface{}) (sql.Result, error) {
+	rs, err := session.Db.Prepare(sql)
 	if err != nil {
 		return nil, err
 	}
@@ -245,18 +205,30 @@ func (session *Session) Exec(finalQueryString string, args ...interface{}) (sql.
 	return res, nil
 }
 
-func (session *Session) Get(bean interface{}) error {
-	statement := session.AutoStatement()
-	statement.Limit(1)
-	tableName := session.TableName(bean)
-	table := session.Engine.Tables[tableName]
-	statement.Table = &table
+func (session *Session) Exec(sql string, args ...interface{}) (sql.Result, error) {
+	if session.Engine.ShowSQL {
+		fmt.Println(sql)
+	}
+	if session.IsAutoCommit {
+		return session.innerExec(sql, args...)
+	}
+	return session.Tx.Exec(sql, args...)
+}
 
-	colNames, args := session.BuildConditions(&table, bean)
+func (session *Session) Get(bean interface{}) error {
+	statement := session.Statement
+	defer session.Statement.Init()
+	statement.Limit(1)
+	table := session.Bean2Table(bean)
+	statement.Table = table
+
+	colNames, args := session.BuildConditions(table, bean)
 	statement.ColumnStr = strings.Join(colNames, " and ")
 	statement.BeanArgs = args
 
-	resultsSlice, err := session.FindMap(statement)
+	sql := statement.generateSql()
+	resultsSlice, err := session.Query(sql, append(statement.Params, statement.BeanArgs...)...)
+
 	if err != nil {
 		return err
 	}
@@ -275,16 +247,16 @@ func (session *Session) Get(bean interface{}) error {
 }
 
 func (session *Session) Count(bean interface{}) (int64, error) {
-	statement := session.AutoStatement()
-	tableName := session.TableName(bean)
-	table := session.Engine.Tables[tableName]
-	statement.Table = &table
+	statement := session.Statement
+	defer session.Statement.Init()
+	table := session.Bean2Table(bean)
+	statement.Table = table
 
-	colNames, args := session.BuildConditions(&table, bean)
+	colNames, args := session.BuildConditions(table, bean)
 	statement.ColumnStr = strings.Join(colNames, " and ")
 	statement.BeanArgs = args
 
-	resultsSlice, err := session.SQL2Map(statement.genCountSql(), append(statement.Params, statement.BeanArgs...))
+	resultsSlice, err := session.Query(statement.genCountSql(), append(statement.Params, statement.BeanArgs...)...)
 	if err != nil {
 		return 0, err
 	}
@@ -298,9 +270,9 @@ func (session *Session) Count(bean interface{}) (int64, error) {
 	return int64(total), err
 }
 
-func (session *Session) Find(rowsSlicePtr interface{}) error {
-	statement := session.AutoStatement()
-
+func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{}) error {
+	statement := session.Statement
+	defer session.Statement.Init()
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
 	if sliceValue.Kind() != reflect.Slice {
 		return errors.New("needs a pointer to a slice")
@@ -312,7 +284,15 @@ func (session *Session) Find(rowsSlicePtr interface{}) error {
 	table := session.Engine.Tables[tableName]
 	statement.Table = &table
 
-	resultsSlice, err := session.FindMap(statement)
+	if len(condiBean) > 0 {
+		colNames, args := session.BuildConditions(&table, condiBean[0])
+		statement.ColumnStr = strings.Join(colNames, " and ")
+		statement.BeanArgs = args
+	}
+
+	sql := statement.generateSql()
+	resultsSlice, err := session.Query(sql, append(statement.Params, statement.BeanArgs...)...)
+
 	if err != nil {
 		return err
 	}
@@ -328,7 +308,7 @@ func (session *Session) Find(rowsSlicePtr interface{}) error {
 	return nil
 }
 
-func (session *Session) SQL2Map(sqls string, paramStr []interface{}) (resultsSlice []map[string][]byte, err error) {
+func (session *Session) Query(sqls string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
 	if session.Engine.ShowSQL {
 		fmt.Println(sqls)
 	}
@@ -397,11 +377,6 @@ func (session *Session) SQL2Map(sqls string, paramStr []interface{}) (resultsSli
 	return resultsSlice, nil
 }
 
-func (session *Session) FindMap(statement *Statement) (resultsSlice []map[string][]byte, err error) {
-	sqls := statement.generateSql()
-	return session.SQL2Map(sqls, append(statement.Params, statement.BeanArgs...))
-}
-
 func (session *Session) Insert(beans ...interface{}) (int64, error) {
 	var lastId int64 = -1
 	for _, bean := range beans {
@@ -414,8 +389,7 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 }
 
 func (session *Session) InsertOne(bean interface{}) (int64, error) {
-	tableName := session.TableName(bean)
-	table := session.Engine.Tables[tableName]
+	table := session.Bean2Table(bean)
 
 	colNames := make([]string, 0)
 	colPlaces := make([]string, 0)
@@ -423,10 +397,8 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 	for _, col := range table.Columns {
 		fieldValue := reflect.Indirect(reflect.ValueOf(bean)).FieldByName(col.FieldName)
 		val := fieldValue.Interface()
-		if col.IsAutoIncrement {
-			if fieldValue.Int() == 0 {
-				continue
-			}
+		if col.IsAutoIncrement && fieldValue.Int() == 0 {
+			continue
 		}
 		args = append(args, val)
 		colNames = append(colNames, col.Name)
@@ -435,23 +407,12 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 
 	statement := fmt.Sprintf("INSERT INTO %v%v%v (%v) VALUES (%v)",
 		session.Engine.QuoteIdentifier,
-		tableName,
+		table.Name,
 		session.Engine.QuoteIdentifier,
 		strings.Join(colNames, ", "),
 		strings.Join(colPlaces, ", "))
 
-	if session.Engine.ShowSQL {
-		fmt.Println(statement)
-	}
-
-	var res sql.Result
-	var err error
-
-	if session.IsAutoCommit {
-		res, err = session.Exec(statement, args...)
-	} else {
-		res, err = session.Tx.Exec(statement, args...)
-	}
+	res, err := session.Exec(statement, args...)
 	if err != nil {
 		return -1, err
 	}
@@ -461,6 +422,7 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 	if err != nil {
 		return -1, err
 	}
+
 	return id, nil
 }
 
@@ -497,46 +459,42 @@ func (session *Session) BuildConditions(table *Table, bean interface{}) ([]strin
 	return colNames, args
 }
 
-func (session *Session) Update(bean interface{}) (int64, error) {
-	tableName := session.TableName(bean)
-	table := session.Engine.Tables[tableName]
-	colNames, args := session.BuildConditions(&table, bean)
+func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int64, error) {
+	table := session.Bean2Table(bean)
+	colNames, args := session.BuildConditions(table, bean)
+	var condiColNames []string
+	var condiArgs []interface{}
+
+	if len(condiBean) > 0 {
+		condiColNames, condiArgs = session.BuildConditions(table, condiBean[0])
+	}
 
 	var condition = ""
-	st := session.AutoStatement()
-	defer session.clearStatment()
+	st := session.Statement
+	defer session.Statement.Init()
 	if st.WhereStr != "" {
 		condition = fmt.Sprintf("WHERE %v", st.WhereStr)
 	}
 
 	if condition == "" {
-		fieldValue := reflect.Indirect(reflect.ValueOf(bean)).FieldByName(table.PKColumn().FieldName)
-		if fieldValue.Int() != 0 {
-			condition = fmt.Sprintf("WHERE %v = ?", table.PKColumn().Name)
-			args = append(args, fieldValue.Interface())
+		if len(condiColNames) > 0 {
+			condition = fmt.Sprintf("WHERE %v ", strings.Join(condiColNames, " and "))
+		}
+	} else {
+		if len(condiColNames) > 0 {
+			condition = fmt.Sprintf("%v and %v", condition, strings.Join(condiColNames, " and "))
 		}
 	}
 
 	statement := fmt.Sprintf("UPDATE %v%v%v SET %v %v",
 		session.Engine.QuoteIdentifier,
-		tableName,
+		table.Name,
 		session.Engine.QuoteIdentifier,
 		strings.Join(colNames, ", "),
 		condition)
 
-	if session.Engine.ShowSQL {
-		fmt.Println(statement)
-	}
-
-	var res sql.Result
-	var err error
-	if session.IsAutoCommit {
-		fmt.Println("session.Exec")
-		res, err = session.Exec(statement, append(args, st.Params...)...)
-	} else {
-		fmt.Println("tx.Exec")
-		res, err = session.Tx.Exec(statement, append(args, st.Params...)...)
-	}
+	eargs := append(append(args, st.Params...), condiArgs...)
+	res, err := session.Exec(statement, eargs...)
 	if err != nil {
 		return -1, err
 	}
@@ -550,13 +508,12 @@ func (session *Session) Update(bean interface{}) (int64, error) {
 }
 
 func (session *Session) Delete(bean interface{}) (int64, error) {
-	tableName := session.TableName(bean)
-	table := session.Engine.Tables[tableName]
-	colNames, args := session.BuildConditions(&table, bean)
+	table := session.Bean2Table(bean)
+	colNames, args := session.BuildConditions(table, bean)
 
 	var condition = ""
-	st := session.AutoStatement()
-	defer session.clearStatment()
+	st := session.Statement
+	defer session.Statement.Init()
 	if st.WhereStr != "" {
 		condition = fmt.Sprintf("WHERE %v", st.WhereStr)
 		if len(colNames) > 0 {
@@ -569,21 +526,12 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 
 	statement := fmt.Sprintf("DELETE FROM %v%v%v %v",
 		session.Engine.QuoteIdentifier,
-		tableName,
+		table.Name,
 		session.Engine.QuoteIdentifier,
 		condition)
 
-	if session.Engine.ShowSQL {
-		fmt.Println(statement)
-	}
+	res, err := session.Exec(statement, append(st.Params, args...)...)
 
-	var res sql.Result
-	var err error
-	if session.IsAutoCommit {
-		res, err = session.Exec(statement, append(st.Params, args...)...)
-	} else {
-		res, err = session.Tx.Exec(statement, append(st.Params, args...)...)
-	}
 	if err != nil {
 		return -1, err
 	}

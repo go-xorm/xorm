@@ -12,6 +12,7 @@ func Create(schema string) Engine {
 	engine := Engine{}
 	engine.Mapper = SnakeMapper{}
 	engine.Tables = make(map[string]Table)
+	engine.Statement.Engine = &engine
 	l := strings.Split(schema, "://")
 	if len(l) == 2 {
 		engine.Protocol = l[0]

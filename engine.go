@@ -341,6 +341,24 @@ func (e *Engine) CreateAll() error {
 	return err
 }
 
+func (engine *Engine) Exec(sql string, args ...interface{}) (sql.Result, error) {
+	session, err := engine.MakeSession()
+	defer session.Close()
+	if err != nil {
+		return nil, err
+	}
+	return session.Exec(sql, args...)
+}
+
+func (engine *Engine) Query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
+	session, err := engine.MakeSession()
+	defer session.Close()
+	if err != nil {
+		return nil, err
+	}
+	return session.Query(sql, paramStr...)
+}
+
 func (engine *Engine) Insert(beans ...interface{}) (int64, error) {
 	session, err := engine.MakeSession()
 	defer session.Close()
@@ -348,21 +366,19 @@ func (engine *Engine) Insert(beans ...interface{}) (int64, error) {
 		return -1, err
 	}
 	defer engine.Statement.Init()
-	engine.Statement.Session = &session
-	session.SetStatement(&engine.Statement)
+	session.Statement = engine.Statement
 	return session.Insert(beans...)
 }
 
-func (engine *Engine) Update(bean interface{}) (int64, error) {
+func (engine *Engine) Update(bean interface{}, condiBeans ...interface{}) (int64, error) {
 	session, err := engine.MakeSession()
 	defer session.Close()
 	if err != nil {
 		return -1, err
 	}
 	defer engine.Statement.Init()
-	engine.Statement.Session = &session
-	session.SetStatement(&engine.Statement)
-	return session.Update(bean)
+	session.Statement = engine.Statement
+	return session.Update(bean, condiBeans...)
 }
 
 func (engine *Engine) Delete(bean interface{}) (int64, error) {
@@ -372,8 +388,7 @@ func (engine *Engine) Delete(bean interface{}) (int64, error) {
 		return -1, err
 	}
 	defer engine.Statement.Init()
-	engine.Statement.Session = &session
-	session.SetStatement(&engine.Statement)
+	session.Statement = engine.Statement
 	return session.Delete(bean)
 }
 
@@ -384,21 +399,19 @@ func (engine *Engine) Get(bean interface{}) error {
 		return err
 	}
 	defer engine.Statement.Init()
-	engine.Statement.Session = &session
-	session.SetStatement(&engine.Statement)
+	session.Statement = engine.Statement
 	return session.Get(bean)
 }
 
-func (engine *Engine) Find(beans interface{}) error {
+func (engine *Engine) Find(beans interface{}, condiBeans ...interface{}) error {
 	session, err := engine.MakeSession()
 	defer session.Close()
 	if err != nil {
 		return err
 	}
 	defer engine.Statement.Init()
-	engine.Statement.Session = &session
-	session.SetStatement(&engine.Statement)
-	return session.Find(beans)
+	session.Statement = engine.Statement
+	return session.Find(beans, condiBeans...)
 }
 
 func (engine *Engine) Count(bean interface{}) (int64, error) {
@@ -408,7 +421,6 @@ func (engine *Engine) Count(bean interface{}) (int64, error) {
 		return 0, err
 	}
 	defer engine.Statement.Init()
-	engine.Statement.Session = &session
-	session.SetStatement(&engine.Statement)
+	session.Statement = engine.Statement
 	return session.Count(bean)
 }

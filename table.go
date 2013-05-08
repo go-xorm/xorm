@@ -72,7 +72,7 @@ type Table struct {
 func (table *Table) ColumnStr() string {
 	colNames := make([]string, 0)
 	for _, col := range table.Columns {
-		colNames = append(colNames, col.Name)
+		colNames = append(colNames, table.Name+"."+col.Name)
 	}
 	return strings.Join(colNames, ", ")
 }
