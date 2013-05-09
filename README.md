@@ -1,6 +1,5 @@
 # xorm
 ----------
-
 [中文](./README_CN.md)
 
 xorm is an ORM for Go. It lets you map Go structs to tables in a database. 
@@ -14,6 +13,16 @@ Drivers for Go's sql package which support database/sql includes:
 Mysql: [github.com/Go-SQL-Driver/MySQL](https://github.com/Go-SQL-Driver/MySQL)
 
 SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
+## Features
+1.Struct<->Table Mapping Support Names and Tags
+
+2.Transaction Support
+
+3.SQL Execute Support
+
+4.Simple usage
+
+5.Support Id, Where or Sturct as query conditions
 
 ## Installing xorm
 

@@ -1,6 +1,5 @@
 # xorm
 ----------
-
 [English](README.md)
 
 xorm是一个Go语言的ORM库. 通过它可以简化对数据库的操作。
@@ -14,6 +13,16 @@ xorm是一个Go语言的ORM库. 通过它可以简化对数据库的操作。
 Mysql: [github.com/Go-SQL-Driver/MySQL](https://github.com/Go-SQL-Driver/MySQL)
 
 SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
+## 特性
+1.支持Struct和数据库表之间的映射，映射方式支持命名约定和Tag两种方式
+
+2.事务支持
+
+3.同时支持原始SQL语句的混合执行
+
+4.使用连写来简化调用
+
+5.支持使用Id，Where和结构体等方式作为条件
 
 ## 安装
 
