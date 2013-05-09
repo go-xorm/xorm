@@ -2,7 +2,7 @@ package xorm
 
 import (
 	"database/sql"
-	"fmt"
+	//"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -11,21 +11,15 @@ import (
 const (
 	PQSQL   = "pqsql"
 	MSSQL   = "mssql"
-	SQLITE  = "sqlite"
+	SQLITE  = "sqlite3"
 	MYSQL   = "mysql"
 	MYMYSQL = "mymysql"
 )
 
 type Engine struct {
 	Mapper          IMapper
-	Protocol        string
-	UserName        string
-	Password        string
-	Host            string
-	Port            int
-	DBName          string
-	Charset         string
-	Others          string
+	DriverName      string
+	DataSourceName  string
 	Tables          map[reflect.Type]Table
 	AutoIncrement   string
 	ShowSQL         bool
@@ -45,29 +39,8 @@ func StructName(v reflect.Type) string {
 	return v.Name()
 }
 
-func (e *Engine) OpenDB() (db *sql.DB, err error) {
-	db = nil
-	err = nil
-	if e.Protocol == SQLITE {
-		// 'sqlite:///foo.db'
-		db, err = sql.Open("sqlite3", e.Others)
-		// 'sqlite:///:memory:'
-	} else if e.Protocol == MYSQL {
-		// 'mysql://<username>:<passwd>@<host>/<dbname>?charset=<encoding>'
-		connstr := strings.Join([]string{e.UserName, ":",
-			e.Password, "@tcp(", e.Host, ":3306)/", e.DBName, "?charset=", e.Charset}, "")
-		db, err = sql.Open(e.Protocol, connstr)
-	} else if e.Protocol == MYMYSQL {
-		//   DBNAME/USER/PASSWD
-		connstr := strings.Join([]string{e.DBName, e.UserName, e.Password}, "/")
-		db, err = sql.Open(e.Protocol, connstr)
-		//   unix:SOCKPATH*DBNAME/USER/PASSWD
-		//   unix:SOCKPATH,OPTIONS*DBNAME/USER/PASSWD
-		//   tcp:ADDR*DBNAME/USER/PASSWD
-		//   tcp:ADDR,OPTIONS*DBNAME/USER/PASSWD
-	}
-
-	return
+func (e *Engine) OpenDB() (*sql.DB, error) {
+	return sql.Open(e.DriverName, e.DataSourceName)
 }
 
 func (engine *Engine) MakeSession() (session Session, err error) {
@@ -75,22 +48,19 @@ func (engine *Engine) MakeSession() (session Session, err error) {
 	if err != nil {
 		return Session{}, err
 	}
-	if engine.Protocol == PQSQL {
-		engine.QuoteIdentifier = "\""
-		session = Session{Engine: engine, Db: db}
-	} else if engine.Protocol == MSSQL {
-		engine.QuoteIdentifier = ""
-		session = Session{Engine: engine, Db: db}
-	} else {
-		engine.QuoteIdentifier = "`"
-		session = Session{Engine: engine, Db: db}
-	}
+
+	session = Session{Engine: engine, Db: db}
 	session.Init()
 	return
 }
 
 func (engine *Engine) Where(querystring string, args ...interface{}) *Engine {
 	engine.Statement.Where(querystring, args...)
+	return engine
+}
+
+func (engine *Engine) Id(id int) *Engine {
+	engine.Statement.Id(id)
 	return engine
 }
 
@@ -125,12 +95,12 @@ func (e *Engine) genColumnStr(col *Column) string {
 	if col.SQLType == Date {
 		sql += " datetime "
 	} else {
-		if e.Protocol == SQLITE && col.IsPrimaryKey {
+		if e.DriverName == SQLITE && col.IsPrimaryKey {
 			sql += "integer"
 		} else {
 			sql += col.SQLType.Name
 		}
-		if e.Protocol != SQLITE {
+		if e.DriverName != SQLITE {
 			if col.SQLType != Decimal {
 				sql += "(" + strconv.Itoa(col.Length) + ")"
 			} else {
@@ -165,17 +135,11 @@ func (e *Engine) genCreateSQL(table *Table) string {
 		sql += ","
 	}
 	sql = sql[:len(sql)-2] + ");"
-	if e.ShowSQL {
-		fmt.Println(sql)
-	}
 	return sql
 }
 
 func (e *Engine) genDropSQL(table *Table) string {
 	sql := "DROP TABLE IF EXISTS `" + table.Name + "`;"
-	if e.ShowSQL {
-		fmt.Println(sql)
-	}
 	return sql
 }
 

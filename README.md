@@ -1,11 +1,11 @@
 # xorm
 ===========
 
-[中文](README_CN.md)
+[中文](./README_CN.md)
 
 xorm is an ORM for Go. It lets you map Go structs to tables in a database. 
 
-Right now, it interfaces with Mysql/SQLite. The goal however is to add support for PostgreSQL/DB2/MS ADODB/ODBC/Oracle in the future. 
+Right now, it supports Mysql and SQLite. The goal however is to add support for PostgreSQL/DB2/MS ADODB/ODBC/Oracle in the future. 
 
 All in all, it's not entirely ready for product use yet, but it's getting there.
 
@@ -21,9 +21,13 @@ SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 
 ## Quick Start
 
-1.Create a database engine (for example: mysql)
+1.Create a database engine just like sql.OpenDB (for example: mysql)
 
-	engine := xorm.Create("mysql://root:123@localhost/test")
+	engine := xorm.Create("mysql", "root:123@/test?charset=utf8")
+
+or
+
+	engine = xorm.Create("sqlite3", "./test.db")
 
 
 2.Define your struct

@@ -32,6 +32,11 @@ func (session *Session) Where(querystring string, args ...interface{}) *Session 
 	return session
 }
 
+func (session *Session) Id(id int) *Session {
+	session.Statement.Id(id)
+	return session
+}
+
 func (session *Session) Limit(limit int, start ...int) *Session {
 	session.Statement.Limit(limit, start...)
 	return session
@@ -171,6 +176,9 @@ func (session *Session) innerExec(sql string, args ...interface{}) (sql.Result, 
 }
 
 func (session *Session) Exec(sql string, args ...interface{}) (sql.Result, error) {
+	if session.Statement.Table != nil && session.Statement.Table.PrimaryKey != "" {
+		sql = strings.Replace(sql, "(id)", session.Statement.Table.PrimaryKey, -1)
+	}
 	if session.Engine.ShowSQL {
 		fmt.Println(sql)
 	}
@@ -272,11 +280,14 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	return nil
 }
 
-func (session *Session) Query(sqls string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
-	if session.Engine.ShowSQL {
-		fmt.Println(sqls)
+func (session *Session) Query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
+	if session.Statement.Table != nil && session.Statement.Table.PrimaryKey != "" {
+		sql = strings.Replace(sql, "(id)", session.Statement.Table.PrimaryKey, -1)
 	}
-	s, err := session.Db.Prepare(sqls)
+	if session.Engine.ShowSQL {
+		fmt.Println(sql)
+	}
+	s, err := session.Db.Prepare(sql)
 	if err != nil {
 		return nil, err
 	}
@@ -354,7 +365,7 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 
 func (session *Session) InsertOne(bean interface{}) (int64, error) {
 	table := session.Engine.Bean2Table(bean)
-
+	session.Statement.Table = table
 	colNames := make([]string, 0)
 	colPlaces := make([]string, 0)
 	var args = make([]interface{}, 0)
@@ -425,6 +436,7 @@ func (session *Session) BuildConditions(table *Table, bean interface{}) ([]strin
 
 func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int64, error) {
 	table := session.Engine.Bean2Table(bean)
+	session.Statement.Table = table
 	colNames, args := session.BuildConditions(table, bean)
 	var condiColNames []string
 	var condiArgs []interface{}
@@ -473,6 +485,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 func (session *Session) Delete(bean interface{}) (int64, error) {
 	table := session.Engine.Bean2Table(bean)
+	session.Statement.Table = table
 	colNames, args := session.BuildConditions(table, bean)
 
 	var condition = ""

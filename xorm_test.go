@@ -132,8 +132,13 @@ func insertTwoTable(t *testing.T) {
 func update(t *testing.T) {
 	// update by id
 	user := Userinfo{Username: "xxx"}
-	condiUser := Userinfo{Uid: 1}
-	_, err := engine.Update(&user, &condiUser)
+	_, err := engine.Id(1).Update(&user)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	_, err = engine.Update(&Userinfo{Username: "yyy"}, &user)
 	if err != nil {
 		t.Error(err)
 	}
@@ -320,7 +325,7 @@ func combineTransaction(t *testing.T) {
 }
 
 func TestMysql(t *testing.T) {
-	engine = xorm.Create("mysql://root:123@localhost/test")
+	engine = xorm.Create("mysql", "root:123@/test?charset=utf8")
 	engine.ShowSQL = true
 
 	directCreateTable(t)
@@ -345,7 +350,7 @@ func TestMysql(t *testing.T) {
 }
 
 func TestSqlite(t *testing.T) {
-	engine = xorm.Create("sqlite:///test.db")
+	engine = xorm.Create("sqlite3", "./test.db")
 	engine.ShowSQL = true
 
 	directCreateTable(t)

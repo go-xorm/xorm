@@ -38,6 +38,16 @@ func (statement *Statement) Where(querystring string, args ...interface{}) {
 	statement.Params = args
 }
 
+func (statement *Statement) Id(id int) {
+	if statement.WhereStr == "" {
+		statement.WhereStr = "(id)=?"
+		statement.Params = []interface{}{id}
+	} else {
+		statement.WhereStr = statement.WhereStr + " and (id)=?"
+		statement.Params = append(statement.Params, id)
+	}
+}
+
 func (statement *Statement) Limit(limit int, start ...int) {
 	statement.LimitN = limit
 	if len(start) > 0 {
@@ -76,7 +86,7 @@ func (statement Statement) genCountSql() string {
 }
 
 func (statement Statement) genSelectSql(columnStr string) (a string) {
-	if statement.Engine.Protocol == "mssql" {
+	if statement.Engine.DriverName == MSSQL {
 		if statement.Start > 0 {
 			a = fmt.Sprintf("select ROW_NUMBER() OVER(order by %v )as rownum,%v from %v",
 				statement.Table.PKColumn().Name,
