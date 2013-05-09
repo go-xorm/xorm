@@ -21,7 +21,7 @@ SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 
 ## 快速开始
 
-1.创建数据库引擎，这个函数的参数和sql.OpenDB相同，但不会立即创建连接 (例如: mysql)
+1.创建数据库引擎，这个函数的参数和sql.Open相同，但不会立即创建连接 (例如: mysql)
 
 	engine := xorm.Create("mysql", "root:123@/test?charset=utf8")
 

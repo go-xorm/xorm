@@ -21,7 +21,7 @@ SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 
 ## Quick Start
 
-1.Create a database engine just like sql.OpenDB (for example: mysql)
+1.Create a database engine just like sql.Open (for example: mysql)
 
 	engine := xorm.Create("mysql", "root:123@/test?charset=utf8")
 
