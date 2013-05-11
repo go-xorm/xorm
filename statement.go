@@ -2,6 +2,7 @@ package xorm
 
 import (
 	"fmt"
+	"strings"
 )
 
 type Statement struct {
@@ -17,6 +18,14 @@ type Statement struct {
 	HavingStr  string
 	ColumnStr  string
 	BeanArgs   []interface{}
+}
+
+func MakeArray(elem string, count int) []string {
+	res := make([]string, count)
+	for i := 0; i < count; i++ {
+		res[i] = elem
+	}
+	return res
 }
 
 func (statement *Statement) Init() {
@@ -45,6 +54,17 @@ func (statement *Statement) Id(id int) {
 	} else {
 		statement.WhereStr = statement.WhereStr + " and (id)=?"
 		statement.Params = append(statement.Params, id)
+	}
+}
+
+func (statement *Statement) In(column string, args ...interface{}) {
+	inStr := fmt.Sprintf("%v in (%v)", column, strings.Join(MakeArray("?", len(args)), ","))
+	if statement.WhereStr == "" {
+		statement.WhereStr = inStr
+		statement.Params = args
+	} else {
+		statement.WhereStr = statement.WhereStr + " and " + inStr
+		statement.Params = append(statement.Params, args...)
 	}
 }
 

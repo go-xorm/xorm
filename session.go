@@ -37,6 +37,11 @@ func (session *Session) Id(id int) *Session {
 	return session
 }
 
+func (session *Session) In(column string, args ...interface{}) *Session {
+	session.Statement.In(column, args...)
+	return session
+}
+
 func (session *Session) Limit(limit int, start ...int) *Session {
 	session.Statement.Limit(limit, start...)
 	return session

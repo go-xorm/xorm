@@ -64,6 +64,11 @@ func (engine *Engine) Id(id int) *Engine {
 	return engine
 }
 
+func (engine *Engine) In(column string, args ...interface{}) *Engine {
+	engine.Statement.In(column, args...)
+	return engine
+}
+
 func (engine *Engine) Limit(limit int, start ...int) *Engine {
 	engine.Statement.Limit(limit, start...)
 	return engine

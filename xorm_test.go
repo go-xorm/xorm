@@ -190,6 +190,23 @@ func where(t *testing.T) {
 	fmt.Println(users)
 }
 
+func in(t *testing.T) {
+	users := make([]Userinfo, 0)
+	err := engine.In("id", 1, 2, 3).Find(&users)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	fmt.Println(users)
+
+	err = engine.Where("id > ?", 2).In("id", 1, 2, 3).Find(&users)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	fmt.Println(users)
+}
+
 func limit(t *testing.T) {
 	users := make([]Userinfo, 0)
 	err := engine.Limit(2, 1).Find(&users)
@@ -341,6 +358,7 @@ func TestMysql(t *testing.T) {
 	find(t)
 	count(t)
 	where(t)
+	in(t)
 	limit(t)
 	order(t)
 	join(t)
@@ -366,6 +384,7 @@ func TestSqlite(t *testing.T) {
 	find(t)
 	count(t)
 	where(t)
+	in(t)
 	limit(t)
 	order(t)
 	join(t)
