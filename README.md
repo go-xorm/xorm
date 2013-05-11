@@ -32,10 +32,14 @@ SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 
 1.Create a database engine just like sql.Open (for example: mysql)
 
+	import (_ "github.com/Go-SQL-Driver/MySQL"
+	 	"github.com/lunny/xorm")
 	engine := xorm.Create("mysql", "root:123@/test?charset=utf8")
 
 or
 
+	import (_ "github.com/mattn/go-sqlite3"
+		"github.com/lunny/xorm")
 	engine = xorm.Create("sqlite3", "./test.db")
 
 
@@ -68,7 +72,8 @@ or you want to update this struct
 
 	user := User{Name:"xlw"}
 	rows, err := engine.Update(&user, &User{Id:1})
-	// rows, err := engine.Where("id = ?", 1).Update(&user)
+	// or rows, err := engine.Where("id = ?", 1).Update(&user)
+	// or rows, err := engine.Id(1).Update(&user)
 
 
 3.Fetch a single object by user
@@ -76,6 +81,7 @@ or you want to update this struct
 
 	var user = User{Id:27}
 	err := engine.Get(&user)
+	// or err := engine.Id(27).Get(&user)
 
 	var user = User{Name:"xlw"}
 	err := engine.Get(&user)
@@ -94,6 +100,7 @@ or you want to update this struct
 5.Delete and Count：
 
 	err := engine.Delete(&User{Id:1})
+	// or err := engine.Id(1).Delete(&User{})
 	
 	total, err := engine.Count(&User{Name:"xlw"})
 
@@ -233,14 +240,15 @@ another is use field tag, field tag support the below keywords:
     </tr>
 </table>
 
-
+##Documents
+Please visit [GoWalker](http://gowalker.org/github.com/lunny/xorm)
 ##FAQ
 1.How the xorm tag use both with json?
   
   use space
 
 	type User struct {
-    	User string `json:"user" orm:"user_id"`
+    	Name string `json:"name" xorm:"name"`
 	}
 
 ## LICENSE

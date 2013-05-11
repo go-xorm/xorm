@@ -32,10 +32,14 @@ SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 
 1.创建数据库引擎，这个函数的参数和sql.Open相同，但不会立即创建连接 (例如: mysql)
 
+	import (_ "github.com/Go-SQL-Driver/MySQL"
+	 	"github.com/lunny/xorm")
 	engine := xorm.Create("mysql", "root:123@/test?charset=utf8")
 
 or
 
+	import (_ "github.com/mattn/go-sqlite3"
+		"github.com/lunny/xorm")
 	engine = xorm.Create("sqlite3", "./test.db")
 
 
@@ -68,6 +72,7 @@ or
 	user := User{Name:"xlw"}
 	rows, err := engine.Update(&user, &User{Id:1})
 	// rows, err := engine.Where("id = ?", 1).Update(&user)
+	// or rows, err := engine.Id(1).Update(&user)
 
 
 3.获取单个对象，可以用Get方法：
@@ -75,6 +80,7 @@ or
 
 	var user = User{Id:27}
 	err := engine.Get(&user)
+	// or err := engine.Id(27).Get(&user)
 
 	var user = User{Name:"xlw"}
 	err := engine.Get(&user)
@@ -93,6 +99,7 @@ or
 5.另外还有Delete和Count方法：
 
 	err := engine.Delete(&User{Id:1})
+	// or err := engine.Id(1).Delete(&User{})
 	
 	total, err := engine.Count(&User{Name:"xlw"})
 
@@ -232,7 +239,8 @@ UserInfo中的成员UserName将会自动对应名为user_name的字段。
         <td>-</td><td>这个Field将不进行字段映射</td>
     </tr>
 </table>
-
+##文档
+请访问 [GoWalker](http://gowalker.org/github.com/lunny/xorm) 查看详细文档
 
 ##FAQ
 1.xorm的tag和json的tag如何同时起作用？
@@ -240,7 +248,7 @@ UserInfo中的成员UserName将会自动对应名为user_name的字段。
   使用空格分开
 
 	type User struct {
-    	User string `json:"user" orm:"user_id"`
+    	Name string `json:"name" xorm:"name"`
 	}
 
 ## LICENSE
