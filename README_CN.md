@@ -2,27 +2,32 @@
 ----------
 [English](README.md)
 
-xorm是一个Go语言的ORM库. 通过它可以简化对数据库的操作。
+xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
 
-目前仅支持Mysql和SQLite，当然我们的目标是支持PostgreSQL/DB2/MS ADODB/ODBC/Oracle等等。
+目前没有正式的项目来使用此库，如果有，我们将会把它列出来。
 
-但是，目前的版本还不可用于正式版本。
-
+## 驱动支持
 目前支持的Go数据库驱动如下：
 
-Mysql: [github.com/Go-SQL-Driver/MySQL](https://github.com/Go-SQL-Driver/MySQL)
+* Mysql: [github.com/Go-SQL-Driver/MySQL](https://github.com/Go-SQL-Driver/MySQL)
 
-SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
+* SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
+
+## 更新日志
+
+* **v0.1.1** : 添加 Id, In 函数，改善 README 文档
+* **v0.1.0** : 初始化工程
+
 ## 特性
-1.支持Struct和数据库表之间的映射，映射方式支持命名约定和Tag两种方式
+* 支持Struct和数据库表之间的映射，映射方式支持命名约定和Tag两种方式
 
-2.事务支持
+* 事务支持
 
-3.同时支持原始SQL语句的混合执行
+* 同时支持原始SQL语句和ORM操作的混合执行
 
-4.使用连写来简化调用
+* 使用连写来简化调用
 
-5.支持使用Id，Where和结构体等方式作为条件
+* 支持使用Id, In, Where, Limit, Join, Having等函数和结构体等方式作为条件
 
 ## 安装
 
@@ -43,7 +48,7 @@ or
 	engine = xorm.Create("sqlite3", "./test.db")
 
 
-2.定义你的Struct
+2.定义一个结构体
 
 
 	type User struct {
@@ -52,22 +57,17 @@ or
     	Age int    `xorm:"-"`
 	}
 
-
-对于简单的任务，可以只用engine一个对象就可以完成操作。
-首先，需要创建一个数据库，然后使用以下语句创建一个Struct对应的表。
-
+3.在程序初始化时，可能会需要创建表
 
 	err := engine.CreateTables(&User{})
 
 	
-然后，可以将一个结构体作为一条记录插入到表中。
-  
+4.然后，可以将一个结构体作为一条记录插入到表中。  
 
 	id, err := engine.Insert(&User{Name:"lunny"})
 
 
 或者执行更新操作：
-
 
 	user := User{Name:"xlw"}
 	rows, err := engine.Update(&user, &User{Id:1})
@@ -75,8 +75,7 @@ or
 	// or rows, err := engine.Id(1).Update(&user)
 
 
-3.获取单个对象，可以用Get方法：
-
+5.获取单个对象，可以用Get方法：
 
 	var user = User{Id:27}
 	err := engine.Get(&user)
@@ -85,36 +84,50 @@ or
 	var user = User{Name:"xlw"}
 	err := engine.Get(&user)
 	
-4.获取多个对象，可以用Find方法：
-
-	var allusers []Userinfo
-	err := engine.Where("id > ?", "3").Limit(10,20).Find(&allusers) //Get id>3 limit 10 offset 20
-
-	var tenusers []Userinfo
-	err := engine.Limit(10).Find(&tenusers, &Userinfo{Name:"xlw"}) //Get All Name="xlw" limit 10  if omit offset the default is 0
+6.获取多个对象，可以用Find方法：
 
 	var everyone []Userinfo
 	err := engine.Find(&everyone)
 
-5.另外还有Delete和Count方法：
+6.1 你也可以使用Where和Limit方法设定条件和查询数量
+
+	var allusers []Userinfo
+	err := engine.Where("id > ?", "3").Limit(10,20).Find(&allusers) //Get id>3 limit 10 offset 20
+
+6.2 用一个结构体作为查询条件也是允许的
+
+	var tenusers []Userinfo
+	err := engine.Limit(10).Find(&tenusers, &Userinfo{Name:"xlw"}) //Get All Name="xlw" limit 10  offset 0
+
+6.3 也可以调用In函数
+
+	var tenusers []Userinfo
+	err := engine.In("id", 1, 3, 5).Find(&tenusers) //Get All id in (1, 3, 5)
+
+7.Delete方法
 
 	err := engine.Delete(&User{Id:1})
 	// or err := engine.Id(1).Delete(&User{})
-	
+
+8.Count方法
+
 	total, err := engine.Count(&User{Name:"xlw"})
 
-##Origin Use
+##直接执行SQL语句
 当然，如果你想直接使用SQL语句进行操作，也是允许的。
+
+如果执行Select，请用Query()
 
 	sql := "select * from userinfo"
 	results, err := engine.Query(sql)
+
+如果执行Insert， Update， Delete 等操作，请用Exec()
 	
 	sql = "update userinfo set username=? where id=?"
 	res, err := engine.Exec(sql, "xiaolun", 1) 
 
-##Deep Use
-更高级的用法，我们必须要使用session对象，session对象在创建时会创建一个数据库连接。
-
+##高级用法
+更高级的用法，我们必须要使用session对象，session对象在创建时会立刻创建一个数据库连接。
 
 	session, err := engine.MakeSession()
 	defer session.Close()
@@ -204,7 +217,7 @@ or
 		return
 	}
 
-##Mapping Rules
+##映射规则
 1.Struct 和 Struct 的field名字应该为Pascal式命名，默认的映射规则将转换成用下划线连接的命名规则，这个映射是自动进行的，当然，你可以通过修改Engine的成员Mapper来改变它。
 
 例如：
@@ -239,17 +252,30 @@ UserInfo中的成员UserName将会自动对应名为user_name的字段。
         <td>-</td><td>这个Field将不进行字段映射</td>
     </tr>
 </table>
+例如：
+
+	type Userinfo struct {
+		Uid        int `xorm:"id pk not null autoincr"`
+		Username   string
+		Departname string
+		Alias      string `xorm:"-"`
+		Created    time.Time
+	}
+
 ##文档
 请访问 [GoWalker](http://gowalker.org/github.com/lunny/xorm) 查看详细文档
 
 ##FAQ
-1.xorm的tag和json的tag如何同时起作用？
+1.问：xorm的tag和json的tag如何同时起作用？
   
-  使用空格分开
+答案：使用空格分开
 
 	type User struct {
     	Name string `json:"name" xorm:"name"`
 	}
+2.问：xorm是否带有连接池
+
+答案：database/sql默认就有连接池，因此xorm本身没有内建连接池，在使用过程中会自动调用database/sql的实现。
 
 ## LICENSE
 
