@@ -1,6 +1,6 @@
 # xorm
 
-[中文](./README_CN.md)
+[中文](https://github.com/lunny/xorm/blob/master/README_CN.md)
 
 xorm is an ORM for Go. It makes dabatabse operating simple. 
 
@@ -38,6 +38,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 ## Quick Start
 
 1.Create a database engine just like sql.Open, commonly you just need create once.
+
 ```Go
 import (
 	_ "github.com/Go-SQL-Driver/MySQL"

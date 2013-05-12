@@ -1,6 +1,6 @@
 # xorm
 ----------
-[English](README.md)
+[English](https://github.com/lunny/xorm/blob/master/README.md)
 
 xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
 
@@ -55,7 +55,13 @@ import (
 engine = xorm.Create("sqlite3", "./test.db")
 ```
 
-2.定义一个结构体
+1.1.默认将不会显示自动生成的SQL语句，如果要显示，则需要设置
+
+```Go
+engine.ShowSQL = true
+```
+
+2.所有的ORM操作都针对一个或多个结构体，一个结构体对应一张表，定义一个结构体如下：
 
 ```Go
 type User struct {
@@ -64,6 +70,8 @@ type User struct {
     Age int    `xorm:"-"`
 }
 ```
+
+2.1 详细映射规则，请查看[mapping][mapping]
 
 3.在程序初始化时，可能会需要创建表
 
@@ -254,7 +262,7 @@ if err != nil {
 }
 ```
 
-##映射规则
+##[mapping]映射规则
 1.Struct 和 Struct 的field名字应该为Pascal式命名，默认的映射规则将转换成用下划线连接的命名规则，这个映射是自动进行的，当然，你可以通过修改Engine的成员Mapper来改变它。
 
 例如：
