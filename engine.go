@@ -23,6 +23,7 @@ type Engine struct {
 	Tables          map[reflect.Type]Table
 	AutoIncrement   string
 	ShowSQL         bool
+	InsertMany      bool
 	QuoteIdentifier string
 	Statement       Statement
 }

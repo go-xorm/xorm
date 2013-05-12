@@ -14,6 +14,7 @@ xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
 
 ## 更新日志
 
+* **v0.1.2** : Insert函数支持混合struct和slice指针传入，并根据数据库类型自动批量插入，同时自动添加事务
 * **v0.1.1** : 添加 Id, In 函数，改善 README 文档
 * **v0.1.0** : 初始化工程
 
@@ -36,7 +37,7 @@ xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
 
 1.创建数据库引擎，这个函数的参数和sql.Open相同，但不会立即创建连接 (例如: mysql)
 
-```
+```Go
 import (
 	_ "github.com/Go-SQL-Driver/MySQL"
 	"github.com/lunny/xorm"
@@ -46,7 +47,7 @@ engine := xorm.Create("mysql", "root:123@/test?charset=utf8")
 
 or
 
-```
+```Go
 import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/lunny/xorm"
@@ -56,13 +57,13 @@ engine = xorm.Create("sqlite3", "./test.db")
 
 1.1.默认将不会显示自动生成的SQL语句，如果要显示，则需要设置
 
-```
+```Go
 engine.ShowSQL = true
 ```
 
 2.所有的ORM操作都针对一个或多个结构体，一个结构体对应一张表，定义一个结构体如下：
 
-```
+```Go
 type User struct {
     Id int
     Name string
@@ -74,19 +75,19 @@ type User struct {
 
 3.在程序初始化时，可能会需要创建表
 
-```
+```Go
 err := engine.CreateTables(&User{})
 ```
 	
 4.然后，可以将一个结构体作为一条记录插入到表中。  
 
-```
+```Go
 id, err := engine.Insert(&User{Name:"lunny"})
 ```
 
 或者执行更新操作：
 
-```
+```Go
 user := User{Name:"xlw"}
 rows, err := engine.Update(&user, &User{Id:1})
 // rows, err := engine.Where("id = ?", 1).Update(&user)
@@ -95,7 +96,7 @@ rows, err := engine.Update(&user, &User{Id:1})
 
 5.获取单个对象，可以用Get方法：
 
-```
+```Go
 var user = User{Id:27}
 err := engine.Get(&user)
 // or err := engine.Id(27).Get(&user)
@@ -105,42 +106,42 @@ err := engine.Get(&user)
 	
 6.获取多个对象，可以用Find方法：
 
-```
+```Go
 var everyone []Userinfo
 err := engine.Find(&everyone)
 ```
 
 6.1 你也可以使用Where和Limit方法设定条件和查询数量
 
-```
+```Go
 var allusers []Userinfo
 err := engine.Where("id > ?", "3").Limit(10,20).Find(&allusers) //Get id>3 limit 10 offset 20
 ```
 
 6.2 用一个结构体作为查询条件也是允许的
 
-```
+```Go
 var tenusers []Userinfo
 err := engine.Limit(10).Find(&tenusers, &Userinfo{Name:"xlw"}) //Get All Name="xlw" limit 10  offset 0
 ```
 
 6.3 也可以调用In函数
 
-```
+```Go
 var tenusers []Userinfo
 err := engine.In("id", 1, 3, 5).Find(&tenusers) //Get All id in (1, 3, 5)
 ```
 
 7.Delete方法
 
-```
+```Go
 err := engine.Delete(&User{Id:1})
 // or err := engine.Id(1).Delete(&User{})
 ```
 
 8.Count方法
 
-```
+```Go
 total, err := engine.Count(&User{Name:"xlw"})
 ```
 
@@ -149,14 +150,14 @@ total, err := engine.Count(&User{Name:"xlw"})
 
 如果执行Select，请用Query()
 
-```
+```Go
 sql := "select * from userinfo"
 results, err := engine.Query(sql)
 ```
 
 如果执行Insert， Update， Delete 等操作，请用Exec()
 
-```	
+```Go
 sql = "update userinfo set username=? where id=?"
 res, err := engine.Exec(sql, "xiaolun", 1) 
 ```
@@ -165,7 +166,7 @@ res, err := engine.Exec(sql, "xiaolun", 1)
 <a name="mapping" id="mapping"></a>
 更高级的用法，我们必须要使用session对象，session对象在创建时会立刻创建一个数据库连接。
 
-```
+```Go
 session, err := engine.MakeSession()
 defer session.Close()
 if err != nil {
@@ -175,7 +176,7 @@ if err != nil {
 
 1.session对象同样也可以查询
 
-```
+```Go
 var user Userinfo
 session.Where("id=?", 27).Get(&user)
 
@@ -188,7 +189,7 @@ session.Where("name = ? and age < ?", "john", 88).Get(&user4) // even more compl
 
 2.获取多个对象
 
-```
+```Go
 var allusers []Userinfo
 err := session.Where("id > ?", "3").Limit(10,20).Find(&allusers) //Get id>3 limit 10 offset 20
 
@@ -201,7 +202,7 @@ err := session.Find(&everyone)
 	
 3.事务处理
 
-```
+```Go
 // add Begin() before any action
 session.Begin()	
 user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
@@ -232,7 +233,7 @@ if err != nil {
 
 4.混合型事务，这个事务中，既有直接的SQL语句，又有ORM方法：
 
-```
+```Go
 // add Begin() before any action
 session.Begin()	
 user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
@@ -298,7 +299,7 @@ UserInfo中的成员UserName将会自动对应名为user_name的字段。
 </table>
 例如：
 
-```
+```Go
 type Userinfo struct {
 	Uid        int `xorm:"id pk not null autoincr"`
 	Username   string
@@ -316,7 +317,7 @@ type Userinfo struct {
   
 答案：使用空格分开
 
-```
+```Go
 type User struct {
     Name string `json:"name" xorm:"name"`
 }

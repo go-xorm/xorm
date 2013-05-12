@@ -106,24 +106,33 @@ func insertAutoIncr(t *testing.T) {
 }
 
 func insertMulti(t *testing.T) {
-	user1 := Userinfo{Username: "xlw", Departname: "dev", Alias: "lunny2", Created: time.Now()}
-	user2 := Userinfo{Username: "xlw2", Departname: "dev", Alias: "lunny3", Created: time.Now()}
-	_, err := engine.Insert(&user1, &user2)
+	users := []*Userinfo{
+		{Username: "xlw", Departname: "dev", Alias: "lunny2", Created: time.Now()},
+		{Username: "xlw2", Departname: "dev", Alias: "lunny3", Created: time.Now()},
+	}
+	_, err := engine.Insert(&users)
 	if err != nil {
 		t.Error(err)
 	}
+
+	engine.InsertMany = false
+
+	users = []*Userinfo{
+		{Username: "xlw9", Departname: "dev", Alias: "lunny9", Created: time.Now()},
+		{Username: "xlw10", Departname: "dev", Alias: "lunny10", Created: time.Now()},
+	}
+	_, err = engine.Insert(&users)
+	if err != nil {
+		t.Error(err)
+	}
+
+	engine.InsertMany = true
 }
 
 func insertTwoTable(t *testing.T) {
 	userinfo := Userinfo{Username: "xlw3", Departname: "dev", Alias: "lunny4", Created: time.Now()}
-	uid, err := engine.Insert(&userinfo)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	userdetail := Userdetail{Uid: int(uid), Intro: "I'm a very beautiful women.", Profile: "sfsaf"}
-	_, err = engine.Insert(&userdetail)
+	userdetail := Userdetail{Uid: 1, Intro: "I'm a very beautiful women.", Profile: "sfsaf"}
+	_, err := engine.Insert(&userinfo, &userdetail)
 	if err != nil {
 		t.Error(err)
 	}
@@ -199,7 +208,8 @@ func in(t *testing.T) {
 	}
 	fmt.Println(users)
 
-	err = engine.Where("id > ?", 2).In("id", 1, 2, 3).Find(&users)
+	ids := []interface{}{1, 2, 3}
+	err = engine.Where("id > ?", 2).In("id", ids...).Find(&users)
 	if err != nil {
 		t.Error(err)
 		return
@@ -352,6 +362,7 @@ func TestMysql(t *testing.T) {
 	exec(t)
 	insertAutoIncr(t)
 	insertMulti(t)
+	insertTwoTable(t)
 	update(t)
 	delete(t)
 	get(t)
@@ -378,6 +389,7 @@ func TestSqlite(t *testing.T) {
 	exec(t)
 	insertAutoIncr(t)
 	insertMulti(t)
+	insertTwoTable(t)
 	update(t)
 	delete(t)
 	get(t)

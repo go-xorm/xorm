@@ -11,16 +11,18 @@ import (
 )
 
 type Session struct {
-	Db           *sql.DB
-	Engine       *Engine
-	Tx           *sql.Tx
-	Statement    Statement
-	IsAutoCommit bool
+	Db                     *sql.DB
+	Engine                 *Engine
+	Tx                     *sql.Tx
+	Statement              Statement
+	IsAutoCommit           bool
+	IsCommitedOrRollbacked bool
 }
 
 func (session *Session) Init() {
 	session.Statement = Statement{}
 	session.IsAutoCommit = true
+	session.IsCommitedOrRollbacked = false
 }
 
 func (session *Session) Close() {
@@ -69,27 +71,39 @@ func (session *Session) Having(conditions string) *Session {
 }
 
 func (session *Session) Begin() error {
-	session.IsAutoCommit = false
-	tx, err := session.Db.Begin()
-	session.Tx = tx
-	if session.Engine.ShowSQL {
-		fmt.Println("BEGIN TRANSACTION")
+	if session.IsAutoCommit {
+		session.IsAutoCommit = false
+		session.IsCommitedOrRollbacked = false
+		tx, err := session.Db.Begin()
+		session.Tx = tx
+		if session.Engine.ShowSQL {
+			fmt.Println("BEGIN TRANSACTION")
+		}
+		return err
 	}
-	return err
+	return nil
 }
 
 func (session *Session) Rollback() error {
-	if session.Engine.ShowSQL {
-		fmt.Println("ROLL BACK")
+	if !session.IsAutoCommit && !session.IsCommitedOrRollbacked {
+		if session.Engine.ShowSQL {
+			fmt.Println("ROLL BACK")
+		}
+		session.IsCommitedOrRollbacked = true
+		return session.Tx.Rollback()
 	}
-	return session.Tx.Rollback()
+	return nil
 }
 
 func (session *Session) Commit() error {
-	if session.Engine.ShowSQL {
-		fmt.Println("COMMIT")
+	if !session.IsAutoCommit && !session.IsCommitedOrRollbacked {
+		if session.Engine.ShowSQL {
+			fmt.Println("COMMIT")
+		}
+		session.IsCommitedOrRollbacked = true
+		return session.Tx.Commit()
 	}
-	return session.Tx.Commit()
+	return nil
 }
 
 func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]byte) error {
@@ -359,13 +373,108 @@ func (session *Session) Query(sql string, paramStr ...interface{}) (resultsSlice
 
 func (session *Session) Insert(beans ...interface{}) (int64, error) {
 	var lastId int64 = -1
+	var err error = nil
+	isInTransaction := !session.IsAutoCommit
+
+	if !isInTransaction {
+		session.Begin()
+	}
+
 	for _, bean := range beans {
-		lastId, err := session.InsertOne(bean)
-		if err != nil {
-			return lastId, err
+		sliceValue := reflect.Indirect(reflect.ValueOf(bean))
+		if sliceValue.Kind() == reflect.Slice {
+			if session.Engine.InsertMany {
+				lastId, err = session.InsertMulti(bean)
+				if err != nil {
+					if !isInTransaction {
+						session.Rollback()
+					}
+					return lastId, err
+				}
+			} else {
+				size := sliceValue.Len()
+				for i := 0; i < size; i++ {
+					lastId, err = session.InsertOne(sliceValue.Index(i).Interface())
+					if err != nil {
+						if !isInTransaction {
+							session.Rollback()
+						}
+						return lastId, err
+					}
+				}
+			}
+		} else {
+			lastId, err = session.InsertOne(bean)
+			if err != nil {
+				if !isInTransaction {
+					session.Rollback()
+				}
+				return lastId, err
+			}
 		}
 	}
-	return lastId, nil
+	if !isInTransaction {
+		err = session.Commit()
+	}
+	return lastId, err
+}
+
+func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
+	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
+	if sliceValue.Kind() != reflect.Slice {
+		return -1, errors.New("needs a pointer to a slice")
+	}
+
+	bean := sliceValue.Index(0).Interface()
+	sliceElementType := Type(bean)
+
+	table := session.Engine.Tables[sliceElementType]
+	session.Statement.Table = &table
+
+	size := sliceValue.Len()
+
+	colNames := make([]string, 0)
+	colMultiPlaces := make([]string, 0)
+	var args = make([]interface{}, 0)
+
+	for i := 0; i < size; i++ {
+		elemValue := sliceValue.Index(i).Interface()
+		colPlaces := make([]string, 0)
+
+		for _, col := range table.Columns {
+			fieldValue := reflect.Indirect(reflect.ValueOf(elemValue)).FieldByName(col.FieldName)
+			val := fieldValue.Interface()
+			if col.IsAutoIncrement && fieldValue.Int() == 0 {
+				continue
+			}
+			args = append(args, val)
+			if i == 0 {
+				colNames = append(colNames, col.Name)
+			}
+			colPlaces = append(colPlaces, "?")
+		}
+		colMultiPlaces = append(colMultiPlaces, strings.Join(colPlaces, ", "))
+	}
+
+	statement := fmt.Sprintf("INSERT INTO %v%v%v (%v) VALUES (%v)",
+		session.Engine.QuoteIdentifier,
+		table.Name,
+		session.Engine.QuoteIdentifier,
+		strings.Join(colNames, ", "),
+		strings.Join(colMultiPlaces, "),("))
+
+	res, err := session.Exec(statement, args...)
+	if err != nil {
+		return -1, err
+	}
+
+	id, err := res.LastInsertId()
+
+	if err != nil {
+		return -1, err
+	}
+
+	return id, nil
 }
 
 func (session *Session) InsertOne(bean interface{}) (int64, error) {

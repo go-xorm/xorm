@@ -16,6 +16,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 ## Changelog
 
+* **v0.1.2** : Insert function now supports both struct and slice pointer parameters, batch inserting and auto transaction
 * **v0.1.1** : Add Id, In functions and improved README
 * **v0.1.0** : Inital release.
 
@@ -39,7 +40,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 1.Create a database engine just like sql.Open, commonly you just need create once.
 
-```
+```Go
 import (
 	_ "github.com/Go-SQL-Driver/MySQL"
 	"github.com/lunny/xorm"
@@ -49,7 +50,7 @@ engine := xorm.Create("mysql", "root:123@/test?charset=utf8")
 
 or
 
-```
+```Go
 import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/lunny/xorm"
@@ -59,13 +60,13 @@ engine = xorm.Create("sqlite3", "./test.db")
 
 1.1.If you want to show all generated SQL
 
-```
+```Go
 engine.ShowSQL = true
 ```
 
 2.Define a struct
 
-```
+```Go
 type User struct {
 	Id int
     Name string
@@ -77,7 +78,7 @@ type User struct {
 
 3.When you set up your program, you can use CreateTables to create database tables.
 
-```
+```Go
 err := engine.CreateTables(&User{})
 // or err := engine.Map(&User{}, &Article{})
 // err = engine.CreateAll()
@@ -85,13 +86,13 @@ err := engine.CreateTables(&User{})
 
 4.then, insert an struct to table
 
-```
+```Go
 id, err := engine.Insert(&User{Name:"lunny"})
 ```
 
 or if you want to update records
 
-```
+```Go
 user := User{Name:"xlw"}
 rows, err := engine.Update(&user, &User{Id:1})
 // or rows, err := engine.Where("id = ?", 1).Update(&user)
@@ -100,7 +101,7 @@ rows, err := engine.Update(&user, &User{Id:1})
 
 5.Fetch a single object by user
 
-```
+```Go
 var user = User{Id:27}
 err := engine.Get(&user)
 // or err := engine.Id(27).Get(&user)
@@ -111,42 +112,42 @@ err := engine.Get(&user)
 	
 6.Fetch multipe objects, use Find：
 
-```
+```Go
 var everyone []Userinfo
 err := engine.Find(&everyone)
 ```
 
 6.1 also you can use Where, Limit
 
-```
+```Go
 var allusers []Userinfo
 err := engine.Where("id > ?", "3").Limit(10,20).Find(&allusers) //Get id>3 limit 10 offset 20
 ```
 
 6.2 or you can use a struct query
 
-```
+```Go
 var tenusers []Userinfo
 err := engine.Limit(10).Find(&tenusers, &Userinfo{Name:"xlw"}) //Get All Name="xlw" limit 10 offset 0
 ```
 
 6.3 or In function
 
-```
+```Go
 var tenusers []Userinfo
 err := engine.In("id", 1, 3, 5).Find(&tenusers) //Get All id in (1, 3, 5)
 ```
 
 7.Delete
 
-```
+```Go
 err := engine.Delete(&User{Id:1})
 // or err := engine.Id(1).Delete(&User{})
 ```
 
 8.Count
 
-```
+```Go
 total, err := engine.Count(&User{Name:"xlw"})
 ```
 
@@ -155,14 +156,14 @@ Of course, SQL execution is also provided.
 
 1.if select then use Query
 
-```
+```Go
 sql := "select * from userinfo"
 results, err := engine.Query(sql)
 ```
 
 2.if insert, update or delete then use Exec
 
-```
+```Go
 sql = "update userinfo set username=? where id=?"
 res, err := engine.Exec(sql, "xiaolun", 1) 
 ```
@@ -170,7 +171,7 @@ res, err := engine.Exec(sql, "xiaolun", 1)
 ##Advanced Usage
 for deep usage, you should create a session, this func will create a database connection immediatelly
 
-```
+```Go
 session, err := engine.MakeSession()
 defer session.Close()
 if err != nil {
@@ -180,7 +181,7 @@ if err != nil {
 
 1.Fetch a single object by where
 
-```
+```Go
 var user Userinfo
 session.Where("id=?", 27).Get(&user)
 
@@ -193,7 +194,7 @@ session.Where("name = ? and age < ?", "john", 88).Get(&user4) // even more compl
 
 2.Fetch multiple objects
 
-```
+```Go
 var allusers []Userinfo
 err := session.Where("id > ?", "3").Limit(10,20).Find(&allusers) //Get id>3 limit 10 offset 20
 
@@ -206,7 +207,7 @@ err := session.Find(&everyone)
 	
 3.Transaction
 
-```
+```Go
 // add Begin() before any action
 session.Begin()	
 user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
@@ -237,7 +238,7 @@ if err != nil {
 
 4.Mixed Transaction
 
-```
+```Go
 // add Begin() before any action
 session.Begin()	
 user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
@@ -304,7 +305,7 @@ Another is use field tag, field tag support the below keywords which split with 
 
 For Example
 
-```
+```Go
 type Userinfo struct {
 	Uid        int `xorm:"id pk not null autoincr"`
 	Username   string
@@ -321,7 +322,7 @@ Please visit [GoWalker](http://gowalker.org/github.com/lunny/xorm)
   
   Use space.
 
-```
+```Go
 type User struct {
     Name string `json:"name" xorm:"name"`
 }
