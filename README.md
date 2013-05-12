@@ -73,7 +73,7 @@ type User struct {
 }
 ```
 
-2.1.More mapping rules, please see [Mapping Rules](#-8)
+2.1.More mapping rules, please see [Mapping Rules](#mapping)
 
 3.When you set up your program, you can use CreateTables to create database tables.
 
@@ -267,7 +267,7 @@ if err != nil {
 ```
 
 ##Mapping Rules
-<a name="8" id="8"></a>
+<a name="mapping" id="mapping"></a>
 1.Struct and struct's fields name should be Pascal style, and the table and column's name default is SQL style.
 
 For example: 

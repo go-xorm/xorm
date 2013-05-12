@@ -70,7 +70,7 @@ type User struct {
 }
 ```
 
-2.1 详细映射规则，请查看[映射规则](#-8)
+2.1 详细映射规则，请查看[映射规则](#mapping)
 
 3.在程序初始化时，可能会需要创建表
 
@@ -162,7 +162,7 @@ res, err := engine.Exec(sql, "xiaolun", 1)
 ```
 
 ##高级用法
-<a name="8" id="8"></a>
+<a name="mapping" id="mapping"></a>
 更高级的用法，我们必须要使用session对象，session对象在创建时会立刻创建一个数据库连接。
 
 ```
