@@ -167,7 +167,7 @@ sql = "update userinfo set username=? where id=?"
 res, err := engine.Exec(sql, "xiaolun", 1) 
 ```
 
-##Deep Use
+##Advanced Usage
 for deep usage, you should create a session, this func will create a database connection immediatelly
 
 ```
@@ -267,6 +267,7 @@ if err != nil {
 ```
 
 ##Mapping Rules
+<a name="8" id="8"></a>
 1.Struct and struct's fields name should be Pascal style, and the table and column's name default is SQL style.
 
 For example: 

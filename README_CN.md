@@ -1,5 +1,4 @@
 # xorm
-----------
 [English](https://github.com/lunny/xorm/blob/master/README.md)
 
 xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
@@ -163,6 +162,7 @@ res, err := engine.Exec(sql, "xiaolun", 1)
 ```
 
 ##高级用法
+<a name="8" id="8"></a>
 更高级的用法，我们必须要使用session对象，session对象在创建时会立刻创建一个数据库连接。
 
 ```
