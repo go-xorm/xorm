@@ -157,6 +157,20 @@ func (engine *Engine) MapOne(bean interface{}) Table {
 	return engine.MapType(t)
 }
 
+func (engine *Engine) AutoMapType(t reflect.Type) *Table {
+	table, ok := engine.Tables[t]
+	if !ok {
+		table = engine.MapType(t)
+		engine.Tables[t] = table
+	}
+	return &table
+}
+
+func (engine *Engine) AutoMap(bean interface{}) *Table {
+	t := Type(bean)
+	return engine.AutoMapType(t)
+}
+
 func (engine *Engine) MapType(t reflect.Type) Table {
 	table := Table{Name: engine.Mapper.Obj2Table(t.Name()), Type: t}
 	table.Columns = make(map[string]Column)
@@ -183,6 +197,7 @@ func (engine *Engine) MapType(t reflect.Type) Table {
 					switch {
 					case k == "pk":
 						col.IsPrimaryKey = true
+						col.Nullable = false
 						pkCol = &col
 					case k == "null":
 						col.Nullable = (tags[j-1] != "not")
