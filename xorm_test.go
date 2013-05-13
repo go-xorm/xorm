@@ -34,9 +34,9 @@ type Userinfo struct {
 }
 
 type Userdetail struct {
-	Uid     int `xorm:"id pk not null"`
-	Intro   string
-	Profile string
+	Uid     int    `xorm:"id pk not null"`
+	Intro   string `xorm:"text"`
+	Profile string `xorm:"varchar(2000)"`
 }
 
 var engine xorm.Engine
@@ -106,9 +106,12 @@ func insertAutoIncr(t *testing.T) {
 }
 
 func insertMulti(t *testing.T) {
-	users := []*Userinfo{
+	engine.InsertMany = true
+	users := []Userinfo{
 		{Username: "xlw", Departname: "dev", Alias: "lunny2", Created: time.Now()},
 		{Username: "xlw2", Departname: "dev", Alias: "lunny3", Created: time.Now()},
+		{Username: "xlw11", Departname: "dev", Alias: "lunny2", Created: time.Now()},
+		{Username: "xlw22", Departname: "dev", Alias: "lunny3", Created: time.Now()},
 	}
 	_, err := engine.Insert(&users)
 	if err != nil {
@@ -117,9 +120,11 @@ func insertMulti(t *testing.T) {
 
 	engine.InsertMany = false
 
-	users = []*Userinfo{
+	users = []Userinfo{
 		{Username: "xlw9", Departname: "dev", Alias: "lunny9", Created: time.Now()},
 		{Username: "xlw10", Departname: "dev", Alias: "lunny10", Created: time.Now()},
+		{Username: "xlw99", Departname: "dev", Alias: "lunny2", Created: time.Now()},
+		{Username: "xlw1010", Departname: "dev", Alias: "lunny3", Created: time.Now()},
 	}
 	_, err = engine.Insert(&users)
 	if err != nil {

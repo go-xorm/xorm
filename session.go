@@ -436,22 +436,34 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 	colNames := make([]string, 0)
 	colMultiPlaces := make([]string, 0)
 	var args = make([]interface{}, 0)
+	cols := make([]Column, 0)
 
 	for i := 0; i < size; i++ {
 		elemValue := sliceValue.Index(i).Interface()
 		colPlaces := make([]string, 0)
 
-		for _, col := range table.Columns {
-			fieldValue := reflect.Indirect(reflect.ValueOf(elemValue)).FieldByName(col.FieldName)
-			val := fieldValue.Interface()
-			if col.IsAutoIncrement && fieldValue.Int() == 0 {
-				continue
-			}
-			args = append(args, val)
-			if i == 0 {
+		if i == 0 {
+			for _, col := range table.Columns {
+				fieldValue := reflect.Indirect(reflect.ValueOf(elemValue)).FieldByName(col.FieldName)
+				val := fieldValue.Interface()
+				if col.IsAutoIncrement && fieldValue.Int() == 0 {
+					continue
+				}
+				args = append(args, val)
 				colNames = append(colNames, col.Name)
+				cols = append(cols, col)
+				colPlaces = append(colPlaces, "?")
 			}
-			colPlaces = append(colPlaces, "?")
+		} else {
+			for _, col := range cols {
+				fieldValue := reflect.Indirect(reflect.ValueOf(elemValue)).FieldByName(col.FieldName)
+				val := fieldValue.Interface()
+				if col.IsAutoIncrement && fieldValue.Int() == 0 {
+					continue
+				}
+				args = append(args, val)
+				colPlaces = append(colPlaces, "?")
+			}
 		}
 		colMultiPlaces = append(colMultiPlaces, strings.Join(colPlaces, ", "))
 	}

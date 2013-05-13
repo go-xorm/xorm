@@ -18,6 +18,7 @@ var (
 	Char    = SQLType{"char", 1, 0}
 	Bool    = SQLType{"int", 1, 0}
 	Varchar = SQLType{"varchar", 50, 0}
+	Text    = SQLType{"text", 16, 0}
 	Date    = SQLType{"date", 24, 0}
 	Decimal = SQLType{"decimal", 26, 2}
 	Float   = SQLType{"float", 31, 0}
@@ -76,14 +77,6 @@ func (table *Table) ColumnStr() string {
 	}
 	return strings.Join(colNames, ", ")
 }
-
-/*func (table *Table) PlaceHolders() string {
-	colNames := make([]string, 0)
-	for _, col := range table.Columns {
-		colNames = append(colNames, "?")
-	}
-	return strings.Join(colNames, ", ")
-}*/
 
 func (table *Table) PKColumn() Column {
 	return table.Columns[table.PrimaryKey]

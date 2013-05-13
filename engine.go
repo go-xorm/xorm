@@ -106,7 +106,7 @@ func (e *Engine) genColumnStr(col *Column) string {
 		} else {
 			sql += col.SQLType.Name
 		}
-		if e.DriverName != SQLITE {
+		if e.DriverName != SQLITE && col.SQLType != Text {
 			if col.SQLType != Decimal {
 				sql += "(" + strconv.Itoa(col.Length) + ")"
 			} else {
@@ -170,7 +170,7 @@ func (engine *Engine) MapType(t reflect.Type) Table {
 		fieldType := t.Field(i).Type
 
 		if ormTagStr != "" {
-			col = Column{FieldName: t.Field(i).Name}
+			col = Column{FieldName: t.Field(i).Name, Nullable: true}
 			ormTagStr = strings.ToLower(ormTagStr)
 			tags := strings.Split(ormTagStr, " ")
 			// TODO: 
@@ -179,26 +179,50 @@ func (engine *Engine) MapType(t reflect.Type) Table {
 					continue
 				}
 				for j, key := range tags {
-					switch k := strings.ToLower(key); k {
-					case "pk":
+					k := strings.ToLower(key)
+					switch {
+					case k == "pk":
 						col.IsPrimaryKey = true
 						pkCol = &col
-					case "null":
+					case k == "null":
 						col.Nullable = (tags[j-1] != "not")
-					case "autoincr":
+					case k == "autoincr":
 						col.IsAutoIncrement = true
-					case "default":
+					case k == "default":
 						col.Default = tags[j+1]
-					case "int":
+					case k == "text":
+						col.SQLType = Text
+					case strings.HasPrefix(k, "int"):
 						col.SQLType = Int
-					case "not":
+						lens := k[len("int")+1 : len(k)-1]
+						col.Length, _ = strconv.Atoi(lens)
+					case strings.HasPrefix(k, "varchar"):
+						col.SQLType = Varchar
+						lens := k[len("decimal")+1 : len(k)-1]
+						col.Length, _ = strconv.Atoi(lens)
+					case strings.HasPrefix(k, "decimal"):
+						col.SQLType = Decimal
+						lens := k[len("decimal")+1 : len(k)-1]
+						twolen := strings.Split(lens, ",")
+						col.Length, _ = strconv.Atoi(twolen[0])
+						col.Length2, _ = strconv.Atoi(twolen[1])
+					case k == "date":
+						col.SQLType = Date
+					case k == "not":
 					default:
-						col.Name = k
+						if k != col.Default {
+							col.Name = k
+						}
 					}
 				}
 				if col.SQLType.Name == "" {
 					col.SQLType = Type2SQLType(fieldType)
+				}
+
+				if col.Length == 0 {
 					col.Length = col.SQLType.DefaultLength
+				}
+				if col.Length2 == 0 {
 					col.Length2 = col.SQLType.DefaultLength2
 				}
 
