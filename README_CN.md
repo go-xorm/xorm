@@ -1,4 +1,5 @@
 # xorm
+
 [English](https://github.com/lunny/xorm/blob/master/README.md)
 
 xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
@@ -6,6 +7,7 @@ xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
 目前没有正式的项目来使用此库，如果有，我们将会把它列出来。
 
 ## 驱动支持
+
 目前支持的Go数据库驱动如下：
 
 * Mysql: [github.com/Go-SQL-Driver/MySQL](https://github.com/Go-SQL-Driver/MySQL)
@@ -19,6 +21,7 @@ xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
 * **v0.1.0** : 初始化工程
 
 ## 特性
+
 * 支持Struct和数据库表之间的映射，映射方式支持命名约定和Tag两种方式
 
 * 事务支持
@@ -146,6 +149,7 @@ total, err := engine.Count(&User{Name:"xlw"})
 ```
 
 ##直接执行SQL语句
+
 当然，如果你想直接使用SQL语句进行操作，也是允许的。
 
 如果执行Select，请用Query()
@@ -163,6 +167,7 @@ res, err := engine.Exec(sql, "xiaolun", 1)
 ```
 
 ##高级用法
+
 <a name="mapping" id="mapping"></a>
 更高级的用法，我们必须要使用session对象，session对象在创建时会立刻创建一个数据库连接。
 
@@ -263,6 +268,7 @@ if err != nil {
 ```
 
 ## 映射规则
+
 1.Struct 和 Struct 的field名字应该为Pascal式命名，默认的映射规则将转换成用下划线连接的命名规则，这个映射是自动进行的，当然，你可以通过修改Engine的成员Mapper来改变它。
 
 例如：
@@ -310,9 +316,11 @@ type Userinfo struct {
 ```
 
 ##文档
+
 请访问 [GoWalker](http://gowalker.org/github.com/lunny/xorm) 查看详细文档
 
 ##FAQ
+
 1.问：xorm的tag和json的tag如何同时起作用？
   
 答案：使用空格分开

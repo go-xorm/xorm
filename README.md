@@ -152,6 +152,7 @@ total, err := engine.Count(&User{Name:"xlw"})
 ```
 
 ##Execute SQL
+
 Of course, SQL execution is also provided.
 
 1.if select then use Query
@@ -169,6 +170,7 @@ res, err := engine.Exec(sql, "xiaolun", 1)
 ```
 
 ##Advanced Usage
+
 for deep usage, you should create a session, this func will create a database connection immediatelly
 
 ```Go
@@ -268,6 +270,7 @@ if err != nil {
 ```
 
 ##Mapping Rules
+
 <a name="mapping" id="mapping"></a>
 1.Struct and struct's fields name should be Pascal style, and the table and column's name default is SQL style.
 
@@ -316,8 +319,11 @@ type Userinfo struct {
 ```
 
 ##Documents
+
 Please visit [GoWalker](http://gowalker.org/github.com/lunny/xorm)
+
 ##FAQ
+
 1.How the xorm tag use both with json?
   
   Use space.
