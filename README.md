@@ -151,6 +151,7 @@ err := engine.Delete(&User{Id:1})
 total, err := engine.Count(&User{Name:"xlw"})
 ```
 
+
 ##Execute SQL
 
 Of course, SQL execution is also provided.
@@ -168,6 +169,7 @@ results, err := engine.Query(sql)
 sql = "update userinfo set username=? where id=?"
 res, err := engine.Exec(sql, "xiaolun", 1) 
 ```
+
 
 ##Advanced Usage
 
@@ -318,9 +320,11 @@ type Userinfo struct {
 }
 ```
 
+
 ##Documents
 
 Please visit [GoWalker](http://gowalker.org/github.com/lunny/xorm)
+
 
 ##FAQ
 
