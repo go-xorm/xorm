@@ -271,7 +271,7 @@ if err != nil {
 }
 ```
 
-##Mapping Rules
+##Mapping Rules 
 
 <a name="mapping" id="mapping"></a>
 1.Struct and struct's fields name should be Pascal style, and the table and column's name default is SQL style.
@@ -321,12 +321,12 @@ type Userinfo struct {
 ```
 
 
-##Documents
+##Documents 
 
 Please visit [GoWalker](http://gowalker.org/github.com/lunny/xorm)
 
 
-##FAQ
+##FAQ 
 
 1.How the xorm tag use both with json?
   
