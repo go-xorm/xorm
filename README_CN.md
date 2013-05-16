@@ -148,7 +148,7 @@ err := engine.Delete(&User{Id:1})
 total, err := engine.Count(&User{Name:"xlw"})
 ```
 
-##直接执行SQL语句
+## 直接执行SQL语句
 
 当然，如果你想直接使用SQL语句进行操作，也是允许的。
 
@@ -166,7 +166,7 @@ sql = "update userinfo set username=? where id=?"
 res, err := engine.Exec(sql, "xiaolun", 1) 
 ```
 
-##高级用法
+## 高级用法
 
 <a name="mapping" id="mapping"></a>
 更高级的用法，我们必须要使用session对象，session对象在创建时会立刻创建一个数据库连接。
@@ -315,11 +315,11 @@ type Userinfo struct {
 }
 ```
 
-##文档
+## 文档
 
 请访问 [GoWalker](http://gowalker.org/github.com/lunny/xorm) 查看详细文档
 
-##FAQ
+## FAQ
 
 1.问：xorm的tag和json的tag如何同时起作用？
   
