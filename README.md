@@ -16,6 +16,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 ## Changelog
 
+* **v0.1.3** : Find function now supports both slice and map; Add Table function for multi tables and temperory tables support
 * **v0.1.2** : Insert function now supports both struct and slice pointer parameters, batch inserting and auto transaction
 * **v0.1.1** : Add Id, In functions and improved README
 * **v0.1.0** : Inital release.
@@ -319,7 +320,18 @@ type Userinfo struct {
 	Created    time.Time
 }
 ```
+3.For customize table name, use Table() function, for example:
 
+```Go
+// batch create tables
+for i := 0; i < 10; i++ {
+	engine.Table(fmt.Sprintf("user_%v", i)).CreateTable(&Userinfo{}) 
+}
+
+// insert into table according id
+user := Userinfo{Uid: 25, Username:"sslfs"}
+engine.Table(fmt.Sprintf("user_%v", user.Uid % 10)).Insert(&user)
+```
 
 ## Documents 
 

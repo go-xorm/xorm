@@ -16,6 +16,7 @@ xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
 
 ## 更新日志
 
+* **v0.1.3** : Find函数现在支持传入Slice或者Map，当传入Map时，key为id；新增Table函数以为多表和临时表进行支持。
 * **v0.1.2** : Insert函数支持混合struct和slice指针传入，并根据数据库类型自动批量插入，同时自动添加事务
 * **v0.1.1** : 添加 Id, In 函数，改善 README 文档
 * **v0.1.0** : 初始化工程
@@ -30,7 +31,7 @@ xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
 
 * 使用连写来简化调用
 
-* 支持使用Id, In, Where, Limit, Join, Having等函数和结构体等方式作为条件
+* 支持使用Id, In, Where, Limit, Join, Having, Table等函数和结构体等方式作为条件
 
 ## 安装
 
@@ -313,6 +314,18 @@ type Userinfo struct {
 	Alias      string `xorm:"-"`
 	Created    time.Time
 }
+```
+3.对于自定义的表名，可以用Table函数进行操作，比如：
+
+```Go
+// batch create tables
+for i := 0; i < 10; i++ {
+	engine.Table(fmt.Sprintf("user_%v", i)).CreateTable(&Userinfo{}) 
+}
+
+// insert into table according id
+user := Userinfo{Uid: 25, Username:"sslfs"}
+engine.Table(fmt.Sprintf("user_%v", user.Uid % 10)).Insert(&user)
 ```
 
 ## 文档
