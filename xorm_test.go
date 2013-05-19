@@ -356,6 +356,64 @@ func combineTransaction(t *testing.T) {
 	}
 }
 
+func table(t *testing.T) {
+	engine.Table("user_user").CreateTables(&Userinfo{})
+}
+
+func createMultiTables(t *testing.T) {
+	session, err := engine.MakeSession()
+	defer session.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	user := &Userinfo{}
+	session.Begin()
+	for i := 0; i < 100; i++ {
+		err = session.Table(fmt.Sprintf("user_%v", i)).CreateTable(user)
+		if err != nil {
+			session.Rollback()
+			t.Error(err)
+			return
+		}
+	}
+	err = session.Commit()
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func tableOp(t *testing.T) {
+	user := Userinfo{Username: "tablexiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
+	tableName := fmt.Sprintf("user_%v", len(user.Username))
+	id, err := engine.Table(tableName).Insert(&user)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = engine.Table(tableName).Get(&Userinfo{Username: "tablexiao"})
+	if err != nil {
+		t.Error(err)
+	}
+
+	users := make([]Userinfo, 0)
+	err = engine.Table(tableName).Find(&users)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = engine.Table(tableName).Id(id).Update(&Userinfo{Username: "tableda"})
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = engine.Table(tableName).Id(id).Delete(&Userinfo{})
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func TestMysql(t *testing.T) {
 	engine = xorm.Create("mysql", "root:123@/test?charset=utf8")
 	engine.ShowSQL = true
@@ -381,6 +439,9 @@ func TestMysql(t *testing.T) {
 	having(t)
 	transaction(t)
 	combineTransaction(t)
+	table(t)
+	createMultiTables(t)
+	tableOp(t)
 }
 
 func TestSqlite(t *testing.T) {
@@ -408,4 +469,7 @@ func TestSqlite(t *testing.T) {
 	having(t)
 	transaction(t)
 	combineTransaction(t)
+	table(t)
+	createMultiTables(t)
+	tableOp(t)
 }

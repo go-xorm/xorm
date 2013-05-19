@@ -3,7 +3,7 @@ package xorm
 import (
 	"reflect"
 	"strconv"
-	"strings"
+	//"strings"
 	"time"
 )
 
@@ -68,14 +68,6 @@ type Table struct {
 	Type       reflect.Type
 	Columns    map[string]Column
 	PrimaryKey string
-}
-
-func (table *Table) ColumnStr() string {
-	colNames := make([]string, 0)
-	for _, col := range table.Columns {
-		colNames = append(colNames, table.Name+"."+col.Name)
-	}
-	return strings.Join(colNames, ", ")
 }
 
 func (table *Table) PKColumn() Column {

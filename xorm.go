@@ -11,6 +11,7 @@ func Create(driverName string, dataSourceName string) Engine {
 	engine.Tables = make(map[reflect.Type]Table)
 	engine.Statement.Engine = &engine
 	engine.InsertMany = true
+	engine.TagIdentifier = "xorm"
 	if driverName == SQLITE {
 		engine.AutoIncrement = "AUTOINCREMENT"
 	} else {

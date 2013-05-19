@@ -20,7 +20,7 @@ type Session struct {
 }
 
 func (session *Session) Init() {
-	session.Statement = Statement{}
+	session.Statement = Statement{Engine: session.Engine}
 	session.IsAutoCommit = true
 	session.IsCommitedOrRollbacked = false
 }
@@ -34,8 +34,13 @@ func (session *Session) Where(querystring string, args ...interface{}) *Session 
 	return session
 }
 
-func (session *Session) Id(id int) *Session {
+func (session *Session) Id(id int64) *Session {
 	session.Statement.Id(id)
+	return session
+}
+
+func (session *Session) Table(tableName string) *Session {
+	session.Statement.Table(tableName)
 	return session
 }
 
@@ -112,7 +117,7 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 		return errors.New("expected a pointer to a struct")
 	}
 
-	table := session.Engine.Bean2Table(obj)
+	table := session.Engine.Tables[Type(obj)]
 
 	for key, data := range objMap {
 		structField := dataStruct.FieldByName(table.Columns[key].FieldName)
@@ -195,8 +200,8 @@ func (session *Session) innerExec(sql string, args ...interface{}) (sql.Result, 
 }
 
 func (session *Session) Exec(sql string, args ...interface{}) (sql.Result, error) {
-	if session.Statement.Table != nil && session.Statement.Table.PrimaryKey != "" {
-		sql = strings.Replace(sql, "(id)", session.Statement.Table.PrimaryKey, -1)
+	if session.Statement.RefTable != nil && session.Statement.RefTable.PrimaryKey != "" {
+		sql = strings.Replace(sql, "(id)", session.Statement.RefTable.PrimaryKey, -1)
 	}
 	if session.Engine.ShowSQL {
 		fmt.Println(sql)
@@ -207,20 +212,22 @@ func (session *Session) Exec(sql string, args ...interface{}) (sql.Result, error
 	return session.Tx.Exec(sql, args...)
 }
 
+func (session *Session) CreateTable(bean interface{}) error {
+	statement := session.Statement
+	defer statement.Init()
+	statement.RefTable = session.Engine.AutoMap(bean)
+	sql := statement.genCreateSQL()
+	_, err := session.Exec(sql)
+	return err
+}
+
 func (session *Session) Get(bean interface{}) error {
 	statement := session.Statement
-	defer session.Statement.Init()
+	defer statement.Init()
 	statement.Limit(1)
 
-	table := session.Engine.AutoMap(bean)
-	statement.Table = table
-
-	colNames, args := session.BuildConditions(table, bean)
-	statement.ColumnStr = strings.Join(colNames, " and ")
-	statement.BeanArgs = args
-
-	sql := statement.generateSql()
-	resultsSlice, err := session.Query(sql, append(statement.Params, statement.BeanArgs...)...)
+	sql, args := statement.genGetSql(bean)
+	resultsSlice, err := session.Query(sql, args...)
 
 	if err != nil {
 		return err
@@ -242,14 +249,9 @@ func (session *Session) Get(bean interface{}) error {
 func (session *Session) Count(bean interface{}) (int64, error) {
 	statement := session.Statement
 	defer session.Statement.Init()
-	table := session.Engine.AutoMap(bean)
-	statement.Table = table
+	sql, args := statement.genCountSql(bean)
 
-	colNames, args := session.BuildConditions(table, bean)
-	statement.ColumnStr = strings.Join(colNames, " and ")
-	statement.BeanArgs = args
-
-	resultsSlice, err := session.Query(statement.genCountSql(), append(statement.Params, statement.BeanArgs...)...)
+	resultsSlice, err := session.Query(sql, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -273,10 +275,10 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 
 	sliceElementType := sliceValue.Type().Elem()
 	table := session.Engine.AutoMapType(sliceElementType)
-	statement.Table = table
+	statement.RefTable = table
 
 	if len(condiBean) > 0 {
-		colNames, args := session.BuildConditions(table, condiBean[0])
+		colNames, args := BuildConditions(session.Engine, table, condiBean[0])
 		statement.ColumnStr = strings.Join(colNames, " and ")
 		statement.BeanArgs = args
 	}
@@ -300,8 +302,8 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 }
 
 func (session *Session) Query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
-	if session.Statement.Table != nil && session.Statement.Table.PrimaryKey != "" {
-		sql = strings.Replace(sql, "(id)", session.Statement.Table.PrimaryKey, -1)
+	if session.Statement.RefTable != nil && session.Statement.RefTable.PrimaryKey != "" {
+		sql = strings.Replace(sql, "(id)", session.Statement.RefTable.PrimaryKey, -1)
 	}
 	if session.Engine.ShowSQL {
 		fmt.Println(sql)
@@ -429,7 +431,7 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 	sliceElementType := Type(bean)
 
 	table := session.Engine.AutoMapType(sliceElementType)
-	session.Statement.Table = table
+	session.Statement.RefTable = table
 
 	size := sliceValue.Len()
 
@@ -470,7 +472,7 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 
 	statement := fmt.Sprintf("INSERT INTO %v%v%v (%v) VALUES (%v)",
 		session.Engine.QuoteIdentifier,
-		table.Name,
+		session.Statement.TableName(),
 		session.Engine.QuoteIdentifier,
 		strings.Join(colNames, ", "),
 		strings.Join(colMultiPlaces, "),("))
@@ -491,7 +493,7 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 
 func (session *Session) InsertOne(bean interface{}) (int64, error) {
 	table := session.Engine.AutoMap(bean)
-	session.Statement.Table = table
+	session.Statement.RefTable = table
 	colNames := make([]string, 0)
 	colPlaces := make([]string, 0)
 	var args = make([]interface{}, 0)
@@ -506,14 +508,14 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 		colPlaces = append(colPlaces, "?")
 	}
 
-	statement := fmt.Sprintf("INSERT INTO %v%v%v (%v) VALUES (%v)",
+	sql := fmt.Sprintf("INSERT INTO %v%v%v (%v) VALUES (%v)",
 		session.Engine.QuoteIdentifier,
-		table.Name,
+		session.Statement.TableName(),
 		session.Engine.QuoteIdentifier,
 		strings.Join(colNames, ", "),
 		strings.Join(colPlaces, ", "))
 
-	res, err := session.Exec(statement, args...)
+	res, err := session.Exec(sql, args...)
 	if err != nil {
 		return -1, err
 	}
@@ -527,48 +529,15 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 	return id, nil
 }
 
-func (session *Session) BuildConditions(table *Table, bean interface{}) ([]string, []interface{}) {
-	colNames := make([]string, 0)
-	var args = make([]interface{}, 0)
-	for _, col := range table.Columns {
-		fieldValue := reflect.Indirect(reflect.ValueOf(bean)).FieldByName(col.FieldName)
-		fieldType := reflect.TypeOf(fieldValue.Interface())
-		val := fieldValue.Interface()
-		switch fieldType.Kind() {
-		case reflect.String:
-			if fieldValue.String() == "" {
-				continue
-			}
-		case reflect.Int, reflect.Int32, reflect.Int64:
-			if fieldValue.Int() == 0 {
-				continue
-			}
-		case reflect.Struct:
-			if fieldType == reflect.TypeOf(time.Now()) {
-				t := fieldValue.Interface().(time.Time)
-				if t.IsZero() {
-					continue
-				}
-			}
-		default:
-			continue
-		}
-		args = append(args, val)
-		colNames = append(colNames, session.Engine.QuoteIdentifier+col.Name+session.Engine.QuoteIdentifier+"=?")
-	}
-
-	return colNames, args
-}
-
 func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int64, error) {
 	table := session.Engine.AutoMap(bean)
-	session.Statement.Table = table
-	colNames, args := session.BuildConditions(table, bean)
+	session.Statement.RefTable = table
+	colNames, args := BuildConditions(session.Engine, table, bean)
 	var condiColNames []string
 	var condiArgs []interface{}
 
 	if len(condiBean) > 0 {
-		condiColNames, condiArgs = session.BuildConditions(table, condiBean[0])
+		condiColNames, condiArgs = BuildConditions(session.Engine, table, condiBean[0])
 	}
 
 	var condition = ""
@@ -590,7 +559,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	statement := fmt.Sprintf("UPDATE %v%v%v SET %v %v",
 		session.Engine.QuoteIdentifier,
-		table.Name,
+		session.Statement.TableName(),
 		session.Engine.QuoteIdentifier,
 		strings.Join(colNames, ", "),
 		condition)
@@ -611,8 +580,8 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 func (session *Session) Delete(bean interface{}) (int64, error) {
 	table := session.Engine.AutoMap(bean)
-	session.Statement.Table = table
-	colNames, args := session.BuildConditions(table, bean)
+	session.Statement.RefTable = table
+	colNames, args := BuildConditions(session.Engine, table, bean)
 
 	var condition = ""
 	st := session.Statement
@@ -629,7 +598,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 
 	statement := fmt.Sprintf("DELETE FROM %v%v%v %v",
 		session.Engine.QuoteIdentifier,
-		table.Name,
+		session.Statement.TableName(),
 		session.Engine.QuoteIdentifier,
 		condition)
 

@@ -18,6 +18,7 @@ const (
 
 type Engine struct {
 	Mapper          IMapper
+	TagIdentifier   string
 	DriverName      string
 	DataSourceName  string
 	Tables          map[reflect.Type]Table
@@ -60,13 +61,18 @@ func (engine *Engine) Where(querystring string, args ...interface{}) *Engine {
 	return engine
 }
 
-func (engine *Engine) Id(id int) *Engine {
+func (engine *Engine) Id(id int64) *Engine {
 	engine.Statement.Id(id)
 	return engine
 }
 
 func (engine *Engine) In(column string, args ...interface{}) *Engine {
 	engine.Statement.In(column, args...)
+	return engine
+}
+
+func (engine *Engine) Table(tableName string) *Engine {
+	engine.Statement.Table(tableName)
 	return engine
 }
 
@@ -96,67 +102,6 @@ func (engine *Engine) Having(conditions string) *Engine {
 	return engine
 }
 
-func (e *Engine) genColumnStr(col *Column) string {
-	sql := "`" + col.Name + "` "
-	if col.SQLType == Date {
-		sql += " datetime "
-	} else {
-		if e.DriverName == SQLITE && col.IsPrimaryKey {
-			sql += "integer"
-		} else {
-			sql += col.SQLType.Name
-		}
-		if e.DriverName != SQLITE && col.SQLType != Text {
-			if col.SQLType != Decimal {
-				sql += "(" + strconv.Itoa(col.Length) + ")"
-			} else {
-				sql += "(" + strconv.Itoa(col.Length) + "," + strconv.Itoa(col.Length2) + ")"
-			}
-		}
-	}
-
-	if col.Nullable {
-		sql += " NULL "
-	} else {
-		sql += " NOT NULL "
-	}
-	//fmt.Println(key)
-	if col.IsPrimaryKey {
-		sql += "PRIMARY KEY "
-	}
-	if col.IsAutoIncrement {
-		sql += e.AutoIncrement + " "
-	}
-	if col.IsUnique {
-		sql += "Unique "
-	}
-	return sql
-}
-
-func (e *Engine) genCreateSQL(table *Table) string {
-	sql := "CREATE TABLE IF NOT EXISTS `" + table.Name + "` ("
-	//fmt.Println(session.Mapper.Obj2Table(session.PrimaryKey))
-	for _, col := range table.Columns {
-		sql += e.genColumnStr(&col)
-		sql += ","
-	}
-	sql = sql[:len(sql)-2] + ");"
-	return sql
-}
-
-func (e *Engine) genDropSQL(table *Table) string {
-	sql := "DROP TABLE IF EXISTS `" + table.Name + "`;"
-	return sql
-}
-
-/*
-map an object into a table object
-*/
-func (engine *Engine) MapOne(bean interface{}) Table {
-	t := Type(bean)
-	return engine.MapType(t)
-}
-
 func (engine *Engine) AutoMapType(t reflect.Type) *Table {
 	table, ok := engine.Tables[t]
 	if !ok {
@@ -179,7 +124,7 @@ func (engine *Engine) MapType(t reflect.Type) Table {
 
 	for i := 0; i < t.NumField(); i++ {
 		tag := t.Field(i).Tag
-		ormTagStr := tag.Get("xorm")
+		ormTagStr := tag.Get(engine.TagIdentifier)
 		var col Column
 		fieldType := t.Field(i).Type
 
@@ -278,7 +223,7 @@ func (engine *Engine) Map(beans ...interface{}) (e error) {
 	for _, bean := range beans {
 		t := Type(bean)
 		if _, ok := engine.Tables[t]; !ok {
-			engine.Tables[t] = engine.MapOne(bean)
+			engine.Tables[t] = engine.MapType(t)
 		}
 	}
 	return
@@ -294,11 +239,6 @@ func (engine *Engine) UnMap(beans ...interface{}) (e error) {
 	return
 }
 
-func (engine *Engine) Bean2Table(bean interface{}) *Table {
-	table := engine.Tables[Type(bean)]
-	return &table
-}
-
 func (e *Engine) DropAll() error {
 	session, err := e.MakeSession()
 	session.Begin()
@@ -308,7 +248,8 @@ func (e *Engine) DropAll() error {
 	}
 
 	for _, table := range e.Tables {
-		sql := e.genDropSQL(&table)
+		e.Statement.RefTable = &table
+		sql := e.Statement.genDropSQL()
 		_, err = session.Exec(sql)
 		if err != nil {
 			session.Rollback()
@@ -321,15 +262,13 @@ func (e *Engine) DropAll() error {
 func (e *Engine) CreateTables(beans ...interface{}) error {
 	session, err := e.MakeSession()
 	session.Begin()
+	session.Statement = e.Statement
 	defer session.Close()
 	if err != nil {
 		return err
 	}
 	for _, bean := range beans {
-		table := e.MapOne(bean)
-		e.Tables[table.Type] = table
-		sql := e.genCreateSQL(&table)
-		_, err = session.Exec(sql)
+		err = session.CreateTable(bean)
 		if err != nil {
 			session.Rollback()
 			return err
@@ -347,7 +286,8 @@ func (e *Engine) CreateAll() error {
 	}
 
 	for _, table := range e.Tables {
-		sql := e.genCreateSQL(&table)
+		e.Statement.RefTable = &table
+		sql := e.Statement.genCreateSQL()
 		_, err = session.Exec(sql)
 		if err != nil {
 			session.Rollback()

@@ -2,22 +2,26 @@ package xorm
 
 import (
 	"fmt"
+	"reflect"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type Statement struct {
-	Table      *Table
-	Engine     *Engine
-	Start      int
-	LimitN     int
-	WhereStr   string
-	Params     []interface{}
-	OrderStr   string
-	JoinStr    string
-	GroupByStr string
-	HavingStr  string
-	ColumnStr  string
-	BeanArgs   []interface{}
+	RefTable     *Table
+	Engine       *Engine
+	Start        int
+	LimitN       int
+	WhereStr     string
+	Params       []interface{}
+	OrderStr     string
+	JoinStr      string
+	GroupByStr   string
+	HavingStr    string
+	ColumnStr    string
+	AltTableName string
+	BeanArgs     []interface{}
 }
 
 func MakeArray(elem string, count int) []string {
@@ -29,7 +33,7 @@ func MakeArray(elem string, count int) []string {
 }
 
 func (statement *Statement) Init() {
-	statement.Table = nil
+	statement.RefTable = nil
 	statement.Start = 0
 	statement.LimitN = 0
 	statement.WhereStr = ""
@@ -39,6 +43,7 @@ func (statement *Statement) Init() {
 	statement.GroupByStr = ""
 	statement.HavingStr = ""
 	statement.ColumnStr = ""
+	statement.AltTableName = ""
 	statement.BeanArgs = make([]interface{}, 0)
 }
 
@@ -47,7 +52,54 @@ func (statement *Statement) Where(querystring string, args ...interface{}) {
 	statement.Params = args
 }
 
-func (statement *Statement) Id(id int) {
+func (statement *Statement) Table(tableName string) {
+	statement.AltTableName = tableName
+}
+
+func BuildConditions(engine *Engine, table *Table, bean interface{}) ([]string, []interface{}) {
+	colNames := make([]string, 0)
+	var args = make([]interface{}, 0)
+	for _, col := range table.Columns {
+		fieldValue := reflect.Indirect(reflect.ValueOf(bean)).FieldByName(col.FieldName)
+		fieldType := reflect.TypeOf(fieldValue.Interface())
+		val := fieldValue.Interface()
+		switch fieldType.Kind() {
+		case reflect.String:
+			if fieldValue.String() == "" {
+				continue
+			}
+		case reflect.Int, reflect.Int32, reflect.Int64:
+			if fieldValue.Int() == 0 {
+				continue
+			}
+		case reflect.Struct:
+			if fieldType == reflect.TypeOf(time.Now()) {
+				t := fieldValue.Interface().(time.Time)
+				if t.IsZero() {
+					continue
+				}
+			}
+		default:
+			continue
+		}
+		args = append(args, val)
+		colNames = append(colNames, engine.QuoteIdentifier+col.Name+engine.QuoteIdentifier+"=?")
+	}
+
+	return colNames, args
+}
+
+func (statement *Statement) TableName() string {
+	if statement.AltTableName != "" {
+		return statement.AltTableName
+	}
+	if statement.RefTable != nil {
+		return statement.RefTable.Name
+	}
+	return ""
+}
+
+func (statement *Statement) Id(id int64) {
 	if statement.WhereStr == "" {
 		statement.WhereStr = "(id)=?"
 		statement.Params = []interface{}{id}
@@ -96,22 +148,100 @@ func (statement *Statement) Having(conditions string) {
 	statement.HavingStr = fmt.Sprintf("HAVING %v", conditions)
 }
 
+func (statement *Statement) genColumnStr(col *Column) string {
+	sql := "`" + col.Name + "` "
+	if col.SQLType == Date {
+		sql += " datetime "
+	} else {
+		if statement.Engine.DriverName == SQLITE && col.IsPrimaryKey {
+			sql += "integer"
+		} else {
+			sql += col.SQLType.Name
+		}
+		if statement.Engine.DriverName != SQLITE && col.SQLType != Text {
+			if col.SQLType != Decimal {
+				sql += "(" + strconv.Itoa(col.Length) + ")"
+			} else {
+				sql += "(" + strconv.Itoa(col.Length) + "," + strconv.Itoa(col.Length2) + ")"
+			}
+		}
+	}
+
+	if col.Nullable {
+		sql += " NULL "
+	} else {
+		sql += " NOT NULL "
+	}
+	//fmt.Println(key)
+	if col.IsPrimaryKey {
+		sql += "PRIMARY KEY "
+	}
+	if col.IsAutoIncrement {
+		sql += statement.Engine.AutoIncrement + " "
+	}
+	if col.IsUnique {
+		sql += "Unique "
+	}
+	return sql
+}
+
+func (statement *Statement) selectColumnStr() string {
+	table := statement.RefTable
+	colNames := make([]string, 0)
+	for _, col := range table.Columns {
+		colNames = append(colNames, statement.TableName()+"."+col.Name)
+	}
+	return strings.Join(colNames, ", ")
+}
+
+func (statement *Statement) genCreateSQL() string {
+	sql := "CREATE TABLE IF NOT EXISTS `" + statement.TableName() + "` ("
+	for _, col := range statement.RefTable.Columns {
+		sql += statement.genColumnStr(&col)
+		sql += ","
+	}
+	sql = sql[:len(sql)-2] + ");"
+	return sql
+}
+
+func (statement *Statement) genDropSQL() string {
+	sql := "DROP TABLE IF EXISTS `" + statement.TableName() + "`;"
+	return sql
+}
+
 func (statement Statement) generateSql() string {
-	columnStr := statement.Table.ColumnStr()
+	columnStr := statement.selectColumnStr()
 	return statement.genSelectSql(columnStr)
 }
 
-func (statement Statement) genCountSql() string {
-	return statement.genSelectSql("count(*) as total")
+func (statement Statement) genGetSql(bean interface{}) (string, []interface{}) {
+	table := statement.Engine.AutoMap(bean)
+	statement.RefTable = table
+
+	colNames, args := BuildConditions(statement.Engine, table, bean)
+	statement.ColumnStr = strings.Join(colNames, " and ")
+	statement.BeanArgs = args
+
+	return statement.generateSql(), append(statement.Params, statement.BeanArgs...)
+}
+
+func (statement Statement) genCountSql(bean interface{}) (string, []interface{}) {
+	table := statement.Engine.AutoMap(bean)
+	statement.RefTable = table
+
+	colNames, args := BuildConditions(statement.Engine, table, bean)
+	statement.ColumnStr = strings.Join(colNames, " and ")
+	statement.BeanArgs = args
+	return statement.genSelectSql("count(*) as total"), append(statement.Params, statement.BeanArgs...)
 }
 
 func (statement Statement) genSelectSql(columnStr string) (a string) {
 	if statement.Engine.DriverName == MSSQL {
 		if statement.Start > 0 {
 			a = fmt.Sprintf("select ROW_NUMBER() OVER(order by %v )as rownum,%v from %v",
-				statement.Table.PKColumn().Name,
+				statement.RefTable.PKColumn().Name,
 				columnStr,
-				statement.Table.Name)
+				statement.TableName())
 			if statement.WhereStr != "" {
 				a = fmt.Sprintf("%v WHERE %v", a, statement.WhereStr)
 				if statement.ColumnStr != "" {
@@ -127,7 +257,7 @@ func (statement Statement) genSelectSql(columnStr string) (a string) {
 				statement.Start,
 				statement.LimitN)
 		} else if statement.LimitN > 0 {
-			a = fmt.Sprintf("SELECT top %v %v FROM %v", statement.LimitN, columnStr, statement.Table.Name)
+			a = fmt.Sprintf("SELECT top %v %v FROM %v", statement.LimitN, columnStr, statement.TableName())
 			if statement.WhereStr != "" {
 				a = fmt.Sprintf("%v WHERE %v", a, statement.WhereStr)
 				if statement.ColumnStr != "" {
@@ -146,7 +276,7 @@ func (statement Statement) genSelectSql(columnStr string) (a string) {
 				a = fmt.Sprintf("%v ORDER BY %v", a, statement.OrderStr)
 			}
 		} else {
-			a = fmt.Sprintf("SELECT %v FROM %v", columnStr, statement.Table.Name)
+			a = fmt.Sprintf("SELECT %v FROM %v", columnStr, statement.TableName())
 			if statement.WhereStr != "" {
 				a = fmt.Sprintf("%v WHERE %v", a, statement.WhereStr)
 				if statement.ColumnStr != "" {
@@ -166,7 +296,7 @@ func (statement Statement) genSelectSql(columnStr string) (a string) {
 			}
 		}
 	} else {
-		a = fmt.Sprintf("SELECT %v FROM %v", columnStr, statement.Table.Name)
+		a = fmt.Sprintf("SELECT %v FROM %v", columnStr, statement.TableName())
 		if statement.JoinStr != "" {
 			a = fmt.Sprintf("%v %v", a, statement.JoinStr)
 		}
