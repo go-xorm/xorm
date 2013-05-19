@@ -264,6 +264,7 @@ func (e *Engine) CreateTables(beans ...interface{}) error {
 	session.Begin()
 	session.Statement = e.Statement
 	defer session.Close()
+	defer e.Statement.Init()
 	if err != nil {
 		return err
 	}
