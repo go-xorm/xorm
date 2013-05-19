@@ -186,6 +186,16 @@ func find(t *testing.T) {
 	fmt.Println(users)
 }
 
+func findMap(t *testing.T) {
+	users := make(map[int64]Userinfo)
+
+	err := engine.Find(&users)
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println(users)
+}
+
 func count(t *testing.T) {
 	user := Userinfo{Departname: "dev"}
 	total, err := engine.Count(&user)
@@ -430,6 +440,7 @@ func TestMysql(t *testing.T) {
 	delete(t)
 	get(t)
 	find(t)
+	findMap(t)
 	count(t)
 	where(t)
 	in(t)
@@ -460,6 +471,7 @@ func TestSqlite(t *testing.T) {
 	delete(t)
 	get(t)
 	find(t)
+	findMap(t)
 	count(t)
 	where(t)
 	in(t)

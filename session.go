@@ -269,8 +269,8 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	statement := session.Statement
 	defer session.Statement.Init()
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
-	if sliceValue.Kind() != reflect.Slice {
-		return errors.New("needs a pointer to a slice")
+	if sliceValue.Kind() != reflect.Slice && sliceValue.Kind() != reflect.Map {
+		return errors.New("needs a pointer to a slice or a map")
 	}
 
 	sliceElementType := sliceValue.Type().Elem()
@@ -290,13 +290,27 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		return err
 	}
 
-	for _, results := range resultsSlice {
+	for i, results := range resultsSlice {
 		newValue := reflect.New(sliceElementType)
 		err := session.scanMapIntoStruct(newValue.Interface(), results)
 		if err != nil {
 			return err
 		}
-		sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(newValue.Interface()))))
+		if sliceValue.Kind() == reflect.Slice {
+			sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(newValue.Interface()))))
+		} else if sliceValue.Kind() == reflect.Map {
+			var key int64
+			if table.PrimaryKey != "" {
+				x, err := strconv.ParseInt(string(results[table.PrimaryKey]), 10, 64)
+				if err != nil {
+					return errors.New("pk " + table.PrimaryKey + " as int64: " + err.Error())
+				}
+				key = x
+			} else {
+				key = int64(i)
+			}
+			sliceValue.SetMapIndex(reflect.ValueOf(key), reflect.Indirect(reflect.ValueOf(newValue.Interface())))
+		}
 	}
 	return nil
 }
