@@ -59,6 +59,13 @@ func (session *Session) OrderBy(order string) *Session {
 	return session
 }
 
+func (session *Session) Cascade(trueOrFalse ...bool) *Session {
+	if len(trueOrFalse) >= 1 {
+		session.Statement.UseCascade = trueOrFalse[0]
+	}
+	return session
+}
+
 //The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
 func (session *Session) Join(join_operator, tablename, condition string) *Session {
 	session.Statement.Join(join_operator, tablename, condition)
@@ -130,6 +137,10 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 		switch structField.Type().Kind() {
 		case reflect.Slice:
 			v = data
+		case reflect.Array:
+			if structField.Type().Elem() == reflect.TypeOf(b) {
+				v = data
+			}
 		case reflect.String:
 			v = string(data)
 		case reflect.Bool:
@@ -160,20 +171,44 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 			v = x
 		//Now only support Time type
 		case reflect.Struct:
-			if structField.Type().String() != "time.Time" {
-				return errors.New("unsupported struct type in Scan: " + structField.Type().String())
-			}
-
-			x, err := time.Parse("2006-01-02 15:04:05", string(data))
-			if err != nil {
-				x, err = time.Parse("2006-01-02 15:04:05.000 -0700", string(data))
-
+			if structField.Type().String() == "time.Time" {
+				x, err := time.Parse("2006-01-02 15:04:05", string(data))
 				if err != nil {
-					return errors.New("unsupported time format: " + string(data))
+					x, err = time.Parse("2006-01-02 15:04:05.000 -0700", string(data))
+
+					if err != nil {
+						return errors.New("unsupported time format: " + string(data))
+					}
+				}
+
+				v = x
+			} else if session.Statement.UseCascade {
+				session.Engine.AutoMapType(structField.Type())
+				if _, ok := session.Engine.Tables[structField.Type()]; ok {
+					x, err := strconv.ParseInt(string(data), 10, 64)
+					if err != nil {
+						return errors.New("arg " + key + " as int: " + err.Error())
+					}
+
+					if x != 0 {
+						structInter := reflect.New(structField.Type())
+						session.Statement.Init()
+						err = session.Id(x).Get(structInter.Interface())
+						if err != nil {
+							return err
+						}
+
+						v = structInter.Elem().Interface()
+					} else {
+						//fmt.Println("zero value of struct type " + structField.Type().String())
+						continue
+					}
+
+				} else {
+					fmt.Println("unsupported struct type in Scan: " + structField.Type().String())
+					continue
 				}
 			}
-
-			v = x
 		default:
 			return errors.New("unsupported type in Scan: " + reflect.TypeOf(v).String())
 		}
@@ -205,6 +240,7 @@ func (session *Session) Exec(sql string, args ...interface{}) (sql.Result, error
 	}
 	if session.Engine.ShowSQL {
 		fmt.Println(sql)
+		fmt.Println(args)
 	}
 	if session.IsAutoCommit {
 		return session.innerExec(sql, args...)
@@ -225,6 +261,8 @@ func (session *Session) Get(bean interface{}) error {
 	statement := session.Statement
 	defer statement.Init()
 	statement.Limit(1)
+
+	fmt.Println(bean)
 
 	sql, args := statement.genGetSql(bean)
 	resultsSlice, err := session.Query(sql, args...)
@@ -321,6 +359,7 @@ func (session *Session) Query(sql string, paramStr ...interface{}) (resultsSlice
 	}
 	if session.Engine.ShowSQL {
 		fmt.Println(sql)
+		fmt.Println(paramStr)
 	}
 	s, err := session.Db.Prepare(sql)
 	if err != nil {
@@ -375,11 +414,14 @@ func (session *Session) Query(sql string, paramStr ...interface{}) (resultsSlice
 			case reflect.String:
 				str = vv.String()
 				result[key] = []byte(str)
-			//时间类型	
+			//时间类型
 			case reflect.Struct:
-				str = rawValue.Interface().(time.Time).Format("2006-01-02 15:04:05.000 -0700")
-				result[key] = []byte(str)
+				if aa.String() == "time.Time" {
+					str = rawValue.Interface().(time.Time).Format("2006-01-02 15:04:05.000 -0700")
+					result[key] = []byte(str)
+				}
 			}
+			//default:
 
 		}
 		resultsSlice = append(resultsSlice, result)
@@ -465,7 +507,13 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 				if col.IsAutoIncrement && fieldValue.Int() == 0 {
 					continue
 				}
-				args = append(args, val)
+				if table, ok := session.Engine.Tables[fieldValue.Type()]; ok {
+					pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumn().FieldName)
+					fmt.Println(pkField.Interface())
+					args = append(args, pkField.Interface())
+				} else {
+					args = append(args, val)
+				}
 				colNames = append(colNames, col.Name)
 				cols = append(cols, col)
 				colPlaces = append(colPlaces, "?")
@@ -477,7 +525,12 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 				if col.IsAutoIncrement && fieldValue.Int() == 0 {
 					continue
 				}
-				args = append(args, val)
+				if table, ok := session.Engine.Tables[fieldValue.Type()]; ok {
+					pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumn().FieldName)
+					args = append(args, pkField.Interface())
+				} else {
+					args = append(args, val)
+				}
 				colPlaces = append(colPlaces, "?")
 			}
 		}
@@ -517,7 +570,12 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 		if col.IsAutoIncrement && fieldValue.Int() == 0 {
 			continue
 		}
-		args = append(args, val)
+		if table, ok := session.Engine.Tables[fieldValue.Type()]; ok {
+			pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumn().FieldName)
+			args = append(args, pkField.Interface())
+		} else {
+			args = append(args, val)
+		}
 		colNames = append(colNames, col.Name)
 		colPlaces = append(colPlaces, "?")
 	}

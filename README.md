@@ -2,7 +2,7 @@
 
 [中文](https://github.com/lunny/xorm/blob/master/README_CN.md)
 
-xorm is an ORM for Go. It makes dabatabse operating simple. 
+xorm is a simple and powerful ORM for Go. It makes dabatabse operating simple. 
 
 It's not entirely ready for product use yet, but it's getting there.
 
@@ -16,6 +16,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 ## Changelog
 
+* **v0.1.4** : Added simple cascade load support; added more data type supports.
 * **v0.1.3** : Find function now supports both slice and map; Add Table function for multi tables and temperory tables support
 * **v0.1.2** : Insert function now supports both struct and slice pointer parameters, batch inserting and auto transaction
 * **v0.1.1** : Add Id, In functions and improved README
@@ -32,6 +33,9 @@ Drivers for Go's sql package which currently support database/sql includes:
 * Simply usage
 
 * Support Id, In, Where, Limit, Join, Having functions and sturct as query conditions
+
+* Support simple cascade load just like Hibernate for Java
+
 
 ## Installing xorm
 
@@ -111,11 +115,14 @@ var user = User{Name:"xlw"}
 err := engine.Get(&user)
 ```
 	
-6.Fetch multipe objects, use Find：
+6.Fetch multipe objects into a slice or a map, use Find：
 
 ```Go
 var everyone []Userinfo
 err := engine.Find(&everyone)
+
+users := make(map[int64]Userinfo)
+err := engine.Find(&users)
 ```
 
 6.1 also you can use Where, Limit
@@ -293,7 +300,7 @@ Another is use field tag, field tag support the below keywords which split with 
         <td>pk</td><td>the field is a primary key</td>
     </tr>
     <tr>
-        <td>int(11)/varchar(50)</td><td>column type</td>
+        <td>int(11)/varchar(50)/text/date/datetime/blob/decimal(26,2)</td><td>column type</td>
     </tr>
     <tr>
         <td>autoincr</td><td>auto incrment</td>

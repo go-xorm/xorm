@@ -16,6 +16,7 @@ xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
 
 ## 更新日志
 
+* **v0.1.4** : Get函数和Find函数新增简单的级联载入功能；对更多的数据库类型支持。
 * **v0.1.3** : Find函数现在支持传入Slice或者Map，当传入Map时，key为id；新增Table函数以为多表和临时表进行支持。
 * **v0.1.2** : Insert函数支持混合struct和slice指针传入，并根据数据库类型自动批量插入，同时自动添加事务
 * **v0.1.1** : 添加 Id, In 函数，改善 README 文档
@@ -108,11 +109,14 @@ var user = User{Name:"xlw"}
 err := engine.Get(&user)
 ```
 	
-6.获取多个对象，可以用Find方法：
+6.获取多个对象到一个Slice或一个Map对象中，可以用Find方法：
 
 ```Go
 var everyone []Userinfo
 err := engine.Find(&everyone)
+
+users := make(map[int64]Userinfo)
+err := engine.Find(&users)
 ```
 
 6.1 你也可以使用Where和Limit方法设定条件和查询数量
@@ -289,7 +293,7 @@ UserInfo中的成员UserName将会自动对应名为user_name的字段。
         <td>pk</td><td>是否是Primary Key</td>
     </tr>
     <tr>
-        <td>int(11)/varchar(50)</td><td>字段类型</td>
+        <td>int(11)/varchar(50)/text/date/datetime/blob/decimal(26,2)</td><td>字段类型</td>
     </tr>
     <tr>
         <td>autoincr</td><td>是否是自增</td>

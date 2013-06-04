@@ -13,17 +13,14 @@ func Create(driverName string, dataSourceName string) Engine {
 	engine.InsertMany = true
 	engine.TagIdentifier = "xorm"
 	if driverName == SQLITE {
+		engine.Dialect = sqlite3{}
 		engine.AutoIncrement = "AUTOINCREMENT"
 	} else {
+		engine.Dialect = mysql{}
 		engine.AutoIncrement = "AUTO_INCREMENT"
 	}
 
-	if engine.DriverName == PQSQL {
-		engine.QuoteIdentifier = "\""
-	} else if engine.DriverName == MSSQL {
-		engine.QuoteIdentifier = ""
-	} else {
-		engine.QuoteIdentifier = "`"
-	}
+	engine.QuoteIdentifier = "`"
+
 	return engine
 }

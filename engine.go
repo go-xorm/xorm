@@ -16,11 +16,16 @@ const (
 	MYMYSQL = "mymysql"
 )
 
+type dialect interface {
+	SqlType(t *Column) string
+}
+
 type Engine struct {
 	Mapper          IMapper
 	TagIdentifier   string
 	DriverName      string
 	DataSourceName  string
+	Dialect         dialect
 	Tables          map[reflect.Type]Table
 	AutoIncrement   string
 	ShowSQL         bool
@@ -119,8 +124,6 @@ func (engine *Engine) AutoMap(bean interface{}) *Table {
 func (engine *Engine) MapType(t reflect.Type) Table {
 	table := Table{Name: engine.Mapper.Obj2Table(t.Name()), Type: t}
 	table.Columns = make(map[string]Column)
-	var pkCol *Column = nil
-	var pkstr = ""
 
 	for i := 0; i < t.NumField(); i++ {
 		tag := t.Field(i).Tag
@@ -129,10 +132,11 @@ func (engine *Engine) MapType(t reflect.Type) Table {
 		fieldType := t.Field(i).Type
 
 		if ormTagStr != "" {
-			col = Column{FieldName: t.Field(i).Name, Nullable: true}
+			col = Column{FieldName: t.Field(i).Name, Nullable: true, IsPrimaryKey: false,
+				IsAutoIncrement: false}
 			ormTagStr = strings.ToLower(ormTagStr)
 			tags := strings.Split(ormTagStr, " ")
-			// TODO: 
+			// TODO:
 			if len(tags) > 0 {
 				if tags[0] == "-" {
 					continue
@@ -143,7 +147,6 @@ func (engine *Engine) MapType(t reflect.Type) Table {
 					case k == "pk":
 						col.IsPrimaryKey = true
 						col.Nullable = false
-						pkCol = &col
 					case k == "null":
 						col.Nullable = (tags[j-1] != "not")
 					case k == "autoincr":
@@ -158,7 +161,7 @@ func (engine *Engine) MapType(t reflect.Type) Table {
 						col.Length, _ = strconv.Atoi(lens)
 					case strings.HasPrefix(k, "varchar"):
 						col.SQLType = Varchar
-						lens := k[len("decimal")+1 : len(k)-1]
+						lens := k[len("varchar")+1 : len(k)-1]
 						col.Length, _ = strconv.Atoi(lens)
 					case strings.HasPrefix(k, "decimal"):
 						col.SQLType = Decimal
@@ -168,6 +171,10 @@ func (engine *Engine) MapType(t reflect.Type) Table {
 						col.Length2, _ = strconv.Atoi(twolen[1])
 					case k == "date":
 						col.SQLType = Date
+					case k == "datetime":
+						col.SQLType = DateTime
+					case k == "timestamp":
+						col.SQLType = TimeStamp
 					case k == "not":
 					default:
 						if k != col.Default {
@@ -189,31 +196,23 @@ func (engine *Engine) MapType(t reflect.Type) Table {
 				if col.Name == "" {
 					col.Name = engine.Mapper.Obj2Table(t.Field(i).Name)
 				}
+				if col.IsPrimaryKey {
+					table.PrimaryKey = col.Name
+				}
 			}
-		}
-
-		if col.Name == "" {
+		} else {
 			sqlType := Type2SQLType(fieldType)
 			col = Column{engine.Mapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
 				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", false, false, false}
+
+			if col.Name == "id" {
+				col.IsPrimaryKey = true
+				col.IsAutoIncrement = true
+				col.Nullable = false
+				table.PrimaryKey = col.Name
+			}
 		}
 		table.Columns[col.Name] = col
-		if strings.ToLower(t.Field(i).Name) == "id" {
-			pkstr = col.Name
-		}
-	}
-
-	if pkCol == nil {
-		if pkstr != "" {
-			col := table.Columns[pkstr]
-			col.IsPrimaryKey = true
-			col.IsAutoIncrement = true
-			col.Nullable = false
-			col.Length = Int.DefaultLength
-			table.PrimaryKey = col.Name
-		}
-	} else {
-		table.PrimaryKey = pkCol.Name
 	}
 
 	return table

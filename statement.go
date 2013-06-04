@@ -3,7 +3,7 @@ package xorm
 import (
 	"fmt"
 	"reflect"
-	"strconv"
+	//"strconv"
 	"strings"
 	"time"
 )
@@ -21,6 +21,7 @@ type Statement struct {
 	HavingStr    string
 	ColumnStr    string
 	AltTableName string
+	UseCascade   bool
 	BeanArgs     []interface{}
 }
 
@@ -39,6 +40,7 @@ func (statement *Statement) Init() {
 	statement.WhereStr = ""
 	statement.Params = make([]interface{}, 0)
 	statement.OrderStr = ""
+	statement.UseCascade = true
 	statement.JoinStr = ""
 	statement.GroupByStr = ""
 	statement.HavingStr = ""
@@ -82,7 +84,17 @@ func BuildConditions(engine *Engine, table *Table, bean interface{}) ([]string, 
 		default:
 			continue
 		}
-		args = append(args, val)
+		if table, ok := engine.Tables[fieldValue.Type()]; ok {
+			pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumn().FieldName)
+			fmt.Println(pkField.Interface())
+			if pkField.Int() != 0 {
+				args = append(args, pkField.Interface())
+			} else {
+				continue
+			}
+		} else {
+			args = append(args, val)
+		}
 		colNames = append(colNames, engine.QuoteIdentifier+col.Name+engine.QuoteIdentifier+"=?")
 	}
 
@@ -150,37 +162,29 @@ func (statement *Statement) Having(conditions string) {
 
 func (statement *Statement) genColumnStr(col *Column) string {
 	sql := "`" + col.Name + "` "
-	if col.SQLType == Date {
-		sql += " datetime "
-	} else {
-		if statement.Engine.DriverName == SQLITE && col.IsPrimaryKey {
-			sql += "integer"
-		} else {
-			sql += col.SQLType.Name
-		}
-		if statement.Engine.DriverName != SQLITE && col.SQLType != Text {
-			if col.SQLType != Decimal {
-				sql += "(" + strconv.Itoa(col.Length) + ")"
-			} else {
-				sql += "(" + strconv.Itoa(col.Length) + "," + strconv.Itoa(col.Length2) + ")"
-			}
-		}
-	}
 
-	if col.Nullable {
-		sql += " NULL "
-	} else {
-		sql += " NOT NULL "
-	}
-	//fmt.Println(key)
+	sql += statement.Engine.Dialect.SqlType(col) + " "
+
 	if col.IsPrimaryKey {
 		sql += "PRIMARY KEY "
 	}
+
 	if col.IsAutoIncrement {
 		sql += statement.Engine.AutoIncrement + " "
 	}
+
+	if col.Nullable {
+		sql += "NULL "
+	} else {
+		sql += "NOT NULL "
+	}
+
 	if col.IsUnique {
 		sql += "Unique "
+	}
+
+	if col.Default != "" {
+		sql += "DEFAULT " + col.Default + " "
 	}
 	return sql
 }
@@ -198,7 +202,8 @@ func (statement *Statement) genCreateSQL() string {
 	sql := "CREATE TABLE IF NOT EXISTS `" + statement.TableName() + "` ("
 	for _, col := range statement.RefTable.Columns {
 		sql += statement.genColumnStr(&col)
-		sql += ","
+		sql = strings.TrimSpace(sql)
+		sql += ", "
 	}
 	sql = sql[:len(sql)-2] + ");"
 	return sql

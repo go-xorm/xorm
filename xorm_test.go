@@ -4,6 +4,7 @@ import (
 	"fmt"
 	_ "github.com/Go-SQL-Driver/MySQL"
 	_ "github.com/mattn/go-sqlite3"
+	"os"
 	"testing"
 	"time"
 	"xorm"
@@ -26,15 +27,19 @@ CREATE TABLE `userdeatail` (
 */
 
 type Userinfo struct {
-	Uid        int `xorm:"id pk not null autoincr"`
+	Uid        int64 `xorm:"id pk not null autoincr"`
 	Username   string
 	Departname string
 	Alias      string `xorm:"-"`
 	Created    time.Time
+	Detail     Userdetail `xorm:"detail_id int(11)"`
+	Height     float64
+	Avatar     []byte
+	IsMan      bool
 }
 
 type Userdetail struct {
-	Uid     int    `xorm:"id pk not null"`
+	Id      int64
 	Intro   string `xorm:"text"`
 	Profile string `xorm:"varchar(2000)"`
 }
@@ -71,7 +76,8 @@ func mapper(t *testing.T) {
 }
 
 func insert(t *testing.T) {
-	user := Userinfo{1, "xiaolunwen", "dev", "lunny", time.Now()}
+	user := Userinfo{1, "xiaolunwen", "dev", "lunny", time.Now(),
+		Userdetail{Id: 1}, 1.78, []byte{1, 2, 3}, true}
 	_, err := engine.Insert(&user)
 	if err != nil {
 		t.Error(err)
@@ -98,7 +104,8 @@ func exec(t *testing.T) {
 
 func insertAutoIncr(t *testing.T) {
 	// auto increment insert
-	user := Userinfo{Username: "xiaolunwen", Departname: "dev", Alias: "lunny", Created: time.Now()}
+	user := Userinfo{Username: "xiaolunwen", Departname: "dev", Alias: "lunny", Created: time.Now(),
+		Detail: Userdetail{Id: 1}, Height: 1.78, Avatar: []byte{1, 2, 3}, IsMan: true}
 	_, err := engine.Insert(&user)
 	if err != nil {
 		t.Error(err)
@@ -135,8 +142,9 @@ func insertMulti(t *testing.T) {
 }
 
 func insertTwoTable(t *testing.T) {
-	userinfo := Userinfo{Username: "xlw3", Departname: "dev", Alias: "lunny4", Created: time.Now()}
-	userdetail := Userdetail{Uid: 1, Intro: "I'm a very beautiful women.", Profile: "sfsaf"}
+	userdetail := Userdetail{Id: 1, Intro: "I'm a very beautiful women.", Profile: "sfsaf"}
+	userinfo := Userinfo{Username: "xlw3", Departname: "dev", Alias: "lunny4", Created: time.Now(), Detail: userdetail}
+
 	_, err := engine.Insert(&userinfo, &userdetail)
 	if err != nil {
 		t.Error(err)
@@ -168,6 +176,16 @@ func delete(t *testing.T) {
 
 func get(t *testing.T) {
 	user := Userinfo{Uid: 2}
+
+	err := engine.Get(&user)
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println(user)
+}
+
+func cascadeGet(t *testing.T) {
+	user := Userinfo{Uid: 11}
 
 	err := engine.Get(&user)
 	if err != nil {
@@ -380,7 +398,7 @@ func createMultiTables(t *testing.T) {
 
 	user := &Userinfo{}
 	session.Begin()
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		err = session.Table(fmt.Sprintf("user_%v", i)).CreateTable(user)
 		if err != nil {
 			session.Rollback()
@@ -425,6 +443,7 @@ func tableOp(t *testing.T) {
 }
 
 func TestMysql(t *testing.T) {
+	// You should drop all tables before executing this testing
 	engine = xorm.Create("mysql", "root:123@/test?charset=utf8")
 	engine.ShowSQL = true
 
@@ -439,6 +458,7 @@ func TestMysql(t *testing.T) {
 	update(t)
 	delete(t)
 	get(t)
+	cascadeGet(t)
 	find(t)
 	findMap(t)
 	count(t)
@@ -456,6 +476,7 @@ func TestMysql(t *testing.T) {
 }
 
 func TestSqlite(t *testing.T) {
+	os.Remove("./test.db")
 	engine = xorm.Create("sqlite3", "./test.db")
 	engine.ShowSQL = true
 
@@ -470,6 +491,7 @@ func TestSqlite(t *testing.T) {
 	update(t)
 	delete(t)
 	get(t)
+	cascadeGet(t)
 	find(t)
 	findMap(t)
 	count(t)

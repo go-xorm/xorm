@@ -2,7 +2,7 @@ package xorm
 
 import (
 	"reflect"
-	"strconv"
+	//"strconv"
 	//"strings"
 	"time"
 )
@@ -14,35 +14,49 @@ type SQLType struct {
 }
 
 var (
-	Int     = SQLType{"int", 11, 0}
-	Char    = SQLType{"char", 1, 0}
-	Bool    = SQLType{"int", 1, 0}
-	Varchar = SQLType{"varchar", 50, 0}
-	Text    = SQLType{"text", 16, 0}
-	Date    = SQLType{"date", 24, 0}
-	Decimal = SQLType{"decimal", 26, 2}
-	Float   = SQLType{"float", 31, 0}
-	Double  = SQLType{"double", 31, 0}
+	TinyInt   = SQLType{"TINYINT", 0, 0}
+	SmallInt  = SQLType{"SMALLINT", 0, 0}
+	MediumInt = SQLType{"MEDIUMINT", 0, 0}
+	Int       = SQLType{"INT", 11, 0}
+	BigInt    = SQLType{"BIGINT", 0, 0}
+	Char      = SQLType{"CHAR", 1, 0}
+	Varchar   = SQLType{"VARCHAR", 64, 0}
+	Text      = SQLType{"TEXT", 16, 0}
+	Date      = SQLType{"DATE", 24, 0}
+	DateTime  = SQLType{"DATETIME", 0, 0}
+	Decimal   = SQLType{"DECIMAL", 26, 2}
+	Float     = SQLType{"FLOAT", 31, 0}
+	Double    = SQLType{"DOUBLE", 31, 0}
+	Blob      = SQLType{"BLOB", 0, 0}
+	TimeStamp = SQLType{"TIMESTAMP", 0, 0}
 )
 
-func (sqlType SQLType) genSQL(length int) string {
-	if sqlType == Date {
-		return " datetime "
-	}
-	return sqlType.Name + "(" + strconv.Itoa(length) + ")"
-}
+var b byte
+var tm time.Time
 
 func Type2SQLType(t reflect.Type) (st SQLType) {
 	switch k := t.Kind(); k {
-	case reflect.Int, reflect.Int32, reflect.Int64:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32:
 		st = Int
+	case reflect.Int64, reflect.Uint64:
+		st = BigInt
+	case reflect.Float32:
+		st = Float
+	case reflect.Float64:
+		st = Double
+	case reflect.Complex64, reflect.Complex128:
+		st = Varchar
+	case reflect.Array, reflect.Slice:
+		if t.Elem() == reflect.TypeOf(b) {
+			st = Blob
+		}
 	case reflect.Bool:
-		st = Bool
+		st = TinyInt
 	case reflect.String:
 		st = Varchar
 	case reflect.Struct:
-		if t == reflect.TypeOf(time.Time{}) {
-			st = Date
+		if t == reflect.TypeOf(tm) {
+			st = DateTime
 		}
 	default:
 		st = Varchar
