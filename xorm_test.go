@@ -2,7 +2,7 @@ package xorm_test
 
 import (
 	"fmt"
-	_ "github.com/Go-SQL-Driver/MySQL"
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/mattn/go-sqlite3"
 	"os"
 	"testing"
