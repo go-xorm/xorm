@@ -26,7 +26,11 @@ func (session *Session) Init() {
 }
 
 func (session *Session) Close() {
-	defer session.Db.Close()
+	defer func() {
+		if session.Db != nil {
+			session.Db.Close()
+		}
+	}()
 }
 
 func (session *Session) Where(querystring string, args ...interface{}) *Session {
