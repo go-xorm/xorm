@@ -6,6 +6,9 @@ xorm is a simple and powerful ORM for Go. It makes dabatabse operating simple.
 
 It's not entirely ready for product use yet, but it's getting there.
 
+[![Build Status](https://drone.io/github.com/lunny/xorm/status.png)](https://drone.io/github.com/lunny/xorm/latest)
+
+
 ## Drivers Support
 
 Drivers for Go's sql package which currently support database/sql includes:

@@ -6,6 +6,8 @@ xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
 
 目前没有正式的项目来使用此库，如果有，我们将会把它列出来。
 
+[![Build Status](https://drone.io/github.com/lunny/xorm/status.png)](https://drone.io/github.com/lunny/xorm/latest)
+
 ## 驱动支持
 
 目前支持的Go数据库驱动如下：
