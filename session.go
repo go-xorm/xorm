@@ -88,14 +88,16 @@ func (session *Session) Having(conditions string) *Session {
 
 func (session *Session) Begin() error {
 	if session.IsAutoCommit {
+		tx, err := session.Db.Begin()
+		if err != nil {
+			return err
+		}
 		session.IsAutoCommit = false
 		session.IsCommitedOrRollbacked = false
-		tx, err := session.Db.Begin()
 		session.Tx = tx
 		if session.Engine.ShowSQL {
 			fmt.Println("BEGIN TRANSACTION")
 		}
-		return err
 	}
 	return nil
 }

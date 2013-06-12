@@ -4,12 +4,12 @@ import (
 	"reflect"
 )
 
-func Create(driverName string, dataSourceName string) Engine {
-	engine := Engine{ShowSQL: false, DriverName: driverName, Mapper: SnakeMapper{},
+func NewEngine(driverName string, dataSourceName string) *Engine {
+	engine := &Engine{ShowSQL: false, DriverName: driverName, Mapper: SnakeMapper{},
 		DataSourceName: dataSourceName}
 
 	engine.Tables = make(map[reflect.Type]Table)
-	engine.Statement.Engine = &engine
+	engine.Statement.Engine = engine
 	engine.InsertMany = true
 	engine.TagIdentifier = "xorm"
 	if driverName == SQLITE {

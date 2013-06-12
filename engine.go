@@ -50,15 +50,23 @@ func (e *Engine) OpenDB() (*sql.DB, error) {
 	return sql.Open(e.DriverName, e.DataSourceName)
 }
 
-func (engine *Engine) MakeSession() (session Session, err error) {
+func (engine *Engine) NewSession() (session *Session, err error) {
 	db, err := engine.OpenDB()
 	if err != nil {
-		return Session{}, err
+		return nil, err
 	}
 
-	session = Session{Engine: engine, Db: db}
+	session = &Session{Engine: engine, Db: db}
 	session.Init()
 	return
+}
+
+func (engine *Engine) Test() error {
+	session, err := engine.NewSession()
+	if err != nil {
+		return err
+	}
+	return session.Db.Ping()
 }
 
 func (engine *Engine) Where(querystring string, args ...interface{}) *Engine {
@@ -260,9 +268,15 @@ func (e *Engine) DropAll() error {
 
 func (e *Engine) CreateTables(beans ...interface{}) error {
 	session, err := e.MakeSession()
-	session.Begin()
-	session.Statement = e.Statement
+	if err != nil {
+		return err
+	}
 	defer session.Close()
+	err = session.Begin()
+	if err != nil {
+		return err
+	}
+	session.Statement = e.Statement
 	defer e.Statement.Init()
 	if err != nil {
 		return err
