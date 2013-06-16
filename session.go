@@ -673,9 +673,13 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 		if col.IsAutoIncrement && fieldValue.Int() == 0 {
 			continue
 		}
-		if table, ok := session.Engine.Tables[fieldValue.Type()]; ok {
-			pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumn().FieldName)
-			args = append(args, pkField.Interface())
+		if fieldTable, ok := session.Engine.Tables[fieldValue.Type()]; ok {
+			if fieldTable.PrimaryKey != "" {
+				pkField := reflect.Indirect(fieldValue).FieldByName(fieldTable.PKColumn().FieldName)
+				args = append(args, pkField.Interface())
+			} else {
+				continue
+			}
 		} else {
 			args = append(args, val)
 		}
@@ -696,9 +700,15 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 	}
 
 	id, err := res.LastInsertId()
-
 	if err != nil {
 		return -1, err
+	}
+	if id > 0 && table.PrimaryKey != "" {
+		pkValue := reflect.Indirect(reflect.ValueOf(bean)).FieldByName(table.PKColumn().FieldName)
+		if pkValue.CanSet() {
+			var v interface{} = id
+			pkValue.Set(reflect.ValueOf(v))
+		}
 	}
 
 	return id, nil

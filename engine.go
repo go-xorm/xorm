@@ -132,7 +132,7 @@ func (engine *Engine) AutoMapType(t reflect.Type) *Table {
 	table, ok := engine.Tables[t]
 	if !ok {
 		table = engine.MapType(t)
-		//engine.Tables[t] = table
+		engine.Tables[t] = table
 	}
 	return table
 }
