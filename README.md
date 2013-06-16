@@ -4,8 +4,6 @@
 
 xorm is a simple and powerful ORM for Go. It makes dabatabse operating simple. 
 
-It's not entirely ready for product use yet, but it's getting there.
-
 [![Build Status](https://drone.io/github.com/lunny/xorm/status.png)](https://drone.io/github.com/lunny/xorm/latest)
 
 
@@ -19,6 +17,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 ## Changelog
 
+* **v0.1.5** : Added multi threads support; added Sql() function for struct query; Get function changed return inteface; MakeSession and Create are instead with NewSession and NewEngin.
 * **v0.1.4** : Added simple cascade load support; added more data type supports.
 * **v0.1.3** : Find function now supports both slice and map; Add Table function for multi tables and temperory tables support
 * **v0.1.2** : Insert function now supports both struct and slice pointer parameters, batch inserting and auto transaction
@@ -35,7 +34,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * Simply usage
 
-* Support Id, In, Where, Limit, Join, Having functions and sturct as query conditions
+* Support Id, In, Where, Limit, Join, Having, Sql functions and sturct as query conditions
 
 * Support simple cascade load just like Hibernate for Java
 
