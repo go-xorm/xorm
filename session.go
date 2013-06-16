@@ -21,6 +21,7 @@ type Session struct {
 
 func (session *Session) Init() {
 	session.Statement = Statement{Engine: session.Engine}
+	session.Statement.Init()
 	session.IsAutoCommit = true
 	session.IsCommitedOrRollbacked = false
 }
@@ -28,9 +29,17 @@ func (session *Session) Init() {
 func (session *Session) Close() {
 	defer func() {
 		if session.Db != nil {
-			session.Db.Close()
+			session.Engine.Pool.ReleaseDB(session.Engine, session.Db)
+			session.Db = nil
+			session.Tx = nil
+			session.Init()
 		}
 	}()
+}
+
+func (session *Session) Sql(querystring string, args ...interface{}) *Session {
+	session.Statement.Sql(querystring, args...)
+	return session
 }
 
 func (session *Session) Where(querystring string, args ...interface{}) *Session {
@@ -86,7 +95,22 @@ func (session *Session) Having(conditions string) *Session {
 	return session
 }
 
+func (session *Session) newDb() error {
+	if session.Db == nil {
+		db, err := session.Engine.Pool.RetrieveDB(session.Engine)
+		if err != nil {
+			return err
+		}
+		session.Db = db
+	}
+	return nil
+}
+
 func (session *Session) Begin() error {
+	err := session.newDb()
+	if err != nil {
+		return err
+	}
 	if session.IsAutoCommit {
 		tx, err := session.Db.Begin()
 		if err != nil {
@@ -189,31 +213,38 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 
 				v = x
 			} else if session.Statement.UseCascade {
-				session.Engine.AutoMapType(structField.Type())
-				if _, ok := session.Engine.Tables[structField.Type()]; ok {
+				table := session.Engine.AutoMapType(structField.Type())
+				if table != nil {
 					x, err := strconv.ParseInt(string(data), 10, 64)
 					if err != nil {
 						return errors.New("arg " + key + " as int: " + err.Error())
 					}
-
 					if x != 0 {
 						structInter := reflect.New(structField.Type())
+						st := session.Statement
 						session.Statement.Init()
-						err = session.Id(x).Get(structInter.Interface())
+						has, err := session.Id(x).Get(structInter.Interface())
 						if err != nil {
+							session.Statement = st
 							return err
 						}
-
-						v = structInter.Elem().Interface()
+						if has {
+							v = structInter.Elem().Interface()
+							session.Statement = st
+						} else {
+							fmt.Println("cascade obj is not exist!")
+							session.Statement = st
+							continue
+						}
 					} else {
-						//fmt.Println("zero value of struct type " + structField.Type().String())
 						continue
 					}
-
 				} else {
 					fmt.Println("unsupported struct type in Scan: " + structField.Type().String())
 					continue
 				}
+			} else {
+				continue
 			}
 		default:
 			return errors.New("unsupported type in Scan: " + reflect.TypeOf(v).String())
@@ -241,6 +272,11 @@ func (session *Session) innerExec(sql string, args ...interface{}) (sql.Result, 
 }
 
 func (session *Session) Exec(sql string, args ...interface{}) (sql.Result, error) {
+	err := session.newDb()
+	if err != nil {
+		return nil, err
+	}
+
 	if session.Statement.RefTable != nil && session.Statement.RefTable.PrimaryKey != "" {
 		sql = strings.Replace(sql, "(id)", session.Statement.RefTable.PrimaryKey, -1)
 	}
@@ -263,37 +299,48 @@ func (session *Session) CreateTable(bean interface{}) error {
 	return err
 }
 
-func (session *Session) Get(bean interface{}) error {
+func (session *Session) Get(bean interface{}) (bool, error) {
 	statement := session.Statement
 	defer statement.Init()
 	statement.Limit(1)
-
-	fmt.Println(bean)
-
-	sql, args := statement.genGetSql(bean)
+	var sql string
+	var args []interface{}
+	if statement.RawSQL == "" {
+		sql, args = statement.genGetSql(bean)
+	} else {
+		sql = statement.RawSQL
+		args = statement.RawParams
+	}
 	resultsSlice, err := session.Query(sql, args...)
 
 	if err != nil {
-		return err
+		return false, err
 	}
 	if len(resultsSlice) == 0 {
-		return nil
+		return false, nil
 	} else if len(resultsSlice) == 1 {
 		results := resultsSlice[0]
 		err := session.scanMapIntoStruct(bean, results)
 		if err != nil {
-			return err
+			return false, err
 		}
 	} else {
-		return errors.New("More than one record")
+		return false, errors.New("More than one record")
 	}
-	return nil
+	return true, nil
 }
 
 func (session *Session) Count(bean interface{}) (int64, error) {
 	statement := session.Statement
 	defer session.Statement.Init()
-	sql, args := statement.genCountSql(bean)
+	var sql string
+	var args []interface{}
+	if statement.RawSQL == "" {
+		sql, args = statement.genCountSql(bean)
+	} else {
+		sql = statement.RawSQL
+		args = statement.RawParams
+	}
 
 	resultsSlice, err := session.Query(sql, args...)
 	if err != nil {
@@ -301,9 +348,12 @@ func (session *Session) Count(bean interface{}) (int64, error) {
 	}
 
 	var total int64 = 0
-	for _, results := range resultsSlice {
-		total, err = strconv.ParseInt(string(results["total"]), 10, 64)
-		break
+	if len(resultsSlice) > 0 {
+		results := resultsSlice[0]
+		for _, value := range results {
+			total, err = strconv.ParseInt(string(value), 10, 64)
+			break
+		}
 	}
 
 	return int64(total), err
@@ -327,8 +377,17 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		statement.BeanArgs = args
 	}
 
-	sql := statement.generateSql()
-	resultsSlice, err := session.Query(sql, append(statement.Params, statement.BeanArgs...)...)
+	var sql string
+	var args []interface{}
+	if statement.RawSQL == "" {
+		sql = statement.generateSql()
+		args = append(statement.Params, statement.BeanArgs...)
+	} else {
+		sql = statement.RawSQL
+		args = statement.RawParams
+	}
+
+	resultsSlice, err := session.Query(sql, args...)
 
 	if err != nil {
 		return err
@@ -359,7 +418,45 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	return nil
 }
 
+func (session *Session) Ping() error {
+	err := session.newDb()
+	if err != nil {
+		return err
+	}
+
+	return session.Db.Ping()
+}
+
+func (session *Session) CreateAll() error {
+	for _, table := range session.Engine.Tables {
+		session.Statement.RefTable = table
+		sql := session.Statement.genCreateSQL()
+		_, err := session.Exec(sql)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (session *Session) DropAll() error {
+	for _, table := range session.Engine.Tables {
+		session.Statement.RefTable = table
+		sql := session.Statement.genDropSQL()
+		_, err := session.Exec(sql)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (session *Session) Query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
+	err = session.newDb()
+	if err != nil {
+		return nil, err
+	}
+
 	if session.Statement.RefTable != nil && session.Statement.RefTable.PrimaryKey != "" {
 		sql = strings.Replace(sql, "(id)", session.Statement.RefTable.PrimaryKey, -1)
 	}
@@ -635,7 +732,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		}
 	}
 
-	statement := fmt.Sprintf("UPDATE %v%v%v SET %v %v",
+	sql := fmt.Sprintf("UPDATE %v%v%v SET %v %v",
 		session.Engine.QuoteIdentifier,
 		session.Statement.TableName(),
 		session.Engine.QuoteIdentifier,
@@ -643,7 +740,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		condition)
 
 	eargs := append(append(args, st.Params...), condiArgs...)
-	res, err := session.Exec(statement, eargs...)
+	res, err := session.Exec(sql, eargs...)
 	if err != nil {
 		return -1, err
 	}

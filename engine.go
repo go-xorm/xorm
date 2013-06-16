@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const (
@@ -26,12 +27,13 @@ type Engine struct {
 	DriverName      string
 	DataSourceName  string
 	Dialect         dialect
-	Tables          map[reflect.Type]Table
+	Tables          map[reflect.Type]*Table
+	mutex           *sync.Mutex
 	AutoIncrement   string
 	ShowSQL         bool
 	InsertMany      bool
 	QuoteIdentifier string
-	Statement       Statement
+	Pool            IConnectionPool
 }
 
 func Type(bean interface{}) reflect.Type {
@@ -50,78 +52,89 @@ func (e *Engine) OpenDB() (*sql.DB, error) {
 	return sql.Open(e.DriverName, e.DataSourceName)
 }
 
-func (engine *Engine) NewSession() (session *Session, err error) {
-	db, err := engine.OpenDB()
-	if err != nil {
-		return nil, err
-	}
-
-	session = &Session{Engine: engine, Db: db}
+func (engine *Engine) NewSession() *Session {
+	session := &Session{Engine: engine}
 	session.Init()
-	return
+	return session
 }
 
 func (engine *Engine) Test() error {
-	session, err := engine.NewSession()
-	if err != nil {
-		return err
-	}
-	return session.Db.Ping()
+	session := engine.NewSession()
+	defer session.Close()
+	return session.Ping()
 }
 
-func (engine *Engine) Where(querystring string, args ...interface{}) *Engine {
-	engine.Statement.Where(querystring, args...)
-	return engine
+func (engine *Engine) Sql(querystring string, args ...interface{}) *Session {
+	session := engine.NewSession()
+	session.Sql(querystring, args...)
+	return session
 }
 
-func (engine *Engine) Id(id int64) *Engine {
-	engine.Statement.Id(id)
-	return engine
+func (engine *Engine) Where(querystring string, args ...interface{}) *Session {
+	session := engine.NewSession()
+	session.Where(querystring, args...)
+	return session
 }
 
-func (engine *Engine) In(column string, args ...interface{}) *Engine {
-	engine.Statement.In(column, args...)
-	return engine
+func (engine *Engine) Id(id int64) *Session {
+	session := engine.NewSession()
+	session.Id(id)
+	return session
 }
 
-func (engine *Engine) Table(tableName string) *Engine {
-	engine.Statement.Table(tableName)
-	return engine
+func (engine *Engine) In(column string, args ...interface{}) *Session {
+	session := engine.NewSession()
+	session.In(column, args...)
+	return session
 }
 
-func (engine *Engine) Limit(limit int, start ...int) *Engine {
-	engine.Statement.Limit(limit, start...)
-	return engine
+func (engine *Engine) Table(tableName string) *Session {
+	session := engine.NewSession()
+	session.Table(tableName)
+	return session
 }
 
-func (engine *Engine) OrderBy(order string) *Engine {
-	engine.Statement.OrderBy(order)
-	return engine
+func (engine *Engine) Limit(limit int, start ...int) *Session {
+	session := engine.NewSession()
+	session.Limit(limit, start...)
+	return session
+}
+
+func (engine *Engine) OrderBy(order string) *Session {
+	session := engine.NewSession()
+	session.OrderBy(order)
+	return session
 }
 
 //The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
-func (engine *Engine) Join(join_operator, tablename, condition string) *Engine {
-	engine.Statement.Join(join_operator, tablename, condition)
-	return engine
+func (engine *Engine) Join(join_operator, tablename, condition string) *Session {
+	session := engine.NewSession()
+	session.Join(join_operator, tablename, condition)
+	return session
 }
 
-func (engine *Engine) GroupBy(keys string) *Engine {
-	engine.Statement.GroupBy(keys)
-	return engine
+func (engine *Engine) GroupBy(keys string) *Session {
+	session := engine.NewSession()
+	session.GroupBy(keys)
+	return session
 }
 
-func (engine *Engine) Having(conditions string) *Engine {
-	engine.Statement.Having(conditions)
-	return engine
+func (engine *Engine) Having(conditions string) *Session {
+	session := engine.NewSession()
+	session.Having(conditions)
+	return session
 }
 
+// some lock needed
 func (engine *Engine) AutoMapType(t reflect.Type) *Table {
+	engine.mutex.Lock()
+	defer engine.mutex.Unlock()
 	table, ok := engine.Tables[t]
 	if !ok {
 		table = engine.MapType(t)
-		engine.Tables[t] = table
+		//engine.Tables[t] = table
 	}
-	return &table
+	return table
 }
 
 func (engine *Engine) AutoMap(bean interface{}) *Table {
@@ -129,8 +142,8 @@ func (engine *Engine) AutoMap(bean interface{}) *Table {
 	return engine.AutoMapType(t)
 }
 
-func (engine *Engine) MapType(t reflect.Type) Table {
-	table := Table{Name: engine.Mapper.Obj2Table(t.Name()), Type: t}
+func (engine *Engine) MapType(t reflect.Type) *Table {
+	table := &Table{Name: engine.Mapper.Obj2Table(t.Name()), Type: t}
 	table.Columns = make(map[string]Column)
 
 	for i := 0; i < t.NumField(); i++ {
@@ -226,7 +239,10 @@ func (engine *Engine) MapType(t reflect.Type) Table {
 	return table
 }
 
+// Map should use after all operation because it's not thread safe
 func (engine *Engine) Map(beans ...interface{}) (e error) {
+	engine.mutex.Lock()
+	defer engine.mutex.Unlock()
 	for _, bean := range beans {
 		t := Type(bean)
 		if _, ok := engine.Tables[t]; !ok {
@@ -237,6 +253,8 @@ func (engine *Engine) Map(beans ...interface{}) (e error) {
 }
 
 func (engine *Engine) UnMap(beans ...interface{}) (e error) {
+	engine.mutex.Lock()
+	defer engine.mutex.Unlock()
 	for _, bean := range beans {
 		t := Type(bean)
 		if _, ok := engine.Tables[t]; ok {
@@ -247,37 +265,24 @@ func (engine *Engine) UnMap(beans ...interface{}) (e error) {
 }
 
 func (e *Engine) DropAll() error {
-	session, err := e.MakeSession()
-	session.Begin()
+	session := e.NewSession()
 	defer session.Close()
+
+	err := session.Begin()
 	if err != nil {
 		return err
 	}
-
-	for _, table := range e.Tables {
-		e.Statement.RefTable = &table
-		sql := e.Statement.genDropSQL()
-		_, err = session.Exec(sql)
-		if err != nil {
-			session.Rollback()
-			return err
-		}
+	err = session.DropAll()
+	if err != nil {
+		return session.Rollback()
 	}
 	return session.Commit()
 }
 
 func (e *Engine) CreateTables(beans ...interface{}) error {
-	session, err := e.MakeSession()
-	if err != nil {
-		return err
-	}
+	session := e.NewSession()
 	defer session.Close()
-	err = session.Begin()
-	if err != nil {
-		return err
-	}
-	session.Statement = e.Statement
-	defer e.Statement.Init()
+	err := session.Begin()
 	if err != nil {
 		return err
 	}
@@ -292,106 +297,64 @@ func (e *Engine) CreateTables(beans ...interface{}) error {
 }
 
 func (e *Engine) CreateAll() error {
-	session, err := e.MakeSession()
-	session.Begin()
+	session := e.NewSession()
+	err := session.Begin()
 	defer session.Close()
 	if err != nil {
 		return err
 	}
 
-	for _, table := range e.Tables {
-		e.Statement.RefTable = &table
-		sql := e.Statement.genCreateSQL()
-		_, err = session.Exec(sql)
-		if err != nil {
-			session.Rollback()
-			break
-		}
+	err = session.CreateAll()
+	if err != nil {
+		return session.Rollback()
 	}
-	session.Commit()
-	return err
+	return session.Commit()
 }
 
 func (engine *Engine) Exec(sql string, args ...interface{}) (sql.Result, error) {
-	session, err := engine.MakeSession()
+	session := engine.NewSession()
 	defer session.Close()
-	if err != nil {
-		return nil, err
-	}
 	return session.Exec(sql, args...)
 }
 
 func (engine *Engine) Query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
-	session, err := engine.MakeSession()
+	session := engine.NewSession()
 	defer session.Close()
-	if err != nil {
-		return nil, err
-	}
 	return session.Query(sql, paramStr...)
 }
 
 func (engine *Engine) Insert(beans ...interface{}) (int64, error) {
-	session, err := engine.MakeSession()
+	session := engine.NewSession()
 	defer session.Close()
-	if err != nil {
-		return -1, err
-	}
-	defer engine.Statement.Init()
-	session.Statement = engine.Statement
 	return session.Insert(beans...)
 }
 
 func (engine *Engine) Update(bean interface{}, condiBeans ...interface{}) (int64, error) {
-	session, err := engine.MakeSession()
+	session := engine.NewSession()
 	defer session.Close()
-	if err != nil {
-		return -1, err
-	}
-	defer engine.Statement.Init()
-	session.Statement = engine.Statement
 	return session.Update(bean, condiBeans...)
 }
 
 func (engine *Engine) Delete(bean interface{}) (int64, error) {
-	session, err := engine.MakeSession()
+	session := engine.NewSession()
 	defer session.Close()
-	if err != nil {
-		return -1, err
-	}
-	defer engine.Statement.Init()
-	session.Statement = engine.Statement
 	return session.Delete(bean)
 }
 
-func (engine *Engine) Get(bean interface{}) error {
-	session, err := engine.MakeSession()
+func (engine *Engine) Get(bean interface{}) (bool, error) {
+	session := engine.NewSession()
 	defer session.Close()
-	if err != nil {
-		return err
-	}
-	defer engine.Statement.Init()
-	session.Statement = engine.Statement
 	return session.Get(bean)
 }
 
 func (engine *Engine) Find(beans interface{}, condiBeans ...interface{}) error {
-	session, err := engine.MakeSession()
+	session := engine.NewSession()
 	defer session.Close()
-	if err != nil {
-		return err
-	}
-	defer engine.Statement.Init()
-	session.Statement = engine.Statement
 	return session.Find(beans, condiBeans...)
 }
 
 func (engine *Engine) Count(bean interface{}) (int64, error) {
-	session, err := engine.MakeSession()
+	session := engine.NewSession()
 	defer session.Close()
-	if err != nil {
-		return 0, err
-	}
-	defer engine.Statement.Init()
-	session.Statement = engine.Statement
 	return session.Count(bean)
 }

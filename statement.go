@@ -21,6 +21,8 @@ type Statement struct {
 	HavingStr    string
 	ColumnStr    string
 	AltTableName string
+	RawSQL       string
+	RawParams    []interface{}
 	UseCascade   bool
 	BeanArgs     []interface{}
 }
@@ -46,7 +48,14 @@ func (statement *Statement) Init() {
 	statement.HavingStr = ""
 	statement.ColumnStr = ""
 	statement.AltTableName = ""
+	statement.RawSQL = ""
+	statement.RawParams = make([]interface{}, 0)
 	statement.BeanArgs = make([]interface{}, 0)
+}
+
+func (statement *Statement) Sql(querystring string, args ...interface{}) {
+	statement.RawSQL = querystring
+	statement.RawParams = args
 }
 
 func (statement *Statement) Where(querystring string, args ...interface{}) {

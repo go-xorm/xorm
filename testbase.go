@@ -171,21 +171,29 @@ func testdelete(engine *Engine, t *testing.T) {
 func get(engine *Engine, t *testing.T) {
 	user := Userinfo{Uid: 2}
 
-	err := engine.Get(&user)
+	has, err := engine.Get(&user)
 	if err != nil {
 		t.Error(err)
 	}
-	fmt.Println(user)
+	if has {
+		fmt.Println(user)
+	} else {
+		fmt.Println("no record id is 2")
+	}
 }
 
 func cascadeGet(engine *Engine, t *testing.T) {
 	user := Userinfo{Uid: 11}
 
-	err := engine.Get(&user)
+	has, err := engine.Get(&user)
 	if err != nil {
 		t.Error(err)
 	}
-	fmt.Println(user)
+	if has {
+		fmt.Println(user)
+	} else {
+		fmt.Println("no record id is 2")
+	}
 }
 
 func find(engine *Engine, t *testing.T) {
@@ -290,14 +298,14 @@ func transaction(engine *Engine, t *testing.T) {
 
 	counter()
 	defer counter()
-	session, err := engine.MakeSession()
+	session := engine.NewSession()
 	defer session.Close()
+
+	err := session.Begin()
 	if err != nil {
 		t.Error(err)
 		return
 	}
-
-	session.Begin()
 	//session.IsAutoRollback = false
 	user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
 	_, err = session.Insert(&user1)
@@ -340,14 +348,14 @@ func combineTransaction(engine *Engine, t *testing.T) {
 
 	counter()
 	defer counter()
-	session, err := engine.MakeSession()
+	session := engine.NewSession()
 	defer session.Close()
+
+	err := session.Begin()
 	if err != nil {
 		t.Error(err)
 		return
 	}
-
-	session.Begin()
 	//session.IsAutoRollback = false
 	user1 := Userinfo{Username: "xiaoxiao2", Departname: "dev", Alias: "lunny", Created: time.Now()}
 	_, err = session.Insert(&user1)
@@ -379,19 +387,19 @@ func combineTransaction(engine *Engine, t *testing.T) {
 }
 
 func table(engine *Engine, t *testing.T) {
-	engine.Table("user_user").CreateTables(&Userinfo{})
+	engine.Table("user_user").CreateTable(&Userinfo{})
 }
 
 func createMultiTables(engine *Engine, t *testing.T) {
-	session, err := engine.MakeSession()
+	session := engine.NewSession()
 	defer session.Close()
+
+	user := &Userinfo{}
+	err := session.Begin()
 	if err != nil {
 		t.Error(err)
 		return
 	}
-
-	user := &Userinfo{}
-	session.Begin()
 	for i := 0; i < 10; i++ {
 		err = session.Table(fmt.Sprintf("user_%v", i)).CreateTable(user)
 		if err != nil {
@@ -414,7 +422,7 @@ func tableOp(engine *Engine, t *testing.T) {
 		t.Error(err)
 	}
 
-	err = engine.Table(tableName).Get(&Userinfo{Username: "tablexiao"})
+	_, err = engine.Table(tableName).Get(&Userinfo{Username: "tablexiao"})
 	if err != nil {
 		t.Error(err)
 	}
