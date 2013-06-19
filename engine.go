@@ -177,9 +177,15 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 					case k == "text":
 						col.SQLType = Text
 					case strings.HasPrefix(k, "int"):
-						col.SQLType = Int
-						lens := k[len("int")+1 : len(k)-1]
-						col.Length, _ = strconv.Atoi(lens)
+						if k == "int" {
+							col.SQLType = Int
+							col.Length = Int.DefaultLength
+							col.Length2 = Int.DefaultLength2
+						} else {
+							col.SQLType = Int
+							lens := k[len("int")+1 : len(k)-1]
+							col.Length, _ = strconv.Atoi(lens)
+						}
 					case strings.HasPrefix(k, "varchar"):
 						col.SQLType = Varchar
 						lens := k[len("varchar")+1 : len(k)-1]
