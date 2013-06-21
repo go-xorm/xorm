@@ -2,7 +2,7 @@ package xorm
 
 import (
 	"database/sql"
-	"fmt"
+	//"fmt"
 	//"sync"
 	"sync/atomic"
 	//"time"
