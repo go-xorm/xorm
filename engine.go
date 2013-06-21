@@ -287,8 +287,8 @@ func (e *Engine) DropAll() error {
 
 func (e *Engine) CreateTables(beans ...interface{}) error {
 	session := e.NewSession()
-	defer session.Close()
 	err := session.Begin()
+	defer session.Close()
 	if err != nil {
 		return err
 	}

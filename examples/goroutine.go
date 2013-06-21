@@ -7,11 +7,12 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"os"
 	//"time"
+	"sync/atomic"
 	xorm "xorm"
 )
 
 type User struct {
-	Id   int
+	Id   int64
 	Name string
 }
 
@@ -24,18 +25,10 @@ func mysqlEngine() (*xorm.Engine, error) {
 	return xorm.NewEngine("mysql", "root:123@/test?charset=utf8")
 }
 
-func main() {
-	engine, err := sqliteEngine()
-	// engine, err := mysqlEngine()
+var u *User = &User{}
 
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	u := &User{}
-
-	err = engine.CreateTables(u)
+func test(engine *xorm.Engine) {
+	err := engine.CreateTables(u)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -84,5 +77,24 @@ func main() {
 	for i := 0; i < size; i++ {
 		<-queue
 	}
+
+	conns := atomic.LoadInt32(&xorm.ConnectionNum)
+	fmt.Println("connection number:", conns)
 	fmt.Println("end")
+}
+
+func main() {
+	engine, err := sqliteEngine()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	test(engine)
+
+	engine, err = mysqlEngine()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	test(engine)
 }

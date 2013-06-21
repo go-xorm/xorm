@@ -2,8 +2,9 @@ package xorm
 
 import (
 	"database/sql"
-	//"fmt"
+	"fmt"
 	//"sync"
+	"sync/atomic"
 	//"time"
 )
 
@@ -15,21 +16,22 @@ type IConnectionPool interface {
 type NoneConnectPool struct {
 }
 
+var ConnectionNum int32 = 0
+
 func (p NoneConnectPool) RetrieveDB(engine *Engine) (db *sql.DB, err error) {
+	atomic.AddInt32(&ConnectionNum, 1)
 	db, err = engine.OpenDB()
+	fmt.Printf("--open a connection--%x\n", &db)
 	return
 }
 
 func (p NoneConnectPool) ReleaseDB(engine *Engine, db *sql.DB) {
+	atomic.AddInt32(&ConnectionNum, -1)
+	fmt.Printf("--close a connection--%x\n", &db)
 	db.Close()
 }
 
-/*
-var (
-	total int = 0
-)
-
-type SimpleConnectPool struct {
+/*type SimpleConnectPool struct {
 	releasedSessions []*sql.DB
 	cur              int
 	usingSessions    map[*sql.DB]time.Time
@@ -44,8 +46,8 @@ func (p SimpleConnectPool) RetrieveDB(engine *Engine) (*sql.DB, error) {
 	var err error = nil
 	fmt.Printf("%x, rbegin - released:%v, using:%v\n", &p, p.cur+1, len(p.usingSessions))
 	if p.cur < 0 {
-		total = total + 1
-		fmt.Printf("new %v\n", total)
+		ConnectionNum = ConnectionNum + 1
+		fmt.Printf("new %v\n", ConnectionNum)
 		db, err = engine.OpenDB()
 		if err != nil {
 			return nil, err
@@ -68,6 +70,7 @@ func (p SimpleConnectPool) ReleaseDB(engine *Engine, db *sql.DB) {
 	defer p.mutex.Unlock()
 	fmt.Printf("%x, lbegin - released:%v, using:%v\n", &p, p.cur+1, len(p.usingSessions))
 	if p.cur >= 29 {
+		ConnectionNum = ConnectionNum - 1
 		db.Close()
 	} else {
 		p.cur = p.cur + 1

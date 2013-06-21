@@ -29,14 +29,14 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		return nil, errors.New(fmt.Sprintf("Unsupported driver name: %v", driverName))
 	}
 
-	/*engine.Pool = SimpleConnectPool{
+	/*engine.Pool = &SimpleConnectPool{
 		releasedSessions: make([]*sql.DB, 30),
 		usingSessions:    map[*sql.DB]time.Time{},
 		cur:              -1,
 		maxWaitTimeOut:   14400,
 		mutex:            &sync.Mutex{},
 	}*/
-	engine.Pool = NoneConnectPool{}
+	engine.Pool = &NoneConnectPool{}
 
 	return engine, nil
 }

@@ -221,19 +221,16 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 					}
 					if x != 0 {
 						structInter := reflect.New(structField.Type())
-						st := session.Statement
-						session.Statement.Init()
-						has, err := session.Id(x).Get(structInter.Interface())
+						newsession := session.Engine.NewSession()
+						defer newsession.Close()
+						has, err := newsession.Id(x).Get(structInter.Interface())
 						if err != nil {
-							session.Statement = st
 							return err
 						}
 						if has {
 							v = structInter.Elem().Interface()
-							session.Statement = st
 						} else {
 							fmt.Println("cascade obj is not exist!")
-							session.Statement = st
 							continue
 						}
 					} else {
@@ -273,6 +270,9 @@ func (session *Session) innerExec(sql string, args ...interface{}) (sql.Result, 
 
 func (session *Session) Exec(sql string, args ...interface{}) (sql.Result, error) {
 	err := session.newDb()
+	if session.IsAutoCommit {
+		defer session.Close()
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -457,6 +457,10 @@ func (session *Session) Query(sql string, paramStr ...interface{}) (resultsSlice
 		return nil, err
 	}
 
+	if session.IsAutoCommit {
+		defer session.Close()
+	}
+
 	if session.Statement.RefTable != nil && session.Statement.RefTable.PrimaryKey != "" {
 		sql = strings.Replace(sql, "(id)", session.Statement.RefTable.PrimaryKey, -1)
 	}
@@ -538,7 +542,11 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 	isInTransaction := !session.IsAutoCommit
 
 	if !isInTransaction {
-		session.Begin()
+		err = session.Begin()
+		defer session.Close()
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	for _, bean := range beans {
@@ -548,7 +556,7 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 				lastId, err = session.InsertMulti(bean)
 				if err != nil {
 					if !isInTransaction {
-						session.Rollback()
+						err = session.Rollback()
 					}
 					return lastId, err
 				}
@@ -558,7 +566,7 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 					lastId, err = session.InsertOne(sliceValue.Index(i).Interface())
 					if err != nil {
 						if !isInTransaction {
-							session.Rollback()
+							err = session.Rollback()
 						}
 						return lastId, err
 					}
@@ -568,7 +576,7 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 			lastId, err = session.InsertOne(bean)
 			if err != nil {
 				if !isInTransaction {
-					session.Rollback()
+					err = session.Rollback()
 				}
 				return lastId, err
 			}
@@ -707,7 +715,17 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 		pkValue := reflect.Indirect(reflect.ValueOf(bean)).FieldByName(table.PKColumn().FieldName)
 		if pkValue.CanSet() {
 			var v interface{} = id
-			pkValue.Set(reflect.ValueOf(v))
+			switch pkValue.Type().Kind() {
+			case reflect.Int8, reflect.Int16, reflect.Int32:
+				v = int(id)
+				pkValue.Set(reflect.ValueOf(v))
+			case reflect.Int64:
+				pkValue.Set(reflect.ValueOf(v))
+			case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				v = uint(id)
+				pkValue.Set(reflect.ValueOf(v))
+			}
+
 		}
 	}
 
