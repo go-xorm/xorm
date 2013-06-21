@@ -21,13 +21,13 @@ var ConnectionNum int32 = 0
 func (p NoneConnectPool) RetrieveDB(engine *Engine) (db *sql.DB, err error) {
 	atomic.AddInt32(&ConnectionNum, 1)
 	db, err = engine.OpenDB()
-	fmt.Printf("--open a connection--%x\n", &db)
+	//fmt.Printf("--open a connection--%x\n", &db)
 	return
 }
 
 func (p NoneConnectPool) ReleaseDB(engine *Engine, db *sql.DB) {
 	atomic.AddInt32(&ConnectionNum, -1)
-	fmt.Printf("--close a connection--%x\n", &db)
+	//fmt.Printf("--close a connection--%x\n", &db)
 	db.Close()
 }
 
