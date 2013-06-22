@@ -41,14 +41,14 @@ xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
 
 ## 快速开始
 
-1.创建数据库引擎，这个函数的参数和sql.Open相同，但不会立即创建连接 (例如: mysql)
+1.创建数据库引擎，这个函数的参数和sql.Open相同，但不会立即创建连接 (例如: mysql),注意：Create方法将在后续版本中被弃用，请使用NewEngine方法。
 
 ```Go
 import (
 	_ "github.com/Go-SQL-Driver/MySQL"
 	"github.com/lunny/xorm"
 )
-engine := xorm.Create("mysql", "root:123@/test?charset=utf8")
+engine, err := xorm.NewEngine("mysql", "root:123@/test?charset=utf8")
 ```
 
 or
@@ -58,7 +58,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/lunny/xorm"
 	)
-engine = xorm.Create("sqlite3", "./test.db")
+engine, err = xorm.NewEngine("sqlite3", "./test.db")
 ```
 
 1.1.默认将不会显示自动生成的SQL语句，如果要显示，则需要设置
@@ -85,10 +85,12 @@ type User struct {
 err := engine.CreateTables(&User{})
 ```
 	
-4.然后，可以将一个结构体作为一条记录插入到表中。  
+4.然后，可以将一个结构体作为一条记录插入到表中， 如果插入成功，将会返回id，同时User对象的Id也会被自动赋值。  
 
 ```Go
-id, err := engine.Insert(&User{Name:"lunny"})
+user := &User{Name:"lunny"}
+id, err := engine.Insert(user)
+fmt.Println(user.Id)
 ```
 
 或者执行更新操作：
@@ -104,13 +106,13 @@ rows, err := engine.Update(&user, &User{Id:1})
 
 ```Go
 var user = User{Id:27}
-err := engine.Get(&user)
-// or err := engine.Id(27).Get(&user)
+has, err := engine.Get(&user)
+// or has, err := engine.Id(27).Get(&user)
 var user = User{Name:"xlw"}
-err := engine.Get(&user)
+has, err := engine.Get(&user)
 ```
 	
-6.获取多个对象到一个Slice或一个Map对象中，可以用Find方法：
+6.获取多个对象到一个Slice或一个Map对象中，可以用Find方法，如果传入的是map，则key中存放的是id：
 
 ```Go
 var everyone []Userinfo
@@ -144,8 +146,8 @@ err := engine.In("id", 1, 3, 5).Find(&tenusers) //Get All id in (1, 3, 5)
 7.Delete方法
 
 ```Go
-err := engine.Delete(&User{Id:1})
-// or err := engine.Id(1).Delete(&User{})
+num, err := engine.Delete(&User{Id:1})
+// or num, err := engine.Id(1).Delete(&User{})
 ```
 
 8.Count方法
@@ -175,14 +177,11 @@ res, err := engine.Exec(sql, "xiaolun", 1)
 ## 高级用法
 
 <a name="mapping" id="mapping"></a>
-更高级的用法，我们必须要使用session对象，session对象在创建时会立刻创建一个数据库连接。
+更高级的用法，我们必须要使用session对象，session对象在创建时会立刻创建一个数据库连接。注意：MakeSession方法将会在后续版本中移除，请使用NewSession方法替代。
 
 ```Go
-session, err := engine.MakeSession()
+session := engine.NewSession()
 defer session.Close()
-if err != nil {
-    return
-}
 ```
 
 1.session对象同样也可以查询
@@ -215,7 +214,7 @@ err := session.Find(&everyone)
 
 ```Go
 // add Begin() before any action
-session.Begin()	
+err := session.Begin()
 user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
 _, err = session.Insert(&user1)
 if err != nil {
@@ -246,7 +245,7 @@ if err != nil {
 
 ```Go
 // add Begin() before any action
-session.Begin()	
+err := session.Begin()	
 user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
 _, err = session.Insert(&user1)
 if err != nil {

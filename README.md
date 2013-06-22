@@ -45,14 +45,14 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 ## Quick Start
 
-1.Create a database engine just like sql.Open, commonly you just need create once.
+1.Create a database engine just like sql.Open, commonly you just need create once. Please notice, Create function will be deprecated, use NewEngine instead.
 
 ```Go
 import (
 	_ "github.com/Go-SQL-Driver/MySQL"
 	"github.com/lunny/xorm"
 )
-engine := xorm.Create("mysql", "root:123@/test?charset=utf8")
+err, engine := xorm.NewEngine("mysql", "root:123@/test?charset=utf8")
 ```
 
 or
@@ -62,7 +62,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/lunny/xorm"
 )
-engine = xorm.Create("sqlite3", "./test.db")
+err, engine = xorm.NewEngine("sqlite3", "./test.db")
 ```
 
 1.1.If you want to show all generated SQL
@@ -91,7 +91,7 @@ err := engine.CreateTables(&User{})
 // err = engine.CreateAll()
 ```
 
-4.then, insert an struct to table
+4.then, insert a struct to table, if success, User.Id will be set to id
 
 ```Go
 id, err := engine.Insert(&User{Name:"lunny"})
@@ -110,11 +110,11 @@ rows, err := engine.Update(&user, &User{Id:1})
 
 ```Go
 var user = User{Id:27}
-err := engine.Get(&user)
-// or err := engine.Id(27).Get(&user)
+has, err := engine.Get(&user)
+// or has, err := engine.Id(27).Get(&user)
 
 var user = User{Name:"xlw"}
-err := engine.Get(&user)
+has, err := engine.Get(&user)
 ```
 	
 6.Fetch multipe objects into a slice or a map, use Find：
@@ -183,14 +183,12 @@ res, err := engine.Exec(sql, "xiaolun", 1)
 
 ## Advanced Usage
 
-for deep usage, you should create a session, this func will create a database connection immediatelly
+for deep usage, you should create a session, this func will create a database connection immediatelly.Please notice, MakeSession will be deprecated last, use NewSession instead
 
 ```Go
-session, err := engine.MakeSession()
+session := engine.NewSession()
 defer session.Close()
-if err != nil {
-    return
-}
+
 ```
 
 1.Fetch a single object by where
@@ -223,7 +221,7 @@ err := session.Find(&everyone)
 
 ```Go
 // add Begin() before any action
-session.Begin()	
+err := session.Begin()	
 user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
 _, err = session.Insert(&user1)
 if err != nil {
@@ -254,7 +252,7 @@ if err != nil {
 
 ```Go
 // add Begin() before any action
-session.Begin()	
+err := session.Begin()	
 user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
 _, err = session.Insert(&user1)
 if err != nil {
