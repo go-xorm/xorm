@@ -202,7 +202,9 @@ func (statement *Statement) selectColumnStr() string {
 	table := statement.RefTable
 	colNames := make([]string, 0)
 	for _, col := range table.Columns {
-		colNames = append(colNames, statement.TableName()+"."+col.Name)
+		if col.MapType != ONLYTODB {
+			colNames = append(colNames, statement.TableName()+"."+col.Name)
+		}
 	}
 	return strings.Join(colNames, ", ")
 }

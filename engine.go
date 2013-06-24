@@ -2,7 +2,7 @@ package xorm
 
 import (
 	"database/sql"
-	//"fmt"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -154,7 +154,7 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 
 		if ormTagStr != "" {
 			col = Column{FieldName: t.Field(i).Name, Nullable: true, IsPrimaryKey: false,
-				IsAutoIncrement: false}
+				IsAutoIncrement: false, MapType: TWOSIDES}
 			ormTagStr = strings.ToLower(ormTagStr)
 			tags := strings.Split(ormTagStr, " ")
 			// TODO:
@@ -162,9 +162,22 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 				if tags[0] == "-" {
 					continue
 				}
+				if (tags[0] == "extends") &&
+					(fieldType.Kind() == reflect.Struct) &&
+					t.Field(i).Anonymous {
+					parentTable := engine.MapType(fieldType)
+					for name, col := range parentTable.Columns {
+						col.FieldName = fmt.Sprintf("%v.%v", fieldType.Name(), col.FieldName)
+						table.Columns[name] = col
+					}
+				}
 				for j, key := range tags {
 					k := strings.ToLower(key)
 					switch {
+					case k == "<-":
+						col.MapType = ONLYFROMDB
+					case k == "->":
+						col.MapType = ONLYTODB
 					case k == "pk":
 						col.IsPrimaryKey = true
 						col.Nullable = false
@@ -230,7 +243,7 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 		} else {
 			sqlType := Type2SQLType(fieldType)
 			col = Column{engine.Mapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
-				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", false, false, false}
+				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", false, false, false, TWOSIDES}
 
 			if col.Name == "id" {
 				col.IsPrimaryKey = true

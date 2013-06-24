@@ -64,6 +64,12 @@ func Type2SQLType(t reflect.Type) (st SQLType) {
 	return
 }
 
+const (
+	TWOSIDES = iota + 1
+	ONLYTODB
+	ONLYFROMDB
+)
+
 type Column struct {
 	Name            string
 	FieldName       string
@@ -75,6 +81,7 @@ type Column struct {
 	IsUnique        bool
 	IsPrimaryKey    bool
 	IsAutoIncrement bool
+	MapType         int
 }
 
 type Table struct {

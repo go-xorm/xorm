@@ -157,8 +157,21 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 	table := session.Engine.Tables[Type(obj)]
 
 	for key, data := range objMap {
-		structField := dataStruct.FieldByName(table.Columns[key].FieldName)
-		if !structField.CanSet() {
+		fieldName := table.Columns[key].FieldName
+		fieldPath := strings.Split(fieldName, ".")
+		var structField reflect.Value
+		if len(fieldPath) > 2 {
+			fmt.Printf("xorm: Warning! Unsupported mutliderive %v\n", fieldName)
+			continue
+		} else if len(fieldPath) == 2 {
+			parentField := dataStruct.FieldByName(fieldPath[0])
+			if parentField.IsValid() {
+				structField = parentField.FieldByName(fieldPath[1])
+			}
+		} else {
+			structField = dataStruct.FieldByName(fieldName)
+		}
+		if !structField.IsValid() || !structField.CanSet() {
 			continue
 		}
 
@@ -618,6 +631,9 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 				if col.IsAutoIncrement && fieldValue.Int() == 0 {
 					continue
 				}
+				if col.MapType == ONLYFROMDB {
+					continue
+				}
 				if table, ok := session.Engine.Tables[fieldValue.Type()]; ok {
 					pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumn().FieldName)
 					fmt.Println(pkField.Interface())
@@ -634,6 +650,9 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 				fieldValue := reflect.Indirect(reflect.ValueOf(elemValue)).FieldByName(col.FieldName)
 				val := fieldValue.Interface()
 				if col.IsAutoIncrement && fieldValue.Int() == 0 {
+					continue
+				}
+				if col.MapType == ONLYFROMDB {
 					continue
 				}
 				if table, ok := session.Engine.Tables[fieldValue.Type()]; ok {
@@ -679,6 +698,9 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 		fieldValue := reflect.Indirect(reflect.ValueOf(bean)).FieldByName(col.FieldName)
 		val := fieldValue.Interface()
 		if col.IsAutoIncrement && fieldValue.Int() == 0 {
+			continue
+		}
+		if col.MapType == ONLYFROMDB {
 			continue
 		}
 		if fieldTable, ok := session.Engine.Tables[fieldValue.Type()]; ok {
