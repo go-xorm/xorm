@@ -225,6 +225,12 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 				}
 
 				v = x
+			} else if structConvert, ok := structField.Addr().Interface().(Conversion); ok {
+				err := structConvert.FromDB(data)
+				if err != nil {
+					return err
+				}
+				continue
 			} else if session.Statement.UseCascade {
 				table := session.Engine.AutoMapType(structField.Type())
 				if table != nil {
@@ -709,6 +715,13 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 				args = append(args, pkField.Interface())
 			} else {
 				continue
+			}
+		} else if fieldConvert, ok := fieldValue.Addr().Interface().(Conversion); ok {
+			data, err := fieldConvert.ToDB()
+			if err != nil {
+				return 0, err
+			} else {
+				args = append(args, string(data))
 			}
 		} else {
 			args = append(args, val)

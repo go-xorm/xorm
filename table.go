@@ -94,3 +94,8 @@ type Table struct {
 func (table *Table) PKColumn() Column {
 	return table.Columns[table.PrimaryKey]
 }
+
+type Conversion interface {
+	FromDB([]byte) error
+	ToDB() ([]byte, error)
+}
