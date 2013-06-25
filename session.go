@@ -716,12 +716,17 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 			} else {
 				continue
 			}
-		} else if fieldConvert, ok := fieldValue.Addr().Interface().(Conversion); ok {
-			data, err := fieldConvert.ToDB()
-			if err != nil {
-				return 0, err
+		} else if fieldValue.Type().Kind() == reflect.Struct &&
+			fieldValue.CanAddr() {
+			if fieldConvert, ok := fieldValue.Addr().Interface().(Conversion); ok {
+				data, err := fieldConvert.ToDB()
+				if err != nil {
+					return 0, err
+				} else {
+					args = append(args, string(data))
+				}
 			} else {
-				args = append(args, string(data))
+				args = append(args, val)
 			}
 		} else {
 			args = append(args, val)
