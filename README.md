@@ -17,6 +17,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 ## Changelog
 
+* **v0.1.6** : Added conversion interface support; added struct derive support; added single mapping support
 * **v0.1.5** : Added multi threads support; added Sql() function for struct query; Get function changed return inteface; MakeSession and Create are instead with NewSession and NewEngine.
 * **v0.1.4** : Added simple cascade load support; added more data type supports.
 * **v0.1.3** : Find function now supports both slice and map; Add Table function for multi tables and temperory tables support

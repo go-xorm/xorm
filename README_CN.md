@@ -16,6 +16,7 @@ xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
 
 ## 更新日志
 
+* **v0.1.6** : 新增Conversion，支持自定义类型到数据库类型的转换；新增查询结构体自动检测匿名成员支持；新增单向映射支持；
 * **v0.1.5** : 新增对多线程的支持；新增Sql()函数；支持任意sql语句的struct查询；Get函数返回值变动；MakeSession和Create函数被NewSession和NewEngine函数替代；
 * **v0.1.4** : Get函数和Find函数新增简单的级联载入功能；对更多的数据库类型支持。
 * **v0.1.3** : Find函数现在支持传入Slice或者Map，当传入Map时，key为id；新增Table函数以为多表和临时表进行支持。
