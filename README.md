@@ -55,6 +55,7 @@ import (
 	"github.com/lunny/xorm"
 )
 err, engine := xorm.NewEngine("mysql", "root:123@/test?charset=utf8")
+defer engine.Close()
 ```
 
 or
@@ -65,6 +66,7 @@ import (
 	"github.com/lunny/xorm"
 )
 err, engine = xorm.NewEngine("sqlite3", "./test.db")
+defer engine.Close()
 ```
 
 1.1.If you want to show all generated SQL
