@@ -107,7 +107,7 @@ func insertAutoIncr(engine *Engine, t *testing.T) {
 }
 
 func insertMulti(engine *Engine, t *testing.T) {
-	engine.InsertMany = true
+	//engine.InsertMany = true
 	users := []Userinfo{
 		{Username: "xlw", Departname: "dev", Alias: "lunny2", Created: time.Now()},
 		{Username: "xlw2", Departname: "dev", Alias: "lunny3", Created: time.Now()},
@@ -119,7 +119,7 @@ func insertMulti(engine *Engine, t *testing.T) {
 		t.Error(err)
 	}
 
-	engine.InsertMany = false
+	/*engine.InsertMany = false
 
 	users = []Userinfo{
 		{Username: "xlw9", Departname: "dev", Alias: "lunny9", Created: time.Now()},
@@ -132,7 +132,7 @@ func insertMulti(engine *Engine, t *testing.T) {
 		t.Error(err)
 	}
 
-	engine.InsertMany = true
+	engine.InsertMany = true*/
 }
 
 func insertTwoTable(engine *Engine, t *testing.T) {

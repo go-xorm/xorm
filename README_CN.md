@@ -2,7 +2,7 @@
 
 [English](https://github.com/lunny/xorm/blob/master/README.md)
 
-xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
+xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作非常简便。
 
 [![Build Status](https://drone.io/github.com/lunny/xorm/status.png)](https://drone.io/github.com/lunny/xorm/latest)
 
@@ -16,6 +16,7 @@ xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
 
 ## 更新日志
 
+* **v0.1.7** : 新增IConnectPool接口以及NoneConnectPool, SysConnectPool, SimpleConnectPool三种实现，可以选择不使用连接池，使用系统连接池和使用自带连接池三种实现，默认为SysConnectPool，即系统自带的连接池。同时支持自定义连接池。Engine新增Close方法，在系统退出时应调用此方法。
 * **v0.1.6** : 新增Conversion，支持自定义类型到数据库类型的转换；新增查询结构体自动检测匿名成员支持；新增单向映射支持；
 * **v0.1.5** : 新增对多线程的支持；新增Sql()函数；支持任意sql语句的struct查询；Get函数返回值变动；MakeSession和Create函数被NewSession和NewEngine函数替代；
 * **v0.1.4** : Get函数和Find函数新增简单的级联载入功能；对更多的数据库类型支持。
@@ -26,7 +27,7 @@ xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
 
 ## 特性
 
-* 支持Struct和数据库表之间的映射，映射方式支持命名约定和Tag两种方式
+* 支持Struct和数据库表之间的映射，映射方式支持命名约定和Tag两种方式，映射支持继承
 
 * 事务支持
 
@@ -35,6 +36,11 @@ xorm是一个Go语言的ORM库. 通过它可以使数据库操作非常简便。
 * 使用连写来简化调用
 
 * 支持使用Id, In, Where, Limit, Join, Having, Table, Sql等函数和结构体等方式作为条件
+
+* 支持数据库连接池
+
+* 支持级联加载struct
+
 
 ## 安装
 
@@ -50,6 +56,7 @@ import (
 	"github.com/lunny/xorm"
 )
 engine, err := xorm.NewEngine("mysql", "root:123@/test?charset=utf8")
+defer engine.Close()
 ```
 
 or
@@ -60,12 +67,18 @@ import (
 	"github.com/lunny/xorm"
 	)
 engine, err = xorm.NewEngine("sqlite3", "./test.db")
+defer engine.Close()
 ```
 
 1.1.默认将不会显示自动生成的SQL语句，如果要显示，则需要设置
 
 ```Go
 engine.ShowSQL = true
+```
+
+1.2.如果要更换连接池实现，可使用SetPool方法
+```Go
+err = engine.SetPool(NewSimpleConnectPool())
 ```
 
 2.所有的ORM操作都针对一个或多个结构体，一个结构体对应一张表，定义一个结构体如下：
@@ -273,6 +286,10 @@ if err != nil {
 }
 ```
 
+5.匿名结构体继承：
+
+请查看Examples中的derive.go文件。
+
 ## 映射规则
 
 1.Struct 和 Struct 的field名字应该为Pascal式命名，默认的映射规则将转换成用下划线连接的命名规则，这个映射是自动进行的，当然，你可以通过修改Engine的成员Mapper来改变它。
@@ -304,6 +321,9 @@ UserInfo中的成员UserName将会自动对应名为user_name的字段。
     </tr>
     <tr>
         <td>unique</td><td>是否是唯一</td>
+    </tr>
+    <tr>
+    	<td>extends</td><td>应用于一个匿名结构体之上，表示此匿名结构体的成员也映射到数据库中</td>
     </tr>
     <tr>
         <td>-</td><td>这个Field将不进行字段映射</td>

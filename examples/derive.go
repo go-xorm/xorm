@@ -32,6 +32,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+	defer Orm.Close()
 	Orm.ShowSQL = true
 	err = Orm.CreateTables(&User{}, &LoginInfo{})
 	if err != nil {

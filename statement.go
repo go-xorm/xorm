@@ -1,3 +1,10 @@
+// Copyright 2013 The XORM Authors. All rights reserved.
+// Use of this source code is governed by a BSD
+// license that can be found in the LICENSE file.
+
+// Package xorm provides is a simple and powerful ORM for Go. It makes your
+// database operation simple.
+
 package xorm
 
 import (
@@ -104,7 +111,8 @@ func BuildConditions(engine *Engine, table *Table, bean interface{}) ([]string, 
 		} else {
 			args = append(args, val)
 		}
-		colNames = append(colNames, engine.QuoteIdentifier+col.Name+engine.QuoteIdentifier+"=?")
+		colNames = append(colNames, fmt.Sprintf("%v%v%v = ?", engine.QuoteIdentifier(),
+			col.Name, engine.QuoteIdentifier()))
 	}
 
 	return colNames, args
@@ -114,6 +122,7 @@ func (statement *Statement) TableName() string {
 	if statement.AltTableName != "" {
 		return statement.AltTableName
 	}
+
 	if statement.RefTable != nil {
 		return statement.RefTable.Name
 	}
@@ -179,7 +188,7 @@ func (statement *Statement) genColumnStr(col *Column) string {
 	}
 
 	if col.IsAutoIncrement {
-		sql += statement.Engine.AutoIncrement + " "
+		sql += statement.Engine.AutoIncrIdentifier() + " "
 	}
 
 	if col.Nullable {

@@ -7,7 +7,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"os"
 	//"time"
-	"sync/atomic"
+	//"sync/atomic"
 	xorm "xorm"
 )
 
@@ -78,23 +78,29 @@ func test(engine *xorm.Engine) {
 		<-queue
 	}
 
-	conns := atomic.LoadInt32(&xorm.ConnectionNum)
-	fmt.Println("connection number:", conns)
+	//conns := atomic.LoadInt32(&xorm.ConnectionNum)
+	//fmt.Println("connection number:", conns)
 	fmt.Println("end")
 }
 
 func main() {
+	fmt.Println("create engine")
 	engine, err := sqliteEngine()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	engine.ShowSQL = true
+	fmt.Println(engine)
 	test(engine)
+	fmt.Println("test end")
+	engine.Close()
 
 	engine, err = mysqlEngine()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	defer engine.Close()
 	test(engine)
 }

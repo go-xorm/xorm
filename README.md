@@ -17,6 +17,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 ## Changelog
 
+* **v0.1.7** : Added IConnectPool interface and NoneConnectPool, SysConnectPool, SimpleConnectPool the three implements. You can choose one of them and the default is SysConnectPool. You can customrize your own connection pool. struct Engine added Close method, It should be invoked before system exit.
 * **v0.1.6** : Added conversion interface support; added struct derive support; added single mapping support
 * **v0.1.5** : Added multi threads support; added Sql() function for struct query; Get function changed return inteface; MakeSession and Create are instead with NewSession and NewEngine.
 * **v0.1.4** : Added simple cascade load support; added more data type supports.
@@ -70,6 +71,10 @@ err, engine = xorm.NewEngine("sqlite3", "./test.db")
 
 ```Go
 engine.ShowSQL = true
+```
+1.2 If you want to use your own connection pool
+```Go
+err = engine.SetPool(NewSimpleConnectPool())
 ```
 
 2.Define a struct
@@ -279,6 +284,8 @@ if err != nil {
 	return
 }
 ```
+5.Derive mapping
+Please see derive.go in examples folder.
 
 ## Mapping Rules 
 
@@ -311,6 +318,9 @@ Another is use field tag, field tag support the below keywords which split with 
     </tr>
     <tr>
         <td>unique</td><td>unique</td>
+    </tr>
+     <tr>
+        <td>extends</td><td>used in anonymous struct means mapping this struct's fields to table</td>
     </tr>
     <tr>
         <td>-</td><td>this field is not map as a table column</td>

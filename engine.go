@@ -1,3 +1,10 @@
+// Copyright 2013 The XORM Authors. All rights reserved.
+// Use of this source code is governed by a BSD
+// license that can be found in the LICENSE file.
+
+// Package xorm provides is a simple and powerful ORM for Go. It makes your
+// database operation simple.
+
 package xorm
 
 import (
@@ -19,21 +26,39 @@ const (
 
 type dialect interface {
 	SqlType(t *Column) string
+	SupportInsertMany() bool
+	QuoteIdentifier() string
+	AutoIncrIdentifier() string
 }
 
 type Engine struct {
-	Mapper          IMapper
-	TagIdentifier   string
-	DriverName      string
-	DataSourceName  string
-	Dialect         dialect
-	Tables          map[reflect.Type]*Table
-	mutex           *sync.Mutex
-	AutoIncrement   string
-	ShowSQL         bool
-	InsertMany      bool
-	QuoteIdentifier string
-	Pool            IConnectionPool
+	Mapper         IMapper
+	TagIdentifier  string
+	DriverName     string
+	DataSourceName string
+	Dialect        dialect
+	Tables         map[reflect.Type]*Table
+	mutex          *sync.Mutex
+	ShowSQL        bool
+	pool           IConnectPool
+	CacheMapping   bool
+}
+
+func (engine *Engine) SupportInsertMany() bool {
+	return engine.Dialect.SupportInsertMany()
+}
+
+func (engine *Engine) QuoteIdentifier() string {
+	return engine.Dialect.QuoteIdentifier()
+}
+
+func (engine *Engine) AutoIncrIdentifier() string {
+	return engine.Dialect.AutoIncrIdentifier()
+}
+
+func (engine *Engine) SetPool(pool IConnectPool) error {
+	engine.pool = pool
+	return engine.pool.Init(engine)
 }
 
 func Type(bean interface{}) reflect.Type {
@@ -58,9 +83,16 @@ func (engine *Engine) NewSession() *Session {
 	return session
 }
 
+func (engine *Engine) Close() error {
+	return engine.pool.Close(engine)
+}
+
 func (engine *Engine) Test() error {
 	session := engine.NewSession()
 	defer session.Close()
+	if engine.ShowSQL {
+		fmt.Printf("PING DATABASE %v\n", engine.DriverName)
+	}
 	return session.Ping()
 }
 
@@ -264,9 +296,7 @@ func (engine *Engine) Map(beans ...interface{}) (e error) {
 	defer engine.mutex.Unlock()
 	for _, bean := range beans {
 		t := Type(bean)
-		if _, ok := engine.Tables[t]; !ok {
-			engine.Tables[t] = engine.MapType(t)
-		}
+		engine.Tables[t] = engine.MapType(t)
 	}
 	return
 }
@@ -305,6 +335,7 @@ func (e *Engine) CreateTables(beans ...interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	for _, bean := range beans {
 		err = session.CreateTable(bean)
 		if err != nil {

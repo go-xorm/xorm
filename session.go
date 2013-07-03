@@ -1,3 +1,10 @@
+// Copyright 2013 The XORM Authors. All rights reserved.
+// Use of this source code is governed by a BSD
+// license that can be found in the LICENSE file.
+
+// Package xorm provides is a simple and powerful ORM for Go. It makes your
+// database operation simple.
+
 package xorm
 
 import (
@@ -29,7 +36,7 @@ func (session *Session) Init() {
 func (session *Session) Close() {
 	defer func() {
 		if session.Db != nil {
-			session.Engine.Pool.ReleaseDB(session.Engine, session.Db)
+			session.Engine.pool.ReleaseDB(session.Engine, session.Db)
 			session.Db = nil
 			session.Tx = nil
 			session.Init()
@@ -97,7 +104,7 @@ func (session *Session) Having(conditions string) *Session {
 
 func (session *Session) newDb() error {
 	if session.Db == nil {
-		db, err := session.Engine.Pool.RetrieveDB(session.Engine)
+		db, err := session.Engine.pool.RetrieveDB(session.Engine)
 		if err != nil {
 			return err
 		}
@@ -571,7 +578,7 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 	for _, bean := range beans {
 		sliceValue := reflect.Indirect(reflect.ValueOf(bean))
 		if sliceValue.Kind() == reflect.Slice {
-			if session.Engine.InsertMany {
+			if session.Engine.SupportInsertMany() {
 				lastId, err = session.InsertMulti(bean)
 				if err != nil {
 					if !isInTransaction {
@@ -642,7 +649,7 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 				}
 				if table, ok := session.Engine.Tables[fieldValue.Type()]; ok {
 					pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumn().FieldName)
-					fmt.Println(pkField.Interface())
+					//fmt.Println(pkField.Interface())
 					args = append(args, pkField.Interface())
 				} else {
 					args = append(args, val)
@@ -674,9 +681,9 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 	}
 
 	statement := fmt.Sprintf("INSERT INTO %v%v%v (%v) VALUES (%v)",
-		session.Engine.QuoteIdentifier,
+		session.Engine.QuoteIdentifier(),
 		session.Statement.TableName(),
-		session.Engine.QuoteIdentifier,
+		session.Engine.QuoteIdentifier(),
 		strings.Join(colNames, ", "),
 		strings.Join(colMultiPlaces, "),("))
 
@@ -696,6 +703,7 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 
 func (session *Session) InsertOne(bean interface{}) (int64, error) {
 	table := session.Engine.AutoMap(bean)
+	//fmt.Printf("table: %v\n", table)
 	session.Statement.RefTable = table
 	colNames := make([]string, 0)
 	colPlaces := make([]string, 0)
@@ -736,9 +744,9 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 	}
 
 	sql := fmt.Sprintf("INSERT INTO %v%v%v (%v) VALUES (%v)",
-		session.Engine.QuoteIdentifier,
+		session.Engine.QuoteIdentifier(),
 		session.Statement.TableName(),
-		session.Engine.QuoteIdentifier,
+		session.Engine.QuoteIdentifier(),
 		strings.Join(colNames, ", "),
 		strings.Join(colPlaces, ", "))
 
@@ -801,9 +809,9 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	}
 
 	sql := fmt.Sprintf("UPDATE %v%v%v SET %v %v",
-		session.Engine.QuoteIdentifier,
+		session.Engine.QuoteIdentifier(),
 		session.Statement.TableName(),
-		session.Engine.QuoteIdentifier,
+		session.Engine.QuoteIdentifier(),
 		strings.Join(colNames, ", "),
 		condition)
 
@@ -840,9 +848,9 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	}
 
 	statement := fmt.Sprintf("DELETE FROM %v%v%v %v",
-		session.Engine.QuoteIdentifier,
+		session.Engine.QuoteIdentifier(),
 		session.Statement.TableName(),
-		session.Engine.QuoteIdentifier,
+		session.Engine.QuoteIdentifier(),
 		condition)
 
 	res, err := session.Exec(statement, append(st.Params, args...)...)
