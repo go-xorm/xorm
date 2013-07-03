@@ -14,7 +14,7 @@ utf8 COLLATE utf8_general_ci;
 
 func TestMysql(t *testing.T) {
 	// You should drop all tables before executing this testing
-	me = Create("mysql", "root:123@/test?charset=utf8")
+	me = Create("mysql", "root:@/orm_test?charset=utf8")
 	me.ShowSQL = true
 
 	directCreateTable(&me, t)
