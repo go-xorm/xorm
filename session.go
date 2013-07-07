@@ -582,7 +582,11 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 				lastId, err = session.InsertMulti(bean)
 				if err != nil {
 					if !isInTransaction {
-						err = session.Rollback()
+						err1 := session.Rollback()
+						if err1 == nil {
+							return lastId, err
+						}
+						err = err1
 					}
 					return lastId, err
 				}
@@ -592,7 +596,11 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 					lastId, err = session.InsertOne(sliceValue.Index(i).Interface())
 					if err != nil {
 						if !isInTransaction {
-							err = session.Rollback()
+							err1 := session.Rollback()
+							if err1 == nil {
+								return lastId, err
+							}
+							err = err1
 						}
 						return lastId, err
 					}
@@ -602,7 +610,11 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 			lastId, err = session.InsertOne(bean)
 			if err != nil {
 				if !isInTransaction {
-					err = session.Rollback()
+					err1 := session.Rollback()
+					if err1 == nil {
+						return lastId, err
+					}
+					err = err1
 				}
 				return lastId, err
 			}
