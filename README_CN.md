@@ -204,11 +204,11 @@ defer session.Close()
 var user Userinfo
 session.Where("id=?", 27).Get(&user)
 
-var user2 Userinfo
-session.Where("name = ?", "john").Get(&user3) // more complex query
+var userJohn Userinfo
+session.Where("name = ?", "john").Get(&userJohn) // more complex query
 
-var user3 Userinfo
-session.Where("name = ? and age < ?", "john", 88).Get(&user4) // even more complex
+var userOldJohn Userinfo
+session.Where("name = ? and age > ?", "john", 88).Get(&userOldJohn) // even more complex
 ```
 
 2.获取多个对象
