@@ -8,13 +8,18 @@ import (
 var me Engine
 
 /*
-CREATE DATABASE IF NOT EXISTS orm_test CHARACTER SET
+CREATE DATABASE IF NOT EXISTS xorm_test CHARACTER SET
 utf8 COLLATE utf8_general_ci;
 */
 
 func TestMysql(t *testing.T) {
 	// You should drop all tables before executing this testing
-	me = Create("mysql", "root:@/xorm_test?charset=utf8")
+	engine, err := NewEngine("mysql", "root:@/xorm_test?charset=utf8")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	me = *engine
 	me.ShowSQL = true
 
 	directCreateTable(&me, t)
