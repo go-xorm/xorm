@@ -247,6 +247,8 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 						col.SQLType = DateTime
 					case k == "timestamp":
 						col.SQLType = TimeStamp
+					case k == "unique":
+						col.IsUnique = true
 					case k == "not":
 					default:
 						if k != col.Default {
