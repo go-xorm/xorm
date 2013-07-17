@@ -487,6 +487,7 @@ func (session *Session) Query(sql string, paramStr ...interface{}) (resultsSlice
 		defer session.Close()
 	}
 
+	// TODO: this statement should be invoke before Query
 	if session.Statement.RefTable != nil && session.Statement.RefTable.PrimaryKey != "" {
 		sql = strings.Replace(sql, "(id)", session.Statement.RefTable.PrimaryKey, -1)
 	}
@@ -552,6 +553,8 @@ func (session *Session) Query(sql string, paramStr ...interface{}) (resultsSlice
 				if aa.String() == "time.Time" {
 					str = rawValue.Interface().(time.Time).Format("2006-01-02 15:04:05.000 -0700")
 					result[key] = []byte(str)
+				} else {
+					fmt.Print("Unsupported struct type")
 				}
 			}
 			//default:
@@ -729,24 +732,32 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 		if col.MapType == ONLYFROMDB {
 			continue
 		}
-		if fieldTable, ok := session.Engine.Tables[fieldValue.Type()]; ok {
-			if fieldTable.PrimaryKey != "" {
-				pkField := reflect.Indirect(fieldValue).FieldByName(fieldTable.PKColumn().FieldName)
-				args = append(args, pkField.Interface())
-			} else {
-				continue
-			}
-		} else if fieldValue.Type().Kind() == reflect.Struct &&
-			fieldValue.CanAddr() {
-			if fieldConvert, ok := fieldValue.Addr().Interface().(Conversion); ok {
-				data, err := fieldConvert.ToDB()
-				if err != nil {
-					return 0, err
+		if fieldValue.Type().String() == "time.Time" {
+			args = append(args, val)
+		} else if fieldValue.Type().Kind() == reflect.Struct {
+			if fieldValue.CanAddr() {
+				if fieldConvert, ok := fieldValue.Addr().Interface().(Conversion); ok {
+					data, err := fieldConvert.ToDB()
+					if err != nil {
+						return 0, err
+					} else {
+						args = append(args, string(data))
+					}
 				} else {
-					args = append(args, string(data))
+					if fieldTable, ok := session.Engine.Tables[fieldValue.Type()]; ok {
+						if fieldTable.PrimaryKey != "" {
+							pkField := reflect.Indirect(fieldValue).FieldByName(fieldTable.PKColumn().FieldName)
+							args = append(args, pkField.Interface())
+						} else {
+							continue
+						}
+					} else {
+						//args = append(args, val)
+						continue
+					}
 				}
 			} else {
-				args = append(args, val)
+				continue
 			}
 		} else {
 			args = append(args, val)

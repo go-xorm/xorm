@@ -98,63 +98,58 @@ func (engine *Engine) Test() error {
 
 func (engine *Engine) Sql(querystring string, args ...interface{}) *Session {
 	session := engine.NewSession()
-	session.Sql(querystring, args...)
-	return session
+	return session.Sql(querystring, args...)
+}
+
+func (engine *Engine) Cascade(trueOrFalse ...bool) *Session {
+	session := engine.NewSession()
+	return session.Cascade(trueOrFalse...)
 }
 
 func (engine *Engine) Where(querystring string, args ...interface{}) *Session {
 	session := engine.NewSession()
-	session.Where(querystring, args...)
-	return session
+	return session.Where(querystring, args...)
 }
 
 func (engine *Engine) Id(id int64) *Session {
 	session := engine.NewSession()
-	session.Id(id)
-	return session
+	return session.Id(id)
 }
 
 func (engine *Engine) In(column string, args ...interface{}) *Session {
 	session := engine.NewSession()
-	session.In(column, args...)
-	return session
+	return session.In(column, args...)
 }
 
 func (engine *Engine) Table(tableName string) *Session {
 	session := engine.NewSession()
-	session.Table(tableName)
-	return session
+	return session.Table(tableName)
 }
 
 func (engine *Engine) Limit(limit int, start ...int) *Session {
 	session := engine.NewSession()
-	session.Limit(limit, start...)
-	return session
+	return session.Limit(limit, start...)
 }
 
 func (engine *Engine) OrderBy(order string) *Session {
 	session := engine.NewSession()
-	session.OrderBy(order)
-	return session
+	return session.OrderBy(order)
 }
 
 //The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
 func (engine *Engine) Join(join_operator, tablename, condition string) *Session {
 	session := engine.NewSession()
-	session.Join(join_operator, tablename, condition)
-	return session
+	return session.Join(join_operator, tablename, condition)
 }
 
 func (engine *Engine) GroupBy(keys string) *Session {
 	session := engine.NewSession()
-	session.GroupBy(keys)
-	return session
+	return session.GroupBy(keys)
 }
 
 func (engine *Engine) Having(conditions string) *Session {
 	session := engine.NewSession()
-	session.Having(conditions)
-	return session
+	return session.Having(conditions)
 }
 
 // some lock needed

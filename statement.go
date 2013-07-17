@@ -96,13 +96,15 @@ func BuildConditions(engine *Engine, table *Table, bean interface{}) ([]string, 
 				if t.IsZero() {
 					continue
 				}
+			} else {
+				engine.AutoMapType(fieldValue.Type())
 			}
 		default:
 			continue
 		}
+
 		if table, ok := engine.Tables[fieldValue.Type()]; ok {
 			pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumn().FieldName)
-			fmt.Println(pkField.Interface())
 			if pkField.Int() != 0 {
 				args = append(args, pkField.Interface())
 			} else {
