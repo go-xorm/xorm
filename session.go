@@ -164,6 +164,9 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 	table := session.Engine.Tables[Type(obj)]
 
 	for key, data := range objMap {
+		if _, ok := table.Columns[key]; !ok {
+			continue
+		}
 		fieldName := table.Columns[key].FieldName
 		fieldPath := strings.Split(fieldName, ".")
 		var structField reflect.Value
@@ -338,22 +341,24 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 		args = statement.RawParams
 	}
 	resultsSlice, err := session.Query(sql, args...)
-
 	if err != nil {
 		return false, err
 	}
-	if len(resultsSlice) == 0 {
+	if len(resultsSlice) < 1 {
 		return false, nil
-	} else if len(resultsSlice) == 1 {
-		results := resultsSlice[0]
-		err := session.scanMapIntoStruct(bean, results)
-		if err != nil {
-			return false, err
-		}
-	} else {
-		return false, errors.New("More than one record")
 	}
-	return true, nil
+
+	results := resultsSlice[0]
+	session.Engine.AutoMap(bean)
+	err = session.scanMapIntoStruct(bean, results)
+	if err != nil {
+		return false, err
+	}
+	if len(resultsSlice) == 1 {
+		return true, nil
+	} else {
+		return true, errors.New("More than one record")
+	}
 }
 
 func (session *Session) Count(bean interface{}) (int64, error) {
