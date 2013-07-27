@@ -79,6 +79,16 @@ func (session *Session) OrderBy(order string) *Session {
 	return session
 }
 
+func (session *Session) StoreEngine(storeEngine string) *Session {
+	session.Statement.StoreEngine = storeEngine
+	return session
+}
+
+func (session *Session) Charset(charset string) *Session {
+	session.Statement.Charset = charset
+	return session
+}
+
 func (session *Session) Cascade(trueOrFalse ...bool) *Session {
 	if len(trueOrFalse) >= 1 {
 		session.Statement.UseCascade = trueOrFalse[0]
@@ -319,12 +329,33 @@ func (session *Session) Exec(sql string, args ...interface{}) (sql.Result, error
 	return session.Tx.Exec(sql, args...)
 }
 
+// this function create a table according a bean
 func (session *Session) CreateTable(bean interface{}) error {
 	statement := session.Statement
 	defer statement.Init()
 	statement.RefTable = session.Engine.AutoMap(bean)
 	sql := statement.genCreateSQL()
-	_, err := session.Exec(sql)
+	res, err := session.Exec(sql)
+	if err != nil {
+		return err
+	}
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected > 0 {
+		sql = statement.genIndexSQL()
+		if len(sql) > 0 {
+			_, err = session.Exec(sql)
+		}
+	}
+	if err == nil && affected > 0 {
+		sql = statement.genUniqueSQL()
+		if len(sql) > 0 {
+			_, err = session.Exec(sql)
+		}
+	}
 	return err
 }
 

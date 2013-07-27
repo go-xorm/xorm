@@ -17,6 +17,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 ## Changelog
 
+* **v0.1.8** : Added union index and union unique supported, please see [Mapping Rules](#mapping).
 * **v0.1.7** : Added IConnectPool interface and NoneConnectPool, SysConnectPool, SimpleConnectPool the three implements. You can choose one of them and the default is SysConnectPool. You can customrize your own connection pool. struct Engine added Close method, It should be invoked before system exit.
 * **v0.1.6** : Added conversion interface support; added struct derive support; added single mapping support
 * **v0.1.5** : Added multi threads support; added Sql() function for struct query; Get function changed return inteface; MakeSession and Create are instead with NewSession and NewEngine.
@@ -304,7 +305,7 @@ Another is use field tag, field tag support the below keywords which split with 
 
 <table>
     <tr>
-        <td>name</td><td>column name</td>
+        <td>name</td><td>column name, if no this name, the name is auto generated according field name and mapper rule.</td>
     </tr>
     <tr>
         <td>pk</td><td>the field is a primary key</td>
@@ -319,7 +320,10 @@ Another is use field tag, field tag support the below keywords which split with 
         <td>[not ]null</td><td>if column can be null value</td>
     </tr>
     <tr>
-        <td>unique</td><td>unique</td>
+        <td>unique or unique(uniquename)</td><td>unique or union unique as uniquename</td>
+    </tr>
+    <tr>
+        <td>index or index(indexname)</td><td>index or union index as indexname</td>
     </tr>
      <tr>
         <td>extends</td><td>used in anonymous struct means mapping this struct's fields to table</td>
@@ -334,7 +338,7 @@ For Example
 ```Go
 type Userinfo struct {
 	Uid        int `xorm:"id pk not null autoincr"`
-	Username   string
+	Username   string `xorm:"unique"`
 	Departname string
 	Alias      string `xorm:"-"`
 	Created    time.Time

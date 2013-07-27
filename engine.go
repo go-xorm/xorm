@@ -116,6 +116,16 @@ func (engine *Engine) Id(id int64) *Session {
 	return session.Id(id)
 }
 
+func (engine *Engine) Charset(charset string) *Session {
+	session := engine.NewSession()
+	return session.Charset(charset)
+}
+
+func (engine *Engine) StoreEngine(storeEngine string) *Session {
+	session := engine.NewSession()
+	return session.StoreEngine(storeEngine)
+}
+
 func (engine *Engine) In(column string, args ...interface{}) *Session {
 	session := engine.NewSession()
 	return session.In(column, args...)
@@ -170,7 +180,8 @@ func (engine *Engine) AutoMap(bean interface{}) *Table {
 }
 
 func (engine *Engine) MapType(t reflect.Type) *Table {
-	table := &Table{Name: engine.Mapper.Obj2Table(t.Name()), Type: t}
+	table := &Table{Name: engine.Mapper.Obj2Table(t.Name()), Type: t,
+		Indexes: map[string][]string{}, Uniques: map[string][]string{}}
 	table.Columns = make(map[string]Column)
 
 	for i := 0; i < t.NumField(); i++ {
@@ -227,23 +238,43 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 							col.Length, _ = strconv.Atoi(lens)
 						}
 					case strings.HasPrefix(k, "varchar"):
-						col.SQLType = Varchar
-						lens := k[len("varchar")+1 : len(k)-1]
-						col.Length, _ = strconv.Atoi(lens)
+						if k == "varchar" {
+							col.SQLType = Varchar
+							col.Length = Varchar.DefaultLength
+							col.Length2 = Varchar.DefaultLength2
+						} else {
+							col.SQLType = Varchar
+							lens := k[len("varchar")+1 : len(k)-1]
+							col.Length, _ = strconv.Atoi(lens)
+						}
 					case strings.HasPrefix(k, "decimal"):
 						col.SQLType = Decimal
 						lens := k[len("decimal")+1 : len(k)-1]
 						twolen := strings.Split(lens, ",")
 						col.Length, _ = strconv.Atoi(twolen[0])
 						col.Length2, _ = strconv.Atoi(twolen[1])
+					case strings.HasPrefix(k, "index"):
+						if k == "index" {
+							col.IndexName = ""
+							col.IndexType = SINGLEINDEX
+						} else {
+							col.IndexName = k[len("index")+1 : len(k)-1]
+							col.IndexType = UNIONINDEX
+						}
+					case strings.HasPrefix(k, "unique"):
+						if k == "unique" {
+							col.UniqueName = ""
+							col.UniqueType = SINGLEUNIQUE
+						} else {
+							col.UniqueName = k[len("unique")+1 : len(k)-1]
+							col.UniqueType = UNIONUNIQUE
+						}
 					case k == "date":
 						col.SQLType = Date
 					case k == "datetime":
 						col.SQLType = DateTime
 					case k == "timestamp":
 						col.SQLType = TimeStamp
-					case k == "unique":
-						col.IsUnique = true
 					case k == "not":
 					default:
 						if k != col.Default {
@@ -265,6 +296,28 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 				if col.Name == "" {
 					col.Name = engine.Mapper.Obj2Table(t.Field(i).Name)
 				}
+				if col.IndexType == SINGLEINDEX {
+					col.IndexName = col.Name
+					table.Indexes[col.IndexName] = []string{col.Name}
+				} else if col.IndexType == UNIONINDEX {
+					if unionIdxes, ok := table.Indexes[col.IndexName]; ok {
+						table.Indexes[col.IndexName] = append(unionIdxes, col.Name)
+					} else {
+						table.Indexes[col.IndexName] = []string{col.Name}
+					}
+				}
+
+				if col.UniqueType == SINGLEUNIQUE {
+					col.UniqueName = col.Name
+					table.Uniques[col.UniqueName] = []string{col.Name}
+				} else if col.UniqueType == UNIONUNIQUE {
+					if unionUniques, ok := table.Uniques[col.UniqueName]; ok {
+						table.Uniques[col.UniqueName] = append(unionUniques, col.Name)
+					} else {
+						table.Uniques[col.UniqueName] = []string{col.Name}
+					}
+				}
+
 				if col.IsPrimaryKey {
 					table.PrimaryKey = col.Name
 				}
@@ -272,7 +325,7 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 		} else {
 			sqlType := Type2SQLType(fieldType)
 			col = Column{engine.Mapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
-				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", false, false, false, TWOSIDES}
+				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", NONEUNIQUE, "", NONEINDEX, "", false, false, TWOSIDES}
 
 			if col.Name == "id" {
 				col.IsPrimaryKey = true

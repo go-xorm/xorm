@@ -16,6 +16,7 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 ## 更新日志
 
+* **v0.1.8** : 新增联合index，联合unique支持，请查看[映射规则](#mapping)。
 * **v0.1.7** : 新增IConnectPool接口以及NoneConnectPool, SysConnectPool, SimpleConnectPool三种实现，可以选择不使用连接池，使用系统连接池和使用自带连接池三种实现，默认为SysConnectPool，即系统自带的连接池。同时支持自定义连接池。Engine新增Close方法，在系统退出时应调用此方法。
 * **v0.1.6** : 新增Conversion，支持自定义类型到数据库类型的转换；新增查询结构体自动检测匿名成员支持；新增单向映射支持；
 * **v0.1.5** : 新增对多线程的支持；新增Sql()函数；支持任意sql语句的struct查询；Get函数返回值变动；MakeSession和Create函数被NewSession和NewEngine函数替代；
@@ -69,6 +70,11 @@ import (
 engine, err = xorm.NewEngine("sqlite3", "./test.db")
 defer engine.Close()
 ```
+
+具体连接请参考：
+Mysql：https://github.com/go-sql-driver/mysql#dsn-data-source-name
+Sqlite：
+
 
 1.1.默认将不会显示自动生成的SQL语句，如果要显示，则需要设置
 
@@ -305,10 +311,10 @@ UserInfo中的成员UserName将会自动对应名为user_name的字段。
 
 <table>
     <tr>
-        <td>name</td><td>当前field对应的字段的名称，可选</td>
+        <td>name</td><td>当前field对应的字段的名称，可选，如不写，则自动根据field名字和转换规则命名</td>
     </tr>
     <tr>
-        <td>pk</td><td>是否是Primary Key</td>
+        <td>pk</td><td>是否是Primary Key，当前仅支持int64类型</td>
     </tr>
     <tr>
         <td>int(11)/varchar(50)/text/date/datetime/blob/decimal(26,2)</td><td>字段类型</td>
@@ -320,7 +326,10 @@ UserInfo中的成员UserName将会自动对应名为user_name的字段。
         <td>[not ]null</td><td>是否可以为空</td>
     </tr>
     <tr>
-        <td>unique</td><td>是否是唯一</td>
+        <td>unique或unique(uniquename)</td><td>是否是唯一，如不加括号则该字段不允许重复，如加上括号，则括号中为联合唯一的名字，此时可以有另外一个或多个字段有相同的写法</td>
+    </tr>
+    <tr>
+        <td>index或index(indexname)</td><td>是否是索引，如不加括号则该字段自身为索引，如加上括号，则括号中为联合索引的名字，此时可以有另外一个或多个字段有相同的写法</td>
     </tr>
     <tr>
     	<td>extends</td><td>应用于一个匿名结构体之上，表示此匿名结构体的成员也映射到数据库中</td>
@@ -334,7 +343,7 @@ UserInfo中的成员UserName将会自动对应名为user_name的字段。
 ```Go
 type Userinfo struct {
 	Uid        int `xorm:"id pk not null autoincr"`
-	Username   string
+	Username   string `xorm:"unique"`
 	Departname string
 	Alias      string `xorm:"-"`
 	Created    time.Time

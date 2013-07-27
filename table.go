@@ -77,6 +77,18 @@ const (
 	ONLYFROMDB
 )
 
+const (
+	NONEINDEX = iota
+	SINGLEINDEX
+	UNIONINDEX
+)
+
+const (
+	NONEUNIQUE = iota
+	SINGLEUNIQUE
+	UNIONUNIQUE
+)
+
 type Column struct {
 	Name            string
 	FieldName       string
@@ -85,7 +97,10 @@ type Column struct {
 	Length2         int
 	Nullable        bool
 	Default         string
-	IsUnique        bool
+	UniqueType      int
+	UniqueName      string
+	IndexType       int
+	IndexName       string
 	IsPrimaryKey    bool
 	IsAutoIncrement bool
 	MapType         int
@@ -95,6 +110,8 @@ type Table struct {
 	Name       string
 	Type       reflect.Type
 	Columns    map[string]Column
+	Indexes    map[string][]string
+	Uniques    map[string][]string
 	PrimaryKey string
 }
 

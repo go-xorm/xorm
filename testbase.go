@@ -23,8 +23,8 @@ CREATE TABLE `userdeatail` (
 */
 
 type Userinfo struct {
-	Uid        int64 `xorm:"id pk not null autoincr"`
-	Username   string
+	Uid        int64  `xorm:"id pk not null autoincr"`
+	Username   string `xorm:"unique"`
 	Departname string
 	Alias      string `xorm:"-"`
 	Created    time.Time

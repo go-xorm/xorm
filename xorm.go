@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	version string = "0.1.6"
+	version string = "0.1.8"
 )
 
 func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
@@ -26,16 +26,11 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 
 	engine.Tables = make(map[reflect.Type]*Table)
 	engine.mutex = &sync.Mutex{}
-	//engine.InsertMany = true
 	engine.TagIdentifier = "xorm"
-	//engine.QuoteIdentifier = "`"
 	if driverName == SQLITE {
 		engine.Dialect = &sqlite3{}
-		//engine.AutoIncrement = "AUTOINCREMENT"
-		//engine.Pool = NoneConnectPool{}
 	} else if driverName == MYSQL {
 		engine.Dialect = &mysql{}
-		//engine.AutoIncrement = "AUTO_INCREMENT"
 	} else {
 		return nil, errors.New(fmt.Sprintf("Unsupported driver name: %v", driverName))
 	}
