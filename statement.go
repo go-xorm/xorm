@@ -241,22 +241,24 @@ func (statement *Statement) genCreateSQL() string {
 	return sql
 }
 
-func (statement *Statement) genIndexSQL() string {
-	var sql string = ""
+func (statement *Statement) genIndexSQL() []string {
+	var sqls []string = make([]string, 0)
 	for indexName, cols := range statement.RefTable.Indexes {
-		sql += fmt.Sprintf("CREATE INDEX IDX_%v_%v ON %v (%v);", statement.TableName(), indexName,
+		sql := fmt.Sprintf("CREATE INDEX IDX_%v_%v ON %v (%v);", statement.TableName(), indexName,
 			statement.TableName(), strings.Join(cols, ","))
+		sqls = append(sqls, sql)
 	}
-	return sql
+	return sqls
 }
 
-func (statement *Statement) genUniqueSQL() string {
-	var sql string = ""
+func (statement *Statement) genUniqueSQL() []string {
+	var sqls []string = make([]string, 0)
 	for indexName, cols := range statement.RefTable.Uniques {
-		sql += fmt.Sprintf("CREATE UNIQUE INDEX UQE_%v_%v ON %v (%v);", statement.TableName(), indexName,
+		sql := fmt.Sprintf("CREATE UNIQUE INDEX UQE_%v_%v ON %v (%v);", statement.TableName(), indexName,
 			statement.TableName(), strings.Join(cols, ","))
+		sqls = append(sqls, sql)
 	}
-	return sql
+	return sqls
 }
 
 func (statement *Statement) genDropSQL() string {

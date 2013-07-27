@@ -337,15 +337,21 @@ func (session *Session) CreateTable(bean interface{}) error {
 	sql := statement.genCreateSQL()
 	_, err := session.Exec(sql)
 	if err == nil {
-		sql = statement.genIndexSQL()
-		if len(sql) > 0 {
+		sqls := statement.genIndexSQL()
+		for _, sql := range sqls {
 			_, err = session.Exec(sql)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	if err == nil {
-		sql = statement.genUniqueSQL()
-		if len(sql) > 0 {
+		sqls := statement.genUniqueSQL()
+		for _, sql := range sqls {
 			_, err = session.Exec(sql)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return err
