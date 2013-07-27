@@ -244,7 +244,7 @@ func (statement *Statement) genCreateSQL() string {
 func (statement *Statement) genIndexSQL() string {
 	var sql string = ""
 	for indexName, cols := range statement.RefTable.Indexes {
-		sql += fmt.Sprintf("CREATE INDEX IF NOT EXISTS IDX_%v_%v ON %v (%v);", statement.TableName(), indexName,
+		sql += fmt.Sprintf("CREATE INDEX IDX_%v_%v ON %v (%v);", statement.TableName(), indexName,
 			statement.TableName(), strings.Join(cols, ","))
 	}
 	return sql
@@ -253,7 +253,7 @@ func (statement *Statement) genIndexSQL() string {
 func (statement *Statement) genUniqueSQL() string {
 	var sql string = ""
 	for indexName, cols := range statement.RefTable.Uniques {
-		sql += fmt.Sprintf("CREATE UNIQUE INDEX IF NOT EXISTS UQE_%v_%v ON %v (%v);", statement.TableName(), indexName,
+		sql += fmt.Sprintf("CREATE UNIQUE INDEX UQE_%v_%v ON %v (%v);", statement.TableName(), indexName,
 			statement.TableName(), strings.Join(cols, ","))
 	}
 	return sql

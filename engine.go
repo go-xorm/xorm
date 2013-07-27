@@ -227,6 +227,8 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 						col.Default = tags[j+1]
 					case k == "text":
 						col.SQLType = Text
+					case k == "blob":
+						col.SQLType = Blob
 					case strings.HasPrefix(k, "int"):
 						if k == "int" {
 							col.SQLType = Int
@@ -388,6 +390,24 @@ func (e *Engine) CreateTables(beans ...interface{}) error {
 
 	for _, bean := range beans {
 		err = session.CreateTable(bean)
+		if err != nil {
+			session.Rollback()
+			return err
+		}
+	}
+	return session.Commit()
+}
+
+func (e *Engine) DropTables(beans ...interface{}) error {
+	session := e.NewSession()
+	err := session.Begin()
+	defer session.Close()
+	if err != nil {
+		return err
+	}
+
+	for _, bean := range beans {
+		err = session.DropTable(bean)
 		if err != nil {
 			session.Rollback()
 			return err

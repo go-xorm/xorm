@@ -335,27 +335,28 @@ func (session *Session) CreateTable(bean interface{}) error {
 	defer statement.Init()
 	statement.RefTable = session.Engine.AutoMap(bean)
 	sql := statement.genCreateSQL()
-	res, err := session.Exec(sql)
-	if err != nil {
-		return err
-	}
-
-	affected, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if affected > 0 {
+	_, err := session.Exec(sql)
+	if err == nil {
 		sql = statement.genIndexSQL()
 		if len(sql) > 0 {
 			_, err = session.Exec(sql)
 		}
 	}
-	if err == nil && affected > 0 {
+	if err == nil {
 		sql = statement.genUniqueSQL()
 		if len(sql) > 0 {
 			_, err = session.Exec(sql)
 		}
 	}
+	return err
+}
+
+func (session *Session) DropTable(bean interface{}) error {
+	statement := session.Statement
+	defer statement.Init()
+	statement.RefTable = session.Engine.AutoMap(bean)
+	sql := statement.genDropSQL()
+	_, err := session.Exec(sql)
 	return err
 }
 

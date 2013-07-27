@@ -41,7 +41,13 @@ type Userdetail struct {
 }
 
 func directCreateTable(engine *Engine, t *testing.T) {
-	err := engine.CreateTables(&Userinfo{})
+	err := engine.DropTables(&Userinfo{})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	err = engine.CreateTables(&Userinfo{})
 	if err != nil {
 		t.Error(err)
 	}
