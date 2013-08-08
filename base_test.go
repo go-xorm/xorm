@@ -8,14 +8,14 @@ import (
 
 /*
 CREATE TABLE `userinfo` (
-	`uid` INT(10) NULL AUTO_INCREMENT,
+	`id` INT(10) NULL AUTO_INCREMENT,
 	`username` VARCHAR(64) NULL,
 	`departname` VARCHAR(64) NULL,
 	`created` DATE NULL,
 	PRIMARY KEY (`uid`)
 );
 CREATE TABLE `userdeatail` (
-	`uid` INT(10) NULL,
+	`id` INT(10) NULL,
 	`intro` TEXT NULL,
 	`profile` TEXT NULL,
 	PRIMARY KEY (`uid`)
@@ -41,15 +41,16 @@ type Userdetail struct {
 }
 
 func directCreateTable(engine *Engine, t *testing.T) {
-	err := engine.DropTables(&Userinfo{})
+	err := engine.DropTables(&Userinfo{}, &Userdetail{})
 	if err != nil {
 		t.Error(err)
-		return
+		panic(err)
 	}
 
 	err = engine.CreateTables(&Userinfo{})
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 }
 
@@ -57,30 +58,36 @@ func mapper(engine *Engine, t *testing.T) {
 	err := engine.UnMap(&Userinfo{})
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 
 	err = engine.Map(&Userinfo{}, &Userdetail{})
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 
 	err = engine.DropAll()
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 
 	err = engine.CreateAll()
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 }
 
 func insert(engine *Engine, t *testing.T) {
-	user := Userinfo{1, "xiaolunwen", "dev", "lunny", time.Now(),
+	user := Userinfo{0, "xiaolunwen", "dev", "lunny", time.Now(),
 		Userdetail{Id: 1}, 1.78, []byte{1, 2, 3}, true}
 	_, err := engine.Insert(&user)
+	fmt.Println(user.Uid)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 }
 
@@ -89,6 +96,7 @@ func query(engine *Engine, t *testing.T) {
 	results, err := engine.Query(sql)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 	fmt.Println(results)
 }
@@ -98,6 +106,7 @@ func exec(engine *Engine, t *testing.T) {
 	res, err := engine.Exec(sql, "xiaolun", 1)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 	fmt.Println(res)
 }
@@ -107,8 +116,10 @@ func insertAutoIncr(engine *Engine, t *testing.T) {
 	user := Userinfo{Username: "xiaolunwen", Departname: "dev", Alias: "lunny", Created: time.Now(),
 		Detail: Userdetail{Id: 1}, Height: 1.78, Avatar: []byte{1, 2, 3}, IsMan: true}
 	_, err := engine.Insert(&user)
+	fmt.Println(user.Uid)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 }
 
@@ -123,22 +134,8 @@ func insertMulti(engine *Engine, t *testing.T) {
 	_, err := engine.Insert(&users)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
-
-	/*engine.InsertMany = false
-
-	users = []Userinfo{
-		{Username: "xlw9", Departname: "dev", Alias: "lunny9", Created: time.Now()},
-		{Username: "xlw10", Departname: "dev", Alias: "lunny10", Created: time.Now()},
-		{Username: "xlw99", Departname: "dev", Alias: "lunny2", Created: time.Now()},
-		{Username: "xlw1010", Departname: "dev", Alias: "lunny3", Created: time.Now()},
-	}
-	_, err = engine.Insert(&users)
-	if err != nil {
-		t.Error(err)
-	}
-
-	engine.InsertMany = true*/
 }
 
 func insertTwoTable(engine *Engine, t *testing.T) {
@@ -148,6 +145,7 @@ func insertTwoTable(engine *Engine, t *testing.T) {
 	_, err := engine.Insert(&userinfo, &userdetail)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 }
 
@@ -157,12 +155,13 @@ func update(engine *Engine, t *testing.T) {
 	_, err := engine.Id(1).Update(&user)
 	if err != nil {
 		t.Error(err)
-		return
+		panic(err)
 	}
 
 	_, err = engine.Update(&Userinfo{Username: "yyy"}, &user)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 }
 
@@ -171,6 +170,7 @@ func testdelete(engine *Engine, t *testing.T) {
 	_, err := engine.Delete(&user)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 }
 
@@ -180,6 +180,7 @@ func get(engine *Engine, t *testing.T) {
 	has, err := engine.Get(&user)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 	if has {
 		fmt.Println(user)
@@ -194,6 +195,7 @@ func cascadeGet(engine *Engine, t *testing.T) {
 	has, err := engine.Get(&user)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 	if has {
 		fmt.Println(user)
@@ -208,6 +210,7 @@ func find(engine *Engine, t *testing.T) {
 	err := engine.Find(&users)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 	fmt.Println(users)
 }
@@ -218,6 +221,7 @@ func findMap(engine *Engine, t *testing.T) {
 	err := engine.Find(&users)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 	fmt.Println(users)
 }
@@ -227,6 +231,7 @@ func count(engine *Engine, t *testing.T) {
 	total, err := engine.Count(&user)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 	fmt.Printf("Total %d records!!!", total)
 }
@@ -236,6 +241,7 @@ func where(engine *Engine, t *testing.T) {
 	err := engine.Where("id > ?", 2).Find(&users)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 	fmt.Println(users)
 }
@@ -245,7 +251,7 @@ func in(engine *Engine, t *testing.T) {
 	err := engine.In("id", 1, 2, 3).Find(&users)
 	if err != nil {
 		t.Error(err)
-		return
+		panic(err)
 	}
 	fmt.Println(users)
 
@@ -253,7 +259,7 @@ func in(engine *Engine, t *testing.T) {
 	err = engine.Where("id > ?", 2).In("id", ids...).Find(&users)
 	if err != nil {
 		t.Error(err)
-		return
+		panic(err)
 	}
 	fmt.Println(users)
 }
@@ -263,6 +269,7 @@ func limit(engine *Engine, t *testing.T) {
 	err := engine.Limit(2, 1).Find(&users)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 	fmt.Println(users)
 }
@@ -272,6 +279,7 @@ func order(engine *Engine, t *testing.T) {
 	err := engine.OrderBy("id desc").Find(&users)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 	fmt.Println(users)
 }
@@ -281,6 +289,7 @@ func join(engine *Engine, t *testing.T) {
 	err := engine.Join("LEFT", "userdetail", "userinfo.id=userdetail.id").Find(&users)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 }
 
@@ -289,6 +298,7 @@ func having(engine *Engine, t *testing.T) {
 	err := engine.GroupBy("username").Having("username='xlw'").Find(&users)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 	fmt.Println(users)
 }
@@ -310,7 +320,7 @@ func transaction(engine *Engine, t *testing.T) {
 	err := session.Begin()
 	if err != nil {
 		t.Error(err)
-		return
+		panic(err)
 	}
 	//session.IsAutoRollback = false
 	user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
@@ -318,7 +328,7 @@ func transaction(engine *Engine, t *testing.T) {
 	if err != nil {
 		session.Rollback()
 		t.Error(err)
-		return
+		panic(err)
 	}
 	user2 := Userinfo{Username: "yyy"}
 	_, err = session.Where("uid = ?", 0).Update(&user2)
@@ -333,14 +343,15 @@ func transaction(engine *Engine, t *testing.T) {
 	if err != nil {
 		session.Rollback()
 		t.Error(err)
-		return
+		panic(err)
 	}
 
 	err = session.Commit()
 	if err != nil {
 		t.Error(err)
-		return
+		panic(err)
 	}
+	panic(err)
 }
 
 func combineTransaction(engine *Engine, t *testing.T) {
@@ -360,7 +371,7 @@ func combineTransaction(engine *Engine, t *testing.T) {
 	err := session.Begin()
 	if err != nil {
 		t.Error(err)
-		return
+		panic(err)
 	}
 	//session.IsAutoRollback = false
 	user1 := Userinfo{Username: "xiaoxiao2", Departname: "dev", Alias: "lunny", Created: time.Now()}
@@ -368,32 +379,42 @@ func combineTransaction(engine *Engine, t *testing.T) {
 	if err != nil {
 		session.Rollback()
 		t.Error(err)
-		return
+		panic(err)
 	}
 	user2 := Userinfo{Username: "zzz"}
 	_, err = session.Where("id = ?", 0).Update(&user2)
 	if err != nil {
 		session.Rollback()
 		t.Error(err)
-		return
+		panic(err)
 	}
 
 	_, err = session.Exec("delete from userinfo where username = ?", user2.Username)
 	if err != nil {
 		session.Rollback()
 		t.Error(err)
-		return
+		panic(err)
 	}
 
 	err = session.Commit()
 	if err != nil {
 		t.Error(err)
-		return
+		panic(err)
 	}
 }
 
 func table(engine *Engine, t *testing.T) {
-	engine.Table("user_user").CreateTable(&Userinfo{})
+	err := engine.DropTables("user_user")
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.Table("user_user").CreateTable(&Userinfo{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
 }
 
 func createMultiTables(engine *Engine, t *testing.T) {
@@ -404,19 +425,29 @@ func createMultiTables(engine *Engine, t *testing.T) {
 	err := session.Begin()
 	if err != nil {
 		t.Error(err)
-		return
+		panic(err)
 	}
 	for i := 0; i < 10; i++ {
-		err = session.Table(fmt.Sprintf("user_%v", i)).CreateTable(user)
+		tableName := fmt.Sprintf("user_%v", i)
+
+		err = engine.DropTables(tableName)
 		if err != nil {
 			session.Rollback()
 			t.Error(err)
-			return
+			panic(err)
+		}
+
+		err = session.Table(tableName).CreateTable(user)
+		if err != nil {
+			session.Rollback()
+			t.Error(err)
+			panic(err)
 		}
 	}
 	err = session.Commit()
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 }
 
@@ -426,26 +457,118 @@ func tableOp(engine *Engine, t *testing.T) {
 	id, err := engine.Table(tableName).Insert(&user)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 
 	_, err = engine.Table(tableName).Get(&Userinfo{Username: "tablexiao"})
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 
 	users := make([]Userinfo, 0)
 	err = engine.Table(tableName).Find(&users)
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 
 	_, err = engine.Table(tableName).Id(id).Update(&Userinfo{Username: "tableda"})
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 
 	_, err = engine.Table(tableName).Id(id).Delete(&Userinfo{})
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
+}
+
+func testCharst(engine *Engine, t *testing.T) {
+	err := engine.DropTables("user_charset")
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.Charset("utf8").Table("user_charset").CreateTable(&Userinfo{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+}
+
+func testStoreEngine(engine *Engine, t *testing.T) {
+	err := engine.DropTables("user_store_engine")
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.StoreEngine("InnoDB").Table("user_store_engine").CreateTable(&Userinfo{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+}
+
+type tempUser struct {
+	Id       int64
+	Username string
+}
+
+func testCols(engine *Engine, t *testing.T) {
+	users := []Userinfo{}
+	err := engine.Cols("id, username").Find(&users)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	fmt.Println(users)
+
+	tmpUsers := []tempUser{}
+	err = engine.Table("userinfo").Cols("id, username").Find(&tmpUsers)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println(tmpUsers)
+}
+
+func testTrans(engine *Engine, t *testing.T) {
+}
+
+func testAll(engine *Engine, t *testing.T) {
+	directCreateTable(engine, t)
+	mapper(engine, t)
+	insert(engine, t)
+	query(engine, t)
+	exec(engine, t)
+	insertAutoIncr(engine, t)
+	insertMulti(engine, t)
+	insertTwoTable(engine, t)
+	update(engine, t)
+	testdelete(engine, t)
+	get(engine, t)
+	cascadeGet(engine, t)
+	find(engine, t)
+	findMap(engine, t)
+	count(engine, t)
+	where(engine, t)
+	in(engine, t)
+	limit(engine, t)
+	order(engine, t)
+	join(engine, t)
+	having(engine, t)
+	transaction(engine, t)
+	combineTransaction(engine, t)
+	table(engine, t)
+	createMultiTables(engine, t)
+	tableOp(engine, t)
+	testCols(engine, t)
+	testCharst(engine, t)
+	testStoreEngine(engine, t)
 }

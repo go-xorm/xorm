@@ -1,7 +1,7 @@
 package xorm
 
 import (
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/ziutek/mymysql/godrv"
 	"testing"
 )
 
@@ -10,8 +10,8 @@ CREATE DATABASE IF NOT EXISTS xorm_test CHARACTER SET
 utf8 COLLATE utf8_general_ci;
 */
 
-func TestMysql(t *testing.T) {
-	engine, err := NewEngine("mysql", "root:@/xorm_test?charset=utf8")
+func TestMyMysql(t *testing.T) {
+	engine, err := NewEngine("mymysql", "xorm_test/root/")
 	defer engine.Close()
 	if err != nil {
 		t.Error(err)

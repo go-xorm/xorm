@@ -27,6 +27,8 @@ type Statement struct {
 	GroupByStr   string
 	HavingStr    string
 	ColumnStr    string
+	columnMap    map[string]bool
+	ConditionStr string
 	AltTableName string
 	RawSQL       string
 	RawParams    []interface{}
@@ -57,6 +59,8 @@ func (statement *Statement) Init() {
 	statement.GroupByStr = ""
 	statement.HavingStr = ""
 	statement.ColumnStr = ""
+	statement.columnMap = make(map[string]bool)
+	statement.ConditionStr = ""
 	statement.AltTableName = ""
 	statement.RawSQL = ""
 	statement.RawParams = make([]interface{}, 0)
@@ -116,8 +120,7 @@ func BuildConditions(engine *Engine, table *Table, bean interface{}) ([]string, 
 		} else {
 			args = append(args, val)
 		}
-		colNames = append(colNames, fmt.Sprintf("%v%v%v = ?", engine.QuoteIdentifier(),
-			col.Name, engine.QuoteIdentifier()))
+		colNames = append(colNames, fmt.Sprintf("%v = ?", engine.Quote(col.Name)))
 	}
 
 	return colNames, args
@@ -155,6 +158,13 @@ func (statement *Statement) In(column string, args ...interface{}) {
 	}
 }
 
+func (statement *Statement) Cols(columns ...string) {
+	statement.ColumnStr = strings.Join(columns, statement.Engine.Quote(", "))
+	for _, column := range columns {
+		statement.columnMap[column] = true
+	}
+}
+
 func (statement *Statement) Limit(limit int, start ...int) {
 	statement.LimitN = limit
 	if len(start) > 0 {
@@ -176,65 +186,36 @@ func (statement *Statement) Join(join_operator, tablename, condition string) {
 }
 
 func (statement *Statement) GroupBy(keys string) {
-	statement.GroupByStr = fmt.Sprintf("GROUP BY %v", keys)
+	statement.GroupByStr = keys
 }
 
 func (statement *Statement) Having(conditions string) {
 	statement.HavingStr = fmt.Sprintf("HAVING %v", conditions)
 }
 
-func (statement *Statement) genColumnStr(col *Column) string {
-	sql := "`" + col.Name + "` "
-
-	sql += statement.Engine.Dialect.SqlType(col) + " "
-
-	if col.IsPrimaryKey {
-		sql += "PRIMARY KEY "
-	}
-
-	if col.IsAutoIncrement {
-		sql += statement.Engine.AutoIncrIdentifier() + " "
-	}
-
-	if col.Nullable {
-		sql += "NULL "
-	} else {
-		sql += "NOT NULL "
-	}
-
-	/*if col.UniqueType == SINGLEUNIQUE {
-		sql += "UNIQUE "
-	}*/
-
-	if col.Default != "" {
-		sql += "DEFAULT " + col.Default + " "
-	}
-	return sql
-}
-
-func (statement *Statement) selectColumnStr() string {
+func (statement *Statement) genColumnStr() string {
 	table := statement.RefTable
 	colNames := make([]string, 0)
 	for _, col := range table.Columns {
 		if col.MapType != ONLYTODB {
-			colNames = append(colNames, statement.TableName()+"."+col.Name)
+			colNames = append(colNames, statement.Engine.Quote(statement.TableName())+"."+statement.Engine.Quote(col.Name))
 		}
 	}
 	return strings.Join(colNames, ", ")
 }
 
 func (statement *Statement) genCreateSQL() string {
-	sql := "CREATE TABLE IF NOT EXISTS `" + statement.TableName() + "` ("
+	sql := "CREATE TABLE IF NOT EXISTS " + statement.Engine.Quote(statement.TableName()) + " ("
 	for _, col := range statement.RefTable.Columns {
-		sql += statement.genColumnStr(&col)
+		sql += col.String(statement.Engine)
 		sql = strings.TrimSpace(sql)
 		sql += ", "
 	}
 	sql = sql[:len(sql)-2] + ")"
-	if statement.StoreEngine != "" {
+	if statement.Engine.Dialect.SupportEngine() && statement.StoreEngine != "" {
 		sql += " ENGINE=" + statement.StoreEngine
 	}
-	if statement.Charset != "" {
+	if statement.Engine.Dialect.SupportCharset() && statement.Charset != "" {
 		sql += " DEFAULT CHARSET " + statement.Charset
 	}
 	sql += ";"
@@ -262,13 +243,8 @@ func (statement *Statement) genUniqueSQL() []string {
 }
 
 func (statement *Statement) genDropSQL() string {
-	sql := "DROP TABLE IF EXISTS `" + statement.TableName() + "`;"
+	sql := "DROP TABLE IF EXISTS " + statement.Engine.Quote(statement.TableName()) + ";"
 	return sql
-}
-
-func (statement Statement) generateSql() string {
-	columnStr := statement.selectColumnStr()
-	return statement.genSelectSql(columnStr)
 }
 
 func (statement Statement) genGetSql(bean interface{}) (string, []interface{}) {
@@ -276,10 +252,15 @@ func (statement Statement) genGetSql(bean interface{}) (string, []interface{}) {
 	statement.RefTable = table
 
 	colNames, args := BuildConditions(statement.Engine, table, bean)
-	statement.ColumnStr = strings.Join(colNames, " and ")
+	statement.ConditionStr = strings.Join(colNames, " and ")
 	statement.BeanArgs = args
 
-	return statement.generateSql(), append(statement.Params, statement.BeanArgs...)
+	var columnStr string = statement.ColumnStr
+	if columnStr == "" {
+		columnStr = statement.genColumnStr()
+	}
+
+	return statement.genSelectSql(columnStr), append(statement.Params, statement.BeanArgs...)
 }
 
 func (statement Statement) genCountSql(bean interface{}) (string, []interface{}) {
@@ -287,98 +268,42 @@ func (statement Statement) genCountSql(bean interface{}) (string, []interface{})
 	statement.RefTable = table
 
 	colNames, args := BuildConditions(statement.Engine, table, bean)
-	statement.ColumnStr = strings.Join(colNames, " and ")
+	statement.ConditionStr = strings.Join(colNames, " and ")
 	statement.BeanArgs = args
-	return statement.genSelectSql("count(*) as total"), append(statement.Params, statement.BeanArgs...)
+	return statement.genSelectSql(fmt.Sprintf("count(*) as %v", statement.Engine.Quote("total"))), append(statement.Params, statement.BeanArgs...)
 }
 
 func (statement Statement) genSelectSql(columnStr string) (a string) {
-	if statement.Engine.DriverName == MSSQL {
-		if statement.Start > 0 {
-			a = fmt.Sprintf("select ROW_NUMBER() OVER(order by %v )as rownum,%v from %v",
-				statement.RefTable.PKColumn().Name,
-				columnStr,
-				statement.TableName())
-			if statement.WhereStr != "" {
-				a = fmt.Sprintf("%v WHERE %v", a, statement.WhereStr)
-				if statement.ColumnStr != "" {
-					a = fmt.Sprintf("%v and %v", a, statement.ColumnStr)
-				}
-			} else if statement.ColumnStr != "" {
-				a = fmt.Sprintf("%v WHERE %v", a, statement.ColumnStr)
-			}
-			a = fmt.Sprintf("select %v from (%v) "+
-				"as a where rownum between %v and %v",
-				columnStr,
-				a,
-				statement.Start,
-				statement.LimitN)
-		} else if statement.LimitN > 0 {
-			a = fmt.Sprintf("SELECT top %v %v FROM %v", statement.LimitN, columnStr, statement.TableName())
-			if statement.WhereStr != "" {
-				a = fmt.Sprintf("%v WHERE %v", a, statement.WhereStr)
-				if statement.ColumnStr != "" {
-					a = fmt.Sprintf("%v and %v", a, statement.ColumnStr)
-				}
-			} else if statement.ColumnStr != "" {
-				a = fmt.Sprintf("%v WHERE %v", a, statement.ColumnStr)
-			}
-			if statement.GroupByStr != "" {
-				a = fmt.Sprintf("%v %v", a, statement.GroupByStr)
-			}
-			if statement.HavingStr != "" {
-				a = fmt.Sprintf("%v %v", a, statement.HavingStr)
-			}
-			if statement.OrderStr != "" {
-				a = fmt.Sprintf("%v ORDER BY %v", a, statement.OrderStr)
-			}
-		} else {
-			a = fmt.Sprintf("SELECT %v FROM %v", columnStr, statement.TableName())
-			if statement.WhereStr != "" {
-				a = fmt.Sprintf("%v WHERE %v", a, statement.WhereStr)
-				if statement.ColumnStr != "" {
-					a = fmt.Sprintf("%v and %v", a, statement.ColumnStr)
-				}
-			} else if statement.ColumnStr != "" {
-				a = fmt.Sprintf("%v WHERE %v", a, statement.ColumnStr)
-			}
-			if statement.GroupByStr != "" {
-				a = fmt.Sprintf("%v %v", a, statement.GroupByStr)
-			}
-			if statement.HavingStr != "" {
-				a = fmt.Sprintf("%v %v", a, statement.HavingStr)
-			}
-			if statement.OrderStr != "" {
-				a = fmt.Sprintf("%v ORDER BY %v", a, statement.OrderStr)
-			}
+	if statement.GroupByStr != "" {
+		columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
+		statement.GroupByStr = columnStr
+	}
+	a = fmt.Sprintf("SELECT %v FROM %v", columnStr,
+		statement.Engine.Quote(statement.TableName()))
+	if statement.JoinStr != "" {
+		a = fmt.Sprintf("%v %v", a, statement.JoinStr)
+	}
+	if statement.WhereStr != "" {
+		a = fmt.Sprintf("%v WHERE %v", a, statement.WhereStr)
+		if statement.ConditionStr != "" {
+			a = fmt.Sprintf("%v and %v", a, statement.ConditionStr)
 		}
-	} else {
-		a = fmt.Sprintf("SELECT %v FROM %v", columnStr, statement.TableName())
-		if statement.JoinStr != "" {
-			a = fmt.Sprintf("%v %v", a, statement.JoinStr)
-		}
-		if statement.WhereStr != "" {
-			a = fmt.Sprintf("%v WHERE %v", a, statement.WhereStr)
-			if statement.ColumnStr != "" {
-				a = fmt.Sprintf("%v and %v", a, statement.ColumnStr)
-			}
-		} else if statement.ColumnStr != "" {
-			a = fmt.Sprintf("%v WHERE %v", a, statement.ColumnStr)
-		}
-		if statement.GroupByStr != "" {
-			a = fmt.Sprintf("%v %v", a, statement.GroupByStr)
-		}
-		if statement.HavingStr != "" {
-			a = fmt.Sprintf("%v %v", a, statement.HavingStr)
-		}
-		if statement.OrderStr != "" {
-			a = fmt.Sprintf("%v ORDER BY %v", a, statement.OrderStr)
-		}
-		if statement.Start > 0 {
-			a = fmt.Sprintf("%v LIMIT %v, %v", a, statement.Start, statement.LimitN)
-		} else if statement.LimitN > 0 {
-			a = fmt.Sprintf("%v LIMIT %v", a, statement.LimitN)
-		}
+	} else if statement.ConditionStr != "" {
+		a = fmt.Sprintf("%v WHERE %v", a, statement.ConditionStr)
+	}
+	if statement.GroupByStr != "" {
+		a = fmt.Sprintf("%v GROUP BY %v", a, statement.GroupByStr)
+	}
+	if statement.HavingStr != "" {
+		a = fmt.Sprintf("%v %v", a, statement.HavingStr)
+	}
+	if statement.OrderStr != "" {
+		a = fmt.Sprintf("%v ORDER BY %v", a, statement.OrderStr)
+	}
+	if statement.Start > 0 {
+		a = fmt.Sprintf("%v LIMIT %v OFFSET %v", a, statement.LimitN, statement.Start)
+	} else if statement.LimitN > 0 {
+		a = fmt.Sprintf("%v LIMIT %v", a, statement.LimitN)
 	}
 	return
 }

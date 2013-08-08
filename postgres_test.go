@@ -1,14 +1,12 @@
 package xorm
 
 import (
-	_ "github.com/mattn/go-sqlite3"
-	"os"
+	_ "github.com/bylevel/pq"
 	"testing"
 )
 
-func TestSqlite3(t *testing.T) {
-	os.Remove("./test.db")
-	engine, err := NewEngine("sqlite3", "./test.db")
+func TestPostgres(t *testing.T) {
+	engine, err := NewEngine("postgres", "dbname=xorm_test sslmode=disable")
 	defer engine.Close()
 	if err != nil {
 		t.Error(err)

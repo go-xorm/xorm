@@ -21,21 +21,46 @@ type SQLType struct {
 }
 
 var (
+	Bit       = SQLType{"BIT", 0, 0}
 	TinyInt   = SQLType{"TINYINT", 0, 0}
 	SmallInt  = SQLType{"SMALLINT", 0, 0}
 	MediumInt = SQLType{"MEDIUMINT", 0, 0}
-	Int       = SQLType{"INT", 11, 0}
+	Int       = SQLType{"INT", 0, 0}
+	Integer   = SQLType{"INTEGER", 0, 0}
 	BigInt    = SQLType{"BIGINT", 0, 0}
-	Char      = SQLType{"CHAR", 1, 0}
-	Varchar   = SQLType{"VARCHAR", 64, 0}
-	Text      = SQLType{"TEXT", 16, 0}
-	Date      = SQLType{"DATE", 24, 0}
+
+	Char       = SQLType{"CHAR", 0, 0}
+	Varchar    = SQLType{"VARCHAR", 64, 0}
+	TinyText   = SQLType{"TINYTEXT", 0, 0}
+	Text       = SQLType{"TEXT", 0, 0}
+	MediumText = SQLType{"MEDIUMTEXT", 0, 0}
+	LongText   = SQLType{"LONGTEXT", 0, 0}
+	Binary     = SQLType{"BINARY", 0, 0}
+	VarBinary  = SQLType{"VARBINARY", 0, 0}
+
+	Date      = SQLType{"DATE", 0, 0}
 	DateTime  = SQLType{"DATETIME", 0, 0}
-	Decimal   = SQLType{"DECIMAL", 26, 2}
-	Float     = SQLType{"FLOAT", 31, 0}
-	Double    = SQLType{"DOUBLE", 31, 0}
-	Blob      = SQLType{"BLOB", 0, 0}
+	Time      = SQLType{"TIME", 0, 0}
 	TimeStamp = SQLType{"TIMESTAMP", 0, 0}
+
+	Decimal = SQLType{"DECIMAL", 26, 2}
+	Numeric = SQLType{"NUMERIC", 0, 0}
+
+	Real   = SQLType{"REAL", 0, 0}
+	Float  = SQLType{"FLOAT", 0, 0}
+	Double = SQLType{"DOUBLE", 0, 0}
+	//Money  = SQLType{"MONEY", 0, 0}
+
+	TinyBlob   = SQLType{"TINYBLOB", 0, 0}
+	Blob       = SQLType{"BLOB", 0, 0}
+	MediumBlob = SQLType{"MEDIUMBLOB", 0, 0}
+	LongBlob   = SQLType{"LONGBLOB", 0, 0}
+	Bytea      = SQLType{"BYTEA", 0, 0}
+
+	Bool = SQLType{"BOOL", 0, 0}
+
+	Serial    = SQLType{"SERIAL", 0, 0}
+	BigSerial = SQLType{"BIGSERIAL", 0, 0}
 )
 
 var b byte
@@ -104,6 +129,31 @@ type Column struct {
 	IsPrimaryKey    bool
 	IsAutoIncrement bool
 	MapType         int
+}
+
+func (col *Column) String(engine *Engine) string {
+	sql := engine.Quote(col.Name) + " "
+
+	sql += engine.SqlType(col) + " "
+
+	if col.IsPrimaryKey {
+		sql += "PRIMARY KEY "
+	}
+
+	if col.IsAutoIncrement {
+		sql += engine.AutoIncrStr() + " "
+	}
+
+	if col.Nullable {
+		sql += "NULL "
+	} else {
+		sql += "NOT NULL "
+	}
+
+	if col.Default != "" {
+		sql += "DEFAULT " + col.Default + " "
+	}
+	return sql
 }
 
 type Table struct {

@@ -12,18 +12,21 @@ type sqlite3 struct {
 
 func (db *sqlite3) SqlType(c *Column) string {
 	switch t := c.SQLType; t {
-	case Date, DateTime, TimeStamp:
-		return "NUMERIC"
-	case Char, Varchar, Text:
-		return "TEXT"
-	case TinyInt, SmallInt, MediumInt, Int, BigInt:
-		return "INTEGER"
-	case Float, Double:
-		return "REAL"
-	case Decimal:
-		return "NUMERIC"
-	case Blob:
-		return "BLOB"
+	case Date, DateTime, TimeStamp, Time:
+		return Numeric.Name
+	case Char, Varchar, TinyText, Text, MediumText, LongText:
+		return Text.Name
+	case Bit, TinyInt, SmallInt, MediumInt, Int, Integer, BigInt, Bool:
+		return Integer.Name
+	case Float, Double, Real:
+		return Real.Name
+	case Decimal, Numeric:
+		return Numeric.Name
+	case TinyBlob, Blob, MediumBlob, LongBlob, Bytea, Binary, VarBinary:
+		return Blob.Name
+	case Serial, BigSerial:
+		c.IsAutoIncrement = true
+		return Integer.Name
 	default:
 		return t.Name
 	}
@@ -33,10 +36,18 @@ func (db *sqlite3) SupportInsertMany() bool {
 	return true
 }
 
-func (db *sqlite3) QuoteIdentifier() string {
+func (db *sqlite3) QuoteStr() string {
 	return "`"
 }
 
-func (db *sqlite3) AutoIncrIdentifier() string {
+func (db *sqlite3) AutoIncrStr() string {
 	return "AUTOINCREMENT"
+}
+
+func (db *sqlite3) SupportEngine() bool {
+	return false
+}
+
+func (db *sqlite3) SupportCharset() bool {
+	return false
 }

@@ -13,10 +13,16 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * Mysql: [github.com/Go-SQL-Driver/MySQL](https://github.com/Go-SQL-Driver/MySQL)
 
+* MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
+
 * SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
+
+* Postgres: [github.com/bylevel/pg](https://github.com/bylevel/pg)
+
 
 ## Changelog
 
+* **v0.1.9** : Added postgres and mymysql supported; Added ` and ? supported on Raw SQL even if postgres; Added Cols, StoreEngine, Charset function, Added many column data type supported, please see [Mapping Rules](#mapping).
 * **v0.1.8** : Added union index and union unique supported, please see [Mapping Rules](#mapping).
 * **v0.1.7** : Added IConnectPool interface and NoneConnectPool, SysConnectPool, SimpleConnectPool the three implements. You can choose one of them and the default is SysConnectPool. You can customrize your own connection pool. struct Engine added Close method, It should be invoked before system exit.
 * **v0.1.6** : Added conversion interface support; added struct derive support; added single mapping support
@@ -155,6 +161,13 @@ err := engine.Limit(10).Find(&tenusers, &Userinfo{Name:"xlw"}) //Get All Name="x
 ```Go
 var tenusers []Userinfo
 err := engine.In("id", 1, 3, 5).Find(&tenusers) //Get All id in (1, 3, 5)
+```
+
+6.4 The default will query all columns of a table. Use Cols function if you want to select some columns
+
+```Go
+var tenusers []Userinfo
+err := engine.Cols("id", "name").Find(&tenusers) //Find only id and name
 ```
 
 7.Delete
@@ -311,7 +324,7 @@ Another is use field tag, field tag support the below keywords which split with 
         <td>pk</td><td>the field is a primary key</td>
     </tr>
     <tr>
-        <td>int(11)/varchar(50)/text/date/datetime/blob/decimal(26,2)</td><td>column type</td>
+        <td>more than 30 column type supported, please see [Column Type](https://github.com/lunny/xorm/blob/master/COLUMNTYPE.md)</td><td>column type</td>
     </tr>
     <tr>
         <td>autoincr</td><td>auto incrment</td>

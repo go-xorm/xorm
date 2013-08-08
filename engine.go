@@ -10,6 +10,7 @@ package xorm
 import (
 	"database/sql"
 	"fmt"
+	"io"
 	"reflect"
 	"strconv"
 	"strings"
@@ -17,18 +18,19 @@ import (
 )
 
 const (
-	PQSQL   = "pqsql"
-	MSSQL   = "mssql"
-	SQLITE  = "sqlite3"
-	MYSQL   = "mysql"
-	MYMYSQL = "mymysql"
+	POSTGRES = "postgres"
+	SQLITE   = "sqlite3"
+	MYSQL    = "mysql"
+	MYMYSQL  = "mymysql"
 )
 
 type dialect interface {
 	SqlType(t *Column) string
 	SupportInsertMany() bool
-	QuoteIdentifier() string
-	AutoIncrIdentifier() string
+	QuoteStr() string
+	AutoIncrStr() string
+	SupportEngine() bool
+	SupportCharset() bool
 }
 
 type Engine struct {
@@ -42,18 +44,28 @@ type Engine struct {
 	ShowSQL        bool
 	pool           IConnectPool
 	CacheMapping   bool
+	Filters        []Filter
+	Logger         io.Writer
 }
 
 func (engine *Engine) SupportInsertMany() bool {
 	return engine.Dialect.SupportInsertMany()
 }
 
-func (engine *Engine) QuoteIdentifier() string {
-	return engine.Dialect.QuoteIdentifier()
+func (engine *Engine) QuoteStr() string {
+	return engine.Dialect.QuoteStr()
 }
 
-func (engine *Engine) AutoIncrIdentifier() string {
-	return engine.Dialect.AutoIncrIdentifier()
+func (engine *Engine) Quote(sql string) string {
+	return engine.Dialect.QuoteStr() + sql + engine.Dialect.QuoteStr()
+}
+
+func (engine *Engine) SqlType(c *Column) string {
+	return engine.Dialect.SqlType(c)
+}
+
+func (engine *Engine) AutoIncrStr() string {
+	return engine.Dialect.AutoIncrStr()
 }
 
 func (engine *Engine) SetPool(pool IConnectPool) error {
@@ -90,10 +102,18 @@ func (engine *Engine) Close() error {
 func (engine *Engine) Test() error {
 	session := engine.NewSession()
 	defer session.Close()
-	if engine.ShowSQL {
-		fmt.Printf("PING DATABASE %v\n", engine.DriverName)
-	}
+	engine.LogSQL("PING DATABASE", engine.DriverName)
 	return session.Ping()
+}
+
+func (engine *Engine) LogSQL(contents ...interface{}) {
+	if engine.ShowSQL {
+		io.WriteString(engine.Logger, fmt.Sprintln(contents...))
+	}
+}
+
+func (engine *Engine) LogError(contents ...interface{}) {
+	io.WriteString(engine.Logger, fmt.Sprintln(contents...))
 }
 
 func (engine *Engine) Sql(querystring string, args ...interface{}) *Session {
@@ -124,6 +144,16 @@ func (engine *Engine) Charset(charset string) *Session {
 func (engine *Engine) StoreEngine(storeEngine string) *Session {
 	session := engine.NewSession()
 	return session.StoreEngine(storeEngine)
+}
+
+func (engine *Engine) Cols(columns ...string) *Session {
+	session := engine.NewSession()
+	return session.Cols(columns...)
+}
+
+func (engine *Engine) Trans(t string) *Session {
+	session := engine.NewSession()
+	return session.Trans(t)
 }
 
 func (engine *Engine) In(column string, args ...interface{}) *Session {
@@ -273,6 +303,10 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 						}
 					case k == "date":
 						col.SQLType = Date
+					case k == "float":
+						col.SQLType = Float
+					case k == "double":
+						col.SQLType = Double
 					case k == "datetime":
 						col.SQLType = DateTime
 					case k == "timestamp":
@@ -375,7 +409,8 @@ func (e *Engine) DropAll() error {
 	}
 	err = session.DropAll()
 	if err != nil {
-		return session.Rollback()
+		session.Rollback()
+		return err
 	}
 	return session.Commit()
 }
@@ -418,17 +453,8 @@ func (e *Engine) DropTables(beans ...interface{}) error {
 
 func (e *Engine) CreateAll() error {
 	session := e.NewSession()
-	err := session.Begin()
 	defer session.Close()
-	if err != nil {
-		return err
-	}
-
-	err = session.CreateAll()
-	if err != nil {
-		return session.Rollback()
-	}
-	return session.Commit()
+	return session.CreateAll()
 }
 
 func (engine *Engine) Exec(sql string, args ...interface{}) (sql.Result, error) {
@@ -447,6 +473,12 @@ func (engine *Engine) Insert(beans ...interface{}) (int64, error) {
 	session := engine.NewSession()
 	defer session.Close()
 	return session.Insert(beans...)
+}
+
+func (engine *Engine) InsertOne(bean interface{}) (int64, error) {
+	session := engine.NewSession()
+	defer session.Close()
+	return session.InsertOne(bean)
 }
 
 func (engine *Engine) Update(bean interface{}, condiBeans ...interface{}) (int64, error) {

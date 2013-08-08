@@ -12,11 +12,16 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * Mysql: [github.com/Go-SQL-Driver/MySQL](https://github.com/Go-SQL-Driver/MySQL)
 
+* MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
+
 * SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
+
+* Postgres: [github.com/bylevel/pg](https://github.com/bylevel/pg)
 
 ## 更新日志
 
-* **v0.1.8** : 新增联合index，联合unique支持，请查看[映射规则](#mapping)。
+* **v0.1.9** : 新增 postgres 和 mymysql 驱动支持; 在Postgres中支持原始SQL语句中使用 ` 和 ? 符号; 新增Cols, StoreEngine, Charset 函数；SQL语句打印支持io.Writer接口，默认打印到控制台；新增更多的字段类型支持，详见 [映射规则](#mapping)；删除废弃的MakeSession和Create函数。
+* **v0.1.8** : 新增联合index，联合unique支持，请查看 [映射规则](#mapping)。
 * **v0.1.7** : 新增IConnectPool接口以及NoneConnectPool, SysConnectPool, SimpleConnectPool三种实现，可以选择不使用连接池，使用系统连接池和使用自带连接池三种实现，默认为SysConnectPool，即系统自带的连接池。同时支持自定义连接池。Engine新增Close方法，在系统退出时应调用此方法。
 * **v0.1.6** : 新增Conversion，支持自定义类型到数据库类型的转换；新增查询结构体自动检测匿名成员支持；新增单向映射支持；
 * **v0.1.5** : 新增对多线程的支持；新增Sql()函数；支持任意sql语句的struct查询；Get函数返回值变动；MakeSession和Create函数被NewSession和NewEngine函数替代；
@@ -36,7 +41,7 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * 使用连写来简化调用
 
-* 支持使用Id, In, Where, Limit, Join, Having, Table, Sql等函数和结构体等方式作为条件
+* 支持使用Id, In, Where, Limit, Join, Having, Table, Sql, Cols等函数和结构体等方式作为条件
 
 * 支持数据库连接池
 
@@ -80,6 +85,11 @@ Sqlite：
 
 ```Go
 engine.ShowSQL = true
+```
+
+默认打印会打印到控制台，如果需要打印到文件，只需要设置一个符合io.writer接口的struct即可：
+```Go
+engine.Logger = [io.Writer]
 ```
 
 1.2.如果要更换连接池实现，可使用SetPool方法
@@ -142,7 +152,7 @@ users := make(map[int64]Userinfo)
 err := engine.Find(&users)
 ```
 
-6.1 你也可以使用Where和Limit方法设定条件和查询数量
+6.1 你也可以使用Where和Limit方法设定条件和查询数量，Limit参数可为1个到2个，第一个参数为查询条数，第二个参数为开始条数。
 
 ```Go
 var allusers []Userinfo
@@ -161,6 +171,13 @@ err := engine.Limit(10).Find(&tenusers, &Userinfo{Name:"xlw"}) //Get All Name="x
 ```Go
 var tenusers []Userinfo
 err := engine.In("id", 1, 3, 5).Find(&tenusers) //Get All id in (1, 3, 5)
+```
+
+6.4 默认将查询出所有字段，如果要指定字段，则可以调用Cols函数
+
+```Go
+var tenusers []Userinfo
+err := engine.Cols("id", "name").Find(&tenusers) //Find only id and name
 ```
 
 7.Delete方法
@@ -317,7 +334,7 @@ UserInfo中的成员UserName将会自动对应名为user_name的字段。
         <td>pk</td><td>是否是Primary Key，当前仅支持int64类型</td>
     </tr>
     <tr>
-        <td>int(11)/varchar(50)/text/date/datetime/blob/decimal(26,2)</td><td>字段类型</td>
+        <td>当前支持30多种字段类型，详情参见 [字段类型](https://github.com/lunny/xorm/blob/master/COLUMNTYPE.md)</td><td>字段类型</td>
     </tr>
     <tr>
         <td>autoincr</td><td>是否是自增</td>

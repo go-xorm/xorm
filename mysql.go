@@ -13,26 +13,48 @@ type mysql struct {
 }
 
 func (db *mysql) SqlType(c *Column) string {
+	var res string
 	switch t := c.SQLType; t {
-	case Date, DateTime, TimeStamp:
-		return "DATETIME"
-	case Varchar:
-		return t.Name + "(" + strconv.Itoa(c.Length) + ")"
-	case Decimal:
-		return t.Name + "(" + strconv.Itoa(c.Length) + "," + strconv.Itoa(c.Length2) + ")"
+	case Bool:
+		res = TinyInt.Name
+	case Serial:
+		c.IsAutoIncrement = true
+		res = Int.Name
+	case BigSerial:
+		c.IsAutoIncrement = true
+		res = Integer.Name
+	case Bytea:
+		res = Blob.Name
 	default:
-		return t.Name
+		res = t.Name
 	}
+
+	var hasLen1 bool = (c.Length > 0)
+	var hasLen2 bool = (c.Length2 > 0)
+	if hasLen1 {
+		res += "(" + strconv.Itoa(c.Length) + ")"
+	} else if hasLen2 {
+		res += "(" + strconv.Itoa(c.Length) + "," + strconv.Itoa(c.Length2) + ")"
+	}
+	return res
 }
 
 func (db *mysql) SupportInsertMany() bool {
 	return true
 }
 
-func (db *mysql) QuoteIdentifier() string {
+func (db *mysql) QuoteStr() string {
 	return "`"
 }
 
-func (db *mysql) AutoIncrIdentifier() string {
+func (db *mysql) AutoIncrStr() string {
 	return "AUTO_INCREMENT"
+}
+
+func (db *mysql) SupportEngine() bool {
+	return true
+}
+
+func (db *mysql) SupportCharset() bool {
+	return true
 }
