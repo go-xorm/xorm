@@ -538,6 +538,102 @@ func testCols(engine *Engine, t *testing.T) {
 	fmt.Println(tmpUsers)
 }
 
+type tempUser2 struct {
+	tempUser   `xorm:"extends"`
+	Departname string
+}
+
+func testExtends(engine *Engine, t *testing.T) {
+	err := engine.DropTables(&tempUser2{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(&tempUser2{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	tu := &tempUser2{tempUser{0, "extends"}, "dev depart"}
+	_, err = engine.Insert(tu)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	tu2 := &tempUser2{}
+	_, err = engine.Get(tu2)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	tu3 := &tempUser2{tempUser{0, "extends update"}, ""}
+	_, err = engine.Id(tu2.Id).Update(tu3)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+}
+
+type allCols struct {
+	Bit       int   `xorm:"BIT"`
+	TinyInt   int8  `xorm:"TINYINT"`
+	SmallInt  int16 `xorm:"SMALLINT"`
+	MediumInt int32 `xorm:"MEDIUMINT"`
+	Int       int   `xorm:"INT"`
+	Integer   int   `xorm:"INTEGER"`
+	BigInt    int64 `xorm:"BIGINT"`
+
+	Char       string `xorm:"CHAR(12)"`
+	Varchar    string `xorm:"VARCHAR(54)"`
+	TinyText   string `xorm:"TINYTEXT"`
+	Text       string `xorm:"TEXT"`
+	MediumText string `xorm:"MEDIUMTEXT"`
+	LongText   string `xorm:"LONGTEXT"`
+	Binary     string `xorm:"BINARY"`
+	VarBinary  string `xorm:"VARBINARY(12)"`
+
+	Date      time.Time `xorm:"DATE"`
+	DateTime  time.Time `xorm:"DATETIME"`
+	Time      time.Time `xorm:"TIME"`
+	TimeStamp time.Time `xorm:"TIMESTAMP"`
+
+	Decimal float64 `xorm:"DECIMAL"`
+	Numeric float64 `xorm:"NUMERIC"`
+
+	Real   float32 `xorm:"REAL"`
+	Float  float32 `xorm:"FLOAT"`
+	Double float64 `xorm:"DOUBLE"`
+
+	TinyBlob   []byte `xorm:"TINYBLOB"`
+	Blob       []byte `xorm:"BLOB"`
+	MediumBlob []byte `xorm:"MEDIUMBLOB"`
+	LongBlob   []byte `xorm:"LONGBLOB"`
+	Bytea      []byte `xorm:"BYTEA"`
+
+	Bool bool `xorm:"BOOL"`
+
+	Serial int `xorm:"SERIAL"`
+	//BigSerial int64 `xorm:"BIGSERIAL"`
+}
+
+func testColTypes(engine *Engine, t *testing.T) {
+	err := engine.DropTables(&allCols{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(&allCols{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+}
+
 func testTrans(engine *Engine, t *testing.T) {
 }
 
@@ -571,4 +667,6 @@ func testAll(engine *Engine, t *testing.T) {
 	testCols(engine, t)
 	testCharst(engine, t)
 	testStoreEngine(engine, t)
+	testExtends(engine, t)
+	testColTypes(engine, t)
 }

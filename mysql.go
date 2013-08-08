@@ -7,26 +7,34 @@
 
 package xorm
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+)
 
 type mysql struct {
 }
 
 func (db *mysql) SqlType(c *Column) string {
 	var res string
-	switch t := c.SQLType; t {
+	fmt.Println("-----", c.Name, c.SQLType.Name, "-----")
+	switch t := c.SQLType.Name; t {
 	case Bool:
-		res = TinyInt.Name
+		res = TinyInt
 	case Serial:
 		c.IsAutoIncrement = true
-		res = Int.Name
+		c.IsPrimaryKey = true
+		c.Nullable = false
+		res = Int
 	case BigSerial:
 		c.IsAutoIncrement = true
-		res = Integer.Name
+		c.IsPrimaryKey = true
+		c.Nullable = false
+		res = BigInt
 	case Bytea:
-		res = Blob.Name
+		res = Blob
 	default:
-		res = t.Name
+		res = t
 	}
 
 	var hasLen1 bool = (c.Length > 0)

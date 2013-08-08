@@ -212,110 +212,91 @@ func (engine *Engine) AutoMap(bean interface{}) *Table {
 func (engine *Engine) MapType(t reflect.Type) *Table {
 	table := &Table{Name: engine.Mapper.Obj2Table(t.Name()), Type: t,
 		Indexes: map[string][]string{}, Uniques: map[string][]string{}}
-	table.Columns = make(map[string]Column)
+	table.Columns = make(map[string]*Column)
+	var idFieldColName string
 
 	for i := 0; i < t.NumField(); i++ {
 		tag := t.Field(i).Tag
 		ormTagStr := tag.Get(engine.TagIdentifier)
-		var col Column
+		var col *Column
 		fieldType := t.Field(i).Type
 
 		if ormTagStr != "" {
-			col = Column{FieldName: t.Field(i).Name, Nullable: true, IsPrimaryKey: false,
+			col = &Column{FieldName: t.Field(i).Name, Nullable: true, IsPrimaryKey: false,
 				IsAutoIncrement: false, MapType: TWOSIDES}
-			ormTagStr = strings.ToLower(ormTagStr)
 			tags := strings.Split(ormTagStr, " ")
-			// TODO:
+
 			if len(tags) > 0 {
 				if tags[0] == "-" {
 					continue
 				}
-				if (tags[0] == "extends") &&
-					(fieldType.Kind() == reflect.Struct) &&
-					t.Field(i).Anonymous {
+				if (strings.ToUpper(tags[0]) == "EXTENDS") &&
+					(fieldType.Kind() == reflect.Struct) {
 					parentTable := engine.MapType(fieldType)
 					for name, col := range parentTable.Columns {
 						col.FieldName = fmt.Sprintf("%v.%v", fieldType.Name(), col.FieldName)
 						table.Columns[name] = col
 					}
+
+					table.PrimaryKey = parentTable.PrimaryKey
+					continue
 				}
 				for j, key := range tags {
-					k := strings.ToLower(key)
+					k := strings.ToUpper(key)
 					switch {
 					case k == "<-":
 						col.MapType = ONLYFROMDB
 					case k == "->":
 						col.MapType = ONLYTODB
-					case k == "pk":
+					case k == "PK":
 						col.IsPrimaryKey = true
 						col.Nullable = false
-					case k == "null":
-						col.Nullable = (tags[j-1] != "not")
-					case k == "autoincr":
+						table.PrimaryKey = col.Name
+					case k == "NULL":
+						col.Nullable = (strings.ToUpper(tags[j-1]) != "NOT")
+					case k == "AUTOINCR":
 						col.IsAutoIncrement = true
-					case k == "default":
+					case k == "DEFAULT":
 						col.Default = tags[j+1]
-					case k == "text":
-						col.SQLType = Text
-					case k == "blob":
-						col.SQLType = Blob
-					case strings.HasPrefix(k, "int"):
-						if k == "int" {
-							col.SQLType = Int
-							col.Length = Int.DefaultLength
-							col.Length2 = Int.DefaultLength2
-						} else {
-							col.SQLType = Int
-							lens := k[len("int")+1 : len(k)-1]
-							col.Length, _ = strconv.Atoi(lens)
-						}
-					case strings.HasPrefix(k, "varchar"):
-						if k == "varchar" {
-							col.SQLType = Varchar
-							col.Length = Varchar.DefaultLength
-							col.Length2 = Varchar.DefaultLength2
-						} else {
-							col.SQLType = Varchar
-							lens := k[len("varchar")+1 : len(k)-1]
-							col.Length, _ = strconv.Atoi(lens)
-						}
-					case strings.HasPrefix(k, "decimal"):
-						col.SQLType = Decimal
-						lens := k[len("decimal")+1 : len(k)-1]
-						twolen := strings.Split(lens, ",")
-						col.Length, _ = strconv.Atoi(twolen[0])
-						col.Length2, _ = strconv.Atoi(twolen[1])
-					case strings.HasPrefix(k, "index"):
-						if k == "index" {
+					case strings.HasPrefix(k, "INDEX"):
+						if k == "INDEX" {
 							col.IndexName = ""
 							col.IndexType = SINGLEINDEX
 						} else {
-							col.IndexName = k[len("index")+1 : len(k)-1]
+							col.IndexName = k[len("INDEX")+1 : len(k)-1]
 							col.IndexType = UNIONINDEX
 						}
-					case strings.HasPrefix(k, "unique"):
-						if k == "unique" {
+					case strings.HasPrefix(k, "UNIQUE"):
+						if k == "UNIQUE" {
 							col.UniqueName = ""
 							col.UniqueType = SINGLEUNIQUE
 						} else {
-							col.UniqueName = k[len("unique")+1 : len(k)-1]
+							col.UniqueName = k[len("UNIQUE")+1 : len(k)-1]
 							col.UniqueType = UNIONUNIQUE
 						}
-					case k == "date":
-						col.SQLType = Date
-					case k == "float":
-						col.SQLType = Float
-					case k == "double":
-						col.SQLType = Double
-					case k == "datetime":
-						col.SQLType = DateTime
-					case k == "timestamp":
-						col.SQLType = TimeStamp
-					case k == "not":
+					case k == "NOT":
 					default:
-						if k != col.Default {
-							col.Name = k
+						if strings.Contains(k, "(") && strings.HasSuffix(k, ")") {
+							fs := strings.Split(k, "(")
+							if _, ok := sqlTypes[fs[0]]; !ok {
+								continue
+							}
+							col.SQLType = SQLType{fs[0], 0, 0}
+							fs2 := strings.Split(fs[1][0:len(fs[1])-1], ",")
+							if len(fs2) == 2 {
+								col.Length, _ = strconv.Atoi(fs2[0])
+								col.Length2, _ = strconv.Atoi(fs2[1])
+							} else if len(fs2) == 1 {
+								col.Length, _ = strconv.Atoi(fs2[0])
+							}
+						} else {
+							if _, ok := sqlTypes[k]; ok {
+								col.SQLType = SQLType{k, 0, 0}
+							} else if k != col.Default {
+								col.Name = key
+							}
 						}
+						engine.SqlType(col)
 					}
 				}
 				if col.SQLType.Name == "" {
@@ -353,24 +334,31 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 						table.Uniques[col.UniqueName] = []string{col.Name}
 					}
 				}
-
-				if col.IsPrimaryKey {
-					table.PrimaryKey = col.Name
-				}
 			}
 		} else {
 			sqlType := Type2SQLType(fieldType)
-			col = Column{engine.Mapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
+			col = &Column{engine.Mapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
 				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", NONEUNIQUE, "", NONEINDEX, "", false, false, TWOSIDES}
 
-			if col.Name == "id" {
-				col.IsPrimaryKey = true
-				col.IsAutoIncrement = true
-				col.Nullable = false
-				table.PrimaryKey = col.Name
-			}
+		}
+		if col.IsAutoIncrement {
+			col.Nullable = false
+		}
+		if col.IsPrimaryKey {
+			table.PrimaryKey = col.Name
 		}
 		table.Columns[col.Name] = col
+		if col.FieldName == "Id" || strings.HasSuffix(col.FieldName, ".Id") {
+			idFieldColName = col.Name
+		}
+	}
+
+	if idFieldColName != "" && table.PrimaryKey == "" {
+		col := table.Columns[idFieldColName]
+		col.IsPrimaryKey = true
+		col.IsAutoIncrement = true
+		col.Nullable = false
+		table.PrimaryKey = col.Name
 	}
 
 	return table

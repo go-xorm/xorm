@@ -85,7 +85,7 @@ func BuildConditions(engine *Engine, table *Table, bean interface{}) ([]string, 
 	colNames := make([]string, 0)
 	var args = make([]interface{}, 0)
 	for _, col := range table.Columns {
-		fieldValue := reflect.Indirect(reflect.ValueOf(bean)).FieldByName(col.FieldName)
+		fieldValue := col.ValueOf(bean)
 		fieldType := reflect.TypeOf(fieldValue.Interface())
 		val := fieldValue.Interface()
 		switch fieldType.Kind() {

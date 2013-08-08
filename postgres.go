@@ -14,31 +14,32 @@ type postgres struct {
 
 func (db *postgres) SqlType(c *Column) string {
 	var res string
-	switch t := c.SQLType; t {
+	switch t := c.SQLType.Name; t {
 	case TinyInt:
-		res = SmallInt.Name
+		res = SmallInt
 	case MediumInt, Int, Integer:
-		return Integer.Name
+		return Integer
 	case Serial, BigSerial:
 		c.IsAutoIncrement = true
-		res = t.Name
+		c.Nullable = false
+		res = t
 	case Binary, VarBinary:
-		res = Bytea.Name
+		return Bytea
 	case DateTime:
-		res = TimeStamp.Name
+		res = TimeStamp
 	case Float:
-		res = Real.Name
+		res = Real
 	case TinyText, MediumText, LongText:
-		res = Text.Name
+		res = Text
 	case Blob, TinyBlob, MediumBlob, LongBlob:
-		res = Bytea.Name
+		return Bytea
 	case Double:
 		return "DOUBLE PRECISION"
 	default:
 		if c.IsAutoIncrement {
-			return Serial.Name
+			return Serial
 		}
-		res = t.Name
+		res = t
 	}
 
 	var hasLen1 bool = (c.Length > 0)

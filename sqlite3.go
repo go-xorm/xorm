@@ -11,24 +11,26 @@ type sqlite3 struct {
 }
 
 func (db *sqlite3) SqlType(c *Column) string {
-	switch t := c.SQLType; t {
+	switch t := c.SQLType.Name; t {
 	case Date, DateTime, TimeStamp, Time:
-		return Numeric.Name
+		return Numeric
 	case Char, Varchar, TinyText, Text, MediumText, LongText:
-		return Text.Name
+		return Text
 	case Bit, TinyInt, SmallInt, MediumInt, Int, Integer, BigInt, Bool:
-		return Integer.Name
+		return Integer
 	case Float, Double, Real:
-		return Real.Name
+		return Real
 	case Decimal, Numeric:
-		return Numeric.Name
+		return Numeric
 	case TinyBlob, Blob, MediumBlob, LongBlob, Bytea, Binary, VarBinary:
-		return Blob.Name
+		return Blob
 	case Serial, BigSerial:
+		c.IsPrimaryKey = true
 		c.IsAutoIncrement = true
-		return Integer.Name
+		c.Nullable = false
+		return Integer
 	default:
-		return t.Name
+		return t
 	}
 }
 

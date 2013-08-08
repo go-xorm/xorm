@@ -733,7 +733,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 	colNames := make([]string, 0)
 	colMultiPlaces := make([]string, 0)
 	var args = make([]interface{}, 0)
-	cols := make([]Column, 0)
+	cols := make([]*Column, 0)
 
 	for i := 0; i < size; i++ {
 		elemValue := sliceValue.Index(i).Interface()
@@ -864,13 +864,15 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	var args = make([]interface{}, 0)
 
 	for _, col := range table.Columns {
-		fieldValue := reflect.Indirect(reflect.ValueOf(bean)).FieldByName(col.FieldName)
-		if col.IsAutoIncrement && fieldValue.Int() == 0 {
-			continue
-		}
 		if col.MapType == ONLYFROMDB {
 			continue
 		}
+
+		fieldValue := col.ValueOf(bean)
+		if col.IsAutoIncrement && fieldValue.Int() == 0 {
+			continue
+		}
+
 		if session.Statement.ColumnStr != "" {
 			if _, ok := session.Statement.columnMap[col.Name]; !ok {
 				continue
@@ -906,8 +908,8 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	}
 
 	var id int64 = 0
-	pkValue := reflect.Indirect(reflect.ValueOf(bean)).FieldByName(table.PKColumn().FieldName)
-	if pkValue.Int() != 0 || !pkValue.CanSet() {
+	pkValue := table.PKColumn().ValueOf(bean)
+	if !pkValue.IsValid() || pkValue.Int() != 0 || !pkValue.CanSet() {
 		return 0, nil
 	}
 
