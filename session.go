@@ -206,38 +206,42 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 		switch structField.Type().Kind() {
 		case reflect.Slice:
 			v = data
+			structField.Set(reflect.ValueOf(v))
 		case reflect.Array:
 			if structField.Type().Elem() == reflect.TypeOf(b) {
 				v = data
+				structField.Set(reflect.ValueOf(v))
 			}
 		case reflect.String:
-			v = string(data)
+			x := string(data)
+			structField.SetString(x)
 		case reflect.Bool:
 			v = (string(data) == "1")
+			structField.Set(reflect.ValueOf(v))
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
 			x, err := strconv.Atoi(string(data))
 			if err != nil {
 				return errors.New("arg " + key + " as int: " + err.Error())
 			}
-			v = x
+			structField.SetInt(int64(x))
 		case reflect.Int64:
 			x, err := strconv.ParseInt(string(data), 10, 64)
 			if err != nil {
 				return errors.New("arg " + key + " as int: " + err.Error())
 			}
-			v = x
+			structField.SetInt(x)
 		case reflect.Float32, reflect.Float64:
 			x, err := strconv.ParseFloat(string(data), 64)
 			if err != nil {
 				return errors.New("arg " + key + " as float64: " + err.Error())
 			}
-			v = x
-		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			structField.SetFloat(x)
+		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 			x, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
 				return errors.New("arg " + key + " as int: " + err.Error())
 			}
-			v = x
+			structField.SetUint(x)
 		//Now only support Time type
 		case reflect.Struct:
 			if structField.Type().String() == "time.Time" {
@@ -251,6 +255,7 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 				}
 
 				v = x
+				structField.Set(reflect.ValueOf(v))
 			} else if structConvert, ok := structField.Addr().Interface().(Conversion); ok {
 				err := structConvert.FromDB(data)
 				if err != nil {
@@ -274,6 +279,7 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 						}
 						if has {
 							v = structInter.Elem().Interface()
+							structField.Set(reflect.ValueOf(v))
 						} else {
 							session.Engine.LogError("cascade obj is not exist!")
 							continue
@@ -292,7 +298,6 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 			return errors.New("unsupported type in Scan: " + reflect.TypeOf(v).String())
 		}
 
-		structField.Set(reflect.ValueOf(v))
 	}
 
 	return nil

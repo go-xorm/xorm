@@ -1,6 +1,7 @@
 package xorm
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -634,6 +635,40 @@ func testColTypes(engine *Engine, t *testing.T) {
 	}
 }
 
+type MyInt int
+type MyUInt uint
+type MyFloat float64
+type MyString string
+
+type MyStruct struct {
+	Type MyInt
+	U    MyUInt
+	F    MyFloat
+	//S    MyString
+	Name string
+	UI   uint
+}
+
+func testCustomType(engine *Engine, t *testing.T) {
+	err := engine.CreateTables(&MyStruct{})
+	i := MyStruct{Name: "Test", Type: MyInt(1)}
+	_, err = engine.Insert(&i)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+		return
+	}
+
+	has, err := engine.Get(&i)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	} else if !has {
+		t.Error(errors.New("should get one record"))
+		panic(err)
+	}
+}
+
 func testTrans(engine *Engine, t *testing.T) {
 }
 
@@ -669,4 +704,5 @@ func testAll(engine *Engine, t *testing.T) {
 	testStoreEngine(engine, t)
 	testExtends(engine, t)
 	testColTypes(engine, t)
+	testCustomType(engine, t)
 }

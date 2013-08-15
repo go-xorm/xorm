@@ -8,7 +8,6 @@
 package xorm
 
 import (
-	"fmt"
 	"strconv"
 )
 
@@ -17,7 +16,6 @@ type mysql struct {
 
 func (db *mysql) SqlType(c *Column) string {
 	var res string
-	fmt.Println("-----", c.Name, c.SQLType.Name, "-----")
 	switch t := c.SQLType.Name; t {
 	case Bool:
 		res = TinyInt
