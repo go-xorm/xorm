@@ -150,10 +150,19 @@ func insertTwoTable(engine *Engine, t *testing.T) {
 	}
 }
 
+type Condi map[string]interface{}
+
 func update(engine *Engine, t *testing.T) {
 	// update by id
 	user := Userinfo{Username: "xxx", Height: 1.2}
 	_, err := engine.Id(1).Update(&user)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	condi := Condi{"username": "zzz", "height": 0.0, "departname": ""}
+	_, err = engine.Table(&user).Id(1).Update(condi)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -431,7 +440,7 @@ func createMultiTables(engine *Engine, t *testing.T) {
 	for i := 0; i < 10; i++ {
 		tableName := fmt.Sprintf("user_%v", i)
 
-		err = engine.DropTables(tableName)
+		err = session.DropTable(tableName)
 		if err != nil {
 			session.Rollback()
 			t.Error(err)

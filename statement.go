@@ -77,8 +77,13 @@ func (statement *Statement) Where(querystring string, args ...interface{}) {
 	statement.Params = args
 }
 
-func (statement *Statement) Table(tableName string) {
-	statement.AltTableName = tableName
+func (statement *Statement) Table(tableNameOrBean interface{}) {
+	t := Type(tableNameOrBean)
+	if t.Kind() == reflect.String {
+		statement.AltTableName = tableNameOrBean.(string)
+	} else if t.Kind() == reflect.Struct {
+		statement.RefTable = statement.Engine.AutoMapType(t)
+	}
 }
 
 func BuildConditions(engine *Engine, table *Table, bean interface{}) ([]string, []interface{}) {

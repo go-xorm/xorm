@@ -60,8 +60,8 @@ func (session *Session) Id(id int64) *Session {
 	return session
 }
 
-func (session *Session) Table(tableName string) *Session {
-	session.Statement.Table(tableName)
+func (session *Session) Table(tableNameOrBean interface{}) *Session {
+	session.Statement.Table(tableNameOrBean)
 	return session
 }
 
@@ -870,7 +870,7 @@ func (session *Session) value2Interface(fieldValue reflect.Value) (interface{}, 
 	} else if fieldValue.Type().Kind() == reflect.Array ||
 		fieldValue.Type().Kind() == reflect.Slice {
 		data := fmt.Sprintf("%v", fieldValue.Interface())
-		fmt.Println(data, "--------")
+		//fmt.Println(data, "--------")
 		return data, nil
 	} else {
 		return fieldValue.Interface(), nil
@@ -974,14 +974,37 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		return 0, err
 	}
 
-	table := session.Engine.AutoMap(bean)
-	session.Statement.RefTable = table
-	colNames, args := BuildConditions(session.Engine, table, bean)
+	t := Type(bean)
+
+	var colNames []string
+	var args []interface{}
+
+	if t.Kind() == reflect.Struct {
+		table := session.Engine.AutoMap(bean)
+		session.Statement.RefTable = table
+		colNames, args = BuildConditions(session.Engine, table, bean)
+	} else if t.Kind() == reflect.Map {
+		if session.Statement.RefTable == nil {
+			return -1, TableNotFoundError
+		}
+		colNames = make([]string, 0)
+		args = make([]interface{}, 0)
+		bValue := reflect.ValueOf(bean)
+
+		for _, v := range bValue.MapKeys() {
+			colNames = append(colNames, session.Engine.Quote(v.String())+" = ?")
+			args = append(args, bValue.MapIndex(v).Interface())
+		}
+
+	} else {
+		return -1, ParamsTypeError
+	}
+
 	var condiColNames []string
 	var condiArgs []interface{}
 
 	if len(condiBean) > 0 {
-		condiColNames, condiArgs = BuildConditions(session.Engine, table, condiBean[0])
+		condiColNames, condiArgs = BuildConditions(session.Engine, session.Statement.RefTable, condiBean[0])
 	}
 
 	var condition = ""

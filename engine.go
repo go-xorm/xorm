@@ -161,9 +161,9 @@ func (engine *Engine) In(column string, args ...interface{}) *Session {
 	return session.In(column, args...)
 }
 
-func (engine *Engine) Table(tableName string) *Session {
+func (engine *Engine) Table(tableNameOrBean interface{}) *Session {
 	session := engine.NewSession()
-	return session.Table(tableName)
+	return session.Table(tableNameOrBean)
 }
 
 func (engine *Engine) Limit(limit int, start ...int) *Session {
