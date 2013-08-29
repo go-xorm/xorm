@@ -47,8 +47,7 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 
 	//engine.Pool = NewSimpleConnectPool()
 	//engine.Pool = NewNoneConnectPool()
-	engine.pool = NewSysConnectPool()
-	err := engine.pool.Init(engine)
+	err := engine.SetPool(NewSysConnectPool())
 
 	return engine, err
 }

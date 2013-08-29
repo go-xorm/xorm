@@ -37,7 +37,7 @@ func (session *Session) Init() {
 func (session *Session) Close() {
 	defer func() {
 		if session.Db != nil {
-			session.Engine.pool.ReleaseDB(session.Engine, session.Db)
+			session.Engine.Pool.ReleaseDB(session.Engine, session.Db)
 			session.Db = nil
 			session.Tx = nil
 			session.Init()
@@ -125,7 +125,7 @@ func (session *Session) Having(conditions string) *Session {
 
 func (session *Session) newDb() error {
 	if session.Db == nil {
-		db, err := session.Engine.pool.RetrieveDB(session.Engine)
+		db, err := session.Engine.Pool.RetrieveDB(session.Engine)
 		if err != nil {
 			return err
 		}

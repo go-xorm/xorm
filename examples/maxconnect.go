@@ -34,7 +34,8 @@ func test(engine *xorm.Engine) {
 		return
 	}
 
-	size := 500
+	engine.Pool.SetMaxConns(5)
+	size := 10
 	queue := make(chan int, size)
 
 	for i := 0; i < size; i++ {
@@ -84,7 +85,7 @@ func test(engine *xorm.Engine) {
 }
 
 func main() {
-	fmt.Println("-----start sqlite go routines-----")
+	fmt.Println("create engine")
 	engine, err := sqliteEngine()
 	if err != nil {
 		fmt.Println(err)
@@ -96,7 +97,6 @@ func main() {
 	fmt.Println("test end")
 	engine.Close()
 
-	fmt.Println("-----start mysql go routines-----")
 	engine, err = mysqlEngine()
 	if err != nil {
 		fmt.Println(err)

@@ -42,7 +42,7 @@ type Engine struct {
 	Tables         map[reflect.Type]*Table
 	mutex          *sync.Mutex
 	ShowSQL        bool
-	pool           IConnectPool
+	Pool           IConnectPool
 	CacheMapping   bool
 	Filters        []Filter
 	Logger         io.Writer
@@ -69,8 +69,8 @@ func (engine *Engine) AutoIncrStr() string {
 }
 
 func (engine *Engine) SetPool(pool IConnectPool) error {
-	engine.pool = pool
-	return engine.pool.Init(engine)
+	engine.Pool = pool
+	return engine.Pool.Init(engine)
 }
 
 func Type(bean interface{}) reflect.Type {
@@ -96,7 +96,7 @@ func (engine *Engine) NewSession() *Session {
 }
 
 func (engine *Engine) Close() error {
-	return engine.pool.Close(engine)
+	return engine.Pool.Close(engine)
 }
 
 func (engine *Engine) Test() error {

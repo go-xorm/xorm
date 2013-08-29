@@ -32,6 +32,8 @@ type IConnectPool interface {
 	Close(engine *Engine) error
 	SetMaxIdleConns(conns int)
 	MaxIdleConns() int
+	SetMaxConns(conns int)
+	MaxConns() int
 }
 
 // Struct NoneConnectPool is a implement for IConnectPool. It provides directly invoke driver's
@@ -72,12 +74,25 @@ func (p *NoneConnectPool) MaxIdleConns() int {
 	return 0
 }
 
+// not implemented
+func (p *NoneConnectPool) SetMaxConns(conns int) {
+}
+
+// not implemented
+func (p *NoneConnectPool) MaxConns() int {
+	return -1
+}
+
 // Struct SysConnectPool is a simple wrapper for using system default connection pool.
 // About the system connection pool, you can review the code database/sql/sql.go
 // It's currently default Pool implments.
 type SysConnectPool struct {
 	db           *sql.DB
 	maxIdleConns int
+	maxConns     int
+	curConns     int
+	mutex        *sync.Mutex
+	cond         *sync.Cond
 }
 
 // NewSysConnectPool new a SysConnectPool.
@@ -93,16 +108,40 @@ func (s *SysConnectPool) Init(engine *Engine) error {
 	}
 	s.db = db
 	s.maxIdleConns = 2
+	s.maxConns = -1
+	s.curConns = 0
+	s.mutex = &sync.Mutex{}
+	s.cond = sync.NewCond(s.mutex)
 	return nil
 }
 
 // RetrieveDB just return the only db
 func (p *SysConnectPool) RetrieveDB(engine *Engine) (db *sql.DB, err error) {
+	if p.maxConns != -1 {
+		p.cond.L.Lock()
+		defer p.cond.L.Unlock()
+		//fmt.Println("before retrieve - current connections:", p.curConns, p.maxConns)
+		for p.curConns >= p.maxConns-1 {
+			//fmt.Println("waiting...")
+			p.cond.Wait()
+		}
+		p.curConns += 1
+	}
 	return p.db, nil
 }
 
 // ReleaseDB do nothing
 func (p *SysConnectPool) ReleaseDB(engine *Engine, db *sql.DB) {
+	if p.maxConns != -1 {
+		p.cond.L.Lock()
+		defer p.cond.L.Unlock()
+		//fmt.Println("before release - current connections:", p.curConns, p.maxConns)
+		if p.curConns >= p.maxConns-1 {
+			//fmt.Println("signaling...")
+			p.cond.Signal()
+		}
+		p.curConns -= 1
+	}
 }
 
 // Close closed the only db
@@ -117,6 +156,16 @@ func (p *SysConnectPool) SetMaxIdleConns(conns int) {
 
 func (p *SysConnectPool) MaxIdleConns() int {
 	return p.maxIdleConns
+}
+
+// not implemented
+func (p *SysConnectPool) SetMaxConns(conns int) {
+	p.maxConns = conns
+}
+
+// not implemented
+func (p *SysConnectPool) MaxConns() int {
+	return p.maxConns
 }
 
 // NewSimpleConnectPool new a SimpleConnectPool
@@ -204,4 +253,13 @@ func (p *SimpleConnectPool) SetMaxIdleConns(conns int) {
 
 func (p *SimpleConnectPool) MaxIdleConns() int {
 	return p.maxIdleConns
+}
+
+// not implemented
+func (p *SimpleConnectPool) SetMaxConns(conns int) {
+}
+
+// not implemented
+func (p *SimpleConnectPool) MaxConns() int {
+	return -1
 }
