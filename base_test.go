@@ -152,7 +152,7 @@ func insertTwoTable(engine *Engine, t *testing.T) {
 
 func update(engine *Engine, t *testing.T) {
 	// update by id
-	user := Userinfo{Username: "xxx"}
+	user := Userinfo{Username: "xxx", Height: 1.2}
 	_, err := engine.Id(1).Update(&user)
 	if err != nil {
 		t.Error(err)
@@ -640,13 +640,28 @@ type MyUInt uint
 type MyFloat float64
 type MyString string
 
+func (s MyString) FromDB(data []byte) error {
+	s = MyString(string(data))
+	return nil
+}
+
+func (s MyString) ToDB() ([]byte, error) {
+	return []byte(string(s)), nil
+}
+
 type MyStruct struct {
 	Type MyInt
 	U    MyUInt
 	F    MyFloat
 	//S    MyString
+	//IA []MyInt
+	//UA        []MyUInt
+	//FA        []MyFloat
+	//SA        []MyString
+	//NameArray []string
 	Name string
-	UI   uint
+	//UIA       []uint
+	UI uint
 }
 
 func testCustomType(engine *Engine, t *testing.T) {

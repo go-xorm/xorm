@@ -93,8 +93,16 @@ func BuildConditions(engine *Engine, table *Table, bean interface{}) ([]string, 
 			if fieldValue.String() == "" {
 				continue
 			}
-		case reflect.Int, reflect.Int32, reflect.Int64:
+		case reflect.Int8, reflect.Int16, reflect.Int, reflect.Int32, reflect.Int64:
 			if fieldValue.Int() == 0 {
+				continue
+			}
+		case reflect.Float32, reflect.Float64:
+			if fieldValue.Float() == 0.0 {
+				continue
+			}
+		case reflect.Uint8, reflect.Uint16, reflect.Uint, reflect.Uint32, reflect.Uint64:
+			if fieldValue.Uint() == 0 {
 				continue
 			}
 		case reflect.Struct:

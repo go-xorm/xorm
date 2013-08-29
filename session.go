@@ -206,7 +206,19 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 		switch structField.Type().Kind() {
 		case reflect.Slice:
 			v = data
-			structField.Set(reflect.ValueOf(v))
+			vv := reflect.ValueOf(v)
+			if structField.Type().String() == "[]byte" {
+				fmt.Println("...[]byte...")
+			}
+			if vv.Type().Kind() == reflect.Slice {
+				for i := 0; i < vv.Len(); i++ {
+					//vv.Index(i)
+					structField = reflect.AppendSlice(structField, vv)
+					//reflect.Append(structField, vv.Index(i))
+				}
+			} else {
+				return errors.New(fmt.Sprintf("unsupported from other %v to %v", vv.Type().Kind(), structField.Type().Kind()))
+			}
 		case reflect.Array:
 			if structField.Type().Elem() == reflect.TypeOf(b) {
 				v = data
@@ -825,6 +837,17 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 }
 
 func (session *Session) value2Interface(fieldValue reflect.Value) (interface{}, error) {
+	if fieldValue.CanAddr() {
+		if fieldConvert, ok := fieldValue.Addr().Interface().(Conversion); ok {
+			data, err := fieldConvert.ToDB()
+			if err != nil {
+				return 0, err
+			} else {
+				return string(data), nil
+			}
+		}
+	}
+
 	if fieldValue.Type().Kind() == reflect.Bool {
 		if fieldValue.Bool() {
 			return 1, nil
@@ -834,17 +857,6 @@ func (session *Session) value2Interface(fieldValue reflect.Value) (interface{}, 
 	} else if fieldValue.Type().String() == "time.Time" {
 		return fieldValue.Interface(), nil
 	} else if fieldValue.Type().Kind() == reflect.Struct {
-		if fieldValue.CanAddr() {
-			if fieldConvert, ok := fieldValue.Addr().Interface().(Conversion); ok {
-				data, err := fieldConvert.ToDB()
-				if err != nil {
-					return 0, err
-				} else {
-					return string(data), nil
-				}
-			}
-		}
-
 		if fieldTable, ok := session.Engine.Tables[fieldValue.Type()]; ok {
 			if fieldTable.PrimaryKey != "" {
 				pkField := reflect.Indirect(fieldValue).FieldByName(fieldTable.PKColumn().FieldName)
@@ -855,6 +867,11 @@ func (session *Session) value2Interface(fieldValue reflect.Value) (interface{}, 
 		} else {
 			return 0, errors.New(fmt.Sprintf("Unsupported type %v", fieldValue.Type()))
 		}
+	} else if fieldValue.Type().Kind() == reflect.Array ||
+		fieldValue.Type().Kind() == reflect.Slice {
+		data := fmt.Sprintf("%v", fieldValue.Interface())
+		fmt.Println(data, "--------")
+		return data, nil
 	} else {
 		return fieldValue.Interface(), nil
 	}
