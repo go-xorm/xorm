@@ -1,10 +1,3 @@
-// Copyright 2013 The XORM Authors. All rights reserved.
-// Use of this source code is governed by a BSD
-// license that can be found in the LICENSE file.
-
-// Package xorm provides is a simple and powerful ORM for Go. It makes your
-// database operation simple.
-
 package xorm
 
 import (
@@ -121,17 +114,19 @@ func Type2SQLType(t reflect.Type) (st SQLType) {
 	case reflect.Array, reflect.Slice:
 		if t.Elem() == reflect.TypeOf(b) {
 			st = SQLType{Blob, 0, 0}
+		} else {
+			st = SQLType{Text, 0, 0}
 		}
 	case reflect.Bool:
 		st = SQLType{Bool, 0, 0}
 	case reflect.String:
-		st = SQLType{Varchar, 64, 0}
+		st = SQLType{Varchar, 255, 0}
 	case reflect.Struct:
 		if t == reflect.TypeOf(tm) {
 			st = SQLType{DateTime, 0, 0}
 		}
 	default:
-		st = SQLType{Varchar, 64, 0}
+		st = SQLType{Varchar, 255, 0}
 	}
 	return
 }

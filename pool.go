@@ -1,14 +1,3 @@
-// Copyright 2013 The XORM Authors. All rights reserved.
-// Use of this source code is governed by a BSD
-// license that can be found in the LICENSE file.
-
-// Package xorm provides is a simple and powerful ORM for Go. It makes your
-// database operation simple.
-
-// This file contains a connection pool interafce and two implements. One is
-// NoneConnectionPool is for direct connecting, another is a simple connection
-// pool by lock. Attention, the driver may has provided connection pool itself.
-// So the default pool is NoneConnectionPool.
 package xorm
 
 import (
@@ -92,6 +81,7 @@ type SysConnectPool struct {
 	maxConns     int
 	curConns     int
 	mutex        *sync.Mutex
+	condMutex    *sync.Mutex
 	cond         *sync.Cond
 }
 
@@ -111,7 +101,8 @@ func (s *SysConnectPool) Init(engine *Engine) error {
 	s.maxConns = -1
 	s.curConns = 0
 	s.mutex = &sync.Mutex{}
-	s.cond = sync.NewCond(s.mutex)
+	s.condMutex = &sync.Mutex{}
+	s.cond = sync.NewCond(s.condMutex)
 	return nil
 }
 
@@ -119,13 +110,13 @@ func (s *SysConnectPool) Init(engine *Engine) error {
 func (p *SysConnectPool) RetrieveDB(engine *Engine) (db *sql.DB, err error) {
 	if p.maxConns != -1 {
 		p.cond.L.Lock()
-		defer p.cond.L.Unlock()
 		//fmt.Println("before retrieve - current connections:", p.curConns, p.maxConns)
 		for p.curConns >= p.maxConns-1 {
 			//fmt.Println("waiting...")
 			p.cond.Wait()
 		}
 		p.curConns += 1
+		p.cond.L.Unlock()
 	}
 	return p.db, nil
 }
@@ -134,13 +125,13 @@ func (p *SysConnectPool) RetrieveDB(engine *Engine) (db *sql.DB, err error) {
 func (p *SysConnectPool) ReleaseDB(engine *Engine, db *sql.DB) {
 	if p.maxConns != -1 {
 		p.cond.L.Lock()
-		defer p.cond.L.Unlock()
 		//fmt.Println("before release - current connections:", p.curConns, p.maxConns)
-		if p.curConns >= p.maxConns-1 {
-			//fmt.Println("signaling...")
-			p.cond.Signal()
-		}
+		//if p.curConns >= p.maxConns-2 {
+		//fmt.Println("signaling...")
+		p.cond.Signal()
+		//}
 		p.curConns -= 1
+		p.cond.L.Unlock()
 	}
 }
 
