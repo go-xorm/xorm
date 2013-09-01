@@ -207,9 +207,10 @@ func (engine *Engine) AutoMap(bean interface{}) *Table {
 }
 
 func (engine *Engine) MapType(t reflect.Type) *Table {
-	table := &Table{Name: engine.Mapper.Obj2Table(t.Name()), Type: t,
-		Indexes: map[string][]string{}, Uniques: map[string][]string{}}
-	table.Columns = make(map[string]*Column)
+	table := NewTable()
+	table.Name = engine.Mapper.Obj2Table(t.Name())
+	table.Type = t
+
 	var idFieldColName string
 
 	for i := 0; i < t.NumField(); i++ {
@@ -233,6 +234,7 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 					for name, col := range parentTable.Columns {
 						col.FieldName = fmt.Sprintf("%v.%v", fieldType.Name(), col.FieldName)
 						table.Columns[name] = col
+						table.ColumnsSeq = append(table.ColumnsSeq, name)
 					}
 
 					table.PrimaryKey = parentTable.PrimaryKey
@@ -344,7 +346,8 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 		if col.IsPrimaryKey {
 			table.PrimaryKey = col.Name
 		}
-		table.Columns[col.Name] = col
+		table.AddColumn(col)
+
 		if col.FieldName == "Id" || strings.HasSuffix(col.FieldName, ".Id") {
 			idFieldColName = col.Name
 		}

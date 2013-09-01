@@ -210,6 +210,7 @@ func (col *Column) ValueOf(bean interface{}) reflect.Value {
 type Table struct {
 	Name       string
 	Type       reflect.Type
+	ColumnsSeq []string
 	Columns    map[string]*Column
 	Indexes    map[string][]string
 	Uniques    map[string][]string
@@ -218,6 +219,18 @@ type Table struct {
 
 func (table *Table) PKColumn() *Column {
 	return table.Columns[table.PrimaryKey]
+}
+
+func (table *Table) AddColumn(col *Column) {
+	table.ColumnsSeq = append(table.ColumnsSeq, col.Name)
+	table.Columns[col.Name] = col
+}
+
+func NewTable() *Table {
+	table := &Table{Indexes: map[string][]string{}, Uniques: map[string][]string{}}
+	table.Columns = make(map[string]*Column)
+	table.ColumnsSeq = make([]string, 0)
+	return table
 }
 
 type Conversion interface {

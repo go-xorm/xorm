@@ -34,8 +34,8 @@ func test(engine *xorm.Engine) {
 		return
 	}
 
-	engine.Pool.SetMaxConns(10)
-	size := 100
+	engine.Pool.SetMaxConns(50)
+	size := 1000
 	queue := make(chan int, size)
 
 	for i := 0; i < size; i++ {
