@@ -292,6 +292,14 @@ func order(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 	fmt.Println(users)
+
+	users2 := make([]Userinfo, 0)
+	err = engine.Asc("id", "username").Desc("height").Find(&users2)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println(users2)
 }
 
 func join(engine *Engine, t *testing.T) {
