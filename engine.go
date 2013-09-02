@@ -115,77 +115,104 @@ func (engine *Engine) LogError(contents ...interface{}) {
 
 func (engine *Engine) Sql(querystring string, args ...interface{}) *Session {
 	session := engine.NewSession()
+	session.IsAutoClose = true
 	return session.Sql(querystring, args...)
 }
 
 func (engine *Engine) Cascade(trueOrFalse ...bool) *Session {
 	session := engine.NewSession()
+	session.IsAutoClose = true
 	return session.Cascade(trueOrFalse...)
 }
 
 func (engine *Engine) Where(querystring string, args ...interface{}) *Session {
 	session := engine.NewSession()
+	session.IsAutoClose = true
 	return session.Where(querystring, args...)
 }
 
 func (engine *Engine) Id(id int64) *Session {
 	session := engine.NewSession()
+	session.IsAutoClose = true
 	return session.Id(id)
 }
 
 func (engine *Engine) Charset(charset string) *Session {
 	session := engine.NewSession()
+	session.IsAutoClose = true
 	return session.Charset(charset)
 }
 
 func (engine *Engine) StoreEngine(storeEngine string) *Session {
 	session := engine.NewSession()
+	session.IsAutoClose = true
 	return session.StoreEngine(storeEngine)
 }
 
 func (engine *Engine) Cols(columns ...string) *Session {
 	session := engine.NewSession()
+	session.IsAutoClose = true
 	return session.Cols(columns...)
 }
 
 func (engine *Engine) Trans(t string) *Session {
 	session := engine.NewSession()
+	session.IsAutoClose = true
 	return session.Trans(t)
 }
 
 func (engine *Engine) In(column string, args ...interface{}) *Session {
 	session := engine.NewSession()
+	session.IsAutoClose = true
 	return session.In(column, args...)
 }
 
 func (engine *Engine) Table(tableNameOrBean interface{}) *Session {
 	session := engine.NewSession()
+	session.IsAutoClose = true
 	return session.Table(tableNameOrBean)
 }
 
 func (engine *Engine) Limit(limit int, start ...int) *Session {
 	session := engine.NewSession()
+	session.IsAutoClose = true
 	return session.Limit(limit, start...)
+}
+
+func (engine *Engine) Desc(colName string) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.Desc(colName)
+}
+
+func (engine *Engine) Asc(colName string) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.Asc(colName)
 }
 
 func (engine *Engine) OrderBy(order string) *Session {
 	session := engine.NewSession()
+	session.IsAutoClose = true
 	return session.OrderBy(order)
 }
 
 //The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
 func (engine *Engine) Join(join_operator, tablename, condition string) *Session {
 	session := engine.NewSession()
+	session.IsAutoClose = true
 	return session.Join(join_operator, tablename, condition)
 }
 
 func (engine *Engine) GroupBy(keys string) *Session {
 	session := engine.NewSession()
+	session.IsAutoClose = true
 	return session.GroupBy(keys)
 }
 
 func (engine *Engine) Having(conditions string) *Session {
 	session := engine.NewSession()
+	session.IsAutoClose = true
 	return session.Having(conditions)
 }
 

@@ -2,7 +2,7 @@ package xorm
 
 import (
 	"database/sql"
-	//"fmt"
+	"fmt"
 	"sync"
 	//"sync/atomic"
 	"time"
@@ -108,30 +108,36 @@ func (s *SysConnectPool) Init(engine *Engine) error {
 
 // RetrieveDB just return the only db
 func (p *SysConnectPool) RetrieveDB(engine *Engine) (db *sql.DB, err error) {
-	if p.maxConns != -1 {
-		p.cond.L.Lock()
-		//fmt.Println("before retrieve - current connections:", p.curConns, p.maxConns)
-		for p.curConns >= p.maxConns-1 {
-			//fmt.Println("waiting...")
+	if p.maxConns > 0 {
+		p.condMutex.Lock()
+		fmt.Println("before retrieve - current connections:", p.curConns, p.maxConns)
+		for p.curConns >= p.maxConns {
+			fmt.Println("waiting...", p.curConns)
 			p.cond.Wait()
 		}
+		//p.mutex.Lock()
 		p.curConns += 1
-		p.cond.L.Unlock()
+		p.cond.Signal()
+		//p.mutex.Lock()
+		p.condMutex.Unlock()
 	}
 	return p.db, nil
 }
 
 // ReleaseDB do nothing
 func (p *SysConnectPool) ReleaseDB(engine *Engine, db *sql.DB) {
-	if p.maxConns != -1 {
-		p.cond.L.Lock()
-		//fmt.Println("before release - current connections:", p.curConns, p.maxConns)
+	if p.maxConns > 0 {
+		p.condMutex.Lock()
+		fmt.Println("before release - current connections:", p.curConns, p.maxConns)
 		//if p.curConns >= p.maxConns-2 {
-		//fmt.Println("signaling...")
+		fmt.Println("signaling...")
+		//p.mutex.Lock()
+		p.curConns -= 1
+		//p.mutex.Unlock()
 		p.cond.Signal()
 		//}
-		p.curConns -= 1
-		p.cond.L.Unlock()
+		p.condMutex.Unlock()
+
 	}
 }
 
