@@ -179,16 +179,16 @@ func (engine *Engine) Limit(limit int, start ...int) *Session {
 	return session.Limit(limit, start...)
 }
 
-func (engine *Engine) Desc(colName string) *Session {
+func (engine *Engine) Desc(colNames ...string) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
-	return session.Desc(colName)
+	return session.Desc(colNames...)
 }
 
-func (engine *Engine) Asc(colName string) *Session {
+func (engine *Engine) Asc(colNames ...string) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
-	return session.Asc(colName)
+	return session.Asc(colNames...)
 }
 
 func (engine *Engine) OrderBy(order string) *Session {

@@ -85,19 +85,21 @@ func (session *Session) OrderBy(order string) *Session {
 	return session
 }
 
-func (session *Session) Desc(colName string) *Session {
+func (session *Session) Desc(colNames ...string) *Session {
 	if session.Statement.OrderStr != "" {
 		session.Statement.OrderStr += ", "
 	}
-	session.Statement.OrderStr += colName + " desc"
+	sql := strings.Join(colNames, " desc, ")
+	session.Statement.OrderStr += sql + " desc"
 	return session
 }
 
-func (session *Session) Asc(colName string) *Session {
+func (session *Session) Asc(colNames ...string) *Session {
 	if session.Statement.OrderStr != "" {
 		session.Statement.OrderStr += ", "
 	}
-	session.Statement.OrderStr += colName + " asc"
+	sql := strings.Join(colNames, " asc, ")
+	session.Statement.OrderStr += sql + " asc"
 	return session
 }
 
