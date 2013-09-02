@@ -277,13 +277,16 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 					case k == "PK":
 						col.IsPrimaryKey = true
 						col.Nullable = false
-						table.PrimaryKey = col.Name
 					case k == "NULL":
 						col.Nullable = (strings.ToUpper(tags[j-1]) != "NOT")
 					case k == "AUTOINCR":
 						col.IsAutoIncrement = true
 					case k == "DEFAULT":
 						col.Default = tags[j+1]
+					case k == "CREATED":
+						col.IsCreated = true
+					case k == "UPDATED":
+						col.IsUpdated = true
 					case strings.HasPrefix(k, "INDEX"):
 						if k == "INDEX" {
 							col.IndexName = ""
@@ -302,7 +305,11 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 						}
 					case k == "NOT":
 					default:
-						if strings.Contains(k, "(") && strings.HasSuffix(k, ")") {
+						if strings.HasPrefix(k, "'") && strings.HasSuffix(k, "'") {
+							if key != col.Default {
+								col.Name = key[1 : len(key)-1]
+							}
+						} else if strings.Contains(k, "(") && strings.HasSuffix(k, ")") {
 							fs := strings.Split(k, "(")
 							if _, ok := sqlTypes[fs[0]]; !ok {
 								continue
@@ -318,7 +325,7 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 						} else {
 							if _, ok := sqlTypes[k]; ok {
 								col.SQLType = SQLType{k, 0, 0}
-							} else if k != col.Default {
+							} else if key != col.Default {
 								col.Name = key
 							}
 						}
@@ -338,6 +345,15 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 
 				if col.Name == "" {
 					col.Name = engine.Mapper.Obj2Table(t.Field(i).Name)
+				}
+				if col.IsPrimaryKey {
+					table.PrimaryKey = col.Name
+				}
+				if col.IsCreated {
+					table.Created = col.Name
+				}
+				if col.IsUpdated {
+					table.Updated = col.Name
 				}
 				if col.IndexType == SINGLEINDEX {
 					col.IndexName = col.Name
@@ -364,8 +380,8 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 		} else {
 			sqlType := Type2SQLType(fieldType)
 			col = &Column{engine.Mapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
-				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", NONEUNIQUE, "", NONEINDEX, "", false, false, TWOSIDES}
-
+				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", NONEUNIQUE, "",
+				NONEINDEX, "", false, false, TWOSIDES, false, false}
 		}
 		if col.IsAutoIncrement {
 			col.Nullable = false

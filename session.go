@@ -243,13 +243,7 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 		case reflect.Bool:
 			v = (string(data) == "1")
 			structField.Set(reflect.ValueOf(v))
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
-			x, err := strconv.Atoi(string(data))
-			if err != nil {
-				return errors.New("arg " + key + " as int: " + err.Error())
-			}
-			structField.SetInt(int64(x))
-		case reflect.Int64:
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			x, err := strconv.ParseInt(string(data), 10, 64)
 			if err != nil {
 				return errors.New("arg " + key + " as int: " + err.Error())
@@ -814,12 +808,21 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 				if col.MapType == ONLYFROMDB {
 					continue
 				}
-				arg, err := session.value2Interface(fieldValue)
-				if err != nil {
-					return 0, err
+				if session.Statement.ColumnStr != "" {
+					if _, ok := session.Statement.columnMap[col.Name]; !ok {
+						continue
+					}
+				}
+				if col.IsCreated || col.IsUpdated {
+					args = append(args, time.Now())
+				} else {
+					arg, err := session.value2Interface(fieldValue)
+					if err != nil {
+						return 0, err
+					}
+					args = append(args, arg)
 				}
 
-				args = append(args, arg)
 				colNames = append(colNames, col.Name)
 				cols = append(cols, col)
 				colPlaces = append(colPlaces, "?")
@@ -838,12 +841,16 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 						continue
 					}
 				}
-				arg, err := session.value2Interface(fieldValue)
-				if err != nil {
-					return 0, err
+				if col.IsCreated || col.IsUpdated {
+					args = append(args, time.Now())
+				} else {
+					arg, err := session.value2Interface(fieldValue)
+					if err != nil {
+						return 0, err
+					}
+					args = append(args, arg)
 				}
 
-				args = append(args, arg)
 				colPlaces = append(colPlaces, "?")
 			}
 		}
@@ -951,12 +958,16 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			}
 		}
 
-		arg, err := session.value2Interface(fieldValue)
-		if err != nil {
-			return 0, err
+		if col.IsCreated || col.IsUpdated {
+			args = append(args, time.Now())
+		} else {
+			arg, err := session.value2Interface(fieldValue)
+			if err != nil {
+				return 0, err
+			}
+			args = append(args, arg)
 		}
 
-		args = append(args, arg)
 		colNames = append(colNames, col.Name)
 		colPlaces = append(colPlaces, "?")
 	}
@@ -1033,10 +1044,15 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		table := session.Engine.AutoMap(bean)
 		session.Statement.RefTable = table
 		colNames, args = BuildConditions(session.Engine, table, bean)
+		if table.Updated != "" {
+			colNames = append(colNames, session.Engine.Quote(table.Updated)+" = ?")
+			args = append(args, time.Now())
+		}
 	} else if t.Kind() == reflect.Map {
 		if session.Statement.RefTable == nil {
 			return -1, TableNotFoundError
 		}
+		table := session.Statement.RefTable
 		colNames = make([]string, 0)
 		args = make([]interface{}, 0)
 		bValue := reflect.ValueOf(bean)
@@ -1045,7 +1061,10 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			colNames = append(colNames, session.Engine.Quote(v.String())+" = ?")
 			args = append(args, bValue.MapIndex(v).Interface())
 		}
-
+		if table.Updated != "" {
+			colNames = append(colNames, session.Engine.Quote(table.Updated)+" = ?")
+			args = append(args, time.Now())
+		}
 	} else {
 		return -1, ParamsTypeError
 	}

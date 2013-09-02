@@ -704,6 +704,36 @@ func testCustomType(engine *Engine, t *testing.T) {
 func testTrans(engine *Engine, t *testing.T) {
 }
 
+type UserCU struct {
+	Id      int64
+	Name    string
+	Created time.Time `xorm:"created"`
+	Updated time.Time `xorm:"updated"`
+}
+
+func testCreatedAndUpdated(engine *Engine, t *testing.T) {
+	u := new(UserCU)
+	err := engine.CreateTables(u)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	u.Name = "sss"
+	_, err = engine.Insert(u)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	u.Name = "xxx"
+	_, err = engine.Id(u.Id).Update(u)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+}
+
 func testAll(engine *Engine, t *testing.T) {
 	directCreateTable(engine, t)
 	mapper(engine, t)
@@ -737,4 +767,5 @@ func testAll(engine *Engine, t *testing.T) {
 	testExtends(engine, t)
 	testColTypes(engine, t)
 	testCustomType(engine, t)
+	testCreatedAndUpdated(engine, t)
 }

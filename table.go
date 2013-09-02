@@ -124,9 +124,11 @@ func Type2SQLType(t reflect.Type) (st SQLType) {
 	case reflect.Struct:
 		if t == reflect.TypeOf(tm) {
 			st = SQLType{DateTime, 0, 0}
+		} else {
+			st = SQLType{Text, 0, 0}
 		}
 	default:
-		st = SQLType{Varchar, 255, 0}
+		st = SQLType{Text, 0, 0}
 	}
 	return
 }
@@ -164,6 +166,8 @@ type Column struct {
 	IsPrimaryKey    bool
 	IsAutoIncrement bool
 	MapType         int
+	IsCreated       bool
+	IsUpdated       bool
 }
 
 func (col *Column) String(engine *Engine) string {
@@ -215,6 +219,8 @@ type Table struct {
 	Indexes    map[string][]string
 	Uniques    map[string][]string
 	PrimaryKey string
+	Created    string
+	Updated    string
 }
 
 func (table *Table) PKColumn() *Column {
