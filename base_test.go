@@ -657,33 +657,59 @@ type MyUInt uint
 type MyFloat float64
 type MyString string
 
-func (s MyString) FromDB(data []byte) error {
-	s = MyString(string(data))
+/*func (s *MyString) FromDB(data []byte) error {
+	reflect.
+	s MyString(data)
 	return nil
 }
 
-func (s MyString) ToDB() ([]byte, error) {
-	return []byte(string(s)), nil
-}
+func (s *MyString) ToDB() ([]byte, error) {
+	return []byte(string(*s)), nil
+}*/
 
 type MyStruct struct {
-	Type MyInt
-	U    MyUInt
-	F    MyFloat
-	//S    MyString
-	//IA []MyInt
-	//UA        []MyUInt
-	//FA        []MyFloat
-	//SA        []MyString
-	//NameArray []string
-	Name string
-	//UIA       []uint
-	UI uint
+	Type      MyInt
+	U         MyUInt
+	F         MyFloat
+	S         MyString
+	IA        []MyInt
+	UA        []MyUInt
+	FA        []MyFloat
+	SA        []MyString
+	NameArray []string
+	Name      string
+	UIA       []uint
+	UIA8      []uint8
+	UIA16     []uint16
+	UIA32     []uint32
+	UIA64     []uint64
+	UI        uint
+	//C64       complex64
+	MSS map[string]string
 }
 
 func testCustomType(engine *Engine, t *testing.T) {
-	err := engine.CreateTables(&MyStruct{})
+	err := engine.DropTables(&MyStruct{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+		return
+	}
+
+	err = engine.CreateTables(&MyStruct{})
 	i := MyStruct{Name: "Test", Type: MyInt(1)}
+	i.U = 23
+	i.F = 1.34
+	i.S = "fafdsafdsaf"
+	i.UI = 2
+	i.IA = []MyInt{1, 3, 5}
+	i.UIA = []uint{1, 3}
+	i.UIA16 = []uint16{2}
+	i.UIA32 = []uint32{4, 5}
+	i.UIA64 = []uint64{6, 7, 9}
+	i.UIA8 = []uint8{1, 2, 3, 4}
+	i.NameArray = []string{"ssss fsdf", "lllll, ss"}
+	i.MSS = map[string]string{"s": "sfds,ss  ", "x": "lfjljsl"}
 	_, err = engine.Insert(&i)
 	if err != nil {
 		t.Error(err)
@@ -691,6 +717,7 @@ func testCustomType(engine *Engine, t *testing.T) {
 		return
 	}
 
+	fmt.Println(i)
 	has, err := engine.Get(&i)
 	if err != nil {
 		t.Error(err)
@@ -699,9 +726,22 @@ func testCustomType(engine *Engine, t *testing.T) {
 		t.Error(errors.New("should get one record"))
 		panic(err)
 	}
-}
 
-func testTrans(engine *Engine, t *testing.T) {
+	ss := []MyStruct{}
+	err = engine.Find(&ss)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println(ss)
+
+	sss := MyStruct{}
+	has, err = engine.Get(&sss)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println(sss)
 }
 
 type UserCU struct {
@@ -713,7 +753,13 @@ type UserCU struct {
 
 func testCreatedAndUpdated(engine *Engine, t *testing.T) {
 	u := new(UserCU)
-	err := engine.CreateTables(u)
+	err := engine.DropTables(u)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(u)
 	if err != nil {
 		t.Error(err)
 		panic(err)

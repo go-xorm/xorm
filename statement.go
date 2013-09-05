@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	//"strconv"
+	"encoding/json"
 	"strings"
 	"time"
 )
@@ -87,9 +88,14 @@ func BuildConditions(engine *Engine, table *Table, bean interface{}) ([]string, 
 		fieldType := reflect.TypeOf(fieldValue.Interface())
 		val := fieldValue.Interface()
 		switch fieldType.Kind() {
+		case reflect.Bool:
 		case reflect.String:
 			if fieldValue.String() == "" {
 				continue
+			}
+			// for MyString, should convert to string or panic
+			if fieldType.String() != reflect.String.String() {
+				val = fieldValue.String()
 			}
 		case reflect.Int8, reflect.Int16, reflect.Int, reflect.Int32, reflect.Int64:
 			if fieldValue.Int() == 0 {
@@ -109,23 +115,55 @@ func BuildConditions(engine *Engine, table *Table, bean interface{}) ([]string, 
 				if t.IsZero() {
 					continue
 				}
+				val = t
 			} else {
 				engine.AutoMapType(fieldValue.Type())
+				if table, ok := engine.Tables[fieldValue.Type()]; ok {
+					pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumn().FieldName)
+					if pkField.Int() != 0 {
+						val = pkField.Interface()
+					} else {
+						continue
+					}
+				}
 			}
-		default:
-			continue
-		}
+		case reflect.Array, reflect.Slice, reflect.Map:
+			if fieldValue == reflect.Zero(fieldType) {
+				continue
+			}
+			if fieldValue.IsNil() || !fieldValue.IsValid() {
+				continue
+			}
 
-		if table, ok := engine.Tables[fieldValue.Type()]; ok {
-			pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumn().FieldName)
-			if pkField.Int() != 0 {
-				args = append(args, pkField.Interface())
+			if col.SQLType.IsText() {
+				bytes, err := json.Marshal(fieldValue.Interface())
+				if err != nil {
+					engine.LogSQL(err)
+					continue
+				}
+				val = string(bytes)
+			} else if col.SQLType.IsBlob() {
+				var bytes []byte
+				var err error
+				if (fieldType.Kind() == reflect.Array || fieldType.Kind() == reflect.Slice) &&
+					fieldType.Elem().Kind() == reflect.Uint8 {
+					val = fieldValue.Bytes()
+				} else {
+					bytes, err = json.Marshal(fieldValue.Interface())
+					if err != nil {
+						engine.LogSQL(err)
+						continue
+					}
+					val = bytes
+				}
 			} else {
 				continue
 			}
-		} else {
-			args = append(args, val)
+		default:
+			val = fieldValue.Interface()
 		}
+
+		args = append(args, val)
 		colNames = append(colNames, fmt.Sprintf("%v = ?", engine.Quote(col.Name)))
 	}
 

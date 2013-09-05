@@ -13,6 +13,17 @@ type SQLType struct {
 	DefaultLength2 int
 }
 
+func (s *SQLType) IsText() bool {
+	return s.Name == Char || s.Name == Varchar || s.Name == TinyText ||
+		s.Name == Text || s.Name == MediumText || s.Name == LongText
+}
+
+func (s *SQLType) IsBlob() bool {
+	return (s.Name == TinyBlob) || (s.Name == Blob) ||
+		s.Name == MediumBlob || s.Name == LongBlob ||
+		s.Name == Binary || s.Name == VarBinary || s.Name == Bytea
+}
+
 var (
 	Bit       = "BIT"
 	TinyInt   = "TINYINT"
