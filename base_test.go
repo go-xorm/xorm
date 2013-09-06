@@ -780,6 +780,30 @@ func testCreatedAndUpdated(engine *Engine, t *testing.T) {
 	}
 }
 
+type IndexOrUnique struct {
+	Id        int64
+	Index     int `xorm:"index"`
+	Unique    int `xorm:"unique"`
+	Group1    int `xorm:"index(ttt)"`
+	Group2    int `xorm:"index(ttt)"`
+	UniGroup1 int `xorm:"unique(lll)"`
+	UniGroup2 int `xorm:"unique(lll)"`
+}
+
+func testIndexAndUnique(engine *Engine, t *testing.T) {
+	err := engine.DropTables(&IndexOrUnique{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(&IndexOrUnique{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+}
+
 func testAll(engine *Engine, t *testing.T) {
 	directCreateTable(engine, t)
 	mapper(engine, t)
@@ -814,4 +838,5 @@ func testAll(engine *Engine, t *testing.T) {
 	testColTypes(engine, t)
 	testCustomType(engine, t)
 	testCreatedAndUpdated(engine, t)
+	testIndexAndUnique(engine, t)
 }

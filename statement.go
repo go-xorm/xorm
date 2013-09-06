@@ -271,7 +271,7 @@ func (statement *Statement) genIndexSQL() []string {
 	var sqls []string = make([]string, 0)
 	for indexName, cols := range statement.RefTable.Indexes {
 		sql := fmt.Sprintf("CREATE INDEX IDX_%v_%v ON %v (%v);", statement.TableName(), indexName,
-			statement.TableName(), strings.Join(cols, ","))
+			statement.Engine.Quote(statement.TableName()), statement.Engine.Quote(strings.Join(cols, statement.Engine.Quote(","))))
 		sqls = append(sqls, sql)
 	}
 	return sqls
@@ -281,7 +281,7 @@ func (statement *Statement) genUniqueSQL() []string {
 	var sqls []string = make([]string, 0)
 	for indexName, cols := range statement.RefTable.Uniques {
 		sql := fmt.Sprintf("CREATE UNIQUE INDEX UQE_%v_%v ON %v (%v);", statement.TableName(), indexName,
-			statement.TableName(), strings.Join(cols, ","))
+			statement.Engine.Quote(statement.TableName()), statement.Engine.Quote(strings.Join(cols, statement.Engine.Quote(","))))
 		sqls = append(sqls, sql)
 	}
 	return sqls

@@ -10,6 +10,17 @@ type IMapper interface {
 	Table2Obj(string) string
 }
 
+type SameMapper struct {
+}
+
+func (m SameMapper) Obj2Table(o string) string {
+	return o
+}
+
+func (m SameMapper) Table2Obj(t string) string {
+	return t
+}
+
 type SnakeMapper struct {
 }
 
