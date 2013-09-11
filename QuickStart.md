@@ -149,7 +149,7 @@ type User struct {
         <td>-></td><td>这个Field将只写入到数据库而不从数据库读取</td>
     </tr>
      <tr>
-        <td><-</td><td>这个Field将只从数据库读取，而不写入到数据库</td>
+        <td>&lt;-</td><td>这个Field将只从数据库读取，而不写入到数据库</td>
     </tr>
      <tr>
         <td>created</td><td>这个Field将在Insert时自动赋值为当前时间</td>
