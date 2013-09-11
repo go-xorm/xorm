@@ -1,25 +1,52 @@
 xorm 快速入门
 =====
 
-* [创建Orm引擎](#10)
-* [定义表结构体](#20)
-* [创建表](#30)
-* [删除表](#40)
-* [插入数据](#50)
-* [查询和统计数据](#60)
-* [更新数据](#70)
-* [删除数据](#80)
-* [执行SQL查询](#90)
-* [执行SQL命令](#100)
-* [事务处理](#110)
+* [1.创建Orm引擎](#10)
+* [2.定义表结构体](#20)
+	* [2.1.名称映射规则](#21)
+	* [2.2.使用Table和Tag改变名称映射](#22)
+	* [2.3.Column属性定义](#23)
+* [3.创建表](#30)
+* [4.删除表](#40)
+* [5.插入数据](#50)
+* [6.查询和统计数据](#60)
+	* [6.1.查询条件方法](#61)
+	* [6.2.Get方法](#62)
+	* [6.3.Find方法](#63)
+	* [6.4.Count方法](#64)
+	* [6.5.匿名结构体成员](#65)
+* [7.更新数据](#70)
+* [8.删除数据](#80)
+* [9.执行SQL查询](#90)
+* [10.执行SQL命令](#100)
+* [11.事务处理](#110)
+* [12.Examples](#120)
+* [13.案例](#130)
+* [14.讨论](#140)
 
 <a name="10" id="10"></a>
-### 创建Orm引擎
+## 1.创建Orm引擎
 
 在xorm里面，可以同时存在多个Orm引擎，一个Orm引擎称为Engine。因此在使用前必须调用NewEngine，如：
 
 ```Go
-Orm, err := xorm.NewEngine("sqlite3", "./test.db")
+import (
+	_ "github.com/Go-SQL-Driver/MySQL"
+	"github.com/lunny/xorm"
+)
+engine, err := xorm.NewEngine("mysql", "root:123@/test?charset=utf8")
+defer engine.Close()
+```
+
+or
+
+```Go
+import (
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/lunny/xorm"
+	)
+engine, err = xorm.NewEngine("sqlite3", "./test.db")
+defer engine.Close()
 ```
 
 一般如果只针对一个数据库进行操作，只需要创建一个Engine即可。Engine支持在多GoRutine下使用。
@@ -37,6 +64,7 @@ xorm当前支持四种驱动如下：
 NewEngine传入的参数和`sql.Open`传入的参数完全相同，因此，使用哪个驱动前，请查看此驱动中关于传入参数的说明文档。
 
 在engine创建完成后可以进行一些设置，如：
+
 1.设置`engine.ShowSQL = true`，则会在控制台打印出生成的SQL语句；如果希望用其它方式记录，则可以`engine.Logger`赋值为一个`io.Writer`的实现。比如记录到Log文件，则可以：
 
 ```Go
@@ -52,11 +80,12 @@ engine.Logger = f
 如果需要设置连接池的空闲数大小，可以使用`engine.Pool.SetIdleConns()`来实现。
 
 <a name="20" id="20"></a>
-### 定义表结构体
+## 2.定义表结构体
 
 xorm支持将一个struct映射为数据库中对应的一张表。映射规则如下：
 
-1.名称映射规则
+<a name="21" id="21"></a>
+### 2.1.名称映射规则
 
 名称映射规则主要负责结构体名称到表名和结构体field到表字段的名称映射。由xorm.IMapper接口的实现者来管理，xorm内置了两种IMapper实现：`SnakeMapper` 和 `SameMapper`。SnakeMapper支持struct为驼峰式命名，表结构为下划线命名之间的转换；SameMapper支持相同的命名。当前SnakeMapper为默认值，当需要改变时，在engine创建完成后使用
 
@@ -66,13 +95,15 @@ engine.Mapper = SameMapper{}
 
 当然，如果你使用了别的命名规则映射方案，也可以自己实现一个IMapper。
 
-2.使用Table和Tag来临时改变名称映射
+<a name="22" id="22"></a>
+### 2.2.使用Table和Tag改变名称映射
 
 如果所有的命名都是按照IMapper的映射来操作的，那当然是最理想的。但是如果碰到某个表名或者某个字段名跟映射规则不匹配时，我们就需要别的机制来改变。
 
 通过`engine.Table()`方法可以改变struct对应的数据库表的名称，通过sturct中field对应的Tag中使用`xorm:"'table_name'"`可以使该field对应的Column名称为指定名称。这里使用两个单引号将Column名称括起来是为了防止名称冲突，因为我们在Tag中还可以对这个Column进行更多的定义。如果名称不冲突的情况，单引号也可以不使用。
 
-3.Column属性定义
+<a name="23" id="23"></a>
+### 2.3.Column属性定义
 我们在field对应的Tag中对Column的一些属性进行定义，定义的方法基本和我们写SQL定义表结构类似，比如：
 
 ```
@@ -129,28 +160,33 @@ type User struct {
     <tr>
         <td>default 0</td><td>设置默认值，紧跟的内容如过是Varchar等需要加上单引号</td>
     </tr>
+    <tr>
+        <td>extends</td><td>应用在field为匿名结构体时，此时field结构体的所有fields都将作为本struct的field来映射</td>
+    </tr>
 </table>
 
 另外有如下几条自动映射的规则：
 
-- 如果field名称为`Id`而且类型为`int64`的话，会被xorm视为主键，并且拥有自增属性。如果想用`Id`以外的名字做为主键名，可以在对应的Tag上加上`xorm:"pk"`来定义主键。
+- 1.如果field名称为`Id`而且类型为`int64`的话，会被xorm视为主键，并且拥有自增属性。如果想用`Id`以外的名字做为主键名，可以在对应的Tag上加上`xorm:"pk"`来定义主键。
 
-- string类型默认映射为varchar(255)，如果需要不同的定义，可以在tag中自定义
+- 2.string类型默认映射为varchar(255)，如果需要不同的定义，可以在tag中自定义
 
-- 支持`type MyString string`等自定义的field，支持Slice, Map等field成员，这些成员默认存储为Text类型，并且默认将使用Json格式来序列化和反序列化。也支持数据库字段类型为Blob类型，如果是Blob类型，则先使用Jsong格式序列化再转成[]byte格式。当然[]byte或者[]uint8默认为Blob类型并且都已二进制方式存储。
+- 3.支持`type MyString string`等自定义的field，支持Slice, Map等field成员，这些成员默认存储为Text类型，并且默认将使用Json格式来序列化和反序列化。也支持数据库字段类型为Blob类型，如果是Blob类型，则先使用Jsong格式序列化再转成[]byte格式。当然[]byte或者[]uint8默认为Blob类型并且都已二进制方式存储。
 
 <a name="30" id="30"></a>
-### 创建表
+## 3.创建表
 
 创建表使用engine.CreateTables()，参数为一个空的对应Struct的指针。同时可用的方法有Charset()和StoreEngine()，如果对应的数据库支持，这两个方法可以在创建表时指定表的字符编码和使用的引擎。当前仅支持Mysql数据库。
 在创建表时会判断表是否已经创建，如果已经创建则不再创建。
 
 <a name="40" id="40"></a>
-### 删除表
+## 4.删除表
+
 删除表使用engine.DropTables()，参数为一个空的对应Struct的指针或者表的名字。
 
 <a name="50" id="50"></a>
-### 插入数据
+## 5.插入数据
+
 插入数据使用Insert方法，Insert方法的参数可以是一个或多个Struct的指针，一个或多个Struct的Slice的指针。
 如果传入的是Slice并且当数据库支持批量插入时，Insert会使用批量插入的方式进行插入。
 
@@ -166,7 +202,12 @@ fmt.Println(user.Id)
 ```
 
 <a name="60" id="60"></a>
-### 查询和统计数据
+## 6.查询和统计数据
+
+所有的查询条件不区分调用顺序，但必须在调用Get，Find，Count这三个函数之前调用。同时需要注意的一点是，在调用的参数中，所有的字符字段名均为映射后的数据库的字段名，而不是field的名字。
+
+<a name="61" id="61"></a>
+### 6.1.查询条件方法
 
 查询和统计主要使用`Get`, `Find`, `Count`三个方法。在进行查询时可以使用多个方法来形成查询条件，条件函数如下：
 
@@ -215,9 +256,10 @@ Having的参数字符串
 * Cascade(bool)
 是否自动关联查询field中的数据，如果struct的field也是一个struct并且映射为某个Id，则可以在查询时自动调用Get方法查询出对应的数据。
 
-所有的查询条件不区分调用顺序，但Get，Find，Count这三个函数必须在最后再调用。同时需要注意的一点是，在调用的参数中，所有的字符字段名均为映射后的数据库的字段名，而不是field的名字。
+<a name="62" id="62"></a>
+### 6.2.Get方法
 
-1.查询单条数据使用`Get`方法，在调用Get方法时需要传入一个对应结构体的指针，同时结构体中的非空field自动成为查询的条件和前面的方法条件组合在一起查询。
+查询单条数据使用`Get`方法，在调用Get方法时需要传入一个对应结构体的指针，同时结构体中的非空field自动成为查询的条件和前面的方法条件组合在一起查询。
 
 ```Go
 user := new(User)
@@ -226,22 +268,38 @@ has, err := engine.Id(id).Get(user)
 
 返回的结果为两个参数，一个为该条记录是否存在，第二个参数为是否有错误。如果不管err是否为nil，has都有可能为true或者false。
 
+<a name="63" id="63"></a>
+### 6.3.Find方法
 
-2.查询多条数据使用`Find`方法，Find方法的第一个参数为slice的指针，第二个参数可选，为查询的条件struct的指针。
+查询多条数据使用`Find`方法，Find方法的第一个参数为slice的指针或Map指针，即为查询后返回的结果，第二个参数可选，为查询的条件struct的指针。
+
 ```Go
-users := make([]User, 0)
-err := engine.Where("id >?", 1).Find(&users)
+var everyone []Userinfo
+err := engine.Find(&everyone)
+
+users := make(map[int64]Userinfo)
+err := engine.Find(&users)
 ```
 
-3.统计数据使用`Count`方法，Count方法的参数为struct的指针并且成为查询条件。
+<a name="64" id="64"></a>
+### 6.4.Count方法
+
+统计数据使用`Count`方法，Count方法的参数为struct的指针并且成为查询条件。
 ```Go
 user := new(User)
 total, err := engine.Where("id >?", 1).Count(user)
 ```
 
+### 6.5.匿名结构体成员
+
+如果在struct中拥有一个struct，并且在Tag中标记为extends，那么该结构体的成员将作为本结构体的成员进行映射。
+
+请查看Examples中的derive.go文件。
+
 <a name="70" id="70"></a>
-### 更新数据：
-- 更新数据使用`Update`方法，Update方法的第一个参数为需要更新的内容，可以为一个结构体指针或者一个Map[string]interface{}类型。当传入的为结构体指针时，只有非空和0的field才会被作为更新的字段。当传入的为Map类型时，key为数据库Column的名字，value为要更新的内容。
+## 7.更新数据
+    
+更新数据使用`Update`方法，Update方法的第一个参数为需要更新的内容，可以为一个结构体指针或者一个Map[string]interface{}类型。当传入的为结构体指针时，只有非空和0的field才会被作为更新的字段。当传入的为Map类型时，key为数据库Column的名字，value为要更新的内容。
 
 ```Go
 user := new(User)
@@ -250,28 +308,34 @@ affected, err := engine.Id(id).Update(&user)
 ```
 
 <a name="80" id="80"></a>
-### 删除数据
-- 删除数据`Delete`方法，参数为struct的指针并且成为查询条件。
+## 8.删除数据
+
+删除数据`Delete`方法，参数为struct的指针并且成为查询条件。
 ```Go
 user := new(User)
 engine.Id(id).Delete(user)
 ```
 
 <a name="90" id="90"></a>
-###执行SQL查询
-也可以直接执行一个SQL查询
+## 9.执行SQL查询
+
+也可以直接执行一个SQL查询，即Select命令。在Postgres中支持原始SQL语句中使用 ` 和 ? 符号。
 ```Go
-engine.Query()
+sql := "select * from userinfo"
+results, err := engine.Query(sql)
 ```
 
 <a name="100" id="100"></a>
-###执行SQL命令
+## 10.执行SQL命令
+
+也可以直接执行一个SQL命令，即执行Insert， Update， Delete 等操作。同样在Postgres中支持原始SQL语句中使用 ` 和 ? 符号。
 ```Go
-engine.Exec()
+sql = "update userinfo set username=? where id=?"
+res, err := engine.Exec(sql, "xiaolun", 1) 
 ```
 
 <a name="110" id="110"></a>
-###事务处理
+## 11.事务处理
 当使用事务处理时，需要创建Session对象。
 
 ```Go
@@ -302,3 +366,17 @@ if err != nil {
 	return
 }
 ```
+
+<a name="120" id="120"></a>
+## 12.Examples
+
+请访问[https://github.com/lunny/xorm/tree/master/examples](https://github.com/lunny/xorm/tree/master/examples)
+
+<a name="130" id="130"></a>
+## 13.案例
+
+请访问网站[godaily](http://godaily.org) 和对应的源代码[github.com/govc/godaily](http://github.com/govc/godaily)
+
+<a name="140" id="140"></a>
+## 14.讨论
+请加入QQ群：280360085 进行讨论。
