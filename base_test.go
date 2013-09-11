@@ -804,6 +804,44 @@ func testIndexAndUnique(engine *Engine, t *testing.T) {
 	}
 }
 
+type IntId struct {
+	Id   int
+	Name string
+}
+
+type Int32Id struct {
+	Id   int32
+	Name string
+}
+
+func testIntId(engine *Engine, t *testing.T) {
+	err := engine.DropTables(&IntId{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(&IntId{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+}
+
+func testInt32Id(engine *Engine, t *testing.T) {
+	err := engine.DropTables(&Int32Id{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(&Int32Id{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+}
+
 func testAll(engine *Engine, t *testing.T) {
 	directCreateTable(engine, t)
 	mapper(engine, t)

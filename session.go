@@ -375,7 +375,7 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	err = session.scanMapIntoStruct(bean, results)
 
 	if err != nil {
-		return false, err
+		return true, err
 	}
 	if len(resultsSlice) == 1 {
 		return true, nil
@@ -845,7 +845,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				fieldValue.Set(x.Elem())
 			}
 		} else {
-			return UnSupportedTypeError
+			return ErrUnSupportedType
 		}
 	case reflect.String:
 		fieldValue.SetString(string(data))
@@ -993,7 +993,7 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 			}
 			return bytes, nil
 		} else {
-			return nil, UnSupportedTypeError
+			return nil, ErrUnSupportedType
 		}
 	default:
 		return fieldValue.Interface(), nil
@@ -1115,7 +1115,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		}
 	} else if t.Kind() == reflect.Map {
 		if session.Statement.RefTable == nil {
-			return -1, TableNotFoundError
+			return -1, ErrTableNotFound
 		}
 		table := session.Statement.RefTable
 		colNames = make([]string, 0)
@@ -1131,7 +1131,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			args = append(args, time.Now())
 		}
 	} else {
-		return -1, ParamsTypeError
+		return -1, ErrParamsType
 	}
 
 	var condiColNames []string

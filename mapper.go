@@ -5,6 +5,7 @@ import (
 //"strings"
 )
 
+// name translation between struct, fields names and table, column names
 type IMapper interface {
 	Obj2Table(string) string
 	Table2Obj(string) string
