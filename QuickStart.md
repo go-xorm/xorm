@@ -160,9 +160,6 @@ type User struct {
     <tr>
         <td>default 0</td><td>设置默认值，紧跟的内容如过是Varchar等需要加上单引号</td>
     </tr>
-    <tr>
-        <td>extends</td><td>应用在field为匿名结构体时，此时field结构体的所有fields都将作为本struct的field来映射</td>
-    </tr>
 </table>
 
 另外有如下几条自动映射的规则：
