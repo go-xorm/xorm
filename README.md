@@ -6,6 +6,9 @@ xorm is a simple and powerful ORM for Go. It makes dabatabse operating simple.
 
 [![Build Status](https://drone.io/github.com/lunny/xorm/status.png)](https://drone.io/github.com/lunny/xorm/latest)
 
+# Discuss
+For Chinese user, you can add QQ qun number: 280360085 for discuss xorm.
+
 
 ## Drivers Support
 
