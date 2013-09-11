@@ -158,7 +158,7 @@ type User struct {
         <td>updated</td><td>这个Field将在Insert或Update时自动赋值为当前时间</td>
     </tr>
     <tr>
-        <td>default 0</td><td>设置默认值，紧跟的内容如过是Varchar等需要加上单引号</td>
+        <td>default 0</td><td>设置默认值，紧跟的内容如果是Varchar等需要加上单引号</td>
     </tr>
 </table>
 
