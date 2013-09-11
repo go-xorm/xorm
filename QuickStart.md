@@ -173,13 +173,13 @@ type User struct {
 <a name="30" id="30"></a>
 ## 3.创建表
 
-创建表使用engine.CreateTables()，参数为一个空的对应Struct的指针。同时可用的方法有Charset()和StoreEngine()，如果对应的数据库支持，这两个方法可以在创建表时指定表的字符编码和使用的引擎。当前仅支持Mysql数据库。
+创建表使用engine.CreateTables()，参数为一个或多个空的对应Struct的指针。同时可用的方法有Charset()和StoreEngine()，如果对应的数据库支持，这两个方法可以在创建表时指定表的字符编码和使用的引擎。当前仅支持Mysql数据库。
 在创建表时会判断表是否已经创建，如果已经创建则不再创建。
 
 <a name="40" id="40"></a>
 ## 4.删除表
 
-删除表使用engine.DropTables()，参数为一个空的对应Struct的指针或者表的名字。
+删除表使用engine.DropTables()，参数为一个或多个空的对应Struct的指针或者表的名字。
 
 <a name="50" id="50"></a>
 ## 5.插入数据
