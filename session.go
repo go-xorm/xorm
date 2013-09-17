@@ -71,10 +71,15 @@ func (session *Session) Cols(columns ...string) *Session {
 	return session
 }
 
-func (session *Session) Trans(t string) *Session {
-	session.TransType = t
+func (session *Session) NoAutoTime() *Session {
+	session.Statement.UseAutoTime = false
 	return session
 }
+
+/*func (session *Session) Trans(t string) *Session {
+	session.TransType = t
+	return session
+}*/
 
 func (session *Session) Limit(limit int, start ...int) *Session {
 	session.Statement.Limit(limit, start...)
@@ -118,6 +123,11 @@ func (session *Session) Cascade(trueOrFalse ...bool) *Session {
 	if len(trueOrFalse) >= 1 {
 		session.Statement.UseCascade = trueOrFalse[0]
 	}
+	return session
+}
+
+func (session *Session) NoCache() *Session {
+	session.Statement.UseCache = false
 	return session
 }
 
@@ -240,12 +250,7 @@ func (session *Session) innerExec(sql string, args ...interface{}) (sql.Result, 
 	return res, nil
 }
 
-func (session *Session) Exec(sql string, args ...interface{}) (sql.Result, error) {
-	err := session.newDb()
-	if err != nil {
-		return nil, err
-	}
-
+func (session *Session) exec(sql string, args ...interface{}) (sql.Result, error) {
 	for _, filter := range session.Engine.Filters {
 		sql = filter.Do(sql, session)
 	}
@@ -259,6 +264,19 @@ func (session *Session) Exec(sql string, args ...interface{}) (sql.Result, error
 	return session.Tx.Exec(sql, args...)
 }
 
+func (session *Session) Exec(sql string, args ...interface{}) (sql.Result, error) {
+	err := session.newDb()
+	if err != nil {
+		return nil, err
+	}
+	defer session.Statement.Init()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+
+	return session.exec(sql, args...)
+}
+
 // this function create a table according a bean
 func (session *Session) CreateTable(bean interface{}) error {
 	session.Statement.RefTable = session.Engine.AutoMap(bean)
@@ -267,17 +285,21 @@ func (session *Session) CreateTable(bean interface{}) error {
 	if err != nil {
 		return err
 	}
+	defer session.Statement.Init()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
 
 	return session.createOneTable()
 }
 
 func (session *Session) createOneTable() error {
 	sql := session.Statement.genCreateSQL()
-	_, err := session.Exec(sql)
+	_, err := session.exec(sql)
 	if err == nil {
 		sqls := session.Statement.genIndexSQL()
 		for _, sql := range sqls {
-			_, err = session.Exec(sql)
+			_, err = session.exec(sql)
 			if err != nil {
 				return err
 			}
@@ -286,7 +308,7 @@ func (session *Session) createOneTable() error {
 	if err == nil {
 		sqls := session.Statement.genUniqueSQL()
 		for _, sql := range sqls {
-			_, err = session.Exec(sql)
+			_, err = session.exec(sql)
 			if err != nil {
 				return err
 			}
@@ -300,7 +322,7 @@ func (session *Session) CreateAll() error {
 	if err != nil {
 		return err
 	}
-
+	defer session.Statement.Init()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -321,6 +343,7 @@ func (session *Session) DropTable(bean interface{}) error {
 		return err
 	}
 
+	defer session.Statement.Init()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -336,33 +359,227 @@ func (session *Session) DropTable(bean interface{}) error {
 	}
 
 	sql := session.Statement.genDropSQL()
-	_, err = session.Exec(sql)
+	_, err = session.exec(sql)
 	return err
 }
 
+func (statement *Statement) convertIdSql(sql string) string {
+	if statement.RefTable != nil {
+		col := statement.RefTable.PKColumn()
+		if col != nil {
+			sql = strings.ToLower(sql)
+			sqls := strings.SplitN(sql, "from", 2)
+			if len(sqls) != 2 {
+				return ""
+			}
+			return fmt.Sprintf("SELECT %v FROM %v", statement.Engine.Quote(col.Name), sqls[1])
+		}
+	}
+	return ""
+}
+
+func (session *Session) cacheGet(bean interface{}, sql string, args ...interface{}) (has bool, err error) {
+	if session.Statement.RefTable == nil || session.Statement.RefTable.PrimaryKey == "" {
+		return false, ErrCacheFailed
+	}
+	for _, filter := range session.Engine.Filters {
+		sql = filter.Do(sql, session)
+	}
+	newsql := session.Statement.convertIdSql(sql)
+	if newsql == "" {
+		return false, ErrCacheFailed
+	}
+
+	cacher := session.Statement.RefTable.Cacher
+	ids, err := GetCacheSql(cacher, newsql)
+	if err != nil {
+		fmt.Println(err)
+		resultsSlice, err := session.query(newsql, args...)
+		if err != nil {
+			return false, err
+		}
+
+		ids = make([]int64, 0)
+		if len(resultsSlice) > 0 {
+			data := resultsSlice[0]
+			//fmt.Println(data)
+			var id int64
+			if v, ok := data[session.Statement.RefTable.PrimaryKey]; !ok {
+				return false, errors.New("no id")
+			} else {
+				id, err = strconv.ParseInt(string(v), 10, 64)
+				if err != nil {
+					return false, err
+				}
+			}
+			ids = append(ids, id)
+		}
+		err = PutCacheSql(cacher, newsql, ids)
+		if err != nil {
+			fmt.Println(err)
+		}
+	} else {
+		fmt.Printf("-----Cached SQL: %v.\n", newsql)
+	}
+
+	structValue := reflect.Indirect(reflect.ValueOf(bean))
+	//fmt.Println("xxxxxxx", ids)
+	if len(ids) > 0 {
+		id := ids[0]
+		tableName := session.Statement.TableName()
+		bean = GetCacheId(cacher, tableName, id)
+		if bean == nil {
+			fmt.Printf("----Object Id %v no cached.\n", id)
+			newSession := session.Engine.NewSession()
+			defer newSession.Close()
+			bean = reflect.New(structValue.Type()).Interface()
+			has, err = newSession.Id(id).NoCache().Get(bean)
+			if err != nil {
+				return has, err
+			}
+			//fmt.Println(bean)
+			PutCacheId(cacher, tableName, id, bean)
+		} else {
+			fmt.Printf("-----Cached Object: %v\n", bean)
+			has = true
+		}
+
+		structValue.Set(reflect.ValueOf(bean).Elem())
+		return has, nil
+	}
+	return false, nil
+}
+
+func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr interface{}, args ...interface{}) (err error) {
+	if session.Statement.RefTable == nil || session.Statement.RefTable.PrimaryKey == "" {
+		return ErrCacheFailed
+	}
+
+	for _, filter := range session.Engine.Filters {
+		sql = filter.Do(sql, session)
+	}
+
+	newsql := session.Statement.convertIdSql(sql)
+	if newsql == "" {
+		return ErrCacheFailed
+	}
+
+	table := session.Statement.RefTable
+	cacher := table.Cacher
+	ids, err := GetCacheSql(cacher, newsql)
+	if err != nil {
+		fmt.Println(err)
+		resultsSlice, err := session.query(newsql, args...)
+		if err != nil {
+			return err
+		}
+		// 查询数目太大，采用缓存将不是一个很好的方式。
+		if len(resultsSlice) > 20 {
+			return ErrCacheFailed
+		}
+		ids = make([]int64, 0)
+		if len(resultsSlice) > 0 {
+			for _, data := range resultsSlice {
+				//fmt.Println(data)
+				var id int64
+				if v, ok := data[session.Statement.RefTable.PrimaryKey]; !ok {
+					return errors.New("no id")
+				} else {
+					id, err = strconv.ParseInt(string(v), 10, 64)
+					if err != nil {
+						return err
+					}
+				}
+				ids = append(ids, id)
+			}
+		}
+		err = PutCacheSql(cacher, newsql, ids)
+		if err != nil {
+			fmt.Println(err)
+		}
+	} else {
+		fmt.Printf("-----Cached SQL: %v.\n", newsql)
+	}
+
+	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
+	//fmt.Println("xxxxxxx", ids)
+	var idxes []int = make([]int, 0)
+	var ides []interface{} = make([]interface{}, 0)
+	var temps []interface{} = make([]interface{}, len(ids))
+	for idx, id := range ids {
+		tableName := session.Statement.TableName()
+		bean := GetCacheId(cacher, tableName, id)
+		if bean == nil {
+			fmt.Printf("----Object Id %v no cached.\n", id)
+			idxes = append(idxes, idx)
+			ides = append(ides, id)
+			/*newSession := session.Engine.NewSession()
+			defer newSession.Close()
+			bean = reflect.New(t).Interface()
+			_, err = newSession.Id(id).In(, ...).NoCache().Get(bean)
+			if err != nil {
+				return err
+			}
+
+			PutCacheId(cacher, tableName, id, bean)*/
+		} else {
+			fmt.Printf("-----Cached Object: %v\n", bean)
+			temps[idx] = bean
+		}
+
+		//sliceValue.Set(reflect.Append(sliceValue, reflect.ValueOf(bean).Elem()))
+	}
+
+	newSession := session.Engine.NewSession()
+	defer newSession.Close()
+
+	beans := reflect.New(sliceValue.Type()).Interface()
+	err = newSession.In("(id)", ides...).OrderBy(session.Statement.OrderStr).NoCache().Find(beans)
+	if err != nil {
+		return err
+	}
+
+	vs := reflect.Indirect(reflect.ValueOf(beans))
+	for i := 0; i < vs.Len(); i++ {
+		temps[idxes[i]] = vs.Index(i).Interface()
+	}
+
+	//sliceValue.SetPointer(x)
+
+	return nil
+}
+
+// get retrieve one record from database
 func (session *Session) Get(bean interface{}) (bool, error) {
 	err := session.newDb()
 	if err != nil {
 		return false, err
 	}
 
+	defer session.Statement.Init()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
 
-	defer session.Statement.Init()
 	session.Statement.Limit(1)
 	var sql string
 	var args []interface{}
+	session.Statement.RefTable = session.Engine.AutoMap(bean)
 	if session.Statement.RawSQL == "" {
 		sql, args = session.Statement.genGetSql(bean)
 	} else {
 		sql = session.Statement.RawSQL
 		args = session.Statement.RawParams
-		session.Engine.AutoMap(bean)
 	}
 
-	resultsSlice, err := session.Query(sql, args...)
+	if session.Statement.RefTable.Cacher != nil && session.Statement.UseCache {
+		has, err := session.cacheGet(bean, sql, args...)
+		if err != ErrCacheFailed {
+			return has, err
+		}
+	}
+
+	resultsSlice, err := session.query(sql, args...)
 	if err != nil {
 		return false, err
 	}
@@ -390,11 +607,11 @@ func (session *Session) Count(bean interface{}) (int64, error) {
 		return 0, err
 	}
 
+	defer session.Statement.Init()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
 
-	defer session.Statement.Init()
 	var sql string
 	var args []interface{}
 	if session.Statement.RawSQL == "" {
@@ -404,7 +621,7 @@ func (session *Session) Count(bean interface{}) (int64, error) {
 		args = session.Statement.RawParams
 	}
 
-	resultsSlice, err := session.Query(sql, args...)
+	resultsSlice, err := session.query(sql, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -426,12 +643,11 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	if err != nil {
 		return err
 	}
-
+	defer session.Statement.Init()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
 
-	defer session.Statement.Init()
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
 	if sliceValue.Kind() != reflect.Slice && sliceValue.Kind() != reflect.Map {
 		return errors.New("needs a pointer to a slice or a map")
@@ -461,8 +677,14 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		args = session.Statement.RawParams
 	}
 
-	resultsSlice, err := session.Query(sql, args...)
+	if table.Cacher != nil && session.Statement.UseCache {
+		err = session.cacheFind(sliceElementType, sql, rowsSlicePtr, args...)
+		if err != ErrCacheFailed {
+			return err
+		}
+	}
 
+	resultsSlice, err := session.query(sql, args...)
 	if err != nil {
 		return err
 	}
@@ -497,7 +719,7 @@ func (session *Session) Ping() error {
 	if err != nil {
 		return err
 	}
-
+	defer session.Statement.Init()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -510,7 +732,7 @@ func (session *Session) DropAll() error {
 	if err != nil {
 		return err
 	}
-
+	defer session.Statement.Init()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -519,7 +741,7 @@ func (session *Session) DropAll() error {
 		session.Statement.Init()
 		session.Statement.RefTable = table
 		sql := session.Statement.genDropSQL()
-		_, err := session.Exec(sql)
+		_, err := session.exec(sql)
 		if err != nil {
 			return err
 		}
@@ -527,16 +749,7 @@ func (session *Session) DropAll() error {
 	return nil
 }
 
-func (session *Session) Query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
-	err = session.newDb()
-	if err != nil {
-		return nil, err
-	}
-
-	if session.IsAutoClose {
-		defer session.Close()
-	}
-
+func (session *Session) query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
 	for _, filter := range session.Engine.Filters {
 		sql = filter.Do(sql, session)
 	}
@@ -616,19 +829,28 @@ func (session *Session) Query(sql string, paramStr ...interface{}) (resultsSlice
 	return resultsSlice, nil
 }
 
+func (session *Session) Query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
+	err = session.newDb()
+	if err != nil {
+		return nil, err
+	}
+	defer session.Statement.Init()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+
+	return session.query(sql, paramStr...)
+}
+
+// insert one or more beans
 func (session *Session) Insert(beans ...interface{}) (int64, error) {
 	var lastId int64 = -1
 	var err error = nil
-	isInTransaction := !session.IsAutoCommit
-
-	if !isInTransaction {
-		err = session.Begin()
-		//defer session.Close()
-		if err != nil {
-			return 0, err
-		}
+	err = session.newDb()
+	if err != nil {
+		return 0, err
 	}
-
+	defer session.Statement.Init()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -639,13 +861,6 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 			if session.Engine.SupportInsertMany() {
 				lastId, err = session.innerInsertMulti(bean)
 				if err != nil {
-					if !isInTransaction {
-						err1 := session.Rollback()
-						if err1 == nil {
-							return lastId, err
-						}
-						err = err1
-					}
 					return lastId, err
 				}
 			} else {
@@ -653,13 +868,6 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 				for i := 0; i < size; i++ {
 					lastId, err = session.innerInsert(sliceValue.Index(i).Interface())
 					if err != nil {
-						if !isInTransaction {
-							err1 := session.Rollback()
-							if err1 == nil {
-								return lastId, err
-							}
-							err = err1
-						}
 						return lastId, err
 					}
 				}
@@ -667,20 +875,11 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 		} else {
 			lastId, err = session.innerInsert(bean)
 			if err != nil {
-				if !isInTransaction {
-					err1 := session.Rollback()
-					if err1 == nil {
-						return lastId, err
-					}
-					err = err1
-				}
 				return lastId, err
 			}
 		}
 	}
-	if !isInTransaction {
-		err = session.Commit()
-	}
+
 	return lastId, err
 }
 
@@ -721,7 +920,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 						continue
 					}
 				}
-				if col.IsCreated || col.IsUpdated {
+				if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
 					args = append(args, time.Now())
 				} else {
 					arg, err := session.value2Interface(col, fieldValue)
@@ -749,7 +948,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 						continue
 					}
 				}
-				if col.IsCreated || col.IsUpdated {
+				if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
 					args = append(args, time.Now())
 				} else {
 					arg, err := session.value2Interface(col, fieldValue)
@@ -774,7 +973,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 		session.Engine.QuoteStr(),
 		strings.Join(colMultiPlaces, "),("))
 
-	res, err := session.Exec(statement, args...)
+	res, err := session.exec(statement, args...)
 	if err != nil {
 		return -1, err
 	}
@@ -790,12 +989,12 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 
 func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 	err := session.newDb()
-	if session.IsAutoClose {
-		defer session.Close()
-	}
-
 	if err != nil {
 		return 0, err
+	}
+	defer session.Statement.Init()
+	if session.IsAutoClose {
+		defer session.Close()
 	}
 
 	return session.innerInsertMulti(rowsSlicePtr)
@@ -1024,7 +1223,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			}
 		}
 
-		if col.IsCreated || col.IsUpdated {
+		if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
 			args = append(args, time.Now())
 		} else {
 			arg, err := session.value2Interface(col, fieldValue)
@@ -1047,7 +1246,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		session.Engine.QuoteStr(),
 		strings.Join(colPlaces, ", "))
 
-	res, err := session.Exec(sql, args...)
+	res, err := session.exec(sql, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -1081,32 +1280,134 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 
 func (session *Session) InsertOne(bean interface{}) (int64, error) {
 	err := session.newDb()
-	if session.IsAutoClose {
-		defer session.Close()
-	}
 	if err != nil {
 		return 0, err
+	}
+	defer session.Statement.Init()
+	if session.IsAutoClose {
+		defer session.Close()
 	}
 
 	return session.innerInsert(bean)
 }
 
+func (statement *Statement) convertUpdateSql(sql string) (string, string) {
+	if statement.RefTable == nil || statement.RefTable.PrimaryKey == "" {
+		return "", ""
+	}
+	sqls := strings.SplitN(strings.ToLower(sql), "where", 2)
+	if len(sqls) != 2 {
+		return "", ""
+	}
+
+	return sqls[0], fmt.Sprintf("SELECT %v FROM %v WHERE %v",
+		statement.Engine.Quote(statement.RefTable.PrimaryKey), statement.Engine.Quote(statement.TableName()),
+		sqls[1])
+}
+
+func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
+	if session.Statement.RefTable == nil || session.Statement.RefTable.PrimaryKey == "" {
+		return ErrCacheFailed
+	}
+
+	for _, filter := range session.Engine.Filters {
+		sql = filter.Do(sql, session)
+	}
+
+	oldhead, newsql := session.Statement.convertUpdateSql(sql)
+	if newsql == "" {
+		return ErrCacheFailed
+	}
+
+	var nStart int
+	if len(args) > 0 {
+		if strings.Index(sql, "?") > -1 {
+			nStart = strings.Count(oldhead, "?")
+		} else {
+			// for pq, TODO: if any other databse?
+			nStart = strings.Count(oldhead, "$")
+		}
+	}
+	table := session.Statement.RefTable
+	cacher := table.Cacher
+	ids, err := GetCacheSql(cacher, newsql)
+	if err != nil {
+		resultsSlice, err := session.query(newsql, args[nStart:]...)
+		if err != nil {
+			return err
+		}
+		ids = make([]int64, 0)
+		if len(resultsSlice) > 0 {
+			for _, data := range resultsSlice {
+				var id int64
+				if v, ok := data[session.Statement.RefTable.PrimaryKey]; !ok {
+					return errors.New("no id")
+				} else {
+					id, err = strconv.ParseInt(string(v), 10, 64)
+					if err != nil {
+						return err
+					}
+				}
+				ids = append(ids, id)
+			}
+		}
+	} else {
+		fmt.Printf("-----Cached SQL: %v.\n", newsql)
+		DelCacheSql(cacher, newsql)
+	}
+
+	for _, id := range ids {
+		if bean := GetCacheId(cacher, session.Statement.TableName(), id); bean != nil {
+			sqls := strings.SplitN(strings.ToLower(sql), "where", 2)
+			if len(sqls) != 2 {
+				return nil
+			}
+			sqls = strings.SplitN(sqls[0], "set", 2)
+			if len(sqls) != 2 {
+				return nil
+			}
+			kvs := strings.Split(strings.TrimSpace(sqls[1]), ",")
+			for idx, kv := range kvs {
+				sps := strings.SplitN(kv, "=", 2)
+				sps2 := strings.Split(sps[0], ".")
+				colName := sps2[len(sps2)-1]
+				if strings.Contains(colName, "`") {
+					colName = strings.TrimSpace(strings.Replace(colName, "`", "", -1))
+				} else if strings.Contains(colName, session.Engine.QuoteStr()) {
+					colName = strings.TrimSpace(strings.Replace(colName, session.Engine.QuoteStr(), "", -1))
+				}
+				//fmt.Println("find", colName)
+				if col, ok := table.Columns[colName]; ok {
+					fieldValue := col.ValueOf(bean)
+					//session.bytes2Value(col, fieldValue, []byte(args[idx]))
+					fieldValue.Set(reflect.ValueOf(args[idx]))
+				}
+			}
+
+			PutCacheId(cacher, session.Statement.TableName(), id, bean)
+		}
+	}
+	return nil
+}
+
 func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int64, error) {
 	err := session.newDb()
-	if session.IsAutoClose {
-		defer session.Close()
-	}
 	if err != nil {
 		return 0, err
+	}
+	defer session.Statement.Init()
+	if session.IsAutoClose {
+		defer session.Close()
 	}
 
 	t := Type(bean)
 
 	var colNames []string
 	var args []interface{}
+	var table *Table
 
 	if t.Kind() == reflect.Struct {
-		table := session.Engine.AutoMap(bean)
+		table = session.Engine.AutoMap(bean)
 		session.Statement.RefTable = table
 		colNames, args = BuildConditions(session.Engine, table, bean)
 		if table.Updated != "" {
@@ -1117,7 +1418,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		if session.Statement.RefTable == nil {
 			return -1, ErrTableNotFound
 		}
-		table := session.Statement.RefTable
+		table = session.Statement.RefTable
 		colNames = make([]string, 0)
 		args = make([]interface{}, 0)
 		bValue := reflect.ValueOf(bean)
@@ -1163,27 +1464,75 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		strings.Join(colNames, ", "),
 		condition)
 
-	eargs := append(append(args, st.Params...), condiArgs...)
-	res, err := session.Exec(sql, eargs...)
+	args = append(append(args, st.Params...), condiArgs...)
+
+	res, err := session.exec(sql, args...)
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 
-	rows, err := res.RowsAffected()
-
-	if err != nil {
-		return -1, err
+	if table.Cacher != nil && session.Statement.UseCache {
+		session.cacheUpdate(sql, args...)
 	}
-	return rows, nil
+
+	return res.RowsAffected()
+}
+
+func (session *Session) cacheDelete(sql string, args ...interface{}) error {
+	if session.Statement.RefTable == nil || session.Statement.RefTable.PrimaryKey == "" {
+		return ErrCacheFailed
+	}
+
+	for _, filter := range session.Engine.Filters {
+		sql = filter.Do(sql, session)
+	}
+
+	newsql := session.Statement.convertIdSql(sql)
+	if newsql == "" {
+		return ErrCacheFailed
+	}
+
+	cacher := session.Statement.RefTable.Cacher
+	ids, err := GetCacheSql(cacher, newsql)
+	if err != nil {
+		resultsSlice, err := session.query(newsql, args...)
+		if err != nil {
+			return err
+		}
+		ids = make([]int64, 0)
+		if len(resultsSlice) > 0 {
+			for _, data := range resultsSlice {
+				var id int64
+				if v, ok := data[session.Statement.RefTable.PrimaryKey]; !ok {
+					return errors.New("no id")
+				} else {
+					id, err = strconv.ParseInt(string(v), 10, 64)
+					if err != nil {
+						return err
+					}
+				}
+				ids = append(ids, id)
+			}
+		}
+	} else {
+		fmt.Printf("-----Cached SQL: %v.\n", newsql)
+		DelCacheSql(cacher, newsql)
+	}
+
+	for _, id := range ids {
+		DelCacheId(cacher, session.Statement.TableName(), id)
+	}
+	return nil
 }
 
 func (session *Session) Delete(bean interface{}) (int64, error) {
 	err := session.newDb()
-	if session.IsAutoClose {
-		defer session.Close()
-	}
 	if err != nil {
 		return 0, err
+	}
+	defer session.Statement.Init()
+	if session.IsAutoClose {
+		defer session.Close()
 	}
 
 	table := session.Engine.AutoMap(bean)
@@ -1191,10 +1540,8 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	colNames, args := BuildConditions(session.Engine, table, bean)
 
 	var condition = ""
-	st := session.Statement
-	defer session.Statement.Init()
-	if st.WhereStr != "" {
-		condition = fmt.Sprintf("WHERE %v", st.WhereStr)
+	if session.Statement.WhereStr != "" {
+		condition = fmt.Sprintf("WHERE %v", session.Statement.WhereStr)
 		if len(colNames) > 0 {
 			condition += " and "
 			condition += strings.Join(colNames, " and ")
@@ -1203,22 +1550,22 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		condition = "WHERE " + strings.Join(colNames, " and ")
 	}
 
-	statement := fmt.Sprintf("DELETE FROM %v%v%v %v",
+	sql := fmt.Sprintf("DELETE FROM %v%v%v %v",
 		session.Engine.QuoteStr(),
 		session.Statement.TableName(),
 		session.Engine.QuoteStr(),
 		condition)
 
-	res, err := session.Exec(statement, append(st.Params, args...)...)
+	args = append(session.Statement.Params, args...)
 
-	if err != nil {
-		return -1, err
+	if table.Cacher != nil && session.Statement.UseCache {
+		session.cacheDelete(sql, args...)
 	}
 
-	id, err := res.RowsAffected()
-
+	res, err := session.exec(sql, args...)
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
-	return id, nil
+
+	return res.RowsAffected()
 }

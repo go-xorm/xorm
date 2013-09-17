@@ -232,6 +232,9 @@ fmt.Println(user.Id)
 * OrderBy()
 按照指定的顺序进行排序
 
+* NoAutoTime()
+如果此方法执行，则此次生成的语句中Created和Updated字段将不自动赋值为当前时间
+
 * In(string, …interface{})
 某字段在一些值中
 
@@ -310,8 +313,10 @@ affected, err := engine.Id(id).Update(&user)
 删除数据`Delete`方法，参数为struct的指针并且成为查询条件。
 ```Go
 user := new(User)
-engine.Id(id).Delete(user)
+affected, err := engine.Id(id).Delete(user)
 ```
+
+`Delete`的返回值第一个参数为删除的记录数，第二个参数为错误。
 
 <a name="90" id="90"></a>
 ## 9.执行SQL查询

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 	//"sync/atomic"
+	"container/list"
 	"time"
 )
 
@@ -81,8 +82,7 @@ type SysConnectPool struct {
 	maxConns     int
 	curConns     int
 	mutex        *sync.Mutex
-	condMutex    *sync.Mutex
-	cond         *sync.Cond
+	queue        *list.List
 }
 
 // NewSysConnectPool new a SysConnectPool.
@@ -101,43 +101,61 @@ func (s *SysConnectPool) Init(engine *Engine) error {
 	s.maxConns = -1
 	s.curConns = 0
 	s.mutex = &sync.Mutex{}
-	s.condMutex = &sync.Mutex{}
-	s.cond = sync.NewCond(s.condMutex)
+	s.queue = list.New()
 	return nil
 }
 
+type node struct {
+	mutex sync.Mutex
+	cond  *sync.Cond
+}
+
+func NewNode() *node {
+	n := &node{}
+	n.cond = sync.NewCond(&n.mutex)
+	return n
+}
+
 // RetrieveDB just return the only db
-func (p *SysConnectPool) RetrieveDB(engine *Engine) (db *sql.DB, err error) {
-	if p.maxConns > 0 {
-		p.condMutex.Lock()
-		fmt.Println("before retrieve - current connections:", p.curConns, p.maxConns)
-		for p.curConns >= p.maxConns {
-			fmt.Println("waiting...", p.curConns)
-			p.cond.Wait()
+func (s *SysConnectPool) RetrieveDB(engine *Engine) (db *sql.DB, err error) {
+	if s.maxConns > 0 {
+		fmt.Println("before retrieve")
+		s.mutex.Lock()
+		for s.curConns >= s.maxConns {
+			fmt.Println("before waiting...", s.curConns, s.queue.Len())
+			s.mutex.Unlock()
+			n := NewNode()
+			n.cond.L.Lock()
+			s.queue.PushBack(n)
+			n.cond.Wait()
+			n.cond.L.Unlock()
+			s.mutex.Lock()
+			fmt.Println("after waiting...", s.curConns, s.queue.Len())
 		}
-		//p.mutex.Lock()
-		p.curConns += 1
-		p.cond.Signal()
-		//p.mutex.Lock()
-		p.condMutex.Unlock()
+		s.curConns += 1
+		s.mutex.Unlock()
+		fmt.Println("after retrieve")
 	}
-	return p.db, nil
+	return s.db, nil
 }
 
 // ReleaseDB do nothing
-func (p *SysConnectPool) ReleaseDB(engine *Engine, db *sql.DB) {
-	if p.maxConns > 0 {
-		p.condMutex.Lock()
-		fmt.Println("before release - current connections:", p.curConns, p.maxConns)
-		//if p.curConns >= p.maxConns-2 {
-		fmt.Println("signaling...")
-		//p.mutex.Lock()
-		p.curConns -= 1
-		//p.mutex.Unlock()
-		p.cond.Signal()
-		//}
-		p.condMutex.Unlock()
+func (s *SysConnectPool) ReleaseDB(engine *Engine, db *sql.DB) {
+	if s.maxConns > 0 {
+		s.mutex.Lock()
+		fmt.Println("before release", s.queue.Len())
+		s.curConns -= 1
 
+		if e := s.queue.Front(); e != nil {
+			n := e.Value.(*node)
+			//n.cond.L.Lock()
+			n.cond.Signal()
+			fmt.Println("signaled...")
+			s.queue.Remove(e)
+			//n.cond.L.Unlock()
+		}
+		fmt.Println("after released", s.queue.Len())
+		s.mutex.Unlock()
 	}
 }
 

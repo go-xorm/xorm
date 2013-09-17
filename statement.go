@@ -31,6 +31,8 @@ type Statement struct {
 	StoreEngine  string
 	Charset      string
 	BeanArgs     []interface{}
+	UseCache     bool
+	UseAutoTime  bool
 }
 
 func MakeArray(elem string, count int) []string {
@@ -59,6 +61,8 @@ func (statement *Statement) Init() {
 	statement.RawSQL = ""
 	statement.RawParams = make([]interface{}, 0)
 	statement.BeanArgs = make([]interface{}, 0)
+	statement.UseCache = statement.Engine.UseCache
+	statement.UseAutoTime = true
 }
 
 func (statement *Statement) Sql(querystring string, args ...interface{}) {

@@ -36,9 +36,10 @@ type Engine struct {
 	mutex          *sync.Mutex
 	ShowSQL        bool
 	Pool           IConnectPool
-	CacheMapping   bool
 	Filters        []Filter
 	Logger         io.Writer
+	Cacher         Cacher
+	UseCache       bool
 }
 
 func (engine *Engine) SupportInsertMany() bool {
@@ -68,6 +69,25 @@ func (engine *Engine) SetPool(pool IConnectPool) error {
 
 func (engine *Engine) SetMaxConns(conns int) {
 	engine.Pool.SetMaxConns(conns)
+}
+
+func (engine *Engine) SetDefaultCacher(cacher Cacher) {
+	if cacher == nil {
+		engine.UseCache = false
+	} else {
+		engine.UseCache = true
+		engine.Cacher = cacher
+	}
+}
+
+func (engine *Engine) NoCache(bean interface{}) {
+	engine.MapCacher(bean, nil)
+}
+
+func (engine *Engine) MapCacher(bean interface{}, cacher Cacher) {
+	t := Type(bean)
+	engine.AutoMapType(t)
+	engine.Tables[t].Cacher = cacher
 }
 
 func Type(bean interface{}) reflect.Type {
@@ -119,6 +139,12 @@ func (engine *Engine) Sql(querystring string, args ...interface{}) *Session {
 	return session.Sql(querystring, args...)
 }
 
+func (engine *Engine) NoAutoTime() *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.NoAutoTime()
+}
+
 func (engine *Engine) Cascade(trueOrFalse ...bool) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
@@ -155,11 +181,11 @@ func (engine *Engine) Cols(columns ...string) *Session {
 	return session.Cols(columns...)
 }
 
-func (engine *Engine) Trans(t string) *Session {
+/*func (engine *Engine) Trans(t string) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
 	return session.Trans(t)
-}
+}*/
 
 func (engine *Engine) In(column string, args ...interface{}) *Session {
 	session := engine.NewSession()
@@ -233,8 +259,16 @@ func (engine *Engine) AutoMap(bean interface{}) *Table {
 	return engine.AutoMapType(t)
 }
 
+func (engine *Engine) newTable() *Table {
+	table := &Table{Indexes: map[string][]string{}, Uniques: map[string][]string{}}
+	table.Columns = make(map[string]*Column)
+	table.ColumnsSeq = make([]string, 0)
+	table.Cacher = engine.Cacher
+	return table
+}
+
 func (engine *Engine) MapType(t reflect.Type) *Table {
-	table := NewTable()
+	table := engine.newTable()
 	table.Name = engine.Mapper.Obj2Table(t.Name())
 	table.Type = t
 

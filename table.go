@@ -232,6 +232,7 @@ type Table struct {
 	PrimaryKey string
 	Created    string
 	Updated    string
+	Cacher     Cacher
 }
 
 func (table *Table) PKColumn() *Column {
@@ -241,13 +242,6 @@ func (table *Table) PKColumn() *Column {
 func (table *Table) AddColumn(col *Column) {
 	table.ColumnsSeq = append(table.ColumnsSeq, col.Name)
 	table.Columns[col.Name] = col
-}
-
-func NewTable() *Table {
-	table := &Table{Indexes: map[string][]string{}, Uniques: map[string][]string{}}
-	table.Columns = make(map[string]*Column)
-	table.ColumnsSeq = make([]string, 0)
-	return table
 }
 
 type Conversion interface {

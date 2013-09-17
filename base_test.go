@@ -778,6 +778,16 @@ func testCreatedAndUpdated(engine *Engine, t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
+
+	u.Id = 0
+	u.Created = time.Now().Add(-time.Hour * 24 * 365)
+	u.Updated = u.Created
+	fmt.Println(u)
+	_, err = engine.NoAutoTime().Insert(u)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
 }
 
 type IndexOrUnique struct {
