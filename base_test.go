@@ -162,7 +162,7 @@ func update(engine *Engine, t *testing.T) {
 	}
 
 	condi := Condi{"username": "zzz", "height": 0.0, "departname": ""}
-	_, err = engine.Table(&user).Id(1).Update(condi)
+	_, err = engine.Table(&user).Id(1).Update(&condi)
 	if err != nil {
 		t.Error(err)
 		panic(err)

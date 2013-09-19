@@ -1410,7 +1410,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		table = session.Engine.AutoMap(bean)
 		session.Statement.RefTable = table
 		colNames, args = BuildConditions(session.Engine, table, bean)
-		if table.Updated != "" {
+		if session.Statement.UseAutoTime && table.Updated != "" {
 			colNames = append(colNames, session.Engine.Quote(table.Updated)+" = ?")
 			args = append(args, time.Now())
 		}
@@ -1421,13 +1421,13 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		table = session.Statement.RefTable
 		colNames = make([]string, 0)
 		args = make([]interface{}, 0)
-		bValue := reflect.ValueOf(bean)
+		bValue := reflect.Indirect(reflect.ValueOf(bean))
 
 		for _, v := range bValue.MapKeys() {
 			colNames = append(colNames, session.Engine.Quote(v.String())+" = ?")
 			args = append(args, bValue.MapIndex(v).Interface())
 		}
-		if table.Updated != "" {
+		if session.Statement.UseAutoTime && table.Updated != "" {
 			colNames = append(colNames, session.Engine.Quote(table.Updated)+" = ?")
 			args = append(args, time.Now())
 		}
