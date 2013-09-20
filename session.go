@@ -422,29 +422,32 @@ func (session *Session) cacheGet(bean interface{}, sql string, args ...interface
 		fmt.Printf("-----Cached SQL: %v.\n", newsql)
 	}
 
-	structValue := reflect.Indirect(reflect.ValueOf(bean))
 	//fmt.Println("xxxxxxx", ids)
 	if len(ids) > 0 {
+		//structValue := reflect.Indirect(reflect.ValueOf(bean))
+		structValue := reflect.Indirect(reflect.ValueOf(bean))
 		id := ids[0]
 		tableName := session.Statement.TableName()
-		bean = GetCacheId(cacher, tableName, id)
-		if bean == nil {
+		cacheBean := GetCacheId(cacher, tableName, id)
+		if cacheBean == nil {
 			fmt.Printf("----Object Id %v no cached.\n", id)
 			newSession := session.Engine.NewSession()
 			defer newSession.Close()
-			bean = reflect.New(structValue.Type()).Interface()
-			has, err = newSession.Id(id).NoCache().Get(bean)
+			cacheBean = reflect.New(structValue.Type()).Interface()
+			has, err = newSession.Id(id).NoCache().Get(cacheBean)
 			if err != nil {
 				return has, err
 			}
 			//fmt.Println(bean)
-			PutCacheId(cacher, tableName, id, bean)
+			PutCacheId(cacher, tableName, id, cacheBean)
 		} else {
-			fmt.Printf("-----Cached Object: %v\n", bean)
+			fmt.Printf("-----Cached Object: %v\n", cacheBean)
 			has = true
 		}
+		//fmt.Println(cacheBean, reflect.ValueOf(cacheBean))
+		//fmt.Println(structValue.Addr())
+		structValue.Set(reflect.Indirect(reflect.ValueOf(cacheBean)))
 
-		structValue.Set(reflect.ValueOf(bean).Elem())
 		return has, nil
 	}
 	return false, nil
@@ -474,7 +477,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 			return err
 		}
 		// 查询数目太大，采用缓存将不是一个很好的方式。
-		if len(resultsSlice) > 20 {
+		if len(resultsSlice) > 100 {
 			return ErrCacheFailed
 		}
 		ids = make([]int64, 0)
@@ -506,45 +509,41 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 	var idxes []int = make([]int, 0)
 	var ides []interface{} = make([]interface{}, 0)
 	var temps []interface{} = make([]interface{}, len(ids))
+	tableName := session.Statement.TableName()
 	for idx, id := range ids {
-		tableName := session.Statement.TableName()
 		bean := GetCacheId(cacher, tableName, id)
 		if bean == nil {
 			fmt.Printf("----Object Id %v no cached.\n", id)
 			idxes = append(idxes, idx)
 			ides = append(ides, id)
-			/*newSession := session.Engine.NewSession()
-			defer newSession.Close()
-			bean = reflect.New(t).Interface()
-			_, err = newSession.Id(id).In(, ...).NoCache().Get(bean)
-			if err != nil {
-				return err
-			}
-
-			PutCacheId(cacher, tableName, id, bean)*/
 		} else {
 			fmt.Printf("-----Cached Object: %v\n", bean)
 			temps[idx] = bean
 		}
-
-		//sliceValue.Set(reflect.Append(sliceValue, reflect.ValueOf(bean).Elem()))
 	}
 
-	newSession := session.Engine.NewSession()
-	defer newSession.Close()
+	if len(ides) > 0 {
+		newSession := session.Engine.NewSession()
+		defer newSession.Close()
 
-	beans := reflect.New(sliceValue.Type()).Interface()
-	err = newSession.In("(id)", ides...).OrderBy(session.Statement.OrderStr).NoCache().Find(beans)
-	if err != nil {
-		return err
+		beans := reflect.New(sliceValue.Type()).Interface()
+		err = newSession.In("(id)", ides...).OrderBy(session.Statement.OrderStr).NoCache().Find(beans)
+		if err != nil {
+			return err
+		}
+
+		vs := reflect.Indirect(reflect.ValueOf(beans))
+		for i := 0; i < vs.Len(); i++ {
+			bean := vs.Index(i).Addr().Interface()
+			temps[idxes[i]] = bean
+			PutCacheId(cacher, tableName, ides[i].(int64), bean)
+		}
 	}
 
-	vs := reflect.Indirect(reflect.ValueOf(beans))
-	for i := 0; i < vs.Len(); i++ {
-		temps[idxes[i]] = vs.Index(i).Interface()
+	for j := 0; j < len(temps); j++ {
+		bean := temps[j]
+		sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(bean))))
 	}
-
-	//sliceValue.SetPointer(x)
 
 	return nil
 }
