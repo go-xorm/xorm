@@ -80,8 +80,10 @@ func (engine *Engine) SetDefaultCacher(cacher Cacher) {
 	}
 }
 
-func (engine *Engine) NoCache(bean interface{}) {
-	engine.MapCacher(bean, nil)
+func (engine *Engine) NoCache() *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.NoCache()
 }
 
 func (engine *Engine) MapCacher(bean interface{}, cacher Cacher) {
