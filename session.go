@@ -481,6 +481,8 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 		if len(resultsSlice) > 100 {
 			return ErrCacheFailed
 		}
+
+		tableName := session.Statement.TableName()
 		ids = make([]int64, 0)
 		if len(resultsSlice) > 0 {
 			for _, data := range resultsSlice {
@@ -496,18 +498,18 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 				}
 				ids = append(ids, id)
 			}
+
+			session.Engine.LogDebug("cache ids:", ids, tableName, newsql, args)
 		}
-		err = putCacheSql(cacher, ids, session.Statement.TableName(), newsql, args)
+		err = putCacheSql(cacher, ids, tableName, newsql, args)
 		if err != nil {
-			//fmt.Println(err)
 			return err
 		}
 	} else {
-		//fmt.Printf("-----Cached SQL: %v.\n", newsql)
+		session.Engine.LogDebug("cached sql:", newsql, args)
 	}
 
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
-	//fmt.Println("xxxxxxx", ids)
 	var idxes []int = make([]int, 0)
 	var ides []interface{} = make([]interface{}, 0)
 	var temps []interface{} = make([]interface{}, len(ids))
@@ -515,11 +517,9 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 	for idx, id := range ids {
 		bean := cacher.GetBean(tableName, id)
 		if bean == nil {
-			//fmt.Printf("----Object Id %v no cached.\n", id)
 			idxes = append(idxes, idx)
 			ides = append(ides, id)
 		} else {
-			//fmt.Printf("-----Cached Object: %v\n", bean)
 			temps[idx] = bean
 		}
 	}
@@ -538,6 +538,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 		for i := 0; i < vs.Len(); i++ {
 			bean := vs.Index(i).Addr().Interface()
 			temps[idxes[i]] = bean
+			session.Engine.LogDebug("cache bean:", tableName, ides[i], bean)
 			cacher.PutBean(tableName, ides[i].(int64), bean)
 		}
 	}
@@ -547,7 +548,13 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 		if bean != nil {
 			sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(bean))))
 		} else {
-			cacher.DelBean(tableName, ids[j].(int64))
+			session.Engine.LogDebug("cache delete:", tableName, ides[j])
+			cacher.DelBean(tableName, ids[j])
+
+			session.Engine.LogDebug("cache clear:", tableName)
+			fmt.Println(cacher)
+			cacher.ClearIds(tableName)
+			fmt.Println(cacher)
 		}
 	}
 
@@ -1327,6 +1334,7 @@ func (session *Session) cacheInsert(tables ...string) error {
 	cacher := table.Cacher
 
 	for _, t := range tables {
+		session.Engine.LogDebug("cache clear:", t)
 		cacher.ClearIds(t)
 	}
 
@@ -1522,7 +1530,8 @@ func (session *Session) cacheDelete(sql string, args ...interface{}) error {
 	}
 
 	cacher := session.Statement.RefTable.Cacher
-	ids, err := getCacheSql(cacher, session.Statement.TableName(), newsql, args)
+	tableName := session.Statement.TableName()
+	ids, err := getCacheSql(cacher, tableName, newsql, args)
 	if err != nil {
 		resultsSlice, err := session.query(newsql, args...)
 		if err != nil {
@@ -1544,12 +1553,13 @@ func (session *Session) cacheDelete(sql string, args ...interface{}) error {
 			}
 		}
 	} else {
-		//fmt.Printf("-----Cached SQL: %v.\n", newsql)
-		cacher.DelIds(session.Statement.TableName(), genSqlKey(newsql, args))
+		session.Engine.LogDebug("delete cache sql %v", newsql)
+		cacher.DelIds(tableName, genSqlKey(newsql, args))
 	}
 
 	for _, id := range ids {
-		cacher.DelBean(session.Statement.TableName(), id)
+		session.Engine.LogDebug("delete cache obj %v %v", tableName, id)
+		cacher.DelBean(tableName, id)
 	}
 	return nil
 }

@@ -186,8 +186,9 @@ func (m *LRUCacher) DelBean(tableName string, id int64) {
 		delete(m.idIndex, tid)
 		m.idList.Remove(el)
 		if tis, ok := m.sqlIndex[tableName]; ok {
-			for _, v := range tis {
+			for sql, v := range tis {
 				m.sqlList.Remove(v)
+				m.store.Del(sql)
 			}
 			m.sqlIndex[tableName] = make(map[interface{}]*list.Element)
 		}
@@ -198,8 +199,9 @@ func (m *LRUCacher) ClearIds(tableName string) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	if tis, ok := m.sqlIndex[tableName]; ok {
-		for _, v := range tis {
+		for sql, v := range tis {
 			m.sqlList.Remove(v)
+			m.store.Del(sql)
 		}
 		m.sqlIndex[tableName] = make(map[interface{}]*list.Element)
 	}

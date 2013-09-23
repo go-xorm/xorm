@@ -139,6 +139,12 @@ func (engine *Engine) LogError(contents ...interface{}) {
 	}
 }
 
+func (engine *Engine) LogDebug(contents ...interface{}) {
+	if engine.ShowDebug {
+		io.WriteString(engine.Logger, fmt.Sprintln(contents...))
+	}
+}
+
 func (engine *Engine) Sql(querystring string, args ...interface{}) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
