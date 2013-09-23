@@ -54,58 +54,154 @@ func (s *MemoryStore) Del(key interface{}) error {
 }
 
 type Cacher interface {
-	Get(id interface{}) interface{}
-	Put(id, obj interface{})
-	Del(id interface{})
+	GetIds(tableName, sql string) interface{}
+	GetBean(tableName string, id int64) interface{}
+	PutIds(tableName, sql string, ids interface{})
+	PutBean(tableName string, id int64, obj interface{})
+	DelIds(tableName, sql string)
+	DelBean(tableName string, id int64)
+	ClearIds(tableName string)
 }
 
 // LRUCacher implements Cacher according to LRU algorithm
 type LRUCacher struct {
-	name  string
-	list  *list.List
-	index map[interface{}]*list.Element
-	store CacheStore
-	Max   int
-	mutex sync.RWMutex
+	idList   *list.List
+	sqlList  *list.List
+	idIndex  map[interface{}]*list.Element
+	sqlIndex map[string]map[interface{}]*list.Element
+	store    CacheStore
+	Max      int
+	mutex    sync.Mutex
 }
 
 func NewLRUCacher(store CacheStore, max int) *LRUCacher {
-	return &LRUCacher{store: store, list: list.New(),
-		index: make(map[interface{}]*list.Element), Max: max}
+	cacher := &LRUCacher{store: store, idList: list.New(),
+		sqlList: list.New(), idIndex: make(map[interface{}]*list.Element),
+		Max: max}
+	cacher.sqlIndex = make(map[string]map[interface{}]*list.Element)
+	return cacher
 }
 
-func (m *LRUCacher) Get(id interface{}) interface{} {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-	if v, err := m.store.Get(id); err == nil {
-		el := m.index[id]
-		m.list.MoveToBack(el)
+func (m *LRUCacher) GetIds(tableName, sql string) interface{} {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	if v, err := m.store.Get(sql); err == nil {
+		if _, ok := m.sqlIndex[tableName]; !ok {
+			m.sqlIndex[tableName] = make(map[interface{}]*list.Element)
+		}
+		if el, ok := m.sqlIndex[tableName][sql]; !ok {
+			el = m.sqlList.PushBack(sql)
+			m.sqlIndex[tableName][sql] = el
+		} else {
+			m.sqlList.MoveToBack(el)
+		}
 		return v
+	}
+	if tel, ok := m.sqlIndex[tableName]; ok {
+		if el, ok := tel[sql]; ok {
+			delete(m.sqlIndex[tableName], sql)
+			m.sqlList.Remove(el)
+		}
 	}
 	return nil
 }
 
-func (m *LRUCacher) Put(id interface{}, obj interface{}) {
+func (m *LRUCacher) GetBean(tableName string, id int64) interface{} {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	el := m.list.PushBack(id)
-	m.index[id] = el
-	m.store.Put(id, obj)
-	if m.list.Len() > m.Max {
-		e := m.list.Front()
+	tid := genId(tableName, id)
+	if v, err := m.store.Get(tid); err == nil {
+		if el, ok := m.idIndex[tid]; ok {
+			m.idList.MoveToBack(el)
+		} else {
+			el = m.idList.PushBack(tid)
+			m.idIndex[tid] = el
+		}
+		return v
+	}
+	if el, ok := m.idIndex[tid]; ok {
+		delete(m.idIndex, tid)
+		m.idList.Remove(el)
+		if ms, ok := m.sqlIndex[tableName]; ok {
+			for _, v := range ms {
+				m.sqlList.Remove(v)
+			}
+			m.sqlIndex[tableName] = make(map[interface{}]*list.Element)
+		}
+	}
+	return nil
+}
+
+func (m *LRUCacher) PutIds(tableName, sql string, ids interface{}) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	if _, ok := m.sqlIndex[tableName]; !ok {
+		m.sqlIndex[tableName] = make(map[interface{}]*list.Element)
+	}
+	if el, ok := m.sqlIndex[tableName][sql]; !ok {
+		el = m.sqlList.PushBack(sql)
+		m.sqlIndex[tableName][sql] = el
+	}
+	m.store.Put(sql, ids)
+}
+
+func (m *LRUCacher) PutBean(tableName string, id int64, obj interface{}) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	var el *list.Element
+	var ok bool
+	tid := genId(tableName, id)
+	if el, ok = m.idIndex[tid]; !ok {
+		el = m.idList.PushBack(tid)
+		m.idIndex[tid] = el
+	}
+
+	m.store.Put(tid, obj)
+	if m.idList.Len() > m.Max {
+		e := m.idList.Front()
 		m.store.Del(e.Value)
-		delete(m.index, e.Value)
-		m.list.Remove(e)
+		delete(m.idIndex, e.Value)
+		m.idList.Remove(e)
 	}
 }
 
-func (m *LRUCacher) Del(id interface{}) {
+func (m *LRUCacher) DelIds(tableName, sql string) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	if el, ok := m.index[id]; ok {
-		m.store.Del(id)
-		delete(m.index, el.Value)
-		m.list.Remove(el)
+	if _, ok := m.sqlIndex[tableName]; ok {
+		if el, ok := m.sqlIndex[tableName][sql]; ok {
+			m.store.Del(sql)
+			delete(m.sqlIndex, sql)
+			m.sqlList.Remove(el)
+		}
+	}
+}
+
+func (m *LRUCacher) DelBean(tableName string, id int64) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	tid := genId(tableName, id)
+	if el, ok := m.idIndex[tid]; ok {
+		m.store.Del(tid)
+		delete(m.idIndex, tid)
+		m.idList.Remove(el)
+		if tis, ok := m.sqlIndex[tableName]; ok {
+			for _, v := range tis {
+				m.sqlList.Remove(v)
+			}
+			m.sqlIndex[tableName] = make(map[interface{}]*list.Element)
+		}
+	}
+}
+
+func (m *LRUCacher) ClearIds(tableName string) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	if tis, ok := m.sqlIndex[tableName]; ok {
+		for _, v := range tis {
+			m.sqlList.Remove(v)
+		}
+		m.sqlIndex[tableName] = make(map[interface{}]*list.Element)
 	}
 }
 
@@ -133,8 +229,8 @@ func decodeIds(s string) []int64 {
 	return res
 }
 
-func getCacheSql(m Cacher, sql string, args interface{}) ([]int64, error) {
-	bytes := m.Get(genSqlKey(sql, args))
+func getCacheSql(m Cacher, tableName, sql string, args interface{}) ([]int64, error) {
+	bytes := m.GetIds(tableName, genSqlKey(sql, args))
 	if bytes == nil {
 		return nil, errors.New("Not Exist")
 	}
@@ -142,14 +238,9 @@ func getCacheSql(m Cacher, sql string, args interface{}) ([]int64, error) {
 	return objs, nil
 }
 
-func putCacheSql(m Cacher, ids []int64, sql string, args interface{}) error {
+func putCacheSql(m Cacher, ids []int64, tableName, sql string, args interface{}) error {
 	bytes := encodeIds(ids)
-	m.Put(genSqlKey(sql, args), bytes)
-	return nil
-}
-
-func delCacheSql(m Cacher, sql string, args interface{}) error {
-	m.Del(genSqlKey(sql, args))
+	m.PutIds(tableName, genSqlKey(sql, args), bytes)
 	return nil
 }
 
@@ -159,19 +250,4 @@ func genSqlKey(sql string, args interface{}) string {
 
 func genId(prefix string, id int64) string {
 	return fmt.Sprintf("%v-%v", prefix, id)
-}
-
-func getCacheId(m Cacher, prefix string, id int64) interface{} {
-	return m.Get(genId(prefix, id))
-}
-
-func putCacheId(m Cacher, prefix string, id int64, bean interface{}) error {
-	m.Put(genId(prefix, id), bean)
-	return nil
-}
-
-func delCacheId(m Cacher, prefix string, id int64) error {
-	m.Del(genId(prefix, id))
-	//TODO: should delete id from select
-	return nil
 }

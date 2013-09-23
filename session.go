@@ -391,7 +391,7 @@ func (session *Session) cacheGet(bean interface{}, sql string, args ...interface
 	}
 
 	cacher := session.Statement.RefTable.Cacher
-	ids, err := getCacheSql(cacher, newsql, args)
+	ids, err := getCacheSql(cacher, session.Statement.TableName(), newsql, args)
 	if err != nil {
 		//fmt.Println(err)
 		resultsSlice, err := session.query(newsql, args...)
@@ -414,7 +414,7 @@ func (session *Session) cacheGet(bean interface{}, sql string, args ...interface
 			}
 			ids = append(ids, id)
 		}
-		err = putCacheSql(cacher, ids, newsql, args)
+		err = putCacheSql(cacher, ids, session.Statement.TableName(), newsql, args)
 		if err != nil {
 			//fmt.Println(err)
 			return false, err
@@ -429,7 +429,7 @@ func (session *Session) cacheGet(bean interface{}, sql string, args ...interface
 		structValue := reflect.Indirect(reflect.ValueOf(bean))
 		id := ids[0]
 		tableName := session.Statement.TableName()
-		cacheBean := getCacheId(cacher, tableName, id)
+		cacheBean := cacher.GetBean(tableName, id)
 		if cacheBean == nil {
 			//fmt.Printf("----Object Id %v no cached.\n", id)
 			newSession := session.Engine.NewSession()
@@ -440,7 +440,7 @@ func (session *Session) cacheGet(bean interface{}, sql string, args ...interface
 				return has, err
 			}
 			//fmt.Println(bean)
-			putCacheId(cacher, tableName, id, cacheBean)
+			cacher.PutBean(tableName, id, cacheBean)
 		} else {
 			//fmt.Printf("-----Cached Object: %v\n", cacheBean)
 			has = true
@@ -470,7 +470,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 
 	table := session.Statement.RefTable
 	cacher := table.Cacher
-	ids, err := getCacheSql(cacher, newsql, args)
+	ids, err := getCacheSql(cacher, session.Statement.TableName(), newsql, args)
 	if err != nil {
 		session.Engine.LogError(err)
 		resultsSlice, err := session.query(newsql, args...)
@@ -497,7 +497,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 				ids = append(ids, id)
 			}
 		}
-		err = putCacheSql(cacher, ids, newsql, args)
+		err = putCacheSql(cacher, ids, session.Statement.TableName(), newsql, args)
 		if err != nil {
 			//fmt.Println(err)
 			return err
@@ -513,7 +513,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 	var temps []interface{} = make([]interface{}, len(ids))
 	tableName := session.Statement.TableName()
 	for idx, id := range ids {
-		bean := getCacheId(cacher, tableName, id)
+		bean := cacher.GetBean(tableName, id)
 		if bean == nil {
 			//fmt.Printf("----Object Id %v no cached.\n", id)
 			idxes = append(idxes, idx)
@@ -538,13 +538,17 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 		for i := 0; i < vs.Len(); i++ {
 			bean := vs.Index(i).Addr().Interface()
 			temps[idxes[i]] = bean
-			putCacheId(cacher, tableName, ides[i].(int64), bean)
+			cacher.PutBean(tableName, ides[i].(int64), bean)
 		}
 	}
 
 	for j := 0; j < len(temps); j++ {
 		bean := temps[j]
-		sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(bean))))
+		if bean != nil {
+			sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(bean))))
+		} else {
+			cacher.DelBean(tableName, ides[j].(int64))
+		}
 	}
 
 	return nil
@@ -979,6 +983,10 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 		return -1, err
 	}
 
+	if table.Cacher != nil && session.Statement.UseCache {
+		session.cacheInsert(session.Statement.TableName())
+	}
+
 	id, err := res.LastInsertId()
 
 	if err != nil {
@@ -1252,6 +1260,10 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		return 0, err
 	}
 
+	if table.Cacher != nil && session.Statement.UseCache {
+		session.cacheInsert(session.Statement.TableName())
+	}
+
 	if table.PrimaryKey == "" {
 		return 0, nil
 	}
@@ -1306,6 +1318,21 @@ func (statement *Statement) convertUpdateSql(sql string) (string, string) {
 		sqls[1])
 }
 
+func (session *Session) cacheInsert(tables ...string) error {
+	if session.Statement.RefTable == nil || session.Statement.RefTable.PrimaryKey == "" {
+		return ErrCacheFailed
+	}
+
+	table := session.Statement.RefTable
+	cacher := table.Cacher
+
+	for _, t := range tables {
+		cacher.ClearIds(t)
+	}
+
+	return nil
+}
+
 func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 	if session.Statement.RefTable == nil || session.Statement.RefTable.PrimaryKey == "" {
 		return ErrCacheFailed
@@ -1331,7 +1358,7 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 	}
 	table := session.Statement.RefTable
 	cacher := table.Cacher
-	ids, err := getCacheSql(cacher, newsql, args)
+	ids, err := getCacheSql(cacher, session.Statement.TableName(), newsql, args)
 	if err != nil {
 		resultsSlice, err := session.query(newsql, args[nStart:]...)
 		if err != nil {
@@ -1354,11 +1381,11 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 		}
 	} else {
 		//fmt.Printf("-----Cached SQL: %v.\n", newsql)
-		delCacheSql(cacher, newsql, args)
+		cacher.DelIds(session.Statement.TableName(), genSqlKey(newsql, args))
 	}
 
 	for _, id := range ids {
-		if bean := getCacheId(cacher, session.Statement.TableName(), id); bean != nil {
+		if bean := cacher.GetBean(session.Statement.TableName(), id); bean != nil {
 			sqls := strings.SplitN(strings.ToLower(sql), "where", 2)
 			if len(sqls) != 2 {
 				return nil
@@ -1385,7 +1412,7 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 				}
 			}
 
-			putCacheId(cacher, session.Statement.TableName(), id, bean)
+			cacher.PutBean(session.Statement.TableName(), id, bean)
 		}
 	}
 	return nil
@@ -1495,7 +1522,7 @@ func (session *Session) cacheDelete(sql string, args ...interface{}) error {
 	}
 
 	cacher := session.Statement.RefTable.Cacher
-	ids, err := getCacheSql(cacher, newsql, args)
+	ids, err := getCacheSql(cacher, session.Statement.TableName(), newsql, args)
 	if err != nil {
 		resultsSlice, err := session.query(newsql, args...)
 		if err != nil {
@@ -1518,11 +1545,11 @@ func (session *Session) cacheDelete(sql string, args ...interface{}) error {
 		}
 	} else {
 		//fmt.Printf("-----Cached SQL: %v.\n", newsql)
-		delCacheSql(cacher, newsql, args)
+		cacher.DelIds(session.Statement.TableName(), genSqlKey(newsql, args))
 	}
 
 	for _, id := range ids {
-		delCacheId(cacher, session.Statement.TableName(), id)
+		cacher.DelBean(session.Statement.TableName(), id)
 	}
 	return nil
 }
