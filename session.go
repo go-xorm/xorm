@@ -470,9 +470,9 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 
 	table := session.Statement.RefTable
 	cacher := table.Cacher
-	ids, err := getCacheSql(cacher, newsql)
+	ids, err := getCacheSql(cacher, newsql, args)
 	if err != nil {
-		//fmt.Println(err)
+		session.Engine.LogError(err)
 		resultsSlice, err := session.query(newsql, args...)
 		if err != nil {
 			return err
@@ -1331,7 +1331,7 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 	}
 	table := session.Statement.RefTable
 	cacher := table.Cacher
-	ids, err := getCacheSql(cacher, newsql)
+	ids, err := getCacheSql(cacher, newsql, args)
 	if err != nil {
 		resultsSlice, err := session.query(newsql, args[nStart:]...)
 		if err != nil {
@@ -1354,7 +1354,7 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 		}
 	} else {
 		//fmt.Printf("-----Cached SQL: %v.\n", newsql)
-		delCacheSql(cacher, newsql)
+		delCacheSql(cacher, newsql, args)
 	}
 
 	for _, id := range ids {
@@ -1495,7 +1495,7 @@ func (session *Session) cacheDelete(sql string, args ...interface{}) error {
 	}
 
 	cacher := session.Statement.RefTable.Cacher
-	ids, err := getCacheSql(cacher, newsql)
+	ids, err := getCacheSql(cacher, newsql, args)
 	if err != nil {
 		resultsSlice, err := session.query(newsql, args...)
 		if err != nil {
@@ -1518,7 +1518,7 @@ func (session *Session) cacheDelete(sql string, args ...interface{}) error {
 		}
 	} else {
 		//fmt.Printf("-----Cached SQL: %v.\n", newsql)
-		delCacheSql(cacher, newsql)
+		delCacheSql(cacher, newsql, args)
 	}
 
 	for _, id := range ids {

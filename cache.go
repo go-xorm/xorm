@@ -133,7 +133,7 @@ func decodeIds(s string) []int64 {
 	return res
 }
 
-func getCacheSql(m Cacher, sql string, args ...interface{}) ([]int64, error) {
+func getCacheSql(m Cacher, sql string, args interface{}) ([]int64, error) {
 	bytes := m.Get(genSqlKey(sql, args))
 	if bytes == nil {
 		return nil, errors.New("Not Exist")
@@ -142,18 +142,18 @@ func getCacheSql(m Cacher, sql string, args ...interface{}) ([]int64, error) {
 	return objs, nil
 }
 
-func putCacheSql(m Cacher, ids []int64, sql string, args ...interface{}) error {
+func putCacheSql(m Cacher, ids []int64, sql string, args interface{}) error {
 	bytes := encodeIds(ids)
 	m.Put(genSqlKey(sql, args), bytes)
 	return nil
 }
 
-func delCacheSql(m Cacher, sql string, args ...interface{}) error {
+func delCacheSql(m Cacher, sql string, args interface{}) error {
 	m.Del(genSqlKey(sql, args))
 	return nil
 }
 
-func genSqlKey(sql string, args ...interface{}) string {
+func genSqlKey(sql string, args interface{}) string {
 	return fmt.Sprintf("%v-%v", sql, args)
 }
 

@@ -35,6 +35,8 @@ type Engine struct {
 	Tables         map[reflect.Type]*Table
 	mutex          *sync.Mutex
 	ShowSQL        bool
+	ShowErr        bool
+	ShowDebug      bool
 	Pool           IConnectPool
 	Filters        []Filter
 	Logger         io.Writer
@@ -132,7 +134,9 @@ func (engine *Engine) LogSQL(contents ...interface{}) {
 }
 
 func (engine *Engine) LogError(contents ...interface{}) {
-	io.WriteString(engine.Logger, fmt.Sprintln(contents...))
+	if engine.ShowErr {
+		io.WriteString(engine.Logger, fmt.Sprintln(contents...))
+	}
 }
 
 func (engine *Engine) Sql(querystring string, args ...interface{}) *Session {
