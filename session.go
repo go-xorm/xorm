@@ -391,7 +391,7 @@ func (session *Session) cacheGet(bean interface{}, sql string, args ...interface
 	}
 
 	cacher := session.Statement.RefTable.Cacher
-	ids, err := GetCacheSql(cacher, newsql)
+	ids, err := getCacheSql(cacher, newsql, args)
 	if err != nil {
 		//fmt.Println(err)
 		resultsSlice, err := session.query(newsql, args...)
@@ -414,7 +414,7 @@ func (session *Session) cacheGet(bean interface{}, sql string, args ...interface
 			}
 			ids = append(ids, id)
 		}
-		err = PutCacheSql(cacher, newsql, ids)
+		err = putCacheSql(cacher, ids, newsql, args)
 		if err != nil {
 			//fmt.Println(err)
 			return false, err
@@ -429,7 +429,7 @@ func (session *Session) cacheGet(bean interface{}, sql string, args ...interface
 		structValue := reflect.Indirect(reflect.ValueOf(bean))
 		id := ids[0]
 		tableName := session.Statement.TableName()
-		cacheBean := GetCacheId(cacher, tableName, id)
+		cacheBean := getCacheId(cacher, tableName, id)
 		if cacheBean == nil {
 			//fmt.Printf("----Object Id %v no cached.\n", id)
 			newSession := session.Engine.NewSession()
@@ -440,7 +440,7 @@ func (session *Session) cacheGet(bean interface{}, sql string, args ...interface
 				return has, err
 			}
 			//fmt.Println(bean)
-			PutCacheId(cacher, tableName, id, cacheBean)
+			putCacheId(cacher, tableName, id, cacheBean)
 		} else {
 			//fmt.Printf("-----Cached Object: %v\n", cacheBean)
 			has = true
@@ -470,7 +470,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 
 	table := session.Statement.RefTable
 	cacher := table.Cacher
-	ids, err := GetCacheSql(cacher, newsql)
+	ids, err := getCacheSql(cacher, newsql)
 	if err != nil {
 		//fmt.Println(err)
 		resultsSlice, err := session.query(newsql, args...)
@@ -497,7 +497,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 				ids = append(ids, id)
 			}
 		}
-		err = PutCacheSql(cacher, newsql, ids)
+		err = putCacheSql(cacher, ids, newsql, args)
 		if err != nil {
 			//fmt.Println(err)
 			return err
@@ -513,7 +513,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 	var temps []interface{} = make([]interface{}, len(ids))
 	tableName := session.Statement.TableName()
 	for idx, id := range ids {
-		bean := GetCacheId(cacher, tableName, id)
+		bean := getCacheId(cacher, tableName, id)
 		if bean == nil {
 			//fmt.Printf("----Object Id %v no cached.\n", id)
 			idxes = append(idxes, idx)
@@ -538,7 +538,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 		for i := 0; i < vs.Len(); i++ {
 			bean := vs.Index(i).Addr().Interface()
 			temps[idxes[i]] = bean
-			PutCacheId(cacher, tableName, ides[i].(int64), bean)
+			putCacheId(cacher, tableName, ides[i].(int64), bean)
 		}
 	}
 
@@ -1331,7 +1331,7 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 	}
 	table := session.Statement.RefTable
 	cacher := table.Cacher
-	ids, err := GetCacheSql(cacher, newsql)
+	ids, err := getCacheSql(cacher, newsql)
 	if err != nil {
 		resultsSlice, err := session.query(newsql, args[nStart:]...)
 		if err != nil {
@@ -1354,11 +1354,11 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 		}
 	} else {
 		//fmt.Printf("-----Cached SQL: %v.\n", newsql)
-		DelCacheSql(cacher, newsql)
+		delCacheSql(cacher, newsql)
 	}
 
 	for _, id := range ids {
-		if bean := GetCacheId(cacher, session.Statement.TableName(), id); bean != nil {
+		if bean := getCacheId(cacher, session.Statement.TableName(), id); bean != nil {
 			sqls := strings.SplitN(strings.ToLower(sql), "where", 2)
 			if len(sqls) != 2 {
 				return nil
@@ -1385,7 +1385,7 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 				}
 			}
 
-			PutCacheId(cacher, session.Statement.TableName(), id, bean)
+			putCacheId(cacher, session.Statement.TableName(), id, bean)
 		}
 	}
 	return nil
@@ -1495,7 +1495,7 @@ func (session *Session) cacheDelete(sql string, args ...interface{}) error {
 	}
 
 	cacher := session.Statement.RefTable.Cacher
-	ids, err := GetCacheSql(cacher, newsql)
+	ids, err := getCacheSql(cacher, newsql)
 	if err != nil {
 		resultsSlice, err := session.query(newsql, args...)
 		if err != nil {
@@ -1518,11 +1518,11 @@ func (session *Session) cacheDelete(sql string, args ...interface{}) error {
 		}
 	} else {
 		//fmt.Printf("-----Cached SQL: %v.\n", newsql)
-		DelCacheSql(cacher, newsql)
+		delCacheSql(cacher, newsql)
 	}
 
 	for _, id := range ids {
-		DelCacheId(cacher, session.Statement.TableName(), id)
+		delCacheId(cacher, session.Statement.TableName(), id)
 	}
 	return nil
 }

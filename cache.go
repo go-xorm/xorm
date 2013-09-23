@@ -133,8 +133,8 @@ func decodeIds(s string) []int64 {
 	return res
 }
 
-func GetCacheSql(m Cacher, sql string) ([]int64, error) {
-	bytes := m.Get(sql)
+func getCacheSql(m Cacher, sql string, args ...interface{}) ([]int64, error) {
+	bytes := m.Get(genSqlKey(sql, args))
 	if bytes == nil {
 		return nil, errors.New("Not Exist")
 	}
@@ -142,31 +142,35 @@ func GetCacheSql(m Cacher, sql string) ([]int64, error) {
 	return objs, nil
 }
 
-func PutCacheSql(m Cacher, sql string, ids []int64) error {
+func putCacheSql(m Cacher, ids []int64, sql string, args ...interface{}) error {
 	bytes := encodeIds(ids)
-	m.Put(sql, bytes)
+	m.Put(genSqlKey(sql, args), bytes)
 	return nil
 }
 
-func DelCacheSql(m Cacher, sql string) error {
-	m.Del(sql)
+func delCacheSql(m Cacher, sql string, args ...interface{}) error {
+	m.Del(genSqlKey(sql, args))
 	return nil
+}
+
+func genSqlKey(sql string, args ...interface{}) string {
+	return fmt.Sprintf("%v-%v", sql, args)
 }
 
 func genId(prefix string, id int64) string {
 	return fmt.Sprintf("%v-%v", prefix, id)
 }
 
-func GetCacheId(m Cacher, prefix string, id int64) interface{} {
+func getCacheId(m Cacher, prefix string, id int64) interface{} {
 	return m.Get(genId(prefix, id))
 }
 
-func PutCacheId(m Cacher, prefix string, id int64, bean interface{}) error {
+func putCacheId(m Cacher, prefix string, id int64, bean interface{}) error {
 	m.Put(genId(prefix, id), bean)
 	return nil
 }
 
-func DelCacheId(m Cacher, prefix string, id int64) error {
+func delCacheId(m Cacher, prefix string, id int64) error {
 	m.Del(genId(prefix, id))
 	//TODO: should delete id from select
 	return nil

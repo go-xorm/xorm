@@ -59,7 +59,8 @@ func test(engine *xorm.Engine) {
 						} else if x+j < 16 {
 							_, err = engine.Insert(&User{Name: "xlw"})
 						} else if x+j < 32 {
-							_, err = engine.Id(1).Delete(u)
+							//_, err = engine.Id(1).Delete(u)
+							_, err = engine.Delete(u)
 						}
 						if err != nil {
 							fmt.Println(err)

@@ -37,6 +37,8 @@ type IdFilter struct {
 
 func (i *IdFilter) Do(sql string, session *Session) string {
 	if session.Statement.RefTable != nil && session.Statement.RefTable.PrimaryKey != "" {
+		sql = strings.Replace(sql, "`(id)`", session.Engine.Quote(session.Statement.RefTable.PrimaryKey), -1)
+		sql = strings.Replace(sql, session.Engine.Quote("(id)"), session.Engine.Quote(session.Statement.RefTable.PrimaryKey), -1)
 		return strings.Replace(sql, "(id)", session.Engine.Quote(session.Statement.RefTable.PrimaryKey), -1)
 	}
 	return sql
