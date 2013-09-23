@@ -547,7 +547,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 		if bean != nil {
 			sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(bean))))
 		} else {
-			cacher.DelBean(tableName, ides[j].(int64))
+			cacher.DelBean(tableName, ids[j].(int64))
 		}
 	}
 
