@@ -7,6 +7,7 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 [![Build Status](https://drone.io/github.com/lunny/xorm/status.png)](https://drone.io/github.com/lunny/xorm/latest)
 
 ## 讨论
+
 请加入QQ群：280360085 进行讨论。
 
 ## 驱动支持
@@ -48,21 +49,22 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * 支持数据库连接池
 
-* 支持级联加载struct
+* 支持级联加载struct 
 
 
 ## 安装
 
 	go get github.com/lunny/xorm
 
-## 快速开始
-
-请访问 [快速开始](https://github.com/lunny/xorm/blob/master/QuickStart.md) 查看详细文档
-
-
 ## 文档
 
-请访问 [GoWalker](http://gowalker.org/github.com/lunny/xorm) 查看详细文档
+* [快速开始](https://github.com/lunny/xorm/blob/master/QuickStart.md)
+
+* [GoWalker代码文档](http://gowalker.org/github.com/lunny/xorm)
+
+## 案例
+
+* [Godaily.org](http://godaily.org)
 
 ## FAQ
 
@@ -75,6 +77,8 @@ type User struct {
     Name string `json:"name" xorm:"name"`
 }
 ```
+2.问：xorm有几种命名映射规则？
+答案：目前支持SnakeMapper和SameMapper两种。SnakeMapper支持结构体和成员以驼峰式命名而数据库表和字段以下划线连接命名；SameMapper支持结构体和数据库的命名保持一致的映射。
 
 ## LICENSE
 

@@ -392,13 +392,14 @@ func (session *Session) cacheGet(bean interface{}, sql string, args ...interface
 
 	cacher := session.Statement.RefTable.Cacher
 	tableName := session.Statement.TableName()
+	session.Engine.LogDebug("[xorm:cacheGet] find sql:", newsql, args)
 	ids, err := getCacheSql(cacher, tableName, newsql, args)
 	if err != nil {
 		resultsSlice, err := session.query(newsql, args...)
 		if err != nil {
 			return false, err
 		}
-
+		session.Engine.LogDebug("[xorm:cacheGet] query ids:", resultsSlice)
 		ids = make([]int64, 0)
 		if len(resultsSlice) > 0 {
 			data := resultsSlice[0]
@@ -413,19 +414,19 @@ func (session *Session) cacheGet(bean interface{}, sql string, args ...interface
 			}
 			ids = append(ids, id)
 		}
-		session.Engine.LogDebug("[xorm:cache] cache ids:", newsql, ids)
+		session.Engine.LogDebug("[xorm:cacheGet] cache ids:", newsql, ids)
 		err = putCacheSql(cacher, ids, tableName, newsql, args)
 		if err != nil {
 			return false, err
 		}
 	} else {
-		session.Engine.LogDebug("[xorm:cache] cached sql:", newsql)
+		session.Engine.LogDebug("[xorm:cacheGet] cached sql:", newsql)
 	}
 
 	if len(ids) > 0 {
 		structValue := reflect.Indirect(reflect.ValueOf(bean))
 		id := ids[0]
-
+		session.Engine.LogDebug("[xorm:cacheGet] get bean:", tableName, id)
 		cacheBean := cacher.GetBean(tableName, id)
 		if cacheBean == nil {
 			newSession := session.Engine.NewSession()
@@ -436,10 +437,10 @@ func (session *Session) cacheGet(bean interface{}, sql string, args ...interface
 				return has, err
 			}
 
-			session.Engine.LogDebug("[xorm:cache] cache bean:", tableName, id, cacheBean)
+			session.Engine.LogDebug("[xorm:cacheGet] cache bean:", tableName, id, cacheBean)
 			cacher.PutBean(tableName, id, cacheBean)
 		} else {
-			session.Engine.LogDebug("[xorm:cache] cached bean:", tableName, id, cacheBean)
+			session.Engine.LogDebug("[xorm:cacheGet] cached bean:", tableName, id, cacheBean)
 			has = true
 		}
 		structValue.Set(reflect.Indirect(reflect.ValueOf(cacheBean)))
@@ -474,7 +475,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 		}
 		// 查询数目太大，采用缓存将不是一个很好的方式。
 		if len(resultsSlice) > 100 {
-			session.Engine.LogDebug("[xorm:cache] ids > 100, no cache")
+			session.Engine.LogDebug("[xorm:cacheFind] ids > 100, no cache")
 			return ErrCacheFailed
 		}
 
@@ -495,13 +496,13 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 				ids = append(ids, id)
 			}
 		}
-		session.Engine.LogDebug("[xorm:cache] cache ids:", ids, tableName, newsql, args)
+		session.Engine.LogDebug("[xorm:cacheFind] cache ids:", ids, tableName, newsql, args)
 		err = putCacheSql(cacher, ids, tableName, newsql, args)
 		if err != nil {
 			return err
 		}
 	} else {
-		session.Engine.LogDebug("[xorm:cache] cached sql:", newsql, args)
+		session.Engine.LogDebug("[xorm:cacheFind] cached sql:", newsql, args)
 	}
 
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
@@ -515,7 +516,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 			idxes = append(idxes, idx)
 			ides = append(ides, id)
 		} else {
-			session.Engine.LogDebug("[xorm:cache] cached bean:", tableName, id, bean)
+			session.Engine.LogDebug("[xorm:cacheFind] cached bean:", tableName, id, bean)
 			temps[idx] = bean
 		}
 	}
@@ -534,7 +535,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 		for i := 0; i < vs.Len(); i++ {
 			bean := vs.Index(i).Addr().Interface()
 			temps[idxes[i]] = bean
-			session.Engine.LogDebug("[xorm:cache] cache bean:", tableName, ides[i], bean)
+			session.Engine.LogDebug("[xorm:cacheFind] cache bean:", tableName, ides[i], bean)
 			cacher.PutBean(tableName, ides[i].(int64), bean)
 		}
 	}
@@ -544,13 +545,11 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 		if bean != nil {
 			sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(bean))))
 		} else {
-			session.Engine.LogDebug("[xorm:cache] cache delete:", tableName, ides[j])
+			session.Engine.LogDebug("[xorm:cacheFind] cache delete:", tableName, ides[j])
 			cacher.DelBean(tableName, ids[j])
 
-			session.Engine.LogDebug("[xorm:cache] cache clear:", tableName)
-			fmt.Println(cacher)
+			session.Engine.LogDebug("[xorm:cacheFind] cache clear:", tableName)
 			cacher.ClearIds(tableName)
-			fmt.Println(cacher)
 		}
 	}
 
@@ -595,10 +594,7 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 		return false, nil
 	}
 
-	results := resultsSlice[0]
-
-	err = session.scanMapIntoStruct(bean, results)
-
+	err = session.scanMapIntoStruct(bean, resultsSlice[0])
 	if err != nil {
 		return true, err
 	}
@@ -1311,14 +1307,26 @@ func (statement *Statement) convertUpdateSql(sql string) (string, string) {
 	if statement.RefTable == nil || statement.RefTable.PrimaryKey == "" {
 		return "", ""
 	}
-	sqls := strings.SplitN(strings.ToLower(sql), "where", 2)
+	idx := strings.Index(strings.ToLower(sql), "where")
+	sqls := strings.SplitN(sql, sql[idx:idx+5], 2)
 	if len(sqls) != 2 {
 		return "", ""
 	}
 
+	var whereStr = sqls[1]
+	//TODO: for postgres only, if any other database?
+	if strings.Contains(sqls[1], "$") {
+		dollers := strings.Split(sqls[1], "$")
+		whereStr = dollers[0]
+		for i, c := range dollers[1:] {
+			ccs := strings.SplitN(c, " ", 2)
+			whereStr += fmt.Sprintf("$%v %v", i+1, ccs[1])
+		}
+	}
+
 	return sqls[0], fmt.Sprintf("SELECT %v FROM %v WHERE %v",
 		statement.Engine.Quote(statement.RefTable.PrimaryKey), statement.Engine.Quote(statement.TableName()),
-		sqls[1])
+		whereStr)
 }
 
 func (session *Session) cacheInsert(tables ...string) error {
@@ -1342,14 +1350,14 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 		return ErrCacheFailed
 	}
 
-	for _, filter := range session.Engine.Filters {
-		sql = filter.Do(sql, session)
-	}
-
 	oldhead, newsql := session.Statement.convertUpdateSql(sql)
 	if newsql == "" {
 		return ErrCacheFailed
 	}
+	for _, filter := range session.Engine.Filters {
+		newsql = filter.Do(newsql, session)
+	}
+	session.Engine.LogDebug("[xorm:cacheUpdate] new sql", oldhead, newsql)
 
 	var nStart int
 	if len(args) > 0 {
@@ -1363,12 +1371,15 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 	table := session.Statement.RefTable
 	cacher := table.Cacher
 	tableName := session.Statement.TableName()
-	ids, err := getCacheSql(cacher, tableName, newsql, args)
+	session.Engine.LogDebug("[xorm:cacheUpdate] get cache sql", newsql, args[nStart:])
+	ids, err := getCacheSql(cacher, tableName, newsql, args[nStart:])
 	if err != nil {
 		resultsSlice, err := session.query(newsql, args[nStart:]...)
 		if err != nil {
 			return err
 		}
+		session.Engine.LogDebug("[xorm:cacheUpdate] find updated id", resultsSlice)
+
 		ids = make([]int64, 0)
 		if len(resultsSlice) > 0 {
 			for _, data := range resultsSlice {
@@ -1385,7 +1396,7 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 			}
 		}
 	} else {
-		session.Engine.LogDebug("[xorm:cache] del cached sql:", tableName, newsql, args)
+		session.Engine.LogDebug("[xorm:cacheUpdate] del cached sql:", tableName, newsql, args)
 		cacher.DelIds(tableName, genSqlKey(newsql, args))
 	}
 
@@ -1410,13 +1421,16 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 					colName = strings.TrimSpace(strings.Replace(colName, session.Engine.QuoteStr(), "", -1))
 				}
 				//fmt.Println("find", colName)
+
 				if col, ok := table.Columns[colName]; ok {
 					fieldValue := col.ValueOf(bean)
+					session.Engine.LogDebug("[xorm:cacheUpdate] set bean field", bean, colName, fieldValue.Interface())
 					//session.bytes2Value(col, fieldValue, []byte(args[idx]))
 					fieldValue.Set(reflect.ValueOf(args[idx]))
 				}
 			}
 
+			session.Engine.LogDebug("[xorm:cacheUpdate] update cache", tableName, id, bean)
 			cacher.PutBean(tableName, id, bean)
 		}
 	}

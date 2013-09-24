@@ -18,7 +18,7 @@ type CacheStore interface {
 
 type MemoryStore struct {
 	store map[interface{}]interface{}
-	mutex sync.Mutex
+	mutex sync.RWMutex
 }
 
 func NewMemoryStore() *MemoryStore {
@@ -34,8 +34,8 @@ func (s *MemoryStore) Put(key, value interface{}) error {
 }
 
 func (s *MemoryStore) Get(key interface{}) (interface{}, error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.Rlock()
+	defer s.mutex.UnRlock()
 	//fmt.Println("before get store:", s.store)
 	if v, ok := s.store[key]; ok {
 		return v, nil

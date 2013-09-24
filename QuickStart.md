@@ -170,6 +170,14 @@ type User struct {
 
 - 3.支持`type MyString string`等自定义的field，支持Slice, Map等field成员，这些成员默认存储为Text类型，并且默认将使用Json格式来序列化和反序列化。也支持数据库字段类型为Blob类型，如果是Blob类型，则先使用Jsong格式序列化再转成[]byte格式。当然[]byte或者[]uint8默认为Blob类型并且都已二进制方式存储。
 
+- 4.实现了Conversion接口的类型或者结构体，将根据接口的转换方式在类型和数据库记录之间进行相互转换。
+```Go
+type Conversion interface {
+	FromDB([]byte) error
+	ToDB() ([]byte, error)
+}
+```
+
 <a name="30" id="30"></a>
 ## 3.创建表
 
