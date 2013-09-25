@@ -34,8 +34,8 @@ func (s *MemoryStore) Put(key, value interface{}) error {
 }
 
 func (s *MemoryStore) Get(key interface{}) (interface{}, error) {
-	s.mutex.Rlock()
-	defer s.mutex.UnRlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	//fmt.Println("before get store:", s.store)
 	if v, ok := s.store[key]; ok {
 		return v, nil
