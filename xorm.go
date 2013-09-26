@@ -5,12 +5,17 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"runtime"
 	"sync"
 )
 
 const (
 	version string = "0.1.9"
 )
+
+func close(engine *Engine) {
+	engine.Close()
+}
 
 // new a db manager according to the parameter. Currently support three
 // driver
@@ -42,6 +47,6 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 	//engine.Pool = NewNoneConnectPool()
 	//engine.Cacher = NewLRUCacher()
 	err := engine.SetPool(NewSysConnectPool())
-
+	runtime.SetFinalizer(engine, close)
 	return engine, err
 }

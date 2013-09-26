@@ -2,7 +2,6 @@ package xorm
 
 import (
 	"reflect"
-	//"strconv"
 	"strings"
 	"time"
 )
@@ -242,6 +241,50 @@ func (table *Table) PKColumn() *Column {
 func (table *Table) AddColumn(col *Column) {
 	table.ColumnsSeq = append(table.ColumnsSeq, col.Name)
 	table.Columns[col.Name] = col
+}
+
+func (table *Table) GenCols(session *Session, bean interface{}, useCol bool, includeQuote bool) ([]string, []interface{}, error) {
+	colNames := make([]string, 0)
+	args := make([]interface{}, 0)
+
+	for _, col := range table.Columns {
+		if useCol {
+			if _, ok := session.Statement.columnMap[col.Name]; !ok {
+				continue
+			}
+		}
+		if col.MapType == ONLYFROMDB {
+			continue
+		}
+
+		fieldValue := col.ValueOf(bean)
+		if col.IsAutoIncrement && fieldValue.Int() == 0 {
+			continue
+		}
+
+		if session.Statement.ColumnStr != "" {
+			if _, ok := session.Statement.columnMap[col.Name]; !ok {
+				continue
+			}
+		}
+
+		if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
+			args = append(args, time.Now())
+		} else {
+			arg, err := session.value2Interface(col, fieldValue)
+			if err != nil {
+				return colNames, args, err
+			}
+			args = append(args, arg)
+		}
+
+		if includeQuote {
+			colNames = append(colNames, session.Engine.Quote(col.Name)+" = ?")
+		} else {
+			colNames = append(colNames, col.Name)
+		}
+	}
+	return colNames, args, nil
 }
 
 type Conversion interface {

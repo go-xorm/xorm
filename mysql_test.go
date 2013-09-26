@@ -20,4 +20,5 @@ func TestMysql(t *testing.T) {
 	engine.ShowSQL = true
 
 	testAll(engine, t)
+	testAll2(engine, t)
 }

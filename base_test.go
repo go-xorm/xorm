@@ -112,9 +112,29 @@ func exec(engine *Engine, t *testing.T) {
 	fmt.Println(res)
 }
 
+func querySameMapper(engine *Engine, t *testing.T) {
+	sql := "select * from `Userinfo`"
+	results, err := engine.Query(sql)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println(results)
+}
+
+func execSameMapper(engine *Engine, t *testing.T) {
+	sql := "update `Userinfo` set `Username`=? where (id)=?"
+	res, err := engine.Exec(sql, "xiaolun", 1)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println(res)
+}
+
 func insertAutoIncr(engine *Engine, t *testing.T) {
 	// auto increment insert
-	user := Userinfo{Username: "xiaolunwen", Departname: "dev", Alias: "lunny", Created: time.Now(),
+	user := Userinfo{Username: "xiaolunwen2", Departname: "dev", Alias: "lunny", Created: time.Now(),
 		Detail: Userdetail{Id: 1}, Height: 1.78, Avatar: []byte{1, 2, 3}, IsMan: true}
 	_, err := engine.Insert(&user)
 	fmt.Println(user.Uid)
@@ -162,6 +182,29 @@ func update(engine *Engine, t *testing.T) {
 	}
 
 	condi := Condi{"username": "zzz", "height": 0.0, "departname": ""}
+	_, err = engine.Table(&user).Id(1).Update(&condi)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	_, err = engine.Update(&Userinfo{Username: "yyy"}, &user)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+}
+
+func updateSameMapper(engine *Engine, t *testing.T) {
+	// update by id
+	user := Userinfo{Username: "xxx", Height: 1.2}
+	_, err := engine.Id(1).Update(&user)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	condi := Condi{"Username": "zzz", "Height": 0.0, "Departname": ""}
 	_, err = engine.Table(&user).Id(1).Update(&condi)
 	if err != nil {
 		t.Error(err)
@@ -243,12 +286,12 @@ func count(engine *Engine, t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
-	fmt.Printf("Total %d records!!!", total)
+	fmt.Printf("Total %d records!!!\n", total)
 }
 
 func where(engine *Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
-	err := engine.Where("id > ?", 2).Find(&users)
+	err := engine.Where("(id) > ?", 2).Find(&users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -258,7 +301,7 @@ func where(engine *Engine, t *testing.T) {
 
 func in(engine *Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
-	err := engine.In("id", 1, 2, 3).Find(&users)
+	err := engine.In("(id)", 1, 2, 3).Find(&users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -266,7 +309,7 @@ func in(engine *Engine, t *testing.T) {
 	fmt.Println(users)
 
 	ids := []interface{}{1, 2, 3}
-	err = engine.Where("id > ?", 2).In("id", ids...).Find(&users)
+	err = engine.Where("(id) > ?", 2).In("(id)", ids...).Find(&users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -321,6 +364,43 @@ func having(engine *Engine, t *testing.T) {
 	fmt.Println(users)
 }
 
+func orderSameMapper(engine *Engine, t *testing.T) {
+	users := make([]Userinfo, 0)
+	err := engine.OrderBy("(id) desc").Find(&users)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println(users)
+
+	users2 := make([]Userinfo, 0)
+	err = engine.Asc("(id)", "Username").Desc("Height").Find(&users2)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println(users2)
+}
+
+func joinSameMapper(engine *Engine, t *testing.T) {
+	users := make([]Userinfo, 0)
+	err := engine.Join("LEFT", `"Userdetail"`, `"Userinfo"."id"="Userdetail"."Id"`).Find(&users)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+}
+
+func havingSameMapper(engine *Engine, t *testing.T) {
+	users := make([]Userinfo, 0)
+	err := engine.GroupBy("Username").Having(`"Username"='xlw'`).Find(&users)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println(users)
+}
+
 func transaction(engine *Engine, t *testing.T) {
 	counter := func() {
 		total, err := engine.Count(&Userinfo{})
@@ -349,7 +429,7 @@ func transaction(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 	user2 := Userinfo{Username: "yyy"}
-	_, err = session.Where("uid = ?", 0).Update(&user2)
+	_, err = session.Where("(id) = ?", 0).Update(&user2)
 	if err != nil {
 		session.Rollback()
 		fmt.Println(err)
@@ -408,6 +488,55 @@ func combineTransaction(engine *Engine, t *testing.T) {
 	}
 
 	_, err = session.Exec("delete from userinfo where username = ?", user2.Username)
+	if err != nil {
+		session.Rollback()
+		t.Error(err)
+		panic(err)
+	}
+
+	err = session.Commit()
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+}
+
+func combineTransactionSameMapper(engine *Engine, t *testing.T) {
+	counter := func() {
+		total, err := engine.Count(&Userinfo{})
+		if err != nil {
+			t.Error(err)
+		}
+		fmt.Printf("----now total %v records\n", total)
+	}
+
+	counter()
+	defer counter()
+	session := engine.NewSession()
+	defer session.Close()
+
+	err := session.Begin()
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	//session.IsAutoRollback = false
+	user1 := Userinfo{Username: "xiaoxiao2", Departname: "dev", Alias: "lunny", Created: time.Now()}
+	_, err = session.Insert(&user1)
+	if err != nil {
+		session.Rollback()
+		t.Error(err)
+		panic(err)
+	}
+	user2 := Userinfo{Username: "zzz"}
+	_, err = session.Where("(id) = ?", 0).Update(&user2)
+	if err != nil {
+		session.Rollback()
+		t.Error(err)
+		panic(err)
+	}
+
+	_, err = session.Exec("delete from `Userinfo` where `Username` = ?", user2.Username)
 	if err != nil {
 		session.Rollback()
 		t.Error(err)
@@ -554,6 +683,41 @@ func testCols(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 	fmt.Println(tmpUsers)
+
+	user := &Userinfo{Uid: 1, Alias: "", Height: 0}
+	affected, err := engine.Cols("departname, height").Id(1).Update(user)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println("===================", user, affected)
+}
+
+func testColsSameMapper(engine *Engine, t *testing.T) {
+	users := []Userinfo{}
+	err := engine.Cols("(id), Username").Find(&users)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	fmt.Println(users)
+
+	tmpUsers := []tempUser{}
+	err = engine.Table("Userinfo").Cols("(id), Username").Find(&tmpUsers)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println(tmpUsers)
+
+	user := &Userinfo{Uid: 1, Alias: "", Height: 0}
+	affected, err := engine.Cols("Departname, Height").Update(user)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println("===================", user, affected)
 }
 
 type tempUser2 struct {
@@ -708,8 +872,8 @@ func testCustomType(engine *Engine, t *testing.T) {
 	i.UIA32 = []uint32{4, 5}
 	i.UIA64 = []uint64{6, 7, 9}
 	i.UIA8 = []uint8{1, 2, 3, 4}
-	i.NameArray = []string{"ssss fsdf", "lllll, ss"}
-	i.MSS = map[string]string{"s": "sfds,ss  ", "x": "lfjljsl"}
+	i.NameArray = []string{"ssss", "fsdf", "lllll, ss"}
+	i.MSS = map[string]string{"s": "sfds,ss", "x": "lfjljsl"}
 	_, err = engine.Insert(&i)
 	if err != nil {
 		t.Error(err)
@@ -804,13 +968,13 @@ func testIndexAndUnique(engine *Engine, t *testing.T) {
 	err := engine.DropTables(&IndexOrUnique{})
 	if err != nil {
 		t.Error(err)
-		panic(err)
+		//panic(err)
 	}
 
 	err = engine.CreateTables(&IndexOrUnique{})
 	if err != nil {
 		t.Error(err)
-		panic(err)
+		//panic(err)
 	}
 }
 
@@ -853,38 +1017,75 @@ func testInt32Id(engine *Engine, t *testing.T) {
 }
 
 func testAll(engine *Engine, t *testing.T) {
+	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
+	fmt.Println("-------------- mapper --------------")
 	mapper(engine, t)
+	fmt.Println("-------------- insert --------------")
 	insert(engine, t)
+	fmt.Println("-------------- query --------------")
 	query(engine, t)
+	fmt.Println("-------------- exec --------------")
 	exec(engine, t)
+	fmt.Println("-------------- insertAutoIncr --------------")
 	insertAutoIncr(engine, t)
+	fmt.Println("-------------- insertMulti --------------")
 	insertMulti(engine, t)
+	fmt.Println("-------------- insertTwoTable --------------")
 	insertTwoTable(engine, t)
+	fmt.Println("-------------- update --------------")
 	update(engine, t)
+	fmt.Println("-------------- testdelete --------------")
 	testdelete(engine, t)
+	fmt.Println("-------------- get --------------")
 	get(engine, t)
+	fmt.Println("-------------- cascadeGet --------------")
 	cascadeGet(engine, t)
+	fmt.Println("-------------- find --------------")
 	find(engine, t)
+	fmt.Println("-------------- findMap --------------")
 	findMap(engine, t)
+	fmt.Println("-------------- count --------------")
 	count(engine, t)
+	fmt.Println("-------------- where --------------")
 	where(engine, t)
+	fmt.Println("-------------- in --------------")
 	in(engine, t)
+	fmt.Println("-------------- limit --------------")
 	limit(engine, t)
+	fmt.Println("-------------- order --------------")
 	order(engine, t)
+	fmt.Println("-------------- join --------------")
 	join(engine, t)
+	fmt.Println("-------------- having --------------")
 	having(engine, t)
-	transaction(engine, t)
+}
+
+func testAll2(engine *Engine, t *testing.T) {
+	fmt.Println("-------------- combineTransaction --------------")
 	combineTransaction(engine, t)
+	fmt.Println("-------------- table --------------")
 	table(engine, t)
+	fmt.Println("-------------- createMultiTables --------------")
 	createMultiTables(engine, t)
+	fmt.Println("-------------- tableOp --------------")
 	tableOp(engine, t)
+	fmt.Println("-------------- testCols --------------")
 	testCols(engine, t)
+	fmt.Println("-------------- testCharst --------------")
 	testCharst(engine, t)
+	fmt.Println("-------------- testStoreEngine --------------")
 	testStoreEngine(engine, t)
+	fmt.Println("-------------- testExtends --------------")
 	testExtends(engine, t)
+	fmt.Println("-------------- testColTypes --------------")
 	testColTypes(engine, t)
+	fmt.Println("-------------- testCustomType --------------")
 	testCustomType(engine, t)
+	fmt.Println("-------------- testCreatedAndUpdated --------------")
 	testCreatedAndUpdated(engine, t)
+	fmt.Println("-------------- testIndexAndUnique --------------")
 	testIndexAndUnique(engine, t)
+	fmt.Println("-------------- transaction --------------")
+	transaction(engine, t)
 }

@@ -24,6 +24,7 @@ type dialect interface {
 	AutoIncrStr() string
 	SupportEngine() bool
 	SupportCharset() bool
+	IndexOnTable() bool
 }
 
 type Engine struct {

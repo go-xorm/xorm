@@ -46,3 +46,7 @@ func (db *sqlite3) SupportEngine() bool {
 func (db *sqlite3) SupportCharset() bool {
 	return false
 }
+
+func (db *sqlite3) IndexOnTable() bool {
+	return false
+}

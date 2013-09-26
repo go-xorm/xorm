@@ -57,3 +57,7 @@ func (db *mysql) SupportEngine() bool {
 func (db *mysql) SupportCharset() bool {
 	return true
 }
+
+func (db *mysql) IndexOnTable() bool {
+	return true
+}

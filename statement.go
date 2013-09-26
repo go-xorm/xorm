@@ -207,10 +207,18 @@ func (statement *Statement) In(column string, args ...interface{}) {
 }
 
 func (statement *Statement) Cols(columns ...string) {
-	statement.ColumnStr = strings.Join(columns, statement.Engine.Quote(", "))
-	for _, column := range columns {
-		statement.columnMap[column] = true
+	newColumns := make([]string, 0)
+	for _, col := range columns {
+		strings.Replace(col, "`", "", -1)
+		strings.Replace(col, `"`, "", -1)
+		ccols := strings.Split(col, ",")
+		for _, c := range ccols {
+			nc := strings.TrimSpace(c)
+			statement.columnMap[nc] = true
+			newColumns = append(newColumns, nc)
+		}
 	}
+	statement.ColumnStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
 }
 
 func (statement *Statement) Limit(limit int, start ...int) {
@@ -284,8 +292,27 @@ func (statement *Statement) genIndexSQL() []string {
 func (statement *Statement) genUniqueSQL() []string {
 	var sqls []string = make([]string, 0)
 	for indexName, cols := range statement.RefTable.Uniques {
-		sql := fmt.Sprintf("CREATE UNIQUE INDEX UQE_%v_%v ON %v (%v);", statement.TableName(), indexName,
+		sql := fmt.Sprintf("CREATE UNIQUE INDEX `UQE_%v_%v` ON %v (%v);", statement.TableName(), indexName,
 			statement.Engine.Quote(statement.TableName()), statement.Engine.Quote(strings.Join(cols, statement.Engine.Quote(","))))
+		sqls = append(sqls, sql)
+	}
+	return sqls
+}
+
+func (statement *Statement) genDelIndexSQL() []string {
+	var sqls []string = make([]string, 0)
+	for indexName, _ := range statement.RefTable.Uniques {
+		sql := fmt.Sprintf("DROP INDEX `UQE_%v_%v`", statement.TableName(), indexName)
+		if statement.Engine.Dialect.IndexOnTable() {
+			sql += fmt.Sprintf(" ON %v", statement.Engine.Quote(statement.TableName()))
+		}
+		sqls = append(sqls, sql)
+	}
+	for indexName, _ := range statement.RefTable.Indexes {
+		sql := fmt.Sprintf("DROP INDEX IDX_%v_%v", statement.TableName(), indexName)
+		if statement.Engine.Dialect.IndexOnTable() {
+			sql += fmt.Sprintf(" ON %v", statement.Engine.Quote(statement.TableName()))
+		}
 		sqls = append(sqls, sql)
 	}
 	return sqls

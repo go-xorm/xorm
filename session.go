@@ -337,6 +337,7 @@ func (session *Session) CreateAll() error {
 	return nil
 }
 
+// DropTable drop a table and all indexes of the table
 func (session *Session) DropTable(bean interface{}) error {
 	err := session.newDb()
 	if err != nil {
@@ -354,6 +355,14 @@ func (session *Session) DropTable(bean interface{}) error {
 		session.Statement.AltTableName = bean.(string)
 	} else if t.Kind() == reflect.Struct {
 		session.Statement.RefTable = session.Engine.AutoMap(bean)
+
+		sqls := session.Statement.genDelIndexSQL()
+		for _, sql := range sqls {
+			_, err = session.exec(sql)
+			if err != nil {
+				return err
+			}
+		}
 	} else {
 		return errors.New("Unsupported type")
 	}
@@ -1209,41 +1218,15 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 
 func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	table := session.Engine.AutoMap(bean)
-
 	session.Statement.RefTable = table
-	colNames := make([]string, 0)
-	colPlaces := make([]string, 0)
-	var args = make([]interface{}, 0)
 
-	for _, col := range table.Columns {
-		if col.MapType == ONLYFROMDB {
-			continue
-		}
-
-		fieldValue := col.ValueOf(bean)
-		if col.IsAutoIncrement && fieldValue.Int() == 0 {
-			continue
-		}
-
-		if session.Statement.ColumnStr != "" {
-			if _, ok := session.Statement.columnMap[col.Name]; !ok {
-				continue
-			}
-		}
-
-		if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
-			args = append(args, time.Now())
-		} else {
-			arg, err := session.value2Interface(col, fieldValue)
-			if err != nil {
-				return 0, err
-			}
-			args = append(args, arg)
-		}
-
-		colNames = append(colNames, col.Name)
-		colPlaces = append(colPlaces, "?")
+	colNames, args, err := table.GenCols(session, bean, false, false)
+	if err != nil {
+		return 0, err
 	}
+
+	colPlaces := strings.Repeat("?, ", len(colNames))
+	colPlaces = colPlaces[0 : len(colPlaces)-2]
 
 	sql := fmt.Sprintf("INSERT INTO %v%v%v (%v%v%v) VALUES (%v);",
 		session.Engine.QuoteStr(),
@@ -1252,7 +1235,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		session.Engine.QuoteStr(),
 		strings.Join(colNames, session.Engine.Quote(", ")),
 		session.Engine.QuoteStr(),
-		strings.Join(colPlaces, ", "))
+		colPlaces)
 
 	res, err := session.exec(sql, args...)
 	if err != nil {
@@ -1402,13 +1385,14 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 
 	for _, id := range ids {
 		if bean := cacher.GetBean(tableName, id); bean != nil {
-			sqls := strings.SplitN(strings.ToLower(sql), "where", 2)
+			sqls := SplitNNoCase(sql, "where", 2)
 			if len(sqls) != 2 {
-				return nil
+				return ErrCacheFailed
 			}
-			sqls = strings.SplitN(sqls[0], "set", 2)
+
+			sqls = SplitNNoCase(sqls[0], "set", 2)
 			if len(sqls) != 2 {
-				return nil
+				return ErrCacheFailed
 			}
 			kvs := strings.Split(strings.TrimSpace(sqls[1]), ",")
 			for idx, kv := range kvs {
@@ -1419,13 +1403,14 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 					colName = strings.TrimSpace(strings.Replace(colName, "`", "", -1))
 				} else if strings.Contains(colName, session.Engine.QuoteStr()) {
 					colName = strings.TrimSpace(strings.Replace(colName, session.Engine.QuoteStr(), "", -1))
+				} else {
+					session.Engine.LogDebug("[xorm:cacheUpdate] cannot find column", tableName, colName)
+					return ErrCacheFailed
 				}
-				//fmt.Println("find", colName)
 
 				if col, ok := table.Columns[colName]; ok {
 					fieldValue := col.ValueOf(bean)
 					session.Engine.LogDebug("[xorm:cacheUpdate] set bean field", bean, colName, fieldValue.Interface())
-					//session.bytes2Value(col, fieldValue, []byte(args[idx]))
 					fieldValue.Set(reflect.ValueOf(args[idx]))
 				}
 			}
@@ -1457,14 +1442,21 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		table = session.Engine.AutoMap(bean)
 		session.Statement.RefTable = table
 
-		colNames, args = BuildConditions(session.Engine, table, bean)
+		if session.Statement.ColumnStr == "" {
+			colNames, args = BuildConditions(session.Engine, table, bean)
+		} else {
+			colNames, args, err = table.GenCols(session, bean, true, true)
+			if err != nil {
+				return 0, err
+			}
+		}
 		if session.Statement.UseAutoTime && table.Updated != "" {
 			colNames = append(colNames, session.Engine.Quote(table.Updated)+" = ?")
 			args = append(args, time.Now())
 		}
 	} else if t.Kind() == reflect.Map {
 		if session.Statement.RefTable == nil {
-			return -1, ErrTableNotFound
+			return 0, ErrTableNotFound
 		}
 		table = session.Statement.RefTable
 		colNames = make([]string, 0)
@@ -1480,7 +1472,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			args = append(args, time.Now())
 		}
 	} else {
-		return -1, ErrParamsType
+		return 0, ErrParamsType
 	}
 
 	var condiColNames []string

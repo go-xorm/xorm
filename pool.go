@@ -2,7 +2,7 @@ package xorm
 
 import (
 	"database/sql"
-	"fmt"
+	//"fmt"
 	"sync"
 	//"sync/atomic"
 	"container/list"
@@ -118,7 +118,7 @@ func NewNode() *node {
 
 // RetrieveDB just return the only db
 func (s *SysConnectPool) RetrieveDB(engine *Engine) (db *sql.DB, err error) {
-	if s.maxConns > 0 {
+	/*if s.maxConns > 0 {
 		fmt.Println("before retrieve")
 		s.mutex.Lock()
 		for s.curConns >= s.maxConns {
@@ -135,13 +135,13 @@ func (s *SysConnectPool) RetrieveDB(engine *Engine) (db *sql.DB, err error) {
 		s.curConns += 1
 		s.mutex.Unlock()
 		fmt.Println("after retrieve")
-	}
+	}*/
 	return s.db, nil
 }
 
 // ReleaseDB do nothing
 func (s *SysConnectPool) ReleaseDB(engine *Engine, db *sql.DB) {
-	if s.maxConns > 0 {
+	/*if s.maxConns > 0 {
 		s.mutex.Lock()
 		fmt.Println("before release", s.queue.Len())
 		s.curConns -= 1
@@ -156,7 +156,7 @@ func (s *SysConnectPool) ReleaseDB(engine *Engine, db *sql.DB) {
 		}
 		fmt.Println("after released", s.queue.Len())
 		s.mutex.Unlock()
-	}
+	}*/
 }
 
 // Close closed the only db
@@ -176,6 +176,7 @@ func (p *SysConnectPool) MaxIdleConns() int {
 // not implemented
 func (p *SysConnectPool) SetMaxConns(conns int) {
 	p.maxConns = conns
+	//p.db.SetMaxOpenConns(conns)
 }
 
 // not implemented
