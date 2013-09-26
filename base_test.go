@@ -42,7 +42,13 @@ type Userdetail struct {
 }
 
 func directCreateTable(engine *Engine, t *testing.T) {
-	err := engine.DropTables(&Userinfo{}, &Userdetail{})
+	err := engine.CreateTables(&Userinfo{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.DropTables(&Userinfo{}, &Userdetail{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -965,7 +971,13 @@ type IndexOrUnique struct {
 }
 
 func testIndexAndUnique(engine *Engine, t *testing.T) {
-	err := engine.DropTables(&IndexOrUnique{})
+	err := engine.CreateTables(&IndexOrUnique{})
+	if err != nil {
+		t.Error(err)
+		//panic(err)
+	}
+
+	err = engine.DropTables(&IndexOrUnique{})
 	if err != nil {
 		t.Error(err)
 		//panic(err)

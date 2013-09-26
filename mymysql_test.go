@@ -11,7 +11,7 @@ utf8 COLLATE utf8_general_ci;
 */
 
 func TestMyMysql(t *testing.T) {
-	engine, err := NewEngine("mymysql", "xorm_test/root/")
+	engine, err := NewEngine("mymysql", "xorm_test2/root/")
 	defer engine.Close()
 	if err != nil {
 		t.Error(err)
