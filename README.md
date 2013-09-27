@@ -347,6 +347,21 @@ Another is use field tag, field tag support the below keywords which split with 
     <tr>
         <td>-</td><td>this field is not map as a table column</td>
     </tr>
+    <tr>
+        <td>-></td><td>this field only write to db and not read from db</td>
+    </tr>
+     <tr>
+        <td>&lt;-</td><td>this field only read from db and not write to db</td>
+    </tr>
+     <tr>
+        <td>created</td><td>this field will auto fill current time when insert</td>
+    </tr>
+     <tr>
+        <td>updated</td><td>this field will auto fill current time when update</td>
+    </tr>
+    <tr>
+        <td>default 0 or default 'abc'</td><td>default value, use single quote for string</td>
+    </tr>
 </table>
 
 For Example
