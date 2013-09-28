@@ -13,7 +13,7 @@ func TestPostgres(t *testing.T) {
 		return
 	}
 	defer engine.Close()
-	engine.ShowSQL = true
+	engine.ShowSQL = showTestSql
 
 	testAll(engine, t)
 	testAll2(engine, t)
@@ -26,7 +26,7 @@ func TestPostgres2(t *testing.T) {
 		return
 	}
 	defer engine.Close()
-	engine.ShowSQL = true
+	engine.ShowSQL = showTestSql
 	engine.Mapper = SameMapper{}
 
 	fmt.Println("-------------- directCreateTable --------------")
@@ -97,4 +97,28 @@ func TestPostgres2(t *testing.T) {
 	testCreatedAndUpdated(engine, t)
 	fmt.Println("-------------- testIndexAndUnique --------------")
 	testIndexAndUnique(engine, t)
+}
+
+func BenchmarkPostgresNoCache(t *testing.B) {
+	engine, err := NewEngine("postgres", "dbname=xorm_test sslmode=disable")
+
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	//engine.ShowSQL = true
+	doBenchCacheFind(engine, t)
+}
+
+func BenchmarkPostgresCache(t *testing.B) {
+	engine, err := NewEngine("postgres", "dbname=xorm_test sslmode=disable")
+
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	doBenchCacheFind(engine, t)
 }

@@ -42,7 +42,7 @@ type Userdetail struct {
 }
 
 func directCreateTable(engine *Engine, t *testing.T) {
-	err := engine.CreateTables(&Userinfo{})
+	err := engine.Sync(&Userinfo{})
 	if err != nil {
 		t.Error(err)
 		panic(err)

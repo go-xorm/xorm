@@ -25,10 +25,10 @@ func (s *PgSeqFilter) Do(sql string, session *Session) string {
 	return res
 }
 
-type PgQuoteFilter struct {
+type QuoteFilter struct {
 }
 
-func (s *PgQuoteFilter) Do(sql string, session *Session) string {
+func (s *QuoteFilter) Do(sql string, session *Session) string {
 	return strings.Replace(sql, "`", session.Engine.QuoteStr(), -1)
 }
 

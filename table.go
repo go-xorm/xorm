@@ -161,6 +161,16 @@ const (
 	UNIONUNIQUE
 )
 
+type Index struct {
+	Name     string
+	IsUnique bool
+	Cols     []*Column
+}
+
+func NewIndex(name string, isUnique bool) *Index {
+	return &Index{name, isUnique, make([]*Column, 0)}
+}
+
 type Column struct {
 	Name            string
 	FieldName       string

@@ -2,6 +2,7 @@ package xorm
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -18,6 +19,7 @@ const (
 )
 
 type dialect interface {
+	Init(uri string) error
 	SqlType(t *Column) string
 	SupportInsertMany() bool
 	QuoteStr() string
@@ -25,6 +27,9 @@ type dialect interface {
 	SupportEngine() bool
 	SupportCharset() bool
 	IndexOnTable() bool
+	IndexCheckSql(tableName, idxName string) (string, []interface{})
+	TableCheckSql(tableName string) (string, []interface{})
+	ColumnCheckSql(tableName, colName string) (string, []interface{})
 }
 
 type Engine struct {
@@ -70,6 +75,7 @@ func (engine *Engine) SetPool(pool IConnectPool) error {
 	return engine.Pool.Init(engine)
 }
 
+// only for go 1.2+
 func (engine *Engine) SetMaxConns(conns int) {
 	engine.Pool.SetMaxConns(conns)
 }
@@ -463,6 +469,132 @@ func (engine *Engine) Map(beans ...interface{}) (e error) {
 		engine.Tables[t] = engine.MapType(t)
 	}
 	return
+}
+
+// is a table has
+func (engine *Engine) IsEmptyTable(bean interface{}) (bool, error) {
+	t := Type(bean)
+	if t.Kind() != reflect.Struct {
+		return false, errors.New("bean should be a struct or struct's point")
+	}
+	engine.AutoMapType(t)
+	session := engine.NewSession()
+	defer session.Close()
+	has, err := session.Get(bean)
+	return !has, err
+}
+
+func (engine *Engine) isTableExist(bean interface{}) (bool, error) {
+	t := Type(bean)
+	if t.Kind() != reflect.Struct {
+		return false, errors.New("bean should be a struct or struct's point")
+	}
+	table := engine.AutoMapType(t)
+	session := engine.NewSession()
+	defer session.Close()
+	has, err := session.isTableExist(table.Name)
+	return has, err
+}
+
+func (engine *Engine) ClearCache(beans ...interface{}) {
+	for _, bean := range beans {
+		table := engine.AutoMap(bean)
+		table.Cacher.ClearIds(table.Name)
+	}
+}
+
+// sync the new struct to database, this method will auto add column, index, unique
+// but will not delete or change anything.
+func (engine *Engine) Sync(beans ...interface{}) error {
+	for _, bean := range beans {
+		table := engine.AutoMap(bean)
+
+		s := engine.NewSession()
+		defer s.Close()
+		isExist, err := s.Table(bean).isTableExist(table.Name)
+		if err != nil {
+			return err
+		}
+		if !isExist {
+			err = engine.CreateTables(bean)
+			if err != nil {
+				return err
+			}
+		} else {
+			isEmpty, err := engine.IsEmptyTable(bean)
+			if err != nil {
+				return err
+			}
+			if isEmpty {
+				err = engine.DropTables(bean)
+				if err != nil {
+					return err
+				}
+				err = engine.CreateTables(bean)
+				if err != nil {
+					return err
+				}
+			} else {
+				for _, col := range table.Columns {
+					session := engine.NewSession()
+					session.Statement.RefTable = table
+					defer session.Close()
+					isExist, err := session.isColumnExist(table.Name, col.Name)
+					if err != nil {
+						return err
+					}
+					if !isExist {
+						session := engine.NewSession()
+						session.Statement.RefTable = table
+						defer session.Close()
+						err = session.addColumn(col.Name)
+						if err != nil {
+							return err
+						}
+					}
+				}
+
+				for idx, _ := range table.Indexes {
+					session := engine.NewSession()
+					session.Statement.RefTable = table
+					defer session.Close()
+					isExist, err := session.isIndexExist(table.Name, idx, false)
+					if err != nil {
+						return err
+					}
+					if !isExist {
+						session := engine.NewSession()
+						session.Statement.RefTable = table
+						defer session.Close()
+						err = session.addIndex(table.Name, idx)
+						if err != nil {
+							return err
+						}
+					}
+				}
+
+				for uqe, _ := range table.Uniques {
+					session := engine.NewSession()
+					session.Statement.RefTable = table
+					defer session.Close()
+					isExist, err := session.isIndexExist(table.Name, uqe, true)
+					if err != nil {
+						return err
+					}
+					if !isExist {
+						session := engine.NewSession()
+						session.Statement.RefTable = table
+						defer session.Close()
+						err = session.addUnique(table.Name, uqe)
+						if err != nil {
+							return err
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (engine *Engine) UnMap(beans ...interface{}) (e error) {

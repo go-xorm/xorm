@@ -17,8 +17,30 @@ func TestMysql(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	engine.ShowSQL = true
+	engine.ShowSQL = showTestSql
 
 	testAll(engine, t)
 	testAll2(engine, t)
+}
+
+func BenchmarkMysqlNoCache(t *testing.B) {
+	engine, err := NewEngine("mysql", "root:@/xorm_test?charset=utf8")
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	//engine.ShowSQL = true
+	doBenchCacheFind(engine, t)
+}
+
+func BenchmarkMysqlCache(t *testing.B) {
+	engine, err := NewEngine("mysql", "root:@/xorm_test?charset=utf8")
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	doBenchCacheFind(engine, t)
 }

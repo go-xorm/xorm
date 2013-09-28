@@ -10,6 +10,8 @@ CREATE DATABASE IF NOT EXISTS xorm_test CHARACTER SET
 utf8 COLLATE utf8_general_ci;
 */
 
+var showTestSql bool = false
+
 func TestMyMysql(t *testing.T) {
 	engine, err := NewEngine("mymysql", "xorm_test2/root/")
 	defer engine.Close()
@@ -17,8 +19,30 @@ func TestMyMysql(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	engine.ShowSQL = true
+	engine.ShowSQL = showTestSql
 
 	testAll(engine, t)
 	testAll2(engine, t)
+}
+
+func BenchmarkMyMysqlNoCache(t *testing.B) {
+	engine, err := NewEngine("mymysql", "xorm_test2/root/")
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	//engine.ShowSQL = true
+	doBenchCacheFind(engine, t)
+}
+
+func BenchmarkMyMysqlCache(t *testing.B) {
+	engine, err := NewEngine("mymysql", "xorm_test2/root/")
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	doBenchCacheFind(engine, t)
 }

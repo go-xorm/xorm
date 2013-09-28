@@ -279,47 +279,57 @@ func (statement *Statement) genCreateSQL() string {
 	return sql
 }
 
-func (statement *Statement) genIndexSQL() []string {
+func indexName(tableName, idxName string) string {
+	return fmt.Sprintf("IDX_%v_%v", tableName, idxName)
+}
+
+func (s *Statement) genIndexSQL() []string {
 	var sqls []string = make([]string, 0)
-	for indexName, cols := range statement.RefTable.Indexes {
-		sql := fmt.Sprintf("CREATE INDEX IDX_%v_%v ON %v (%v);", statement.TableName(), indexName,
-			statement.Engine.Quote(statement.TableName()), statement.Engine.Quote(strings.Join(cols, statement.Engine.Quote(","))))
+	tbName := s.TableName()
+	quote := s.Engine.Quote
+	for idxName, cols := range s.RefTable.Indexes {
+		sql := fmt.Sprintf("CREATE INDEX %v ON %v (%v);", quote(indexName(tbName, idxName)),
+			quote(tbName), quote(strings.Join(cols, quote(","))))
 		sqls = append(sqls, sql)
 	}
 	return sqls
+}
+
+func uniqueName(tableName, uqeName string) string {
+	return fmt.Sprintf("UQE_%v_%v", tableName, uqeName)
 }
 
 func (statement *Statement) genUniqueSQL() []string {
 	var sqls []string = make([]string, 0)
 	for indexName, cols := range statement.RefTable.Uniques {
-		sql := fmt.Sprintf("CREATE UNIQUE INDEX `UQE_%v_%v` ON %v (%v);", statement.TableName(), indexName,
+		sql := fmt.Sprintf("CREATE UNIQUE INDEX `%v` ON %v (%v);", uniqueName(statement.TableName(), indexName),
 			statement.Engine.Quote(statement.TableName()), statement.Engine.Quote(strings.Join(cols, statement.Engine.Quote(","))))
 		sqls = append(sqls, sql)
 	}
 	return sqls
 }
 
-func (statement *Statement) genDelIndexSQL() []string {
+func (s *Statement) genDelIndexSQL() []string {
 	var sqls []string = make([]string, 0)
-	for indexName, _ := range statement.RefTable.Uniques {
-		sql := fmt.Sprintf("DROP INDEX `UQE_%v_%v`", statement.TableName(), indexName)
-		if statement.Engine.Dialect.IndexOnTable() {
-			sql += fmt.Sprintf(" ON %v", statement.Engine.Quote(statement.TableName()))
+	for indexName, _ := range s.RefTable.Uniques {
+		sql := fmt.Sprintf("DROP INDEX %v", s.Engine.Quote(uniqueName(s.TableName(), indexName)))
+		if s.Engine.Dialect.IndexOnTable() {
+			sql += fmt.Sprintf(" ON %v", s.Engine.Quote(s.TableName()))
 		}
 		sqls = append(sqls, sql)
 	}
-	for indexName, _ := range statement.RefTable.Indexes {
-		sql := fmt.Sprintf("DROP INDEX IDX_%v_%v", statement.TableName(), indexName)
-		if statement.Engine.Dialect.IndexOnTable() {
-			sql += fmt.Sprintf(" ON %v", statement.Engine.Quote(statement.TableName()))
+	for indexName, _ := range s.RefTable.Indexes {
+		sql := fmt.Sprintf("DROP INDEX %v", s.Engine.Quote(uniqueName(s.TableName(), indexName)))
+		if s.Engine.Dialect.IndexOnTable() {
+			sql += fmt.Sprintf(" ON %v", s.Engine.Quote(s.TableName()))
 		}
 		sqls = append(sqls, sql)
 	}
 	return sqls
 }
 
-func (statement *Statement) genDropSQL() string {
-	sql := "DROP TABLE IF EXISTS " + statement.Engine.Quote(statement.TableName()) + ";"
+func (s *Statement) genDropSQL() string {
+	sql := "DROP TABLE IF EXISTS " + s.Engine.Quote(s.TableName()) + ";"
 	return sql
 }
 
@@ -337,6 +347,27 @@ func (statement Statement) genGetSql(bean interface{}) (string, []interface{}) {
 	}
 
 	return statement.genSelectSql(columnStr), append(statement.Params, statement.BeanArgs...)
+}
+
+func (s *Statement) genAddColumnStr(col *Column) (string, []interface{}) {
+	quote := s.Engine.Quote
+	sql := fmt.Sprintf("ALTER TABLE %v ADD COLUMN %v;", quote(s.TableName()),
+		col.String(s.Engine))
+	return sql, []interface{}{}
+}
+
+func (s *Statement) genAddIndexStr(idxName string, cols []string) (string, []interface{}) {
+	quote := s.Engine.Quote
+	colstr := quote(strings.Join(cols, quote(", ")))
+	sql := fmt.Sprintf("CREATE INDEX %v ON %v (%v);", quote(idxName), quote(s.TableName()), colstr)
+	return sql, []interface{}{}
+}
+
+func (s *Statement) genAddUniqueStr(uqeName string, cols []string) (string, []interface{}) {
+	quote := s.Engine.Quote
+	colstr := quote(strings.Join(cols, quote(", ")))
+	sql := fmt.Sprintf("CREATE UNIQUE INDEX %v ON %v (%v);", quote(uqeName), quote(s.TableName()), colstr)
+	return sql, []interface{}{}
 }
 
 func (statement Statement) genCountSql(bean interface{}) (string, []interface{}) {

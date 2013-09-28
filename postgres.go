@@ -1,8 +1,58 @@
 package xorm
 
-import "strconv"
+import (
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 type postgres struct {
+	dbname string
+}
+
+type Values map[string]string
+
+func (vs Values) Set(k, v string) {
+	vs[k] = v
+}
+
+func (vs Values) Get(k string) (v string) {
+	return vs[k]
+}
+
+type Error error
+
+func errorf(s string, args ...interface{}) {
+	panic(Error(fmt.Errorf("pq: %s", fmt.Sprintf(s, args...))))
+}
+
+func parseOpts(name string, o Values) {
+	if len(name) == 0 {
+		return
+	}
+
+	name = strings.TrimSpace(name)
+
+	ps := strings.Split(name, " ")
+	for _, p := range ps {
+		kv := strings.Split(p, "=")
+		if len(kv) < 2 {
+			errorf("invalid option: %q", p)
+		}
+		o.Set(kv[0], kv[1])
+	}
+}
+
+func (db *postgres) Init(uri string) error {
+	o := make(Values)
+	parseOpts(uri, o)
+
+	db.dbname = o.Get("dbname")
+	if db.dbname == "" {
+		return errors.New("dbname is empty")
+	}
+	return nil
 }
 
 func (db *postgres) SqlType(c *Column) string {
@@ -67,4 +117,21 @@ func (db *postgres) SupportCharset() bool {
 
 func (db *postgres) IndexOnTable() bool {
 	return false
+}
+
+func (db *postgres) IndexCheckSql(tableName, idxName string) (string, []interface{}) {
+	args := []interface{}{tableName, idxName}
+	return `SELECT indexname FROM pg_indexes ` +
+		`WHERE tablename = ? AND indexname = ?`, args
+}
+
+func (db *postgres) TableCheckSql(tableName string) (string, []interface{}) {
+	args := []interface{}{tableName}
+	return `SELECT tablename FROM pg_tables WHERE tablename = ?`, args
+}
+
+func (db *postgres) ColumnCheckSql(tableName, colName string) (string, []interface{}) {
+	args := []interface{}{tableName, colName}
+	return "SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = ?" +
+		" AND column_name = ?", args
 }

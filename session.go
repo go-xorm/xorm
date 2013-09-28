@@ -293,27 +293,53 @@ func (session *Session) CreateTable(bean interface{}) error {
 	return session.createOneTable()
 }
 
+func (session *Session) CreateIndexes(bean interface{}) error {
+	session.Statement.RefTable = session.Engine.AutoMap(bean)
+
+	err := session.newDb()
+	if err != nil {
+		return err
+	}
+	defer session.Statement.Init()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+
+	sqls := session.Statement.genIndexSQL()
+	for _, sql := range sqls {
+		_, err = session.exec(sql)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (session *Session) CreateUniques(bean interface{}) error {
+	session.Statement.RefTable = session.Engine.AutoMap(bean)
+
+	err := session.newDb()
+	if err != nil {
+		return err
+	}
+	defer session.Statement.Init()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+
+	sqls := session.Statement.genUniqueSQL()
+	for _, sql := range sqls {
+		_, err = session.exec(sql)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (session *Session) createOneTable() error {
 	sql := session.Statement.genCreateSQL()
 	_, err := session.exec(sql)
-	if err == nil {
-		sqls := session.Statement.genIndexSQL()
-		for _, sql := range sqls {
-			_, err = session.exec(sql)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	if err == nil {
-		sqls := session.Statement.genUniqueSQL()
-		for _, sql := range sqls {
-			_, err = session.exec(sql)
-			if err != nil {
-				return err
-			}
-		}
-	}
 	return err
 }
 
@@ -330,6 +356,26 @@ func (session *Session) CreateAll() error {
 	for _, table := range session.Engine.Tables {
 		session.Statement.RefTable = table
 		err := session.createOneTable()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (session *Session) DropIndexes(bean interface{}) error {
+	err := session.newDb()
+	if err != nil {
+		return err
+	}
+	defer session.Statement.Init()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+
+	sqls := session.Statement.genDelIndexSQL()
+	for _, sql := range sqls {
+		_, err = session.exec(sql)
 		if err != nil {
 			return err
 		}
@@ -355,14 +401,6 @@ func (session *Session) DropTable(bean interface{}) error {
 		session.Statement.AltTableName = bean.(string)
 	} else if t.Kind() == reflect.Struct {
 		session.Statement.RefTable = session.Engine.AutoMap(bean)
-
-		sqls := session.Statement.genDelIndexSQL()
-		for _, sql := range sqls {
-			_, err = session.exec(sql)
-			if err != nil {
-				return err
-			}
-		}
 	} else {
 		return errors.New("Unsupported type")
 	}
@@ -727,6 +765,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	return nil
 }
 
+// test if database is ok
 func (session *Session) Ping() error {
 	err := session.newDb()
 	if err != nil {
@@ -738,6 +777,102 @@ func (session *Session) Ping() error {
 	}
 
 	return session.Db.Ping()
+}
+
+func (session *Session) isColumnExist(tableName, colName string) (bool, error) {
+	err := session.newDb()
+	if err != nil {
+		return false, err
+	}
+	defer session.Statement.Init()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+	sql, args := session.Engine.Dialect.ColumnCheckSql(tableName, colName)
+	results, err := session.query(sql, args...)
+	return len(results) > 0, err
+}
+
+func (session *Session) isTableExist(tableName string) (bool, error) {
+	err := session.newDb()
+	if err != nil {
+		return false, err
+	}
+	defer session.Statement.Init()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+	sql, args := session.Engine.Dialect.TableCheckSql(tableName)
+	results, err := session.query(sql, args...)
+	return len(results) > 0, err
+}
+
+func (session *Session) isIndexExist(tableName, idxName string, unique bool) (bool, error) {
+	err := session.newDb()
+	if err != nil {
+		return false, err
+	}
+	defer session.Statement.Init()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+	var idx string
+	if unique {
+		idx = uniqueName(tableName, idxName)
+	} else {
+		idx = indexName(tableName, idxName)
+	}
+	sql, args := session.Engine.Dialect.IndexCheckSql(tableName, idx)
+	results, err := session.query(sql, args...)
+	return len(results) > 0, err
+}
+
+func (session *Session) addColumn(colName string) error {
+	err := session.newDb()
+	if err != nil {
+		return err
+	}
+	defer session.Statement.Init()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+	//fmt.Println(session.Statement.RefTable)
+	col := session.Statement.RefTable.Columns[colName]
+	sql, args := session.Statement.genAddColumnStr(col)
+	_, err = session.exec(sql, args...)
+	return err
+}
+
+func (session *Session) addIndex(tableName, idxName string) error {
+	err := session.newDb()
+	if err != nil {
+		return err
+	}
+	defer session.Statement.Init()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+	//fmt.Println(idxName)
+	cols := session.Statement.RefTable.Indexes[idxName]
+	sql, args := session.Statement.genAddIndexStr(indexName(tableName, idxName), cols)
+	_, err = session.exec(sql, args...)
+	return err
+}
+
+func (session *Session) addUnique(tableName, uqeName string) error {
+	err := session.newDb()
+	if err != nil {
+		return err
+	}
+	defer session.Statement.Init()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+	//fmt.Println(uqeName, session.Statement.RefTable.Uniques)
+	cols := session.Statement.RefTable.Uniques[uqeName]
+	sql, args := session.Statement.genAddUniqueStr(uniqueName(tableName, uqeName), cols)
+	_, err = session.exec(sql, args...)
+	return err
 }
 
 func (session *Session) DropAll() error {
