@@ -25,7 +25,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 ## Changelog
 
-* **v0.2.0** : Added Cache supported; Added SameMapper for same name between struct and table; Added Sync method for auto added tables, columns, indexes;
+* **v0.2.0** : Added Cache supported, select is speeder up 3~5x; Added SameMapper for same name between struct and table; Added Sync method for auto added tables, columns, indexes;
 * **v0.1.9** : Added postgres and mymysql supported; Added ` and ? supported on Raw SQL even if postgres; Added Cols, StoreEngine, Charset function, Added many column data type supported, please see [Mapping Rules](#mapping).
 * **v0.1.8** : Added union index and union unique supported, please see [Mapping Rules](#mapping).
 * **v0.1.7** : Added IConnectPool interface and NoneConnectPool, SysConnectPool, SimpleConnectPool the three implements. You can choose one of them and the default is SysConnectPool. You can customrize your own connection pool. struct Engine added Close method, It should be invoked before system exit.

@@ -24,7 +24,7 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 ## 更新日志
 
-* **v0.2.0** : 新增 缓存支持； 新增数据库表和Struct同名的映射方式； 新增Sync同步表结构；
+* **v0.2.0** : 新增 缓存支持，查询速度提升3-5倍； 新增数据库表和Struct同名的映射方式； 新增Sync同步表结构；
 * **v0.1.9** : 新增 postgres 和 mymysql 驱动支持; 在Postgres中支持原始SQL语句中使用 ` 和 ? 符号; 新增Cols, StoreEngine, Charset 函数；SQL语句打印支持io.Writer接口，默认打印到控制台；新增更多的字段类型支持，详见 [映射规则](https://github.com/lunny/xorm/blob/master/docs/QuickStart.md#21)；删除废弃的MakeSession和Create函数。
 * **v0.1.8** : 新增联合index，联合unique支持，请查看 [映射规则](https://github.com/lunny/xorm/blob/master/docs/QuickStart.md#21)。
 * **v0.1.7** : 新增IConnectPool接口以及NoneConnectPool, SysConnectPool, SimpleConnectPool三种实现，可以选择不使用连接池，使用系统连接池和使用自带连接池三种实现，默认为SysConnectPool，即系统自带的连接池。同时支持自定义连接池。Engine新增Close方法，在系统退出时应调用此方法。
