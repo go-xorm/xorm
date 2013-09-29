@@ -520,76 +520,75 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 			if err != nil {
 				return err
 			}
-		} else {
-			/*isEmpty, err := engine.IsEmptyTable(bean)
+		}
+		/*isEmpty, err := engine.IsEmptyTable(bean)
+		if err != nil {
+			return err
+		}*/
+		var isEmpty bool = false
+		if isEmpty {
+			err = engine.DropTables(bean)
 			if err != nil {
 				return err
-			}*/
-			var isEmpty bool = false
-			if isEmpty {
-				err = engine.DropTables(bean)
+			}
+			err = engine.CreateTables(bean)
+			if err != nil {
+				return err
+			}
+		} else {
+			for _, col := range table.Columns {
+				session := engine.NewSession()
+				session.Statement.RefTable = table
+				defer session.Close()
+				isExist, err := session.isColumnExist(table.Name, col.Name)
 				if err != nil {
 					return err
 				}
-				err = engine.CreateTables(bean)
+				if !isExist {
+					session := engine.NewSession()
+					session.Statement.RefTable = table
+					defer session.Close()
+					err = session.addColumn(col.Name)
+					if err != nil {
+						return err
+					}
+				}
+			}
+
+			for idx, _ := range table.Indexes {
+				session := engine.NewSession()
+				session.Statement.RefTable = table
+				defer session.Close()
+				isExist, err := session.isIndexExist(table.Name, idx, false)
 				if err != nil {
 					return err
 				}
-			} else {
-				for _, col := range table.Columns {
+				if !isExist {
 					session := engine.NewSession()
 					session.Statement.RefTable = table
 					defer session.Close()
-					isExist, err := session.isColumnExist(table.Name, col.Name)
+					err = session.addIndex(table.Name, idx)
 					if err != nil {
 						return err
-					}
-					if !isExist {
-						session := engine.NewSession()
-						session.Statement.RefTable = table
-						defer session.Close()
-						err = session.addColumn(col.Name)
-						if err != nil {
-							return err
-						}
 					}
 				}
+			}
 
-				for idx, _ := range table.Indexes {
-					session := engine.NewSession()
-					session.Statement.RefTable = table
-					defer session.Close()
-					isExist, err := session.isIndexExist(table.Name, idx, false)
-					if err != nil {
-						return err
-					}
-					if !isExist {
-						session := engine.NewSession()
-						session.Statement.RefTable = table
-						defer session.Close()
-						err = session.addIndex(table.Name, idx)
-						if err != nil {
-							return err
-						}
-					}
+			for uqe, _ := range table.Uniques {
+				session := engine.NewSession()
+				session.Statement.RefTable = table
+				defer session.Close()
+				isExist, err := session.isIndexExist(table.Name, uqe, true)
+				if err != nil {
+					return err
 				}
-
-				for uqe, _ := range table.Uniques {
+				if !isExist {
 					session := engine.NewSession()
 					session.Statement.RefTable = table
 					defer session.Close()
-					isExist, err := session.isIndexExist(table.Name, uqe, true)
+					err = session.addUnique(table.Name, uqe)
 					if err != nil {
 						return err
-					}
-					if !isExist {
-						session := engine.NewSession()
-						session.Statement.RefTable = table
-						defer session.Close()
-						err = session.addUnique(table.Name, uqe)
-						if err != nil {
-							return err
-						}
 					}
 				}
 			}
