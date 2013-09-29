@@ -442,7 +442,7 @@ xorm内置了一致性缓存支持，不过默认并没有开启。要开启缓�
 cacher := xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
 engine.SetDefaultCacher(cacher)
 ```
-上述代码采用了LRU算法的一个缓存，缓存方式是存放到内存中，缓存struct的记录数为1000条，缓存针对的范围是所有的表。
+上述代码采用了LRU算法的一个缓存，缓存方式是存放到内存中，缓存struct的记录数为1000条，缓存针对的范围是所有具有主键的表，没有主键的表中的数据将不会被缓存。
 如果只想针对部分表，则：
 ```Go
 cacher := xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
