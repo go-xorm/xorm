@@ -25,6 +25,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 ## Changelog
 
+* **v0.2.0** : Added Cache supported; Added SameMapper for same name between struct and table; Added Sync method for auto added tables, columns, indexes;
 * **v0.1.9** : Added postgres and mymysql supported; Added ` and ? supported on Raw SQL even if postgres; Added Cols, StoreEngine, Charset function, Added many column data type supported, please see [Mapping Rules](#mapping).
 * **v0.1.8** : Added union index and union unique supported, please see [Mapping Rules](#mapping).
 * **v0.1.7** : Added IConnectPool interface and NoneConnectPool, SysConnectPool, SimpleConnectPool the three implements. You can choose one of them and the default is SysConnectPool. You can customrize your own connection pool. struct Engine added Close method, It should be invoked before system exit.
@@ -186,6 +187,11 @@ err := engine.Delete(&User{Id:1})
 total, err := engine.Count(&User{Name:"xlw"})
 ```
 
+9.Cache
+```Go
+cacher := xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
+engine.SetDefaultCacher(cacher)
+```
 
 ## Execute SQL
 
@@ -327,7 +333,7 @@ Another is use field tag, field tag support the below keywords which split with 
         <td>pk</td><td>the field is a primary key</td>
     </tr>
     <tr>
-        <td>more than 30 column type supported, please see [Column Type](https://github.com/lunny/xorm/blob/master/COLUMNTYPE.md)</td><td>column type</td>
+        <td>more than 30 column type supported, please see [Column Type](https://github.com/lunny/xorm/blob/master/docs/COLUMNTYPE.md)</td><td>column type</td>
     </tr>
     <tr>
         <td>autoincr</td><td>auto incrment</td>

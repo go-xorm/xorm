@@ -29,6 +29,7 @@ func (s *MemoryStore) Put(key, value interface{}) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.store[key] = value
+	//fmt.Println(s.store)
 	return nil
 }
 
@@ -57,13 +58,23 @@ type Cacher interface {
 	DelIds(tableName, sql string)
 	DelBean(tableName string, id int64)
 	ClearIds(tableName string)
+	ClearBeans(tableName string)
+}
+
+type idNode struct {
+	tbName string
+	id     int64
+}
+
+func newNode(tbName string, id int64) *idNode {
+	return &idNode{tbName, id}
 }
 
 // LRUCacher implements Cacher according to LRU algorithm
 type LRUCacher struct {
 	idList   *list.List
 	sqlList  *list.List
-	idIndex  map[interface{}]*list.Element
+	idIndex  map[string]map[interface{}]*list.Element
 	sqlIndex map[string]map[interface{}]*list.Element
 	store    CacheStore
 	Max      int
@@ -72,19 +83,19 @@ type LRUCacher struct {
 
 func NewLRUCacher(store CacheStore, max int) *LRUCacher {
 	cacher := &LRUCacher{store: store, idList: list.New(),
-		sqlList: list.New(), idIndex: make(map[interface{}]*list.Element),
-		Max: max}
+		sqlList: list.New(), Max: max}
 	cacher.sqlIndex = make(map[string]map[interface{}]*list.Element)
+	cacher.idIndex = make(map[string]map[interface{}]*list.Element)
 	return cacher
 }
 
 func (m *LRUCacher) GetIds(tableName, sql string) interface{} {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
+	if _, ok := m.sqlIndex[tableName]; !ok {
+		m.sqlIndex[tableName] = make(map[interface{}]*list.Element)
+	}
 	if v, err := m.store.Get(sql); err == nil {
-		if _, ok := m.sqlIndex[tableName]; !ok {
-			m.sqlIndex[tableName] = make(map[interface{}]*list.Element)
-		}
 		if el, ok := m.sqlIndex[tableName][sql]; !ok {
 			el = m.sqlList.PushBack(sql)
 			m.sqlIndex[tableName][sql] = el
@@ -92,40 +103,75 @@ func (m *LRUCacher) GetIds(tableName, sql string) interface{} {
 			m.sqlList.MoveToBack(el)
 		}
 		return v
-	}
-	if tel, ok := m.sqlIndex[tableName]; ok {
-		if el, ok := tel[sql]; ok {
+	} else {
+		if el, ok := m.sqlIndex[tableName][sql]; ok {
 			delete(m.sqlIndex[tableName], sql)
 			m.sqlList.Remove(el)
 		}
 	}
+
 	return nil
 }
 
 func (m *LRUCacher) GetBean(tableName string, id int64) interface{} {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	tid := genId(tableName, id)
-	if v, err := m.store.Get(tid); err == nil {
-		if el, ok := m.idIndex[tid]; ok {
+	if _, ok := m.idIndex[tableName]; !ok {
+		m.idIndex[tableName] = make(map[interface{}]*list.Element)
+	}
+	if v, err := m.store.Get(genId(tableName, id)); err == nil {
+		if el, ok := m.idIndex[tableName][id]; ok {
 			m.idList.MoveToBack(el)
 		} else {
-			el = m.idList.PushBack(tid)
-			m.idIndex[tid] = el
+			el = m.idList.PushBack(newNode(tableName, id))
+			m.idIndex[tableName][id] = el
 		}
 		return v
+	} else {
+		// store bean is not exist, then remove memory's index
+		if _, ok := m.idIndex[tableName][id]; ok {
+			m.delBean(tableName, id)
+			m.clearIds(tableName)
+		}
+		return nil
 	}
-	if el, ok := m.idIndex[tid]; ok {
-		delete(m.idIndex, tid)
-		m.idList.Remove(el)
-		if ms, ok := m.sqlIndex[tableName]; ok {
-			for _, v := range ms {
-				m.sqlList.Remove(v)
-			}
-			m.sqlIndex[tableName] = make(map[interface{}]*list.Element)
+}
+
+func (m *LRUCacher) clearIds(tableName string) {
+	//fmt.Println("clear ids")
+	if tis, ok := m.sqlIndex[tableName]; ok {
+		for sql, v := range tis {
+			m.sqlList.Remove(v)
+			m.store.Del(sql)
 		}
 	}
-	return nil
+	m.sqlIndex[tableName] = make(map[interface{}]*list.Element)
+}
+
+func (m *LRUCacher) ClearIds(tableName string) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.clearIds(tableName)
+}
+
+func (m *LRUCacher) clearBeans(tableName string) {
+	//fmt.Println("clear beans")
+	if tis, ok := m.idIndex[tableName]; ok {
+		//fmt.Println("before clear", len(m.idIndex[tableName]))
+		for id, v := range tis {
+			m.idList.Remove(v)
+			tid := genId(tableName, id.(int64))
+			m.store.Del(tid)
+		}
+		//fmt.Println("after clear", len(m.idIndex[tableName]))
+	}
+	m.idIndex[tableName] = make(map[interface{}]*list.Element)
+}
+
+func (m *LRUCacher) ClearBeans(tableName string) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.clearBeans(tableName)
 }
 
 func (m *LRUCacher) PutIds(tableName, sql string, ids interface{}) {
@@ -139,6 +185,11 @@ func (m *LRUCacher) PutIds(tableName, sql string, ids interface{}) {
 		m.sqlIndex[tableName][sql] = el
 	}
 	m.store.Put(sql, ids)
+	/*if m.sqlList.Len() > m.Max {
+		e := m.sqlList.Front()
+		node := e.Value.(*idNode)
+		m.delBean(node.tbName, node.id)
+	}*/
 }
 
 func (m *LRUCacher) PutBean(tableName string, id int64, obj interface{}) {
@@ -146,18 +197,17 @@ func (m *LRUCacher) PutBean(tableName string, id int64, obj interface{}) {
 	defer m.mutex.Unlock()
 	var el *list.Element
 	var ok bool
-	tid := genId(tableName, id)
-	if el, ok = m.idIndex[tid]; !ok {
-		el = m.idList.PushBack(tid)
-		m.idIndex[tid] = el
+
+	if el, ok = m.idIndex[tableName][id]; !ok {
+		el = m.idList.PushBack(newNode(tableName, id))
+		m.idIndex[tableName][id] = el
 	}
 
-	m.store.Put(tid, obj)
+	m.store.Put(genId(tableName, id), obj)
 	if m.idList.Len() > m.Max {
 		e := m.idList.Front()
-		m.store.Del(e.Value)
-		delete(m.idIndex, e.Value)
-		m.idList.Remove(e)
+		node := e.Value.(*idNode)
+		m.delBean(node.tbName, node.id)
 	}
 }
 
@@ -173,34 +223,20 @@ func (m *LRUCacher) DelIds(tableName, sql string) {
 	}
 }
 
+func (m *LRUCacher) delBean(tableName string, id int64) {
+	tid := genId(tableName, id)
+	if el, ok := m.idIndex[tableName][tid]; ok {
+		delete(m.idIndex[tableName], tid)
+		m.idList.Remove(el)
+		m.clearIds(tableName)
+	}
+	m.store.Del(tid)
+}
+
 func (m *LRUCacher) DelBean(tableName string, id int64) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	tid := genId(tableName, id)
-	if el, ok := m.idIndex[tid]; ok {
-		m.store.Del(tid)
-		delete(m.idIndex, tid)
-		m.idList.Remove(el)
-		if tis, ok := m.sqlIndex[tableName]; ok {
-			for sql, v := range tis {
-				m.sqlList.Remove(v)
-				m.store.Del(sql)
-			}
-			m.sqlIndex[tableName] = make(map[interface{}]*list.Element)
-		}
-	}
-}
-
-func (m *LRUCacher) ClearIds(tableName string) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	if tis, ok := m.sqlIndex[tableName]; ok {
-		for sql, v := range tis {
-			m.sqlList.Remove(v)
-			m.store.Del(sql)
-		}
-		m.sqlIndex[tableName] = make(map[interface{}]*list.Element)
-	}
+	m.delBean(tableName, id)
 }
 
 func encodeIds(ids []int64) (s string) {

@@ -7,6 +7,7 @@ xorm 快速入门
 	* [2.2.使用Table和Tag改变名称映射](#22)
 	* [2.3.Column属性定义](#23)
 * [3.创建表](#30)
+	* [3.1.同步数据库结构](#31)
 * [4.删除表](#40)
 * [5.插入数据](#50)
 * [6.查询和统计数据](#60)
@@ -20,9 +21,11 @@ xorm 快速入门
 * [9.执行SQL查询](#90)
 * [10.执行SQL命令](#100)
 * [11.事务处理](#110)
-* [12.Examples](#120)
-* [13.案例](#130)
-* [14.讨论](#140)
+* [12.缓存](#120)
+* [13.Examples](#130)
+* [14.案例](#140)
+* [15.FAQ](#150)
+* [15.讨论](#160)
 
 <a name="10" id="10"></a>
 ## 1.创建Orm引擎
@@ -79,6 +82,8 @@ engine.Logger = f
 2.engine内部支持连接池接口，默认使用的Go所实现的连接池，同时自带了另外两种实现，一种是不使用连接池，另一种为一个自实现的连接池。推荐使用Go所实现的连接池。如果要使用自己实现的连接池，可以实现`xorm.IConnectPool`并通过`engine.SetPool`进行设置。
 如果需要设置连接池的空闲数大小，可以使用`engine.Pool.SetIdleConns()`来实现。
 
+3.设置`engine.ShowDebug = true`，则会在控制台打印调试信息。
+
 <a name="20" id="20"></a>
 ## 2.定义表结构体
 
@@ -113,7 +118,7 @@ type User struct {
 }
 ```
 
-对于不同的数据库系统，数据类型其实是有些差异的。因此xorm中对数据类型有自己的定义，基本的原则是尽量兼容各种数据库的字段类型，具体的字段对应关系可以查看[字段类型对应表](https://github.com/lunny/xorm/blob/master/COLUMNTYPE.md)。
+对于不同的数据库系统，数据类型其实是有些差异的。因此xorm中对数据类型有自己的定义，基本的原则是尽量兼容各种数据库的字段类型，具体的字段对应关系可以查看[字段类型对应表](https://github.com/lunny/xorm/blob/master/docs/COLUMNTYPE.md)。
 
 具体的映射规则如下，另Tag中的关键字均不区分大小写，字段名区分大小写：
 
@@ -125,7 +130,7 @@ type User struct {
         <td>pk</td><td>是否是Primary Key，当前仅支持int64类型</td>
     </tr>
     <tr>
-        <td>当前支持30多种字段类型，详情参见 [字段类型](https://github.com/lunny/xorm/blob/master/COLUMNTYPE.md)</td><td>字段类型</td>
+        <td>当前支持30多种字段类型，详情参见 [字段类型](https://github.com/lunny/xorm/blob/master/docs/COLUMNTYPE.md)</td><td>字段类型</td>
     </tr>
     <tr>
         <td>autoincr</td><td>是否是自增</td>
@@ -181,13 +186,26 @@ type Conversion interface {
 <a name="30" id="30"></a>
 ## 3.创建表
 
-创建表使用engine.CreateTables()，参数为一个或多个空的对应Struct的指针。同时可用的方法有Charset()和StoreEngine()，如果对应的数据库支持，这两个方法可以在创建表时指定表的字符编码和使用的引擎。当前仅支持Mysql数据库。
-在创建表时会判断表是否已经创建，如果已经创建则不再创建。
+创建表使用`engine.CreateTables()`，参数为一个或多个空的对应Struct的指针。同时可用的方法有Charset()和StoreEngine()，如果对应的数据库支持，这两个方法可以在创建表时指定表的字符编码和使用的引擎。当前仅支持Mysql数据库。
+
+在创建表时会判断表是否已经创建，如果已经创建则不再创建。在创建表的过程中，如果在tag中定义了索引，则索引也会自动创建。
+
+<a name="30" id="30"></a>
+## 3.1.同步数据库结构
+同步表能够部分智能的根据结构体的变动检测表结构的变动，并自动同步。目前能够实现：
+1) 自动检测和创建表
+2）自动检测和新增表中的字段
+3）自动检测和创建索引和唯一索引
+
+调用方法如下：
+```Go
+err := engine.Sync(new(User))
+```
 
 <a name="40" id="40"></a>
 ## 4.删除表
 
-删除表使用engine.DropTables()，参数为一个或多个空的对应Struct的指针或者表的名字。
+删除表使用`engine.DropTables()`，参数为一个或多个空的对应Struct的指针或者表的名字。如果为string传入，则只删除对应的表，如果传入的为Struct，则删除表的同时还会删除对应的索引。
 
 <a name="50" id="50"></a>
 ## 5.插入数据
@@ -223,8 +241,16 @@ fmt.Println(user.Id)
 和Where语句中的条件基本相同，作为条件
 
 * Cols(…string)
-只查询某些指定的字段，默认是查询所有映射的字段
+只查询或更新某些指定的字段，默认是查询所有映射的字段或者根据Update的第一个参数来判断更新的字段。例如：
+```Go
+engine.Cols("age, name").Update(&user)
+```
 
+or 
+
+```Go
+engine.Cols("age", "name").Update(&user)
+```
 * Sql(string, …interface{})
 执行指定的Sql语句，并把结果映射到结构体
 
@@ -269,24 +295,52 @@ Having的参数字符串
 
 查询单条数据使用`Get`方法，在调用Get方法时需要传入一个对应结构体的指针，同时结构体中的非空field自动成为查询的条件和前面的方法条件组合在一起查询。
 
+如：
+
+1) 根据Id来获得单条数据:
 ```Go
 user := new(User)
 has, err := engine.Id(id).Get(user)
 ```
+2) 根据Where来获得单条数据：
+```Go
+user := new(User)
+has, err := engine.Where("name=?", "xlw").Get(user)
+```
+3) 根据user结构体中已有的非空数据来获得单条数据：
+```Go
+user := &User{Id:1}
+has, err := engine.Get(user)
+```
+或者其它条件
 
-返回的结果为两个参数，一个为该条记录是否存在，第二个参数为是否有错误。如果不管err是否为nil，has都有可能为true或者false。
+```Go
+user := &User{Name:"xlw"}
+has, err := engine.Get(user)
+```
+
+返回的结果为两个参数，一个`has`为该条记录是否存在，第二个参数`err`为是否有错误。不管err是否为nil，has都有可能为true或者false。
 
 <a name="63" id="63"></a>
 ### 6.3.Find方法
 
-查询多条数据使用`Find`方法，Find方法的第一个参数为slice的指针或Map指针，即为查询后返回的结果，第二个参数可选，为查询的条件struct的指针。
+查询多条数据使用`Find`方法，Find方法的第一个参数为`slice`的指针或`Map`指针，即为查询后返回的结果，第二个参数可选，为查询的条件struct的指针。
 
+1) 传入Slice用于返回数据
 ```Go
 var everyone []Userinfo
 err := engine.Find(&everyone)
-
+```
+2) 传入Map用户返回数据，map必须为`map[int64]Userinfo`的形式，map的key为id
+```Go
 users := make(map[int64]Userinfo)
 err := engine.Find(&users)
+```
+
+3) 也可以加入条件
+```Go
+users := make([]Userinfo, 0)
+err := engine.Where("age > ? or name=?)", 30, "xlw").Limit(20, 10).Find(&users)
 ```
 
 <a name="64" id="64"></a>
@@ -298,6 +352,7 @@ user := new(User)
 total, err := engine.Where("id >?", 1).Count(user)
 ```
 
+<a name="65" id-"65"></a>
 ### 6.5.匿名结构体成员
 
 如果在struct中拥有一个struct，并且在Tag中标记为extends，那么该结构体的成员将作为本结构体的成员进行映射。
@@ -378,6 +433,45 @@ if err != nil {
 ```
 
 <a name="120" id="120"></a>
+## 12.缓存
+
+xorm内置了一致性缓存支持，不过默认并没有开启。要开启缓存，需要在engine创建完后进行配置，如：
+启用一个全局的内存缓存
+
+```Go
+cacher := xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
+engine.SetDefaultCacher(cacher)
+```
+上述代码采用了LRU算法的一个缓存，缓存方式是存放到内存中，缓存struct的记录数为1000条，缓存针对的范围是所有的表。
+如果只想针对部分表，则：
+```Go
+cacher := xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
+engine.MapCacher(&user, cacher)
+```
+
+如果要禁用某个表的缓存，则：
+```Go
+engine.MapCacher(&user, nil)
+```
+
+设置完之后，其它代码基本上就不需要改动了，缓存系统已经在后台运行。
+
+当前实现了内存存储的CacheStore接口MemoryStore，如果需要采用其它设备存储，可以实现CacheStore接口。
+
+不过需要特别注意不适用缓存或者需要手动编码的地方：
+
+1. 在Get或者Find时使用了Cols方法，在开启缓存后此方法无效，系统仍旧会取出这个表中的所有字段。
+
+2. 在使用Exec方法执行了方法之后，可能会导致缓存与数据库不一致的地方。因此如果启用缓存，尽量避免使用Exec。如果必须使用，则需要在使用了Exec之后调用ClearCache手动做缓存清除的工作。比如：
+```Go
+engine.Exec("update user set name = ? where id = ?", "xlw", 1)
+engine.ClearCache(new(User))
+```
+
+缓存的实现原理如下图所示：
+
+![cache design](https://github.com/lunny/xorm/tree/master/docs/cache_design.png)
+
 ## 12.Examples
 
 请访问[https://github.com/lunny/xorm/tree/master/examples](https://github.com/lunny/xorm/tree/master/examples)
@@ -385,7 +479,9 @@ if err != nil {
 <a name="130" id="130"></a>
 ## 13.案例
 
-请访问网站[godaily](http://godaily.org) 和对应的源代码[github.com/govc/godaily](http://github.com/govc/godaily)
+* [GoDaily Go语言学习网站](http://godaily.org)，源代码 [github.com/govc/godaily](http://github.com/govc/godaily)
+
+* [godaily](http://godaily.org) 和对应的源代码[github.com/govc/godaily](http://github.com/govc/godaily)
 
 <a name="140" id="140"></a>
 ## 14.讨论

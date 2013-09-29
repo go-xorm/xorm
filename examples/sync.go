@@ -22,8 +22,8 @@ type SyncLoginInfo struct {
 	// timestamp should be updated by database, so only allow get from db
 	TimeStamp string
 	// assume
-	Nonuse int
-	Newa   string
+	Nonuse int    `xorm:"unique"`
+	Newa   string `xorm:"index"`
 }
 
 func sync(engine *xorm.Engine) error {
