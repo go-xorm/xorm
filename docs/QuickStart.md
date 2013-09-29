@@ -470,7 +470,7 @@ engine.ClearCache(new(User))
 
 缓存的实现原理如下图所示：
 
-![cache design](https://github.com/lunny/xorm/tree/master/docs/cache_design.png)
+![cache design](https://raw.github.com/lunny/xorm/master/docs/cache_design.png)
 
 ## 12.Examples
 
