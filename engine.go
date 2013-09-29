@@ -521,10 +521,11 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 				return err
 			}
 		} else {
-			isEmpty, err := engine.IsEmptyTable(bean)
+			/*isEmpty, err := engine.IsEmptyTable(bean)
 			if err != nil {
 				return err
-			}
+			}*/
+			var isEmpty bool = false
 			if isEmpty {
 				err = engine.DropTables(bean)
 				if err != nil {

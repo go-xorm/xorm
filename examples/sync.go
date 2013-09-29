@@ -23,6 +23,7 @@ type SyncLoginInfo struct {
 	TimeStamp string
 	// assume
 	Nonuse int
+	Newa   string
 }
 
 func sync(engine *xorm.Engine) error {
