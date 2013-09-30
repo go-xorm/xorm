@@ -10,4 +10,5 @@ var (
 	ErrUnSupportedType error = errors.New("unsupported type error")
 	ErrNotExist        error = errors.New("not exist error")
 	ErrCacheFailed     error = errors.New("cache failed")
+	ErrNeedDeletedCond error = errors.New("delete need at least one condition")
 )

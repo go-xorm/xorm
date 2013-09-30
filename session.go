@@ -1718,20 +1718,19 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 
 	var condition = ""
 	if session.Statement.WhereStr != "" {
-		condition = fmt.Sprintf("WHERE %v", session.Statement.WhereStr)
+		condition = session.Statement.WhereStr
 		if len(colNames) > 0 {
-			condition += " and "
-			condition += strings.Join(colNames, " and ")
+			condition += " and " + strings.Join(colNames, " and ")
 		}
 	} else {
-		condition = "WHERE " + strings.Join(colNames, " and ")
+		condition = strings.Join(colNames, " and ")
+	}
+	if len(condition) == 0 {
+		return 0, ErrNeedDeletedCond
 	}
 
-	sql := fmt.Sprintf("DELETE FROM %v%v%v %v",
-		session.Engine.QuoteStr(),
-		session.Statement.TableName(),
-		session.Engine.QuoteStr(),
-		condition)
+	sql := fmt.Sprintf("DELETE FROM %v WHERE %v",
+		session.Engine.Quote(session.Statement.TableName()), condition)
 
 	args = append(session.Statement.Params, args...)
 
