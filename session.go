@@ -201,7 +201,7 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 		return errors.New("Expected a pointer to a struct")
 	}
 
-	table := session.Engine.Tables[Type(obj)]
+	table := session.Engine.Tables[rType(obj)]
 
 	for key, data := range objMap {
 		if _, ok := table.Columns[key]; !ok {
@@ -709,7 +709,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	session.Statement.RefTable = table
 
 	if len(condiBean) > 0 {
-		colNames, args := BuildConditions(session.Engine, table, condiBean[0])
+		colNames, args := buildConditions(session.Engine, table, condiBean[0])
 		session.Statement.ConditionStr = strings.Join(colNames, " and ")
 		session.Statement.BeanArgs = args
 	}
@@ -1038,7 +1038,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 	}
 
 	bean := sliceValue.Index(0).Interface()
-	sliceElementType := Type(bean)
+	sliceElementType := rType(bean)
 
 	table := session.Engine.AutoMapType(sliceElementType)
 	session.Statement.RefTable = table
@@ -1520,12 +1520,12 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 
 	for _, id := range ids {
 		if bean := cacher.GetBean(tableName, id); bean != nil {
-			sqls := SplitNNoCase(sql, "where", 2)
+			sqls := splitNNoCase(sql, "where", 2)
 			if len(sqls) != 2 {
 				return ErrCacheFailed
 			}
 
-			sqls = SplitNNoCase(sqls[0], "set", 2)
+			sqls = splitNNoCase(sqls[0], "set", 2)
 			if len(sqls) != 2 {
 				return ErrCacheFailed
 			}
@@ -1567,7 +1567,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		defer session.Close()
 	}
 
-	t := Type(bean)
+	t := rType(bean)
 
 	var colNames []string
 	var args []interface{}
@@ -1578,7 +1578,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		session.Statement.RefTable = table
 
 		if session.Statement.ColumnStr == "" {
-			colNames, args = BuildConditions(session.Engine, table, bean)
+			colNames, args = buildConditions(session.Engine, table, bean)
 		} else {
 			colNames, args, err = table.GenCols(session, bean, true, true)
 			if err != nil {
@@ -1614,7 +1614,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	var condiArgs []interface{}
 
 	if len(condiBean) > 0 {
-		condiColNames, condiArgs = BuildConditions(session.Engine, session.Statement.RefTable, condiBean[0])
+		condiColNames, condiArgs = buildConditions(session.Engine, session.Statement.RefTable, condiBean[0])
 	}
 
 	var condition = ""
@@ -1714,7 +1714,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 
 	table := session.Engine.AutoMap(bean)
 	session.Statement.RefTable = table
-	colNames, args := BuildConditions(session.Engine, table, bean)
+	colNames, args := buildConditions(session.Engine, table, bean)
 
 	var condition = ""
 	if session.Statement.WhereStr != "" {

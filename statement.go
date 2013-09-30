@@ -35,14 +35,6 @@ type Statement struct {
 	UseAutoTime  bool
 }
 
-func MakeArray(elem string, count int) []string {
-	res := make([]string, count)
-	for i := 0; i < count; i++ {
-		res[i] = elem
-	}
-	return res
-}
-
 func (statement *Statement) Init() {
 	statement.RefTable = nil
 	statement.Start = 0
@@ -76,7 +68,7 @@ func (statement *Statement) Where(querystring string, args ...interface{}) {
 }
 
 func (statement *Statement) Table(tableNameOrBean interface{}) {
-	t := Type(tableNameOrBean)
+	t := rType(tableNameOrBean)
 	if t.Kind() == reflect.String {
 		statement.AltTableName = tableNameOrBean.(string)
 	} else if t.Kind() == reflect.Struct {
@@ -84,7 +76,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) {
 	}
 }
 
-func BuildConditions(engine *Engine, table *Table, bean interface{}) ([]string, []interface{}) {
+func buildConditions(engine *Engine, table *Table, bean interface{}) ([]string, []interface{}) {
 	colNames := make([]string, 0)
 	var args = make([]interface{}, 0)
 	for _, col := range table.Columns {
@@ -196,7 +188,7 @@ func (statement *Statement) Id(id int64) {
 }
 
 func (statement *Statement) In(column string, args ...interface{}) {
-	inStr := fmt.Sprintf("%v IN (%v)", column, strings.Join(MakeArray("?", len(args)), ","))
+	inStr := fmt.Sprintf("%v IN (%v)", column, strings.Join(makeArray("?", len(args)), ","))
 	if statement.WhereStr == "" {
 		statement.WhereStr = inStr
 		statement.Params = args
@@ -337,7 +329,7 @@ func (statement Statement) genGetSql(bean interface{}) (string, []interface{}) {
 	table := statement.Engine.AutoMap(bean)
 	statement.RefTable = table
 
-	colNames, args := BuildConditions(statement.Engine, table, bean)
+	colNames, args := buildConditions(statement.Engine, table, bean)
 	statement.ConditionStr = strings.Join(colNames, " and ")
 	statement.BeanArgs = args
 
@@ -374,7 +366,7 @@ func (statement Statement) genCountSql(bean interface{}) (string, []interface{})
 	table := statement.Engine.AutoMap(bean)
 	statement.RefTable = table
 
-	colNames, args := BuildConditions(statement.Engine, table, bean)
+	colNames, args := buildConditions(statement.Engine, table, bean)
 	statement.ConditionStr = strings.Join(colNames, " and ")
 	statement.BeanArgs = args
 	return statement.genSelectSql(fmt.Sprintf("count(*) as %v", statement.Engine.Quote("total"))), append(statement.Params, statement.BeanArgs...)

@@ -96,21 +96,9 @@ func (engine *Engine) NoCache() *Session {
 }
 
 func (engine *Engine) MapCacher(bean interface{}, cacher Cacher) {
-	t := Type(bean)
+	t := rType(bean)
 	engine.AutoMapType(t)
 	engine.Tables[t].Cacher = cacher
-}
-
-func Type(bean interface{}) reflect.Type {
-	sliceValue := reflect.Indirect(reflect.ValueOf(bean))
-	return reflect.TypeOf(sliceValue.Interface())
-}
-
-func StructName(v reflect.Type) string {
-	for v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	return v.Name()
 }
 
 func (e *Engine) OpenDB() (*sql.DB, error) {
@@ -274,7 +262,7 @@ func (engine *Engine) AutoMapType(t reflect.Type) *Table {
 }
 
 func (engine *Engine) AutoMap(bean interface{}) *Table {
-	t := Type(bean)
+	t := rType(bean)
 	return engine.AutoMapType(t)
 }
 
@@ -465,7 +453,7 @@ func (engine *Engine) Map(beans ...interface{}) (e error) {
 	engine.mutex.Lock()
 	defer engine.mutex.Unlock()
 	for _, bean := range beans {
-		t := Type(bean)
+		t := rType(bean)
 		engine.Tables[t] = engine.MapType(t)
 	}
 	return
@@ -473,7 +461,7 @@ func (engine *Engine) Map(beans ...interface{}) (e error) {
 
 // is a table has
 func (engine *Engine) IsEmptyTable(bean interface{}) (bool, error) {
-	t := Type(bean)
+	t := rType(bean)
 	if t.Kind() != reflect.Struct {
 		return false, errors.New("bean should be a struct or struct's point")
 	}
@@ -485,7 +473,7 @@ func (engine *Engine) IsEmptyTable(bean interface{}) (bool, error) {
 }
 
 func (engine *Engine) IsTableExist(bean interface{}) (bool, error) {
-	t := Type(bean)
+	t := rType(bean)
 	if t.Kind() != reflect.Struct {
 		return false, errors.New("bean should be a struct or struct's point")
 	}
@@ -497,7 +485,7 @@ func (engine *Engine) IsTableExist(bean interface{}) (bool, error) {
 }
 
 func (engine *Engine) ClearCacheBean(bean interface{}, id int64) error {
-	t := Type(bean)
+	t := rType(bean)
 	if t.Kind() != reflect.Struct {
 		return errors.New("error params")
 	}
@@ -511,7 +499,7 @@ func (engine *Engine) ClearCacheBean(bean interface{}, id int64) error {
 
 func (engine *Engine) ClearCache(beans ...interface{}) error {
 	for _, bean := range beans {
-		t := Type(bean)
+		t := rType(bean)
 		if t.Kind() != reflect.Struct {
 			return errors.New("error params")
 		}
@@ -622,7 +610,7 @@ func (engine *Engine) UnMap(beans ...interface{}) (e error) {
 	engine.mutex.Lock()
 	defer engine.mutex.Unlock()
 	for _, bean := range beans {
-		t := Type(bean)
+		t := rType(bean)
 		if _, ok := engine.Tables[t]; ok {
 			delete(engine.Tables, t)
 		}

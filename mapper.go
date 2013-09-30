@@ -44,7 +44,7 @@ func snakeCasedName(name string) string {
 	return string(newstr)
 }
 
-func Pascal2Sql(s string) (d string) {
+func pascal2Sql(s string) (d string) {
 	d = ""
 	lastIdx := 0
 	for i := 0; i < len(s); i++ {
