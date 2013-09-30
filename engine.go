@@ -624,8 +624,8 @@ func (engine *Engine) UnMap(beans ...interface{}) (e error) {
 }
 
 // Drop all mapped table
-func (e *Engine) DropAll() error {
-	session := e.NewSession()
+func (engine *Engine) DropAll() error {
+	session := engine.NewSession()
 	defer session.Close()
 
 	err := session.Begin()
@@ -641,8 +641,8 @@ func (e *Engine) DropAll() error {
 }
 
 // CreateTables create tabls according bean
-func (e *Engine) CreateTables(beans ...interface{}) error {
-	session := e.NewSession()
+func (engine *Engine) CreateTables(beans ...interface{}) error {
+	session := engine.NewSession()
 	err := session.Begin()
 	defer session.Close()
 	if err != nil {
@@ -659,8 +659,8 @@ func (e *Engine) CreateTables(beans ...interface{}) error {
 	return session.Commit()
 }
 
-func (e *Engine) DropTables(beans ...interface{}) error {
-	session := e.NewSession()
+func (engine *Engine) DropTables(beans ...interface{}) error {
+	session := engine.NewSession()
 	err := session.Begin()
 	defer session.Close()
 	if err != nil {
@@ -677,8 +677,8 @@ func (e *Engine) DropTables(beans ...interface{}) error {
 	return session.Commit()
 }
 
-func (e *Engine) CreateAll() error {
-	session := e.NewSession()
+func (engine *Engine) CreateAll() error {
+	session := engine.NewSession()
 	defer session.Close()
 	return session.CreateAll()
 }
