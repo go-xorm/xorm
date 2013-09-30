@@ -253,7 +253,7 @@ func (table *Table) AddColumn(col *Column) {
 	table.Columns[col.Name] = col
 }
 
-func (table *Table) GenCols(session *Session, bean interface{}, useCol bool, includeQuote bool) ([]string, []interface{}, error) {
+func (table *Table) genCols(session *Session, bean interface{}, useCol bool, includeQuote bool) ([]string, []interface{}, error) {
 	colNames := make([]string, 0)
 	args := make([]interface{}, 0)
 

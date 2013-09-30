@@ -1355,7 +1355,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	table := session.Engine.AutoMap(bean)
 	session.Statement.RefTable = table
 
-	colNames, args, err := table.GenCols(session, bean, false, false)
+	colNames, args, err := table.genCols(session, bean, false, false)
 	if err != nil {
 		return 0, err
 	}
@@ -1580,7 +1580,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		if session.Statement.ColumnStr == "" {
 			colNames, args = buildConditions(session.Engine, table, bean)
 		} else {
-			colNames, args, err = table.GenCols(session, bean, true, true)
+			colNames, args, err = table.genCols(session, bean, true, true)
 			if err != nil {
 				return 0, err
 			}

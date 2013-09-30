@@ -101,8 +101,8 @@ func (engine *Engine) MapCacher(bean interface{}, cacher Cacher) {
 	engine.Tables[t].Cacher = cacher
 }
 
-func (e *Engine) OpenDB() (*sql.DB, error) {
-	return sql.Open(e.DriverName, e.DataSourceName)
+func (engine *Engine) OpenDB() (*sql.DB, error) {
+	return sql.Open(engine.DriverName, engine.DataSourceName)
 }
 
 func (engine *Engine) NewSession() *Session {
@@ -115,6 +115,7 @@ func (engine *Engine) Close() error {
 	return engine.Pool.Close(engine)
 }
 
+// Test if databse is alive.
 func (engine *Engine) Test() error {
 	session := engine.NewSession()
 	defer session.Close()
@@ -249,7 +250,7 @@ func (engine *Engine) Having(conditions string) *Session {
 	return session.Having(conditions)
 }
 
-// some lock needed
+//
 func (engine *Engine) AutoMapType(t reflect.Type) *Table {
 	engine.mutex.Lock()
 	defer engine.mutex.Unlock()
@@ -448,7 +449,7 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 	return table
 }
 
-// Map should use after all operation because it's not thread safe
+// Map should use before all operation because it's not thread safe
 func (engine *Engine) Map(beans ...interface{}) (e error) {
 	engine.mutex.Lock()
 	defer engine.mutex.Unlock()
@@ -459,7 +460,7 @@ func (engine *Engine) Map(beans ...interface{}) (e error) {
 	return
 }
 
-// is a table has
+// Is a table has any reocrd
 func (engine *Engine) IsEmptyTable(bean interface{}) (bool, error) {
 	t := rType(bean)
 	if t.Kind() != reflect.Struct {
@@ -472,6 +473,7 @@ func (engine *Engine) IsEmptyTable(bean interface{}) (bool, error) {
 	return !has, err
 }
 
+// Is a table is exist
 func (engine *Engine) IsTableExist(bean interface{}) (bool, error) {
 	t := rType(bean)
 	if t.Kind() != reflect.Struct {
@@ -484,6 +486,7 @@ func (engine *Engine) IsTableExist(bean interface{}) (bool, error) {
 	return has, err
 }
 
+// If enabled cache, clear the cache bean
 func (engine *Engine) ClearCacheBean(bean interface{}, id int64) error {
 	t := rType(bean)
 	if t.Kind() != reflect.Struct {
@@ -497,6 +500,7 @@ func (engine *Engine) ClearCacheBean(bean interface{}, id int64) error {
 	return nil
 }
 
+// If enabled cache, clear some tables' cache
 func (engine *Engine) ClearCache(beans ...interface{}) error {
 	for _, bean := range beans {
 		t := rType(bean)
@@ -512,8 +516,9 @@ func (engine *Engine) ClearCache(beans ...interface{}) error {
 	return nil
 }
 
-// sync the new struct to database, this method will auto add column, index, unique
-// but will not delete or change anything.
+// Sync the new struct change to database, this method will automatically add
+// table, column, index, unique. but will not delete or change anything.
+// If you change some field, you should change the database manually.
 func (engine *Engine) Sync(beans ...interface{}) error {
 	for _, bean := range beans {
 		table := engine.AutoMap(bean)
@@ -618,6 +623,7 @@ func (engine *Engine) UnMap(beans ...interface{}) (e error) {
 	return
 }
 
+// Drop all mapped table
 func (e *Engine) DropAll() error {
 	session := e.NewSession()
 	defer session.Close()
@@ -634,6 +640,7 @@ func (e *Engine) DropAll() error {
 	return session.Commit()
 }
 
+// CreateTables create tabls according bean
 func (e *Engine) CreateTables(beans ...interface{}) error {
 	session := e.NewSession()
 	err := session.Begin()

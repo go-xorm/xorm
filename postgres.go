@@ -11,13 +11,13 @@ type postgres struct {
 	dbname string
 }
 
-type Values map[string]string
+type values map[string]string
 
-func (vs Values) Set(k, v string) {
+func (vs values) Set(k, v string) {
 	vs[k] = v
 }
 
-func (vs Values) Get(k string) (v string) {
+func (vs values) Get(k string) (v string) {
 	return vs[k]
 }
 
@@ -27,7 +27,7 @@ func errorf(s string, args ...interface{}) {
 	panic(Error(fmt.Errorf("pq: %s", fmt.Sprintf(s, args...))))
 }
 
-func parseOpts(name string, o Values) {
+func parseOpts(name string, o values) {
 	if len(name) == 0 {
 		return
 	}
@@ -45,7 +45,7 @@ func parseOpts(name string, o Values) {
 }
 
 func (db *postgres) Init(uri string) error {
-	o := make(Values)
+	o := make(values)
 	parseOpts(uri, o)
 
 	db.dbname = o.Get("dbname")

@@ -110,7 +110,7 @@ type node struct {
 	cond  *sync.Cond
 }
 
-func NewNode() *node {
+func newCondNode() *node {
 	n := &node{}
 	n.cond = sync.NewCond(&n.mutex)
 	return n
