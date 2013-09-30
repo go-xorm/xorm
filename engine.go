@@ -18,6 +18,7 @@ const (
 	MYMYSQL  = "mymysql"
 )
 
+// a dialect is a driver's wrapper
 type dialect interface {
 	Init(uri string) error
 	SqlType(t *Column) string
@@ -50,36 +51,47 @@ type Engine struct {
 	UseCache       bool
 }
 
+// If engine's database support batch insert records like
+// "insert into user values (name, age), (name, age)".
+// When the return is ture, then engine.Insert(&users) will
+// generate batch sql and exeute.
 func (engine *Engine) SupportInsertMany() bool {
 	return engine.Dialect.SupportInsertMany()
 }
 
+// Engine's database use which charactor as quote.
+// mysql, sqlite use ` and postgres use "
 func (engine *Engine) QuoteStr() string {
 	return engine.Dialect.QuoteStr()
 }
 
+// Use QuoteStr quote the string sql
 func (engine *Engine) Quote(sql string) string {
 	return engine.Dialect.QuoteStr() + sql + engine.Dialect.QuoteStr()
 }
 
+// A simple wrapper to dialect's SqlType method
 func (engine *Engine) SqlType(c *Column) string {
 	return engine.Dialect.SqlType(c)
 }
 
+// Database's autoincrement statement
 func (engine *Engine) AutoIncrStr() string {
 	return engine.Dialect.AutoIncrStr()
 }
 
+// Set engine's pool, the pool default is Go's standard library's connection pool.
 func (engine *Engine) SetPool(pool IConnectPool) error {
 	engine.Pool = pool
 	return engine.Pool.Init(engine)
 }
 
-// only for go 1.2+
+// SetMaxConns is only available for go 1.2+
 func (engine *Engine) SetMaxConns(conns int) {
 	engine.Pool.SetMaxConns(conns)
 }
 
+// SetDefaltCacher set the default cacher. Xorm's default not enable cacher.
 func (engine *Engine) SetDefaultCacher(cacher Cacher) {
 	if cacher == nil {
 		engine.UseCache = false
@@ -89,33 +101,39 @@ func (engine *Engine) SetDefaultCacher(cacher Cacher) {
 	}
 }
 
+// If you has set default cacher, and you want temporilly stop use cache,
+// you can use NoCache()
 func (engine *Engine) NoCache() *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
 	return session.NoCache()
 }
 
+// Set a table use a special cacher
 func (engine *Engine) MapCacher(bean interface{}, cacher Cacher) {
 	t := rType(bean)
 	engine.AutoMapType(t)
 	engine.Tables[t].Cacher = cacher
 }
 
+// OpenDB provides a interface to operate database directly.
 func (engine *Engine) OpenDB() (*sql.DB, error) {
 	return sql.Open(engine.DriverName, engine.DataSourceName)
 }
 
+// New a session
 func (engine *Engine) NewSession() *Session {
 	session := &Session{Engine: engine}
 	session.Init()
 	return session
 }
 
+// Close the engine
 func (engine *Engine) Close() error {
 	return engine.Pool.Close(engine)
 }
 
-// Test if databse is alive.
+// Test if database is alive.
 func (engine *Engine) Test() error {
 	session := engine.NewSession()
 	defer session.Close()
@@ -449,7 +467,7 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 	return table
 }
 
-// Map should use before all operation because it's not thread safe
+// Map a struct to a table
 func (engine *Engine) Map(beans ...interface{}) (e error) {
 	engine.mutex.Lock()
 	defer engine.mutex.Unlock()
@@ -461,7 +479,7 @@ func (engine *Engine) Map(beans ...interface{}) (e error) {
 }
 
 // Is a table has any reocrd
-func (engine *Engine) IsEmptyTable(bean interface{}) (bool, error) {
+func (engine *Engine) IsTableEmpty(bean interface{}) (bool, error) {
 	t := rType(bean)
 	if t.Kind() != reflect.Struct {
 		return false, errors.New("bean should be a struct or struct's point")
