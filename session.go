@@ -414,8 +414,7 @@ func (statement *Statement) convertIdSql(sql string) string {
 	if statement.RefTable != nil {
 		col := statement.RefTable.PKColumn()
 		if col != nil {
-			sql = strings.ToLower(sql)
-			sqls := strings.SplitN(sql, "from", 2)
+			sqls := splitNNoCase(sql, "from", 2)
 			if len(sqls) != 2 {
 				return ""
 			}
@@ -452,7 +451,7 @@ func (session *Session) cacheGet(bean interface{}, sql string, args ...interface
 			data := resultsSlice[0]
 			var id int64
 			if v, ok := data[session.Statement.RefTable.PrimaryKey]; !ok {
-				return false, errors.New("no id")
+				return false, ErrCacheFailed
 			} else {
 				id, err = strconv.ParseInt(string(v), 10, 64)
 				if err != nil {
@@ -1425,13 +1424,13 @@ func (statement *Statement) convertUpdateSql(sql string) (string, string) {
 	if statement.RefTable == nil || statement.RefTable.PrimaryKey == "" {
 		return "", ""
 	}
-	idx := strings.Index(strings.ToLower(sql), "where")
-	sqls := strings.SplitN(sql, sql[idx:idx+5], 2)
+	sqls := splitNNoCase(sql, "where", 2)
 	if len(sqls) != 2 {
 		return "", ""
 	}
 
 	var whereStr = sqls[1]
+
 	//TODO: for postgres only, if any other database?
 	if strings.Contains(sqls[1], "$") {
 		dollers := strings.Split(sqls[1], "$")
@@ -1513,10 +1512,10 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 				ids = append(ids, id)
 			}
 		}
-	} else {
+	} /*else {
 		session.Engine.LogDebug("[xorm:cacheUpdate] del cached sql:", tableName, newsql, args)
 		cacher.DelIds(tableName, genSqlKey(newsql, args))
-	}
+	}*/
 
 	for _, id := range ids {
 		if bean := cacher.GetBean(tableName, id); bean != nil {
@@ -1554,6 +1553,8 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 			cacher.PutBean(tableName, id, bean)
 		}
 	}
+	session.Engine.LogDebug("[xorm:cacheUpdate] clear cached table sql:", tableName)
+	cacher.ClearIds(tableName)
 	return nil
 }
 

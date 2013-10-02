@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 type CacheStore interface {
@@ -62,12 +63,18 @@ type Cacher interface {
 }
 
 type idNode struct {
-	tbName string
-	id     int64
+	tbName    string
+	id        int64
+	lastVisit time.Time
+}
+
+type sqlNode struct {
+	sql       string
+	lastVisit time.Time
 }
 
 func newNode(tbName string, id int64) *idNode {
-	return &idNode{tbName, id}
+	return &idNode{tbName, id, time.Now()}
 }
 
 // LRUCacher implements Cacher according to LRU algorithm
@@ -79,6 +86,7 @@ type LRUCacher struct {
 	store    CacheStore
 	Max      int
 	mutex    sync.Mutex
+	expired  int
 }
 
 func NewLRUCacher(store CacheStore, max int) *LRUCacher {
