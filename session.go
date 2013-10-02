@@ -1691,15 +1691,17 @@ func (session *Session) cacheDelete(sql string, args ...interface{}) error {
 				ids = append(ids, id)
 			}
 		}
-	} else {
+	} /*else {
 		session.Engine.LogDebug("delete cache sql %v", newsql)
 		cacher.DelIds(tableName, genSqlKey(newsql, args))
-	}
+	}*/
 
 	for _, id := range ids {
-		session.Engine.LogDebug("delete cache obj %v %v", tableName, id)
+		session.Engine.LogDebug("[xorm:cacheDelete] delete cache obj", tableName, id)
 		cacher.DelBean(tableName, id)
 	}
+	session.Engine.LogDebug("[xorm:cacheDelete] clear cache table", tableName)
+	cacher.ClearIds(tableName)
 	return nil
 }
 
