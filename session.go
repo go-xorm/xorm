@@ -95,7 +95,8 @@ func (session *Session) Desc(colNames ...string) *Session {
 	if session.Statement.OrderStr != "" {
 		session.Statement.OrderStr += ", "
 	}
-	sql := strings.Join(colNames, session.Engine.Quote(" DESC, "))
+	newColNames := col2NewCols(colNames...)
+	sql := strings.Join(newColNames, session.Engine.Quote(" DESC, "))
 	session.Statement.OrderStr += session.Engine.Quote(sql) + " DESC"
 	return session
 }
@@ -104,7 +105,8 @@ func (session *Session) Asc(colNames ...string) *Session {
 	if session.Statement.OrderStr != "" {
 		session.Statement.OrderStr += ", "
 	}
-	sql := strings.Join(colNames, session.Engine.Quote(" ASC, "))
+	newColNames := col2NewCols(colNames...)
+	sql := strings.Join(newColNames, session.Engine.Quote(" ASC, "))
 	session.Statement.OrderStr += session.Engine.Quote(sql) + " ASC"
 	return session
 }
@@ -418,7 +420,8 @@ func (statement *Statement) convertIdSql(sql string) string {
 			if len(sqls) != 2 {
 				return ""
 			}
-			return fmt.Sprintf("SELECT %v FROM %v", statement.Engine.Quote(col.Name), sqls[1])
+			return fmt.Sprintf("SELECT %v.%v FROM %v", statement.Engine.Quote(statement.TableName()),
+				statement.Engine.Quote(col.Name), sqls[1])
 		}
 	}
 	return ""
@@ -552,6 +555,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 	}
 
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
+
 	var idxes []int = make([]int, 0)
 	var ides []interface{} = make([]interface{}, 0)
 	var temps []interface{} = make([]interface{}, len(ids))
@@ -571,7 +575,9 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 		newSession := session.Engine.NewSession()
 		defer newSession.Close()
 
-		beans := reflect.New(sliceValue.Type()).Interface()
+		slices := reflect.New(reflect.SliceOf(t))
+		beans := slices.Interface()
+		//beans := reflect.New(sliceValue.Type()).Interface()
 		err = newSession.In("(id)", ides...).OrderBy(session.Statement.OrderStr).NoCache().Find(beans)
 		if err != nil {
 			return err
@@ -589,7 +595,25 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 	for j := 0; j < len(temps); j++ {
 		bean := temps[j]
 		if bean != nil {
-			sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(bean))))
+			if sliceValue.Kind() == reflect.Slice {
+				if t.Kind() == reflect.Ptr {
+					sliceValue.Set(reflect.Append(sliceValue, reflect.ValueOf(bean)))
+				} else {
+					sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(bean))))
+				}
+			} else if sliceValue.Kind() == reflect.Map {
+				var key int64
+				if table.PrimaryKey != "" {
+					key = ids[j]
+				} else {
+					key = int64(j)
+				}
+				if t.Kind() == reflect.Ptr {
+					sliceValue.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(bean))
+				} else {
+					sliceValue.SetMapIndex(reflect.ValueOf(key), reflect.Indirect(reflect.ValueOf(bean)))
+				}
+			}
 		} else {
 			session.Engine.LogDebug("[xorm:cacheFind] cache delete:", tableName, ides[j])
 			cacher.DelBean(tableName, ids[j])
@@ -704,7 +728,18 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	}
 
 	sliceElementType := sliceValue.Type().Elem()
-	table := session.Engine.AutoMapType(sliceElementType)
+	var table *Table
+	if sliceElementType.Kind() == reflect.Ptr {
+		if sliceElementType.Elem().Kind() == reflect.Struct {
+			table = session.Engine.AutoMapType(sliceElementType.Elem())
+		} else {
+			return errors.New("slice type")
+		}
+	} else if sliceElementType.Kind() == reflect.Struct {
+		table = session.Engine.AutoMapType(sliceElementType)
+	} else {
+		return errors.New("slice type")
+	}
 	session.Statement.RefTable = table
 
 	if len(condiBean) > 0 {
@@ -732,6 +767,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		if err != ErrCacheFailed {
 			return err
 		}
+		session.Engine.LogWarn("Cache Find Failed")
 	}
 
 	resultsSlice, err := session.query(sql, args...)
@@ -740,13 +776,22 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	}
 
 	for i, results := range resultsSlice {
-		newValue := reflect.New(sliceElementType)
+		var newValue reflect.Value
+		if sliceElementType.Kind() == reflect.Ptr {
+			newValue = reflect.New(sliceElementType.Elem())
+		} else {
+			newValue = reflect.New(sliceElementType)
+		}
 		err := session.scanMapIntoStruct(newValue.Interface(), results)
 		if err != nil {
 			return err
 		}
 		if sliceValue.Kind() == reflect.Slice {
-			sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(newValue.Interface()))))
+			if sliceElementType.Kind() == reflect.Ptr {
+				sliceValue.Set(reflect.Append(sliceValue, reflect.ValueOf(newValue.Interface())))
+			} else {
+				sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(newValue.Interface()))))
+			}
 		} else if sliceValue.Kind() == reflect.Map {
 			var key int64
 			if table.PrimaryKey != "" {
@@ -758,7 +803,11 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 			} else {
 				key = int64(i)
 			}
-			sliceValue.SetMapIndex(reflect.ValueOf(key), reflect.Indirect(reflect.ValueOf(newValue.Interface())))
+			if sliceElementType.Kind() == reflect.Ptr {
+				sliceValue.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(newValue.Interface()))
+			} else {
+				sliceValue.SetMapIndex(reflect.ValueOf(key), reflect.Indirect(reflect.ValueOf(newValue.Interface())))
+			}
 		}
 	}
 	return nil
@@ -852,7 +901,7 @@ func (session *Session) addIndex(tableName, idxName string) error {
 		defer session.Close()
 	}
 	//fmt.Println(idxName)
-	cols := session.Statement.RefTable.Indexes[idxName]
+	cols := session.Statement.RefTable.Indexes[idxName].GenColsStr()
 	sql, args := session.Statement.genAddIndexStr(indexName(tableName, idxName), cols)
 	_, err = session.exec(sql, args...)
 	return err
@@ -868,7 +917,7 @@ func (session *Session) addUnique(tableName, uqeName string) error {
 		defer session.Close()
 	}
 	//fmt.Println(uqeName, session.Statement.RefTable.Uniques)
-	cols := session.Statement.RefTable.Uniques[uqeName]
+	cols := session.Statement.RefTable.Indexes[uqeName].GenColsStr()
 	sql, args := session.Statement.genAddUniqueStr(uniqueName(tableName, uqeName), cols)
 	_, err = session.exec(sql, args...)
 	return err

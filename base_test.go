@@ -271,7 +271,22 @@ func find(engine *Engine, t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
-	fmt.Println(users)
+	for _, user := range users {
+		fmt.Println(user)
+	}
+}
+
+func find2(engine *Engine, t *testing.T) {
+	users := make([]*Userinfo, 0)
+
+	err := engine.Find(&users)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	for _, user := range users {
+		fmt.Println(user)
+	}
 }
 
 func findMap(engine *Engine, t *testing.T) {
@@ -282,7 +297,22 @@ func findMap(engine *Engine, t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
-	fmt.Println(users)
+	for _, user := range users {
+		fmt.Println(user)
+	}
+}
+
+func findMap2(engine *Engine, t *testing.T) {
+	users := make(map[int64]*Userinfo)
+
+	err := engine.Find(&users)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	for id, user := range users {
+		fmt.Println(id, user)
+	}
 }
 
 func count(engine *Engine, t *testing.T) {
@@ -683,7 +713,7 @@ func testCols(engine *Engine, t *testing.T) {
 	fmt.Println(users)
 
 	tmpUsers := []tempUser{}
-	err = engine.Table("userinfo").Cols("id, username").Find(&tmpUsers)
+	err = engine.NoCache().Table("userinfo").Cols("id, username").Find(&tmpUsers)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -1055,8 +1085,12 @@ func testAll(engine *Engine, t *testing.T) {
 	cascadeGet(engine, t)
 	fmt.Println("-------------- find --------------")
 	find(engine, t)
+	fmt.Println("-------------- find2 --------------")
+	find2(engine, t)
 	fmt.Println("-------------- findMap --------------")
 	findMap(engine, t)
+	fmt.Println("-------------- findMap2 --------------")
+	findMap2(engine, t)
 	fmt.Println("-------------- count --------------")
 	count(engine, t)
 	fmt.Println("-------------- where --------------")

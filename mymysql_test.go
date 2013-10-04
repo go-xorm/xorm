@@ -10,7 +10,7 @@ CREATE DATABASE IF NOT EXISTS xorm_test CHARACTER SET
 utf8 COLLATE utf8_general_ci;
 */
 
-var showTestSql bool = false
+var showTestSql bool = true
 
 func TestMyMysql(t *testing.T) {
 	engine, err := NewEngine("mymysql", "xorm_test2/root/")

@@ -44,6 +44,7 @@ type Engine struct {
 	ShowSQL        bool
 	ShowErr        bool
 	ShowDebug      bool
+	ShowWarn       bool
 	Pool           IConnectPool
 	Filters        []Filter
 	Logger         io.Writer
@@ -155,6 +156,12 @@ func (engine *Engine) LogError(contents ...interface{}) {
 
 func (engine *Engine) LogDebug(contents ...interface{}) {
 	if engine.ShowDebug {
+		io.WriteString(engine.Logger, fmt.Sprintln(contents...))
+	}
+}
+
+func (engine *Engine) LogWarn(contents ...interface{}) {
+	if engine.ShowWarn {
 		io.WriteString(engine.Logger, fmt.Sprintln(contents...))
 	}
 }
@@ -286,7 +293,8 @@ func (engine *Engine) AutoMap(bean interface{}) *Table {
 }
 
 func (engine *Engine) newTable() *Table {
-	table := &Table{Indexes: map[string][]string{}, Uniques: map[string][]string{}}
+	table := &Table{}
+	table.Indexes = make(map[string]*Index)
 	table.Columns = make(map[string]*Column)
 	table.ColumnsSeq = make([]string, 0)
 	table.Cacher = engine.Cacher
@@ -347,22 +355,42 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 						col.IsCreated = true
 					case k == "UPDATED":
 						col.IsUpdated = true
-					case strings.HasPrefix(k, "INDEX"):
-						if k == "INDEX" {
-							col.IndexName = ""
-							col.IndexType = SINGLEINDEX
+					/*case strings.HasPrefix(k, "--"):
+					col.Comment = k[2:len(k)]*/
+					case strings.HasPrefix(k, "INDEX(") && strings.HasSuffix(k, ")"):
+						indexName := k[len("INDEX")+1 : len(k)-1]
+						if index, ok := table.Indexes[indexName]; ok {
+							index.AddColumn(col)
+							col.Index = index
 						} else {
-							col.IndexName = k[len("INDEX")+1 : len(k)-1]
-							col.IndexType = UNIONINDEX
+							index := NewIndex(indexName, false)
+							index.AddColumn(col)
+							table.AddIndex(index)
+							col.Index = index
 						}
-					case strings.HasPrefix(k, "UNIQUE"):
-						if k == "UNIQUE" {
-							col.UniqueName = ""
-							col.UniqueType = SINGLEUNIQUE
+					case k == "INDEX":
+						index := NewIndex(col.Name, false)
+						index.AddColumn(col)
+						table.AddIndex(index)
+						col.Index = index
+					case strings.HasPrefix(k, "UNIQUE(") && strings.HasSuffix(k, ")"):
+						indexName := k[len("UNIQUE")+1 : len(k)-1]
+						if index, ok := table.Indexes[indexName]; ok {
+							index.AddColumn(col)
+							col.Index = index
 						} else {
-							col.UniqueName = k[len("UNIQUE")+1 : len(k)-1]
-							col.UniqueType = UNIONUNIQUE
+							index := NewIndex(indexName, true)
+							index.AddColumn(col)
+							table.AddIndex(index)
+							col.Index = index
 						}
+					case k == "UNIQUE":
+						index := NewIndex(col.Name, true)
+						index.AddColumn(col)
+						table.AddIndex(index)
+						col.Index = index
+					case k == "NOTNULL":
+						col.Nullable = false
 					case k == "NOT":
 					default:
 						if strings.HasPrefix(k, "'") && strings.HasSuffix(k, "'") {
@@ -395,60 +423,26 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 				if col.SQLType.Name == "" {
 					col.SQLType = Type2SQLType(fieldType)
 				}
-
 				if col.Length == 0 {
 					col.Length = col.SQLType.DefaultLength
 				}
 				if col.Length2 == 0 {
 					col.Length2 = col.SQLType.DefaultLength2
 				}
-
 				if col.Name == "" {
 					col.Name = engine.Mapper.Obj2Table(t.Field(i).Name)
-				}
-				if col.IsPrimaryKey {
-					table.PrimaryKey = col.Name
-				}
-				if col.IsCreated {
-					table.Created = col.Name
-				}
-				if col.IsUpdated {
-					table.Updated = col.Name
-				}
-				if col.IndexType == SINGLEINDEX {
-					col.IndexName = col.Name
-					table.Indexes[col.IndexName] = []string{col.Name}
-				} else if col.IndexType == UNIONINDEX {
-					if unionIdxes, ok := table.Indexes[col.IndexName]; ok {
-						table.Indexes[col.IndexName] = append(unionIdxes, col.Name)
-					} else {
-						table.Indexes[col.IndexName] = []string{col.Name}
-					}
-				}
-
-				if col.UniqueType == SINGLEUNIQUE {
-					col.UniqueName = col.Name
-					table.Uniques[col.UniqueName] = []string{col.Name}
-				} else if col.UniqueType == UNIONUNIQUE {
-					if unionUniques, ok := table.Uniques[col.UniqueName]; ok {
-						table.Uniques[col.UniqueName] = append(unionUniques, col.Name)
-					} else {
-						table.Uniques[col.UniqueName] = []string{col.Name}
-					}
 				}
 			}
 		} else {
 			sqlType := Type2SQLType(fieldType)
 			col = &Column{engine.Mapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
-				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", NONEUNIQUE, "",
-				NONEINDEX, "", false, false, TWOSIDES, false, false}
+				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", nil, false, false,
+				TWOSIDES, false, false, ""}
 		}
 		if col.IsAutoIncrement {
 			col.Nullable = false
 		}
-		if col.IsPrimaryKey {
-			table.PrimaryKey = col.Name
-		}
+
 		table.AddColumn(col)
 
 		if col.FieldName == "Id" || strings.HasSuffix(col.FieldName, ".Id") {
@@ -487,8 +481,8 @@ func (engine *Engine) IsTableEmpty(bean interface{}) (bool, error) {
 	engine.AutoMapType(t)
 	session := engine.NewSession()
 	defer session.Close()
-	has, err := session.Get(bean)
-	return !has, err
+	rows, err := session.Count(bean)
+	return rows > 0, err
 }
 
 // Is a table is exist
@@ -587,40 +581,37 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 				}
 			}
 
-			for idx, _ := range table.Indexes {
+			for name, index := range table.Indexes {
 				session := engine.NewSession()
 				session.Statement.RefTable = table
 				defer session.Close()
-				isExist, err := session.isIndexExist(table.Name, idx, false)
-				if err != nil {
-					return err
-				}
-				if !isExist {
-					session := engine.NewSession()
-					session.Statement.RefTable = table
-					defer session.Close()
-					err = session.addIndex(table.Name, idx)
+				if index.IsUnique {
+					isExist, err := session.isIndexExist(table.Name, name, true)
 					if err != nil {
 						return err
 					}
-				}
-			}
-
-			for uqe, _ := range table.Uniques {
-				session := engine.NewSession()
-				session.Statement.RefTable = table
-				defer session.Close()
-				isExist, err := session.isIndexExist(table.Name, uqe, true)
-				if err != nil {
-					return err
-				}
-				if !isExist {
-					session := engine.NewSession()
-					session.Statement.RefTable = table
-					defer session.Close()
-					err = session.addUnique(table.Name, uqe)
+					if !isExist {
+						session := engine.NewSession()
+						session.Statement.RefTable = table
+						defer session.Close()
+						err = session.addUnique(table.Name, name)
+						if err != nil {
+							return err
+						}
+					}
+				} else {
+					isExist, err := session.isIndexExist(table.Name, name, false)
 					if err != nil {
 						return err
+					}
+					if !isExist {
+						session := engine.NewSession()
+						session.Statement.RefTable = table
+						defer session.Close()
+						err = session.addIndex(table.Name, name)
+						if err != nil {
+							return err
+						}
 					}
 				}
 			}

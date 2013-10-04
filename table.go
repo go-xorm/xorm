@@ -149,22 +149,24 @@ const (
 	ONLYFROMDB
 )
 
-const (
-	NONEINDEX = iota
-	SINGLEINDEX
-	UNIONINDEX
-)
-
-const (
-	NONEUNIQUE = iota
-	SINGLEUNIQUE
-	UNIONUNIQUE
-)
-
 type Index struct {
 	Name     string
 	IsUnique bool
 	Cols     []*Column
+}
+
+func (index *Index) AddColumn(cols ...*Column) {
+	for _, col := range cols {
+		index.Cols = append(index.Cols, col)
+	}
+}
+
+func (index *Index) GenColsStr() []string {
+	names := make([]string, len(index.Cols))
+	for idx, col := range index.Cols {
+		names[idx] = col.Name
+	}
+	return names
 }
 
 func NewIndex(name string, isUnique bool) *Index {
@@ -179,15 +181,13 @@ type Column struct {
 	Length2         int
 	Nullable        bool
 	Default         string
-	UniqueType      int
-	UniqueName      string
-	IndexType       int
-	IndexName       string
+	Index           *Index
 	IsPrimaryKey    bool
 	IsAutoIncrement bool
 	MapType         int
 	IsCreated       bool
 	IsUpdated       bool
+	Comment         string
 }
 
 func (col *Column) String(engine *Engine) string {
@@ -211,6 +211,10 @@ func (col *Column) String(engine *Engine) string {
 
 	if col.Default != "" {
 		sql += "DEFAULT " + col.Default + " "
+	}
+
+	if col.Comment != "" {
+		sql += "COMMENT '" + col.Comment + "' "
 	}
 	return sql
 }
@@ -236,8 +240,7 @@ type Table struct {
 	Type       reflect.Type
 	ColumnsSeq []string
 	Columns    map[string]*Column
-	Indexes    map[string][]string
-	Uniques    map[string][]string
+	Indexes    map[string]*Index
 	PrimaryKey string
 	Created    string
 	Updated    string
@@ -251,6 +254,19 @@ func (table *Table) PKColumn() *Column {
 func (table *Table) AddColumn(col *Column) {
 	table.ColumnsSeq = append(table.ColumnsSeq, col.Name)
 	table.Columns[col.Name] = col
+	if col.IsPrimaryKey {
+		table.PrimaryKey = col.Name
+	}
+	if col.IsCreated {
+		table.Created = col.Name
+	}
+	if col.IsUpdated {
+		table.Updated = col.Name
+	}
+}
+
+func (table *Table) AddIndex(index *Index) {
+	table.Indexes[index.Name] = index
 }
 
 func (table *Table) genCols(session *Session, bean interface{}, useCol bool, includeQuote bool) ([]string, []interface{}, error) {

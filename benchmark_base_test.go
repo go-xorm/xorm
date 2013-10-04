@@ -46,5 +46,4 @@ func doBenchCacheFind(engine *Engine, b *testing.B) {
 		b.Error(err)
 		return
 	}
-
 }
