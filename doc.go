@@ -2,6 +2,6 @@
 // Use of this source code is governed by a BSD
 // license that can be found in the LICENSE file.
 
-// Package xorm provides is a simple and powerful ORM for Go. It makes
+// Package xorm is a simple and powerful ORM for Go. It makes
 // database operation simple.
 package xorm
