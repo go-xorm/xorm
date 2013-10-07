@@ -4,7 +4,7 @@
 
 xorm is a simple and powerful ORM for Go. It makes dabatabse operating simple. 
 
-[![Build Status](https://drone.io/github.com/lunny/xorm/status.png)](https://drone.io/github.com/lunny/xorm/latest)
+[![Build Status](https://drone.io/github.com/lunny/xorm/status.png)](https://drone.io/github.com/lunny/xorm/latest)  [![Go Walker](http://gowalker.org/api/v1/badge)](http://gowalker.org/github.com/lunny/xorm)
 
 ## Discuss
 
