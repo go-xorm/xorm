@@ -2,7 +2,7 @@ When a struct auto mapping to a database's table, the below table describes how 
 
 <table>
     <tr>
-    <td>go type
+    <td>go type's kind
     </td>
     <td>value method</td>
     <td>xorm type
