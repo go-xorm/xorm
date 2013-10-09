@@ -416,3 +416,7 @@ type User struct {
 
  BSD License
  [http://creativecommons.org/licenses/BSD/](http://creativecommons.org/licenses/BSD/)
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/lunny/xorm/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
