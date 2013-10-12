@@ -585,7 +585,12 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 
 		vs := reflect.Indirect(reflect.ValueOf(beans))
 		for i := 0; i < vs.Len(); i++ {
-			bean := vs.Index(i).Addr().Interface()
+			rv := vs.Index(i)
+			if rv.Kind() != reflect.Ptr {
+				rv = rv.Addr()
+			}
+			bean := rv.Interface()
+			//bean := vs.Index(i).Addr().Interface()
 			temps[idxes[i]] = bean
 			session.Engine.LogDebug("[xorm:cacheFind] cache bean:", tableName, ides[i], bean)
 			cacher.PutBean(tableName, ides[i].(int64), bean)
