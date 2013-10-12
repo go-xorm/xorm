@@ -1,9 +1,11 @@
 package xorm
 
 type sqlite3 struct {
+	base
 }
 
-func (db *sqlite3) Init(uri string) error {
+func (db *sqlite3) Init(drivername, dataSourceName string) error {
+	db.base.init(drivername, dataSourceName)
 	return nil
 }
 
@@ -68,4 +70,23 @@ func (db *sqlite3) TableCheckSql(tableName string) (string, []interface{}) {
 func (db *sqlite3) ColumnCheckSql(tableName, colName string) (string, []interface{}) {
 	args := []interface{}{tableName}
 	return "SELECT name FROM sqlite_master WHERE type='table' and name = ? and sql like '%`" + colName + "`%'", args
+}
+
+func (db *sqlite3) GetColumns(tableName string) (map[string]*Column, error) {
+	/*args := []interface{}{db.dbname, tableName}
+
+	SELECT sql FROM sqlite_master WHERE type='table' and name = 'category';
+	sql := "SELECT `COLUMN_NAME`, `IS_NULLABLE`, `COLUMN_DEFAULT`, `COLUMN_TYPE`," +
+		" `COLUMN_KEY`, `EXTRA` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = ? AND `TABLE_NAME` = ?"
+
+	return sql, args*/
+	return nil, ErrNotImplemented
+}
+
+func (db *sqlite3) GetTables() ([]*Table, error) {
+	return nil, ErrNotImplemented
+}
+
+func (db *sqlite3) GetIndexes(tableName string) (map[string]*Index, error) {
+	return nil, ErrNotImplemented
 }

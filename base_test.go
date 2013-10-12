@@ -3,6 +3,7 @@ package xorm
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -98,7 +99,7 @@ func insert(engine *Engine, t *testing.T) {
 	}
 }
 
-func query(engine *Engine, t *testing.T) {
+func testQuery(engine *Engine, t *testing.T) {
 	sql := "select * from userinfo"
 	results, err := engine.Query(sql)
 	if err != nil {
@@ -159,6 +160,19 @@ func insertMulti(engine *Engine, t *testing.T) {
 		{Username: "xlw22", Departname: "dev", Alias: "lunny3", Created: time.Now()},
 	}
 	_, err := engine.Insert(&users)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	users2 := []*Userinfo{
+		&Userinfo{Username: "1xlw", Departname: "dev", Alias: "lunny2", Created: time.Now()},
+		&Userinfo{Username: "1xlw2", Departname: "dev", Alias: "lunny3", Created: time.Now()},
+		&Userinfo{Username: "1xlw11", Departname: "dev", Alias: "lunny2", Created: time.Now()},
+		&Userinfo{Username: "1xlw22", Departname: "dev", Alias: "lunny3", Created: time.Now()},
+	}
+
+	_, err = engine.Insert(&users2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -1018,6 +1032,18 @@ func testIndexAndUnique(engine *Engine, t *testing.T) {
 		t.Error(err)
 		//panic(err)
 	}
+
+	err = engine.CreateIndexes(&IndexOrUnique{})
+	if err != nil {
+		t.Error(err)
+		//panic(err)
+	}
+
+	err = engine.CreateUniques(&IndexOrUnique{})
+	if err != nil {
+		t.Error(err)
+		//panic(err)
+	}
 }
 
 type IntId struct {
@@ -1042,6 +1068,12 @@ func testIntId(engine *Engine, t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
+
+	_, err = engine.Insert(&IntId{Name: "test"})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
 }
 
 func testInt32Id(engine *Engine, t *testing.T) {
@@ -1056,6 +1088,31 @@ func testInt32Id(engine *Engine, t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
+
+	_, err = engine.Insert(&Int32Id{Name: "test"})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+}
+
+func testMetaInfo(engine *Engine, t *testing.T) {
+	tables, err := engine.DBMetas()
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	for _, table := range tables {
+		fmt.Println(table.Name)
+		for _, col := range table.Columns {
+			fmt.Println(col.String(engine.dialect))
+		}
+
+		for _, index := range table.Indexes {
+			fmt.Println(index.Name, index.Type, strings.Join(index.Cols, ","))
+		}
+	}
 }
 
 func testAll(engine *Engine, t *testing.T) {
@@ -1066,7 +1123,7 @@ func testAll(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- insert --------------")
 	insert(engine, t)
 	fmt.Println("-------------- query --------------")
-	query(engine, t)
+	testQuery(engine, t)
 	fmt.Println("-------------- exec --------------")
 	exec(engine, t)
 	fmt.Println("-------------- insertAutoIncr --------------")
@@ -1132,6 +1189,12 @@ func testAll2(engine *Engine, t *testing.T) {
 	testCreatedAndUpdated(engine, t)
 	fmt.Println("-------------- testIndexAndUnique --------------")
 	testIndexAndUnique(engine, t)
+	fmt.Println("-------------- testIntId --------------")
+	//testIntId(engine, t)
+	fmt.Println("-------------- testInt32Id --------------")
+	//testInt32Id(engine, t)
+	fmt.Println("-------------- testMetaInfo --------------")
+	testMetaInfo(engine, t)
 	fmt.Println("-------------- transaction --------------")
 	transaction(engine, t)
 }

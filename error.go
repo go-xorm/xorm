@@ -5,10 +5,11 @@ import (
 )
 
 var (
-	ErrParamsType      error = errors.New("params type error")
-	ErrTableNotFound   error = errors.New("not found table")
-	ErrUnSupportedType error = errors.New("unsupported type error")
-	ErrNotExist        error = errors.New("not exist error")
-	ErrCacheFailed     error = errors.New("cache failed")
-	ErrNeedDeletedCond error = errors.New("delete need at least one condition")
+	ErrParamsType      error = errors.New("Params type error")
+	ErrTableNotFound   error = errors.New("Not found table")
+	ErrUnSupportedType error = errors.New("Unsupported type error")
+	ErrNotExist        error = errors.New("Not exist error")
+	ErrCacheFailed     error = errors.New("Cache failed")
+	ErrNeedDeletedCond error = errors.New("Delete need at least one condition")
+	ErrNotImplemented  error = errors.New("Not implemented.")
 )

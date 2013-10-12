@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+// Struct Session keep a pointer to sql.DB and provides all execution of all
+// kind of database operations.
 type Session struct {
 	Db                     *sql.DB
 	Engine                 *Engine
@@ -22,6 +24,7 @@ type Session struct {
 	IsAutoClose            bool
 }
 
+// Method Init reset the session as the init status.
 func (session *Session) Init() {
 	session.Statement = Statement{Engine: session.Engine}
 	session.Statement.Init()
@@ -30,6 +33,7 @@ func (session *Session) Init() {
 	session.IsAutoClose = false
 }
 
+// Method Close release the connection from pool
 func (session *Session) Close() {
 	defer func() {
 		if session.Db != nil {
@@ -41,56 +45,64 @@ func (session *Session) Close() {
 	}()
 }
 
+// Method Sql provides raw sql input parameter. When you have a complex SQL statement
+// and cannot use Where, Id, In and etc. Methods to describe, you can use Sql.
 func (session *Session) Sql(querystring string, args ...interface{}) *Session {
 	session.Statement.Sql(querystring, args...)
 	return session
 }
 
+// Method Where provides custom query condition.
 func (session *Session) Where(querystring string, args ...interface{}) *Session {
 	session.Statement.Where(querystring, args...)
 	return session
 }
 
+// Method Id provides converting id as a query condition
 func (session *Session) Id(id int64) *Session {
 	session.Statement.Id(id)
 	return session
 }
 
+// Method Table can input a string or pointer to struct for special a table to operate.
 func (session *Session) Table(tableNameOrBean interface{}) *Session {
 	session.Statement.Table(tableNameOrBean)
 	return session
 }
 
+// Method In provides a query string like "id in (1, 2, 3)"
 func (session *Session) In(column string, args ...interface{}) *Session {
 	session.Statement.In(column, args...)
 	return session
 }
 
+// Method Cols provides some columns to special
 func (session *Session) Cols(columns ...string) *Session {
 	session.Statement.Cols(columns...)
 	return session
 }
 
+// Method NoAutoTime means do not automatically give created field and updated field
+// the current time on the current session temporarily
 func (session *Session) NoAutoTime() *Session {
 	session.Statement.UseAutoTime = false
 	return session
 }
 
-/*func (session *Session) Trans(t string) *Session {
-	session.TransType = t
-	return session
-}*/
-
+// Method Limit provide limit and offset query condition
 func (session *Session) Limit(limit int, start ...int) *Session {
 	session.Statement.Limit(limit, start...)
 	return session
 }
 
+// Method OrderBy provide order by query condition, the input parameter is the content
+// after order by on a sql statement.
 func (session *Session) OrderBy(order string) *Session {
 	session.Statement.OrderBy(order)
 	return session
 }
 
+// Method Desc provide desc order by query condition, the input parameters are columns.
 func (session *Session) Desc(colNames ...string) *Session {
 	if session.Statement.OrderStr != "" {
 		session.Statement.OrderStr += ", "
@@ -101,6 +113,7 @@ func (session *Session) Desc(colNames ...string) *Session {
 	return session
 }
 
+// Method Asc provide asc order by query condition, the input parameters are columns.
 func (session *Session) Asc(colNames ...string) *Session {
 	if session.Statement.OrderStr != "" {
 		session.Statement.OrderStr += ", "
@@ -111,16 +124,19 @@ func (session *Session) Asc(colNames ...string) *Session {
 	return session
 }
 
+// Method StoreEngine is only avialble mysql dialect currently
 func (session *Session) StoreEngine(storeEngine string) *Session {
 	session.Statement.StoreEngine = storeEngine
 	return session
 }
 
+// Method StoreEngine is only avialble charset dialect currently
 func (session *Session) Charset(charset string) *Session {
 	session.Statement.Charset = charset
 	return session
 }
 
+// Method Cascade
 func (session *Session) Cascade(trueOrFalse ...bool) *Session {
 	if len(trueOrFalse) >= 1 {
 		session.Statement.UseCascade = trueOrFalse[0]
@@ -128,6 +144,8 @@ func (session *Session) Cascade(trueOrFalse ...bool) *Session {
 	return session
 }
 
+// Method NoCache ask this session do not retrieve data from cache system and
+// get data from database directly.
 func (session *Session) NoCache() *Session {
 	session.Statement.UseCache = false
 	return session
@@ -836,7 +854,7 @@ func (session *Session) isColumnExist(tableName, colName string) (bool, error) {
 	if session.IsAutoClose {
 		defer session.Close()
 	}
-	sql, args := session.Engine.Dialect.ColumnCheckSql(tableName, colName)
+	sql, args := session.Engine.dialect.ColumnCheckSql(tableName, colName)
 	results, err := session.query(sql, args...)
 	return len(results) > 0, err
 }
@@ -850,7 +868,7 @@ func (session *Session) isTableExist(tableName string) (bool, error) {
 	if session.IsAutoClose {
 		defer session.Close()
 	}
-	sql, args := session.Engine.Dialect.TableCheckSql(tableName)
+	sql, args := session.Engine.dialect.TableCheckSql(tableName)
 	results, err := session.query(sql, args...)
 	return len(results) > 0, err
 }
@@ -870,7 +888,7 @@ func (session *Session) isIndexExist(tableName, idxName string, unique bool) (bo
 	} else {
 		idx = indexName(tableName, idxName)
 	}
-	sql, args := session.Engine.Dialect.IndexCheckSql(tableName, idx)
+	sql, args := session.Engine.dialect.IndexCheckSql(tableName, idx)
 	results, err := session.query(sql, args...)
 	return len(results) > 0, err
 }
@@ -901,7 +919,7 @@ func (session *Session) addIndex(tableName, idxName string) error {
 		defer session.Close()
 	}
 	//fmt.Println(idxName)
-	cols := session.Statement.RefTable.Indexes[idxName].GenColsStr()
+	cols := session.Statement.RefTable.Indexes[idxName].Cols
 	sql, args := session.Statement.genAddIndexStr(indexName(tableName, idxName), cols)
 	_, err = session.exec(sql, args...)
 	return err
@@ -917,7 +935,7 @@ func (session *Session) addUnique(tableName, uqeName string) error {
 		defer session.Close()
 	}
 	//fmt.Println(uqeName, session.Statement.RefTable.Uniques)
-	cols := session.Statement.RefTable.Indexes[uqeName].GenColsStr()
+	cols := session.Statement.RefTable.Indexes[uqeName].Cols
 	sql, args := session.Statement.genAddUniqueStr(uniqueName(tableName, uqeName), cols)
 	_, err = session.exec(sql, args...)
 	return err
@@ -945,6 +963,79 @@ func (session *Session) DropAll() error {
 	return nil
 }
 
+func query(db *sql.DB, sql string, params ...interface{}) (resultsSlice []map[string][]byte, err error) {
+	s, err := db.Prepare(sql)
+	if err != nil {
+		return nil, err
+	}
+	defer s.Close()
+	res, err := s.Query(params...)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Close()
+	fields, err := res.Columns()
+	if err != nil {
+		return nil, err
+	}
+	for res.Next() {
+		result := make(map[string][]byte)
+		var scanResultContainers []interface{}
+		for i := 0; i < len(fields); i++ {
+			var scanResultContainer interface{}
+			scanResultContainers = append(scanResultContainers, &scanResultContainer)
+		}
+		if err := res.Scan(scanResultContainers...); err != nil {
+			return nil, err
+		}
+		for ii, key := range fields {
+			rawValue := reflect.Indirect(reflect.ValueOf(scanResultContainers[ii]))
+
+			//if row is null then ignore
+			if rawValue.Interface() == nil {
+				//fmt.Println("ignore ...", key, rawValue)
+				continue
+			}
+			aa := reflect.TypeOf(rawValue.Interface())
+			vv := reflect.ValueOf(rawValue.Interface())
+			var str string
+			switch aa.Kind() {
+			case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				str = strconv.FormatInt(vv.Int(), 10)
+				result[key] = []byte(str)
+			case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				str = strconv.FormatUint(vv.Uint(), 10)
+				result[key] = []byte(str)
+			case reflect.Float32, reflect.Float64:
+				str = strconv.FormatFloat(vv.Float(), 'f', -1, 64)
+				result[key] = []byte(str)
+			case reflect.Slice:
+				switch aa.Elem().Kind() {
+				case reflect.Uint8:
+					result[key] = rawValue.Interface().([]byte)
+				default:
+					//session.Engine.LogError("Unsupported type")
+				}
+			case reflect.String:
+				str = vv.String()
+				result[key] = []byte(str)
+			//时间类型
+			case reflect.Struct:
+				if aa.String() == "time.Time" {
+					str = rawValue.Interface().(time.Time).Format("2006-01-02 15:04:05.000 -0700")
+					result[key] = []byte(str)
+				} else {
+					//session.Engine.LogError("Unsupported struct type")
+				}
+			default:
+				//session.Engine.LogError("Unsupported type")
+			}
+		}
+		resultsSlice = append(resultsSlice, result)
+	}
+	return resultsSlice, nil
+}
+
 func (session *Session) query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
 	for _, filter := range session.Engine.Filters {
 		sql = filter.Do(sql, session)
@@ -953,7 +1044,9 @@ func (session *Session) query(sql string, paramStr ...interface{}) (resultsSlice
 	session.Engine.LogSQL(sql)
 	session.Engine.LogSQL(paramStr)
 
-	s, err := session.Db.Prepare(sql)
+	return query(session.Db, sql, paramStr...)
+
+	/*s, err := session.Db.Prepare(sql)
 	if err != nil {
 		return nil, err
 	}
@@ -1022,7 +1115,7 @@ func (session *Session) query(sql string, paramStr ...interface{}) (resultsSlice
 		}
 		resultsSlice = append(resultsSlice, result)
 	}
-	return resultsSlice, nil
+	return resultsSlice, nil*/
 }
 
 func (session *Session) Query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
@@ -1446,9 +1539,9 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 
 	var v interface{} = id
 	switch pkValue.Type().Kind() {
-	case reflect.Int8, reflect.Int16, reflect.Int32:
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int:
 		v = int(id)
-	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 		v = uint(id)
 	}
 	pkValue.Set(reflect.ValueOf(v))
@@ -1456,6 +1549,9 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	return id, nil
 }
 
+// Method InsertOne insert only one struct into database as a record.
+// The in parameter bean must a struct or a point to struct. The return
+// parameter is lastInsertId and error
 func (session *Session) InsertOne(bean interface{}) (int64, error) {
 	err := session.newDb()
 	if err != nil {

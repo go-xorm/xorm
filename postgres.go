@@ -8,6 +8,7 @@ import (
 )
 
 type postgres struct {
+	base
 	dbname string
 }
 
@@ -44,7 +45,9 @@ func parseOpts(name string, o values) {
 	}
 }
 
-func (db *postgres) Init(uri string) error {
+func (db *postgres) Init(drivername, uri string) error {
+	db.base.init(drivername, uri)
+
 	o := make(values)
 	parseOpts(uri, o)
 
@@ -134,4 +137,44 @@ func (db *postgres) ColumnCheckSql(tableName, colName string) (string, []interfa
 	args := []interface{}{tableName, colName}
 	return "SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = ?" +
 		" AND column_name = ?", args
+}
+
+func (db *postgres) GetColumns(tableName string) (map[string]*Column, error) {
+	args := []interface{}{tableName}
+	s := "SELECT COLUMN_NAME, column_default, is_nullable, data_type, character_maximum_length" +
+		" FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = ?"
+
+	cnn, err := sql.Open(db.drivername, db.dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+	res, err := query(cnn, s, args...)
+	if err != nil {
+		return nil, err
+	}
+	cols := make(map[string]*Column)
+	for _, record := range res {
+		col := new(Column)
+
+		for name, content := range record {
+			switch name {
+			case "COLUMN_NAME":
+				col.Name = string(content)
+			case "column_default":
+				if strings.HasPrefix(string(content), "") {
+					col.IsPrimaryKey
+				}
+			}
+		}
+	}
+
+	return nil, ErrNotImplemented
+}
+
+func (db *postgres) GetTables() ([]*Table, error) {
+	return nil, ErrNotImplemented
+}
+
+func (db *postgres) GetIndexes(tableName string) (map[string]*Index, error) {
+	return nil, ErrNotImplemented
 }

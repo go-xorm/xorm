@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	version string = "0.1.9"
+	version string = "0.2.0"
 )
 
 func close(engine *Engine) {
@@ -24,19 +24,19 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		DataSourceName: dataSourceName, Filters: make([]Filter, 0)}
 
 	if driverName == SQLITE {
-		engine.Dialect = &sqlite3{}
+		engine.dialect = &sqlite3{}
 	} else if driverName == MYSQL {
-		engine.Dialect = &mysql{}
+		engine.dialect = &mysql{}
 	} else if driverName == POSTGRES {
-		engine.Dialect = &postgres{}
+		engine.dialect = &postgres{}
 		engine.Filters = append(engine.Filters, &PgSeqFilter{})
 		engine.Filters = append(engine.Filters, &QuoteFilter{})
 	} else if driverName == MYMYSQL {
-		engine.Dialect = &mymysql{}
+		engine.dialect = &mymysql{}
 	} else {
 		return nil, errors.New(fmt.Sprintf("Unsupported driver name: %v", driverName))
 	}
-	err := engine.Dialect.Init(dataSourceName)
+	err := engine.dialect.Init(driverName, dataSourceName)
 	if err != nil {
 		return nil, err
 	}
