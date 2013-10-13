@@ -1,9 +1,17 @@
 package xorm
 
+import (
+	"database/sql"
+	"fmt"
+	"strings"
+)
+
 type sqlite3 struct {
+	base
 }
 
-func (db *sqlite3) Init(uri string) error {
+func (db *sqlite3) Init(drivername, dataSourceName string) error {
+	db.base.init(drivername, dataSourceName)
 	return nil
 }
 
@@ -67,5 +75,141 @@ func (db *sqlite3) TableCheckSql(tableName string) (string, []interface{}) {
 
 func (db *sqlite3) ColumnCheckSql(tableName, colName string) (string, []interface{}) {
 	args := []interface{}{tableName}
-	return "SELECT name FROM sqlite_master WHERE type='table' and name = ? and sql like '%`" + colName + "`%'", args
+	fmt.Println(tableName, colName)
+	sql := "SELECT name FROM sqlite_master WHERE type='table' and name = ? and ((sql like '%`" + colName + "`%') or (sql like '%[" + colName + "]%'))"
+	fmt.Println(sql)
+	return sql, args
+}
+
+func (db *sqlite3) GetColumns(tableName string) (map[string]*Column, error) {
+	args := []interface{}{tableName}
+	s := "SELECT sql FROM sqlite_master WHERE type='table' and name = ?"
+	cnn, err := sql.Open(db.drivername, db.dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+	defer cnn.Close()
+	res, err := query(cnn, s, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	var sql string
+	for _, record := range res {
+		for name, content := range record {
+			if name == "sql" {
+				sql = string(content)
+			}
+		}
+	}
+
+	nStart := strings.Index(sql, "(")
+	nEnd := strings.Index(sql, ")")
+	colCreates := strings.Split(sql[nStart+1:nEnd], ",")
+	cols := make(map[string]*Column)
+	for _, colStr := range colCreates {
+		fields := strings.Fields(strings.TrimSpace(colStr))
+		col := new(Column)
+		col.Indexes = make(map[string]bool)
+		for idx, field := range fields {
+			if idx == 0 {
+				col.Name = strings.Trim(field, "`[] ")
+				continue
+			} else if idx == 1 {
+				col.SQLType = SQLType{field, 0, 0}
+			}
+			switch field {
+			case "PRIMARY":
+				col.IsPrimaryKey = true
+			case "AUTOINCREMENT":
+				col.IsAutoIncrement = true
+			case "NULL":
+				if fields[idx-1] == "NOT" {
+					col.Nullable = false
+				} else {
+					col.Nullable = true
+				}
+			}
+		}
+		cols[col.Name] = col
+	}
+	return cols, nil
+}
+
+func (db *sqlite3) GetTables() ([]*Table, error) {
+	args := []interface{}{}
+	s := "SELECT name FROM sqlite_master WHERE type='table'"
+
+	cnn, err := sql.Open(db.drivername, db.dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+	defer cnn.Close()
+	res, err := query(cnn, s, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	tables := make([]*Table, 0)
+	for _, record := range res {
+		table := new(Table)
+		for name, content := range record {
+			switch name {
+			case "name":
+				table.Name = string(content)
+			}
+		}
+		if table.Name == "sqlite_sequence" {
+			continue
+		}
+		tables = append(tables, table)
+	}
+	return tables, nil
+}
+
+func (db *sqlite3) GetIndexes(tableName string) (map[string]*Index, error) {
+	args := []interface{}{tableName}
+	s := "SELECT sql FROM sqlite_master WHERE type='index' and tbl_name = ?"
+	cnn, err := sql.Open(db.drivername, db.dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+	defer cnn.Close()
+	res, err := query(cnn, s, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	indexes := make(map[string]*Index, 0)
+	for _, record := range res {
+		var sql string
+		index := new(Index)
+		for name, content := range record {
+			if name == "sql" {
+				sql = string(content)
+			}
+		}
+
+		nNStart := strings.Index(sql, "INDEX")
+		nNEnd := strings.Index(sql, "ON")
+		indexName := strings.Trim(sql[nNStart+6:nNEnd], "` []")
+		index.Name = indexName[5+len(tableName) : len(indexName)]
+
+		if strings.HasPrefix(sql, "CREATE UNIQUE INDEX") {
+			index.Type = UniqueType
+		} else {
+			index.Type = IndexType
+		}
+
+		nStart := strings.Index(sql, "(")
+		nEnd := strings.Index(sql, ")")
+		colIndexes := strings.Split(sql[nStart+1:nEnd], ",")
+
+		index.Cols = make([]string, 0)
+		for _, col := range colIndexes {
+			index.Cols = append(index.Cols, strings.Trim(col, "` []"))
+		}
+	}
+
+	return indexes, nil
 }

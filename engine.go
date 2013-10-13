@@ -20,7 +20,7 @@ const (
 
 // a dialect is a driver's wrapper
 type dialect interface {
-	Init(uri string) error
+	Init(DriverName, DataSourceName string) error
 	SqlType(t *Column) string
 	SupportInsertMany() bool
 	QuoteStr() string
@@ -31,6 +31,10 @@ type dialect interface {
 	IndexCheckSql(tableName, idxName string) (string, []interface{})
 	TableCheckSql(tableName string) (string, []interface{})
 	ColumnCheckSql(tableName, colName string) (string, []interface{})
+
+	GetColumns(tableName string) (map[string]*Column, error)
+	GetTables() ([]*Table, error)
+	GetIndexes(tableName string) (map[string]*Index, error)
 }
 
 type Engine struct {
@@ -38,7 +42,7 @@ type Engine struct {
 	TagIdentifier  string
 	DriverName     string
 	DataSourceName string
-	Dialect        dialect
+	dialect        dialect
 	Tables         map[reflect.Type]*Table
 	mutex          *sync.Mutex
 	ShowSQL        bool
@@ -57,28 +61,28 @@ type Engine struct {
 // When the return is ture, then engine.Insert(&users) will
 // generate batch sql and exeute.
 func (engine *Engine) SupportInsertMany() bool {
-	return engine.Dialect.SupportInsertMany()
+	return engine.dialect.SupportInsertMany()
 }
 
 // Engine's database use which charactor as quote.
 // mysql, sqlite use ` and postgres use "
 func (engine *Engine) QuoteStr() string {
-	return engine.Dialect.QuoteStr()
+	return engine.dialect.QuoteStr()
 }
 
 // Use QuoteStr quote the string sql
 func (engine *Engine) Quote(sql string) string {
-	return engine.Dialect.QuoteStr() + sql + engine.Dialect.QuoteStr()
+	return engine.dialect.QuoteStr() + sql + engine.dialect.QuoteStr()
 }
 
 // A simple wrapper to dialect's SqlType method
 func (engine *Engine) SqlType(c *Column) string {
-	return engine.Dialect.SqlType(c)
+	return engine.dialect.SqlType(c)
 }
 
 // Database's autoincrement statement
 func (engine *Engine) AutoIncrStr() string {
-	return engine.Dialect.AutoIncrStr()
+	return engine.dialect.AutoIncrStr()
 }
 
 // Set engine's pool, the pool default is Go's standard library's connection pool.
@@ -176,6 +180,38 @@ func (engine *Engine) NoAutoTime() *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
 	return session.NoAutoTime()
+}
+
+func (engine *Engine) DBMetas() ([]*Table, error) {
+	tables, err := engine.dialect.GetTables()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, table := range tables {
+		cols, err := engine.dialect.GetColumns(table.Name)
+		if err != nil {
+			return nil, err
+		}
+		table.Columns = cols
+
+		indexes, err := engine.dialect.GetIndexes(table.Name)
+		if err != nil {
+			return nil, err
+		}
+		table.Indexes = indexes
+
+		for _, index := range indexes {
+			for _, name := range index.Cols {
+				if col, ok := table.Columns[name]; ok {
+					col.Indexes[index.Name] = true
+				} else {
+					return nil, errors.New("Unkonwn col " + name + " in indexes")
+				}
+			}
+		}
+	}
+	return tables, nil
 }
 
 func (engine *Engine) Cascade(trueOrFalse ...bool) *Session {
@@ -316,7 +352,7 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 
 		if ormTagStr != "" {
 			col = &Column{FieldName: t.Field(i).Name, Nullable: true, IsPrimaryKey: false,
-				IsAutoIncrement: false, MapType: TWOSIDES}
+				IsAutoIncrement: false, MapType: TWOSIDES, Indexes: make(map[string]bool)}
 			tags := strings.Split(ormTagStr, " ")
 
 			if len(tags) > 0 {
@@ -335,6 +371,8 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 					table.PrimaryKey = parentTable.PrimaryKey
 					continue
 				}
+				var indexType int
+				var indexName string
 				for j, key := range tags {
 					k := strings.ToUpper(key)
 					switch {
@@ -358,37 +396,15 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 					/*case strings.HasPrefix(k, "--"):
 					col.Comment = k[2:len(k)]*/
 					case strings.HasPrefix(k, "INDEX(") && strings.HasSuffix(k, ")"):
-						indexName := k[len("INDEX")+1 : len(k)-1]
-						if index, ok := table.Indexes[indexName]; ok {
-							index.AddColumn(col)
-							col.Index = index
-						} else {
-							index := NewIndex(indexName, false)
-							index.AddColumn(col)
-							table.AddIndex(index)
-							col.Index = index
-						}
+						indexType = IndexType
+						indexName = k[len("INDEX")+1 : len(k)-1]
 					case k == "INDEX":
-						index := NewIndex(col.Name, false)
-						index.AddColumn(col)
-						table.AddIndex(index)
-						col.Index = index
+						indexType = IndexType
 					case strings.HasPrefix(k, "UNIQUE(") && strings.HasSuffix(k, ")"):
-						indexName := k[len("UNIQUE")+1 : len(k)-1]
-						if index, ok := table.Indexes[indexName]; ok {
-							index.AddColumn(col)
-							col.Index = index
-						} else {
-							index := NewIndex(indexName, true)
-							index.AddColumn(col)
-							table.AddIndex(index)
-							col.Index = index
-						}
+						indexName = k[len("UNIQUE")+1 : len(k)-1]
+						indexType = UniqueType
 					case k == "UNIQUE":
-						index := NewIndex(col.Name, true)
-						index.AddColumn(col)
-						table.AddIndex(index)
-						col.Index = index
+						indexType = UniqueType
 					case k == "NOTNULL":
 						col.Nullable = false
 					case k == "NOT":
@@ -432,12 +448,39 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 				if col.Name == "" {
 					col.Name = engine.Mapper.Obj2Table(t.Field(i).Name)
 				}
+				if indexType == IndexType {
+					if indexName == "" {
+						indexName = col.Name
+					}
+					if index, ok := table.Indexes[indexName]; ok {
+						index.AddColumn(col.Name)
+						col.Indexes[index.Name] = true
+					} else {
+						index := NewIndex(indexName, IndexType)
+						index.AddColumn(col.Name)
+						table.AddIndex(index)
+						col.Indexes[index.Name] = true
+					}
+				} else if indexType == UniqueType {
+					if indexName == "" {
+						indexName = col.Name
+					}
+					if index, ok := table.Indexes[indexName]; ok {
+						index.AddColumn(col.Name)
+						col.Indexes[index.Name] = true
+					} else {
+						index := NewIndex(indexName, UniqueType)
+						index.AddColumn(col.Name)
+						table.AddIndex(index)
+						col.Indexes[index.Name] = true
+					}
+				}
 			}
 		} else {
 			sqlType := Type2SQLType(fieldType)
 			col = &Column{engine.Mapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
-				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", nil, false, false,
-				TWOSIDES, false, false, ""}
+				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", make(map[string]bool), false, false,
+				TWOSIDES, false, false, false}
 		}
 		if col.IsAutoIncrement {
 			col.Nullable = false
@@ -496,6 +539,20 @@ func (engine *Engine) IsTableExist(bean interface{}) (bool, error) {
 	defer session.Close()
 	has, err := session.isTableExist(table.Name)
 	return has, err
+}
+
+// create indexes
+func (engine *Engine) CreateIndexes(bean interface{}) error {
+	session := engine.NewSession()
+	defer session.Close()
+	return session.CreateIndexes(bean)
+}
+
+// create uniques
+func (engine *Engine) CreateUniques(bean interface{}) error {
+	session := engine.NewSession()
+	defer session.Close()
+	return session.CreateUniques(bean)
 }
 
 // If enabled cache, clear the cache bean
@@ -585,7 +642,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 				session := engine.NewSession()
 				session.Statement.RefTable = table
 				defer session.Close()
-				if index.IsUnique {
+				if index.Type == UniqueType {
 					isExist, err := session.isIndexExist(table.Name, name, true)
 					if err != nil {
 						return err
@@ -599,7 +656,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 							return err
 						}
 					}
-				} else {
+				} else if index.Type == IndexType {
 					isExist, err := session.isIndexExist(table.Name, name, false)
 					if err != nil {
 						return err
@@ -613,6 +670,8 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 							return err
 						}
 					}
+				} else {
+					return errors.New("unknow index type")
 				}
 			}
 		}

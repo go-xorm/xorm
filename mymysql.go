@@ -17,7 +17,8 @@ type mymysql struct {
 	passwd  string
 }
 
-func (db *mymysql) Init(uri string) error {
+func (db *mymysql) Init(drivername, uri string) error {
+	db.mysql.base.init(drivername, uri)
 	pd := strings.SplitN(uri, "*", 2)
 	if len(pd) == 2 {
 		// Parse protocol part of URI

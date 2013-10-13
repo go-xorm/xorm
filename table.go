@@ -143,35 +143,57 @@ func Type2SQLType(t reflect.Type) (st SQLType) {
 	return
 }
 
+func SQLType2Type(st SQLType) reflect.Type {
+	switch st.Name {
+	case Bit, TinyInt, SmallInt, MediumInt, Int, Integer, Serial:
+		return reflect.TypeOf(1)
+	case BigInt, BigSerial:
+		return reflect.TypeOf(int64(1))
+	case Float, Real:
+		return reflect.TypeOf(float32(1))
+	case Double:
+		return reflect.TypeOf(float64(1))
+	case Char, Varchar, TinyText, Text, MediumText, LongText:
+		return reflect.TypeOf("")
+	case TinyBlob, Blob, LongBlob, Bytea, Binary, MediumBlob, VarBinary:
+		return reflect.TypeOf([]byte{})
+	case Bool:
+		return reflect.TypeOf(true)
+	case DateTime, Date, Time, TimeStamp:
+		return reflect.TypeOf(tm)
+	case Decimal, Numeric:
+		return reflect.TypeOf("")
+	default:
+		return reflect.TypeOf("")
+	}
+}
+
 const (
-	TWOSIDES = iota + 1
-	ONLYTODB
-	ONLYFROMDB
+	IndexType = iota + 1
+	UniqueType
 )
 
 type Index struct {
-	Name     string
-	IsUnique bool
-	Cols     []*Column
+	Name string
+	Type int
+	Cols []string
 }
 
-func (index *Index) AddColumn(cols ...*Column) {
+func (index *Index) AddColumn(cols ...string) {
 	for _, col := range cols {
 		index.Cols = append(index.Cols, col)
 	}
 }
 
-func (index *Index) GenColsStr() []string {
-	names := make([]string, len(index.Cols))
-	for idx, col := range index.Cols {
-		names[idx] = col.Name
-	}
-	return names
+func NewIndex(name string, indexType int) *Index {
+	return &Index{name, indexType, make([]string, 0)}
 }
 
-func NewIndex(name string, isUnique bool) *Index {
-	return &Index{name, isUnique, make([]*Column, 0)}
-}
+const (
+	TWOSIDES = iota + 1
+	ONLYTODB
+	ONLYFROMDB
+)
 
 type Column struct {
 	Name            string
@@ -181,26 +203,26 @@ type Column struct {
 	Length2         int
 	Nullable        bool
 	Default         string
-	Index           *Index
+	Indexes         map[string]bool
 	IsPrimaryKey    bool
 	IsAutoIncrement bool
 	MapType         int
 	IsCreated       bool
 	IsUpdated       bool
-	Comment         string
+	IsCascade       bool
 }
 
-func (col *Column) String(engine *Engine) string {
-	sql := engine.Quote(col.Name) + " "
+func (col *Column) String(d dialect) string {
+	sql := d.QuoteStr() + col.Name + d.QuoteStr() + " "
 
-	sql += engine.SqlType(col) + " "
+	sql += d.SqlType(col) + " "
 
 	if col.IsPrimaryKey {
 		sql += "PRIMARY KEY "
 	}
 
 	if col.IsAutoIncrement {
-		sql += engine.AutoIncrStr() + " "
+		sql += d.AutoIncrStr() + " "
 	}
 
 	if col.Nullable {
@@ -213,9 +235,6 @@ func (col *Column) String(engine *Engine) string {
 		sql += "DEFAULT " + col.Default + " "
 	}
 
-	if col.Comment != "" {
-		sql += "COMMENT '" + col.Comment + "' "
-	}
 	return sql
 }
 

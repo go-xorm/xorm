@@ -262,15 +262,15 @@ func (statement *Statement) genCreateSQL() string {
 	sql := "CREATE TABLE IF NOT EXISTS " + statement.Engine.Quote(statement.TableName()) + " ("
 	for _, colName := range statement.RefTable.ColumnsSeq {
 		col := statement.RefTable.Columns[colName]
-		sql += col.String(statement.Engine)
+		sql += col.String(statement.Engine.dialect)
 		sql = strings.TrimSpace(sql)
 		sql += ", "
 	}
 	sql = sql[:len(sql)-2] + ")"
-	if statement.Engine.Dialect.SupportEngine() && statement.StoreEngine != "" {
+	if statement.Engine.dialect.SupportEngine() && statement.StoreEngine != "" {
 		sql += " ENGINE=" + statement.StoreEngine
 	}
-	if statement.Engine.Dialect.SupportCharset() && statement.Charset != "" {
+	if statement.Engine.dialect.SupportCharset() && statement.Charset != "" {
 		sql += " DEFAULT CHARSET " + statement.Charset
 	}
 	sql += ";"
@@ -286,9 +286,11 @@ func (s *Statement) genIndexSQL() []string {
 	tbName := s.TableName()
 	quote := s.Engine.Quote
 	for idxName, index := range s.RefTable.Indexes {
-		sql := fmt.Sprintf("CREATE INDEX %v ON %v (%v);", quote(indexName(tbName, idxName)),
-			quote(tbName), quote(strings.Join(index.GenColsStr(), quote(","))))
-		sqls = append(sqls, sql)
+		if index.Type == IndexType {
+			sql := fmt.Sprintf("CREATE INDEX %v ON %v (%v);", quote(indexName(tbName, idxName)),
+				quote(tbName), quote(strings.Join(index.Cols, quote(","))))
+			sqls = append(sqls, sql)
+		}
 	}
 	return sqls
 }
@@ -302,9 +304,11 @@ func (s *Statement) genUniqueSQL() []string {
 	tbName := s.TableName()
 	quote := s.Engine.Quote
 	for idxName, unique := range s.RefTable.Indexes {
-		sql := fmt.Sprintf("CREATE UNIQUE INDEX %v ON %v (%v);", quote(uniqueName(tbName, idxName)),
-			quote(tbName), quote(strings.Join(unique.GenColsStr(), quote(","))))
-		sqls = append(sqls, sql)
+		if unique.Type == UniqueType {
+			sql := fmt.Sprintf("CREATE UNIQUE INDEX %v ON %v (%v);", quote(uniqueName(tbName, idxName)),
+				quote(tbName), quote(strings.Join(unique.Cols, quote(","))))
+			sqls = append(sqls, sql)
+		}
 	}
 	return sqls
 }
@@ -313,13 +317,13 @@ func (s *Statement) genDelIndexSQL() []string {
 	var sqls []string = make([]string, 0)
 	for idxName, index := range s.RefTable.Indexes {
 		var rIdxName string
-		if index.IsUnique {
+		if index.Type == UniqueType {
 			rIdxName = uniqueName(s.TableName(), idxName)
-		} else {
+		} else if index.Type == IndexType {
 			rIdxName = indexName(s.TableName(), idxName)
 		}
 		sql := fmt.Sprintf("DROP INDEX %v", s.Engine.Quote(rIdxName))
-		if s.Engine.Dialect.IndexOnTable() {
+		if s.Engine.dialect.IndexOnTable() {
 			sql += fmt.Sprintf(" ON %v", s.Engine.Quote(s.TableName()))
 		}
 		sqls = append(sqls, sql)
@@ -351,7 +355,7 @@ func (statement Statement) genGetSql(bean interface{}) (string, []interface{}) {
 func (s *Statement) genAddColumnStr(col *Column) (string, []interface{}) {
 	quote := s.Engine.Quote
 	sql := fmt.Sprintf("ALTER TABLE %v ADD COLUMN %v;", quote(s.TableName()),
-		col.String(s.Engine))
+		col.String(s.Engine.dialect))
 	return sql, []interface{}{}
 }
 

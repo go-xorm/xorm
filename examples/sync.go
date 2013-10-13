@@ -9,9 +9,14 @@ import (
 )
 
 type SyncUser struct {
-	Id   int64
-	Name string `xorm:"unique"`
-	Age  int    `xorm:"index"`
+	Id      int64
+	Name    string `xorm:"unique"`
+	Age     int    `xorm:"index"`
+	Title   string
+	Address string
+	Genre   string
+	Area    string
+	Date    int
 }
 
 type SyncLoginInfo struct {
@@ -58,6 +63,20 @@ func main() {
 		}
 		Orm.ShowSQL = true
 		err = sync(Orm)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		user := &SyncUser{
+			Name:    "testsdf",
+			Age:     15,
+			Title:   "newsfds",
+			Address: "fasfdsafdsaf",
+			Genre:   "fsafd",
+			Area:    "fafdsafd",
+			Date:    1000,
+		}
+		_, err = Orm.Insert(user)
 		if err != nil {
 			fmt.Println(err)
 		}
