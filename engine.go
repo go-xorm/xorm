@@ -200,6 +200,16 @@ func (engine *Engine) DBMetas() ([]*Table, error) {
 			return nil, err
 		}
 		table.Indexes = indexes
+
+		for _, index := range indexes {
+			for _, name := range index.Cols {
+				if col, ok := table.Columns[name]; ok {
+					col.Indexes[index.Name] = true
+				} else {
+					return nil, errors.New("Unkonwn col " + name + " in indexes")
+				}
+			}
+		}
 	}
 	return tables, nil
 }

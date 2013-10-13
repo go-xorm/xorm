@@ -1,6 +1,7 @@
 package xorm
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"strconv"
@@ -141,13 +142,14 @@ func (db *postgres) ColumnCheckSql(tableName, colName string) (string, []interfa
 
 func (db *postgres) GetColumns(tableName string) (map[string]*Column, error) {
 	args := []interface{}{tableName}
-	s := "SELECT COLUMN_NAME, column_default, is_nullable, data_type, character_maximum_length" +
-		" FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = ?"
+	s := "SELECT column_name, column_default, is_nullable, data_type, character_maximum_length" +
+		", numeric_precision, numeric_precision_radix FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = $1"
 
 	cnn, err := sql.Open(db.drivername, db.dataSourceName)
 	if err != nil {
 		return nil, err
 	}
+	defer cnn.Close()
 	res, err := query(cnn, s, args...)
 	if err != nil {
 		return nil, err
@@ -155,26 +157,128 @@ func (db *postgres) GetColumns(tableName string) (map[string]*Column, error) {
 	cols := make(map[string]*Column)
 	for _, record := range res {
 		col := new(Column)
-
+		col.Indexes = make(map[string]bool)
 		for name, content := range record {
 			switch name {
-			case "COLUMN_NAME":
-				col.Name = string(content)
+			case "column_name":
+				col.Name = strings.Trim(string(content), `" `)
 			case "column_default":
-				if strings.HasPrefix(string(content), "") {
-					col.IsPrimaryKey
+				if strings.HasPrefix(string(content), "nextval") {
+					col.IsPrimaryKey = true
 				}
+			case "is_nullable":
+				if string(content) == "YES" {
+					col.Nullable = true
+				} else {
+					col.Nullable = false
+				}
+			case "data_type":
+				ct := string(content)
+				switch ct {
+				case "character varying", "character":
+					col.SQLType = SQLType{Varchar, 0, 0}
+				case "timestamp without time zone":
+					col.SQLType = SQLType{DateTime, 0, 0}
+				case "double precision":
+					col.SQLType = SQLType{Double, 0, 0}
+				case "boolean":
+					col.SQLType = SQLType{Bool, 0, 0}
+				case "time without time zone":
+					col.SQLType = SQLType{Time, 0, 0}
+				default:
+					col.SQLType = SQLType{strings.ToUpper(ct), 0, 0}
+				}
+				if _, ok := sqlTypes[col.SQLType.Name]; !ok {
+					return nil, errors.New(fmt.Sprintf("unkonw colType %v", ct))
+				}
+			case "character_maximum_length":
+				i, err := strconv.Atoi(string(content))
+				if err != nil {
+					return nil, errors.New("retrieve length error")
+				}
+				col.Length = i
+			case "numeric_precision":
+			case "numeric_precision_radix":
 			}
 		}
+		cols[col.Name] = col
 	}
 
-	return nil, ErrNotImplemented
+	return cols, nil
 }
 
 func (db *postgres) GetTables() ([]*Table, error) {
-	return nil, ErrNotImplemented
+	args := []interface{}{}
+	s := "SELECT tablename FROM pg_tables where schemaname = 'public'"
+	cnn, err := sql.Open(db.drivername, db.dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+	defer cnn.Close()
+	res, err := query(cnn, s, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	tables := make([]*Table, 0)
+	for _, record := range res {
+		table := new(Table)
+		for name, content := range record {
+			switch name {
+			case "tablename":
+				table.Name = string(content)
+			}
+		}
+		tables = append(tables, table)
+	}
+	return tables, nil
 }
 
 func (db *postgres) GetIndexes(tableName string) (map[string]*Index, error) {
-	return nil, ErrNotImplemented
+	args := []interface{}{tableName}
+	s := "SELECT tablename, indexname, indexdef FROM pg_indexes WHERE schemaname = 'public' and tablename = $1"
+
+	cnn, err := sql.Open(db.drivername, db.dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+	defer cnn.Close()
+	res, err := query(cnn, s, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	indexes := make(map[string]*Index, 0)
+	for _, record := range res {
+		var indexType int
+		var indexName string
+		var colNames []string
+
+		for name, content := range record {
+			switch name {
+			case "indexname":
+				indexName = strings.Trim(string(content), `" `)
+			case "indexdef":
+				c := string(content)
+				if strings.HasPrefix(c, "CREATE UNIQUE INDEX") {
+					indexType = UniqueType
+				} else {
+					indexType = IndexType
+				}
+				cs := strings.Split(c, "(")
+				colNames = strings.Split(cs[1][0:len(cs[1])-1], ",")
+			}
+		}
+		if strings.HasSuffix(indexName, "_pkey") {
+			continue
+		}
+		indexName = indexName[5+len(tableName) : len(indexName)]
+
+		index := &Index{Name: indexName, Type: indexType, Cols: make([]string, 0)}
+		for _, colName := range colNames {
+			index.Cols = append(index.Cols, strings.Trim(colName, `" `))
+		}
+		indexes[index.Name] = index
+	}
+	return indexes, nil
 }

@@ -155,6 +155,7 @@ func (db *mysql) GetColumns(tableName string) (map[string]*Column, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer cnn.Close()
 	res, err := query(cnn, s, args...)
 	if err != nil {
 		return nil, err
@@ -162,10 +163,11 @@ func (db *mysql) GetColumns(tableName string) (map[string]*Column, error) {
 	cols := make(map[string]*Column)
 	for _, record := range res {
 		col := new(Column)
+		col.Indexes = make(map[string]bool)
 		for name, content := range record {
 			switch name {
 			case "COLUMN_NAME":
-				col.Name = string(content)
+				col.Name = strings.Trim(string(content), "` ")
 			case "IS_NULLABLE":
 				if "YES" == string(content) {
 					col.Nullable = true
@@ -225,6 +227,7 @@ func (db *mysql) GetTables() ([]*Table, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer cnn.Close()
 	res, err := query(cnn, s, args...)
 	if err != nil {
 		return nil, err
@@ -236,7 +239,7 @@ func (db *mysql) GetTables() ([]*Table, error) {
 		for name, content := range record {
 			switch name {
 			case "TABLE_NAME":
-				table.Name = string(content)
+				table.Name = strings.Trim(string(content), "` ")
 			case "ENGINE":
 			}
 		}
@@ -252,6 +255,7 @@ func (db *mysql) GetIndexes(tableName string) (map[string]*Index, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer cnn.Close()
 	res, err := query(cnn, s, args...)
 	if err != nil {
 		return nil, err
@@ -272,7 +276,7 @@ func (db *mysql) GetIndexes(tableName string) (map[string]*Index, error) {
 			case "INDEX_NAME":
 				indexName = string(content)
 			case "COLUMN_NAME":
-				colName = string(content)
+				colName = strings.Trim(string(content), "` ")
 			}
 		}
 		if indexName == "PRIMARY" {

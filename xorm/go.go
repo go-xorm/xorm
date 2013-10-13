@@ -1,10 +1,17 @@
 package main
 
 import (
-	//"github.com/lunny/xorm"
+	"github.com/lunny/xorm"
 	"strings"
-	"xorm"
 )
+
+func unTitle(src string) string {
+	if src == "" {
+		return ""
+	}
+
+	return strings.ToLower(string(src[0])) + src[1:]
+}
 
 func typestring(st xorm.SQLType) string {
 	t := xorm.SQLType2Type(st)
@@ -15,7 +22,7 @@ func typestring(st xorm.SQLType) string {
 	return s
 }
 
-func tag(col *xorm.Column) string {
+func tag(table *xorm.Table, col *xorm.Column) string {
 	res := make([]string, 0)
 	if !col.Nullable {
 		res = append(res, "not null")
@@ -34,6 +41,19 @@ func tag(col *xorm.Column) string {
 	}
 	if col.IsUpdated {
 		res = append(res, "updated")
+	}
+	for name, _ := range col.Indexes {
+		index := table.Indexes[name]
+		var uistr string
+		if index.Type == xorm.UniqueType {
+			uistr = "unique"
+		} else if index.Type == xorm.IndexType {
+			uistr = "index"
+		}
+		if index.Name != col.Name {
+			uistr += "(" + index.Name + ")"
+		}
+		res = append(res, uistr)
 	}
 
 	if len(res) > 0 {

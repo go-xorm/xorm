@@ -48,3 +48,31 @@ func (c *Command) Usage() {
 func (c *Command) Runnable() bool {
 	return c.Run != nil
 }
+
+// checkFlags checks if the flag exists with correct format.
+func checkFlags(flags map[string]bool, args []string, print func(string)) int {
+	num := 0 // Number of valid flags, use to cut out.
+	for i, f := range args {
+		// Check flag prefix '-'.
+		if !strings.HasPrefix(f, "-") {
+			// Not a flag, finish check process.
+			break
+		}
+
+		// Check if it a valid flag.
+		if v, ok := flags[f]; ok {
+			flags[f] = !v
+			if !v {
+				print(f)
+			} else {
+				fmt.Println("DISABLE: " + f)
+			}
+		} else {
+			fmt.Printf("[ERRO] Unknown flag: %s.\n", f)
+			return -1
+		}
+		num = i + 1
+	}
+
+	return num
+}
