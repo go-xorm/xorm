@@ -56,7 +56,7 @@ func runReverse(cmd *Command, args []string) {
 	args = args[num:]
 
 	if len(args) < 3 {
-		fmt.Println("no")
+		fmt.Println("params error, please see xorm help reverse")
 		return
 	}
 

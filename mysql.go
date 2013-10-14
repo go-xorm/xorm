@@ -179,7 +179,8 @@ func (db *mysql) GetColumns(tableName string) (map[string]*Column, error) {
 				cts := strings.Split(string(content), "(")
 				var len1, len2 int
 				if len(cts) == 2 {
-					lens := strings.Split(cts[1][0:len(cts[1])-1], ",")
+					idx := strings.Index(cts[1], ")")
+					lens := strings.Split(cts[1][0:idx], ",")
 					len1, err = strconv.Atoi(strings.TrimSpace(lens[0]))
 					if err != nil {
 						return nil, err
