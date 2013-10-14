@@ -574,6 +574,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 	}
 
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
+	pkFieldName := session.Statement.RefTable.PKColumn().FieldName
 
 	ididxes := make(map[int64]int)
 	var idxes []int = make([]int, 0)
@@ -588,6 +589,12 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 			ididxes[id] = idx
 		} else {
 			session.Engine.LogDebug("[xorm:cacheFind] cached bean:", tableName, id, bean)
+
+			sid := reflect.Indirect(reflect.ValueOf(bean)).FieldByName(pkFieldName).Int()
+			if sid != id {
+				session.Engine.LogError("[xorm:cacheFind] error cache", id, sid, bean)
+				return ErrCacheFailed
+			}
 			temps[idx] = bean
 		}
 	}
@@ -605,8 +612,6 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 			return err
 		}
 
-		pkFieldName := session.Statement.RefTable.PKColumn().FieldName
-
 		vs := reflect.Indirect(reflect.ValueOf(beans))
 		for i := 0; i < vs.Len(); i++ {
 			rv := vs.Index(i)
@@ -618,8 +623,8 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 			//bean := vs.Index(i).Addr().Interface()
 			temps[ididxes[id]] = bean
 			//temps[idxes[i]] = bean
-			session.Engine.LogDebug("[xorm:cacheFind] cache bean:", tableName, ides[i], bean)
-			cacher.PutBean(tableName, ides[i].(int64), bean)
+			session.Engine.LogDebug("[xorm:cacheFind] cache bean:", tableName, id, bean)
+			cacher.PutBean(tableName, id, bean)
 		}
 	}
 
