@@ -9,7 +9,6 @@ import (
 	"github.com/lunny/xorm"
 	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/ziutek/mymysql/godrv"
-	"go/format"
 	"io/ioutil"
 	"os"
 	"path"
@@ -36,6 +35,7 @@ func init() {
 	CmdReverse.Run = runReverse
 	CmdReverse.Flags = map[string]bool{
 		"-m": false,
+		"-l": false,
 	}
 }
 
@@ -85,6 +85,29 @@ func runReverse(cmd *Command, args []string) {
 		genDir = path.Join(curPath, model)
 	}
 
+	dir, err := filepath.Abs(args[2])
+	if err != nil {
+		logging.Error("%v", err)
+		return
+	}
+
+	var langTmpl LangTmpl
+	var ok bool
+	var lang string = "go"
+
+	cfgPath := path.Join(dir, "config")
+	info, err := os.Stat(cfgPath)
+	var configs map[string]string
+	if err == nil && !info.IsDir() {
+		configs = loadConfig(cfgPath)
+		lang = configs["lang"]
+	}
+
+	if langTmpl, ok = langTmpls[lang]; !ok {
+		fmt.Println("Unsupported lang", lang)
+		return
+	}
+
 	os.MkdirAll(genDir, os.ModePerm)
 
 	Orm, err := xorm.NewEngine(args[0], args[1])
@@ -99,16 +122,12 @@ func runReverse(cmd *Command, args []string) {
 		return
 	}
 
-	dir, err := filepath.Abs(args[2])
-	if err != nil {
-		logging.Error("%v", err)
-		return
-	}
-
-	m := &xorm.SnakeMapper{}
-
 	filepath.Walk(dir, func(f string, info os.FileInfo, err error) error {
 		if info.IsDir() {
+			return nil
+		}
+
+		if info.Name() == "config" {
 			return nil
 		}
 
@@ -119,10 +138,7 @@ func runReverse(cmd *Command, args []string) {
 		}
 
 		t := template.New(f)
-		t.Funcs(template.FuncMap{"Mapper": m.Table2Obj,
-			"Type": typestring,
-			"Tag":  tag,
-		})
+		t.Funcs(langTmpl.Funcs)
 
 		tmpl, err := t.Parse(string(bs))
 		if err != nil {
@@ -142,14 +158,10 @@ func runReverse(cmd *Command, args []string) {
 				return err
 			}
 
-			imports := make(map[string]string)
+			imports := langTmpl.GenImports(tables)
+
 			tbls := make([]*xorm.Table, 0)
 			for _, table := range tables {
-				for _, col := range table.Columns {
-					if typestring(col.SQLType) == "time.Time" {
-						imports["time"] = "time"
-					}
-				}
 				tbls = append(tbls, table)
 			}
 
@@ -167,25 +179,26 @@ func runReverse(cmd *Command, args []string) {
 				logging.Error("%v", err)
 				return err
 			}
-			source, err := format.Source(tplcontent)
-			if err != nil {
-				logging.Error("%v", err)
-				return err
+			var source string
+			if langTmpl.Formater != nil {
+				source, err = langTmpl.Formater(string(tplcontent))
+				if err != nil {
+					logging.Error("%v", err)
+					return err
+				}
+			} else {
+				source = string(tplcontent)
 			}
 
-			w.WriteString(string(source))
+			w.WriteString(source)
 			w.Close()
 		} else {
 			for _, table := range tables {
 				// imports
-				imports := make(map[string]string)
-				for _, col := range table.Columns {
-					if typestring(col.SQLType) == "time.Time" {
-						imports["time"] = "time"
-					}
-				}
+				tbs := []*xorm.Table{table}
+				imports := langTmpl.GenImports(tbs)
 
-				w, err := os.OpenFile(path.Join(genDir, unTitle(m.Table2Obj(table.Name))+ext), os.O_RDWR|os.O_CREATE, 0600)
+				w, err := os.OpenFile(path.Join(genDir, unTitle(mapper.Table2Obj(table.Name))+ext), os.O_RDWR|os.O_CREATE, 0600)
 				if err != nil {
 					logging.Error("%v", err)
 					return err
@@ -193,7 +206,7 @@ func runReverse(cmd *Command, args []string) {
 
 				newbytes := bytes.NewBufferString("")
 
-				t := &Tmpl{Tables: []*xorm.Table{table}, Imports: imports, Model: model}
+				t := &Tmpl{Tables: tbs, Imports: imports, Model: model}
 				err = tmpl.Execute(newbytes, t)
 				if err != nil {
 					logging.Error("%v", err)
@@ -205,13 +218,18 @@ func runReverse(cmd *Command, args []string) {
 					logging.Error("%v", err)
 					return err
 				}
-				source, err := format.Source(tplcontent)
-				if err != nil {
-					logging.Error("%v", err)
-					return err
+				var source string
+				if langTmpl.Formater != nil {
+					source, err = langTmpl.Formater(string(tplcontent))
+					if err != nil {
+						logging.Error("%v", err)
+						return err
+					}
+				} else {
+					source = string(tplcontent)
 				}
 
-				w.WriteString(string(source))
+				w.WriteString(source)
 				w.Close()
 			}
 		}

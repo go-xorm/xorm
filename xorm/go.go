@@ -2,18 +2,49 @@ package main
 
 import (
 	"github.com/lunny/xorm"
+	"go/format"
 	"strings"
+	"text/template"
 )
 
-func unTitle(src string) string {
-	if src == "" {
-		return ""
+var (
+	GoLangTmpl LangTmpl = LangTmpl{
+		template.FuncMap{"Mapper": mapper.Table2Obj,
+			"Type":    typestring,
+			"Tag":     tag,
+			"UnTitle": unTitle,
+		},
+		formatGo,
+		genGoImports,
 	}
+)
 
-	return strings.ToLower(string(src[0])) + src[1:]
+func formatGo(src string) (string, error) {
+	source, err := format.Source([]byte(src))
+	if err != nil {
+		return "", err
+	}
+	return string(source), nil
 }
 
-func typestring(st xorm.SQLType) string {
+func genGoImports(tables []*xorm.Table) map[string]string {
+	imports := make(map[string]string)
+
+	for _, table := range tables {
+		for _, col := range table.Columns {
+			if typestring(col) == "time.Time" {
+				imports["time"] = "time"
+			}
+		}
+	}
+	return imports
+}
+
+func typestring(col *xorm.Column) string {
+	st := col.SQLType
+	if col.IsPrimaryKey {
+		return "int64"
+	}
 	t := xorm.SQLType2Type(st)
 	s := t.String()
 	if s == "[]uint8" {
@@ -23,18 +54,25 @@ func typestring(st xorm.SQLType) string {
 }
 
 func tag(table *xorm.Table, col *xorm.Column) string {
+	isNameId := (mapper.Table2Obj(col.Name) == "Id")
 	res := make([]string, 0)
 	if !col.Nullable {
-		res = append(res, "not null")
+		if !isNameId {
+			res = append(res, "not null")
+		}
 	}
 	if col.IsPrimaryKey {
-		res = append(res, "pk")
+		if !isNameId {
+			res = append(res, "pk")
+		}
 	}
 	if col.Default != "" {
 		res = append(res, "default "+col.Default)
 	}
 	if col.IsAutoIncrement {
-		res = append(res, "autoincr")
+		if !isNameId {
+			res = append(res, "autoincr")
+		}
 	}
 	if col.IsCreated {
 		res = append(res, "created")

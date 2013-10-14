@@ -111,6 +111,7 @@ func (db *sqlite3) GetColumns(tableName string) (map[string]*Column, error) {
 		fields := strings.Fields(strings.TrimSpace(colStr))
 		col := new(Column)
 		col.Indexes = make(map[string]bool)
+		col.Nullable = true
 		for idx, field := range fields {
 			if idx == 0 {
 				col.Name = strings.Trim(field, "`[] ")
@@ -193,7 +194,12 @@ func (db *sqlite3) GetIndexes(tableName string) (map[string]*Index, error) {
 		nNStart := strings.Index(sql, "INDEX")
 		nNEnd := strings.Index(sql, "ON")
 		indexName := strings.Trim(sql[nNStart+6:nNEnd], "` []")
-		index.Name = indexName[5+len(tableName) : len(indexName)]
+		//fmt.Println(indexName)
+		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "QUE_"+tableName) {
+			index.Name = indexName[5+len(tableName) : len(indexName)]
+		} else {
+			index.Name = indexName
+		}
 
 		if strings.HasPrefix(sql, "CREATE UNIQUE INDEX") {
 			index.Type = UniqueType
@@ -209,6 +215,7 @@ func (db *sqlite3) GetIndexes(tableName string) (map[string]*Index, error) {
 		for _, col := range colIndexes {
 			index.Cols = append(index.Cols, strings.Trim(col, "` []"))
 		}
+		indexes[index.Name] = index
 	}
 
 	return indexes, nil

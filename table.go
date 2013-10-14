@@ -144,7 +144,8 @@ func Type2SQLType(t reflect.Type) (st SQLType) {
 }
 
 func SQLType2Type(st SQLType) reflect.Type {
-	switch st.Name {
+	name := strings.ToUpper(st.Name)
+	switch name {
 	case Bit, TinyInt, SmallInt, MediumInt, Int, Integer, Serial:
 		return reflect.TypeOf(1)
 	case BigInt, BigSerial:

@@ -6,7 +6,7 @@ exit 1
 fi 
 
 CURDIR=`pwd`
-NEWPATH="$GOPATH/src/${PWD##*/}"
+NEWPATH="$GOPATH/src/github.com/lunny/${PWD##*/}"
 if [ ! -d "$NEWPATH" ]; then
 ln -s $CURDIR $NEWPATH 
 fi

@@ -438,8 +438,9 @@ func (statement *Statement) convertIdSql(sql string) string {
 			if len(sqls) != 2 {
 				return ""
 			}
-			return fmt.Sprintf("SELECT %v.%v FROM %v", statement.Engine.Quote(statement.TableName()),
+			newsql := fmt.Sprintf("SELECT %v.%v FROM %v", statement.Engine.Quote(statement.TableName()),
 				statement.Engine.Quote(col.Name), sqls[1])
+			return newsql
 		}
 	}
 	return ""
@@ -535,14 +536,14 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 	cacher := table.Cacher
 	ids, err := getCacheSql(cacher, session.Statement.TableName(), newsql, args)
 	if err != nil {
-		session.Engine.LogError(err)
+		//session.Engine.LogError(err)
 		resultsSlice, err := session.query(newsql, args...)
 		if err != nil {
 			return err
 		}
 		// 查询数目太大，采用缓存将不是一个很好的方式。
 		if len(resultsSlice) > 100 {
-			session.Engine.LogDebug("[xorm:cacheFind] ids > 100, no cache")
+			session.Engine.LogDebug("[xorm:cacheFind] ids length %v > 100, no cache", len(resultsSlice))
 			return ErrCacheFailed
 		}
 
@@ -574,6 +575,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
 
+	ididxes := make(map[int64]int)
 	var idxes []int = make([]int, 0)
 	var ides []interface{} = make([]interface{}, 0)
 	var temps []interface{} = make([]interface{}, len(ids))
@@ -583,6 +585,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 		if bean == nil {
 			idxes = append(idxes, idx)
 			ides = append(ides, id)
+			ididxes[id] = idx
 		} else {
 			session.Engine.LogDebug("[xorm:cacheFind] cached bean:", tableName, id, bean)
 			temps[idx] = bean
@@ -597,9 +600,12 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 		beans := slices.Interface()
 		//beans := reflect.New(sliceValue.Type()).Interface()
 		err = newSession.In("(id)", ides...).OrderBy(session.Statement.OrderStr).NoCache().Find(beans)
+		//err = newSession.In("(id)", ides...).NoCache().Find(beans)
 		if err != nil {
 			return err
 		}
+
+		pkFieldName := session.Statement.RefTable.PKColumn().FieldName
 
 		vs := reflect.Indirect(reflect.ValueOf(beans))
 		for i := 0; i < vs.Len(); i++ {
@@ -608,8 +614,10 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 				rv = rv.Addr()
 			}
 			bean := rv.Interface()
+			id := reflect.Indirect(reflect.ValueOf(bean)).FieldByName(pkFieldName).Int()
 			//bean := vs.Index(i).Addr().Interface()
-			temps[idxes[i]] = bean
+			temps[ididxes[id]] = bean
+			//temps[idxes[i]] = bean
 			session.Engine.LogDebug("[xorm:cacheFind] cache bean:", tableName, ides[i], bean)
 			cacher.PutBean(tableName, ides[i].(int64), bean)
 		}
@@ -617,33 +625,36 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 
 	for j := 0; j < len(temps); j++ {
 		bean := temps[j]
-		if bean != nil {
-			if sliceValue.Kind() == reflect.Slice {
-				if t.Kind() == reflect.Ptr {
-					sliceValue.Set(reflect.Append(sliceValue, reflect.ValueOf(bean)))
-				} else {
-					sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(bean))))
-				}
-			} else if sliceValue.Kind() == reflect.Map {
-				var key int64
-				if table.PrimaryKey != "" {
-					key = ids[j]
-				} else {
-					key = int64(j)
-				}
-				if t.Kind() == reflect.Ptr {
-					sliceValue.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(bean))
-				} else {
-					sliceValue.SetMapIndex(reflect.ValueOf(key), reflect.Indirect(reflect.ValueOf(bean)))
-				}
+		if bean == nil {
+			session.Engine.LogError("[xorm:cacheFind] cache error:", tableName, ides[j], bean)
+			return errors.New("cache error")
+		}
+		if sliceValue.Kind() == reflect.Slice {
+			if t.Kind() == reflect.Ptr {
+				sliceValue.Set(reflect.Append(sliceValue, reflect.ValueOf(bean)))
+			} else {
+				sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(bean))))
 			}
-		} else {
+		} else if sliceValue.Kind() == reflect.Map {
+			var key int64
+			if table.PrimaryKey != "" {
+				key = ids[j]
+			} else {
+				key = int64(j)
+			}
+			if t.Kind() == reflect.Ptr {
+				sliceValue.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(bean))
+			} else {
+				sliceValue.SetMapIndex(reflect.ValueOf(key), reflect.Indirect(reflect.ValueOf(bean)))
+			}
+		}
+		/*} else {
 			session.Engine.LogDebug("[xorm:cacheFind] cache delete:", tableName, ides[j])
 			cacher.DelBean(tableName, ids[j])
 
 			session.Engine.LogDebug("[xorm:cacheFind] cache clear:", tableName)
 			cacher.ClearIds(tableName)
-		}
+		}*/
 	}
 
 	return nil

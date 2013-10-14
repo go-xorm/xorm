@@ -282,7 +282,9 @@ func (db *mysql) GetIndexes(tableName string) (map[string]*Index, error) {
 		if indexName == "PRIMARY" {
 			continue
 		}
-		indexName = indexName[5+len(tableName) : len(indexName)]
+		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "QUE_"+tableName) {
+			indexName = indexName[5+len(tableName) : len(indexName)]
+		}
 
 		var index *Index
 		var ok bool

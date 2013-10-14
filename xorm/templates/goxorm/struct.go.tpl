@@ -7,7 +7,7 @@ import (
 {{range .Tables}}
 type {{Mapper .Name}} struct {
 {{$table := .}}
-{{range .Columns}}	{{Mapper .Name}}	{{Type .}}
+{{range .Columns}}	{{Mapper .Name}}	{{Type .}} {{Tag $table .}}
 {{end}}
 }
 
