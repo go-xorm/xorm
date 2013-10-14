@@ -94,8 +94,16 @@ func tag(table *xorm.Table, col *xorm.Column) string {
 		res = append(res, uistr)
 	}
 
-	if len(res) > 0 {
-		return "`xorm:\"" + strings.Join(res, " ") + "\"`"
+	var tags []string
+	if genJson {
+		tags = append(tags, "json:\""+col.Name+"\"")
 	}
-	return ""
+	if len(res) > 0 {
+		tags = append(tags, "xorm:\""+strings.Join(res, " ")+"\"")
+	}
+	if len(tags) > 0 {
+		return "`" + strings.Join(tags, " ") + "`"
+	} else {
+		return ""
+	}
 }

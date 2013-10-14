@@ -165,6 +165,8 @@ func (db *postgres) GetColumns(tableName string) (map[string]*Column, error) {
 			case "column_default":
 				if strings.HasPrefix(string(content), "nextval") {
 					col.IsPrimaryKey = true
+				} else {
+					col.Default = string(content)
 				}
 			case "is_nullable":
 				if string(content) == "YES" {
@@ -199,6 +201,11 @@ func (db *postgres) GetColumns(tableName string) (map[string]*Column, error) {
 				col.Length = i
 			case "numeric_precision":
 			case "numeric_precision_radix":
+			}
+		}
+		if col.SQLType.IsText() {
+			if col.Default != "" {
+				col.Default = "'" + col.Default + "'"
 			}
 		}
 		cols[col.Name] = col

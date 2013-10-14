@@ -216,6 +216,11 @@ func (db *mysql) GetColumns(tableName string) (map[string]*Column, error) {
 				}
 			}
 		}
+		if col.SQLType.IsText() {
+			if col.Default != "" {
+				col.Default = "'" + col.Default + "'"
+			}
+		}
 		cols[col.Name] = col
 	}
 	return cols, nil

@@ -34,6 +34,10 @@ example:
 
 will generated go files in `./model` directory
 
+## Template and Config
+
+Now, xorm tool supports go and c++ two languages and have go, goxorm, c++ three of default templates. In 
+
 ## LICENSE
 
  BSD License

@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"text/template"
 )
 
@@ -38,6 +39,10 @@ func init() {
 		"-l": false,
 	}
 }
+
+var (
+	genJson bool = false
+)
 
 func printReversePrompt(flag string) {
 }
@@ -100,7 +105,12 @@ func runReverse(cmd *Command, args []string) {
 	var configs map[string]string
 	if err == nil && !info.IsDir() {
 		configs = loadConfig(cfgPath)
-		lang = configs["lang"]
+		if l, ok := configs["lang"]; ok {
+			lang = l
+		}
+		if j, ok := configs["genJson"]; ok {
+			genJson, err = strconv.ParseBool(j)
+		}
 	}
 
 	if langTmpl, ok = langTmpls[lang]; !ok {
