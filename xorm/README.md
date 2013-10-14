@@ -36,7 +36,15 @@ will generated go files in `./model` directory
 
 ## Template and Config
 
-Now, xorm tool supports go and c++ two languages and have go, goxorm, c++ three of default templates. In 
+Now, xorm tool supports go and c++ two languages and have go, goxorm, c++ three of default templates. In template directory, we can put a config file to control how to generating.
+
+````
+lang=go
+genJson=1
+```
+
+lang must be go or c++ now.
+genJson can be 1 or 0, if 1 then the struct will have json tag.
 
 ## LICENSE
 
