@@ -577,14 +577,12 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 	pkFieldName := session.Statement.RefTable.PKColumn().FieldName
 
 	ididxes := make(map[int64]int)
-	var idxes []int = make([]int, 0)
 	var ides []interface{} = make([]interface{}, 0)
 	var temps []interface{} = make([]interface{}, len(ids))
 	tableName := session.Statement.TableName()
 	for idx, id := range ids {
 		bean := cacher.GetBean(tableName, id)
 		if bean == nil {
-			idxes = append(idxes, idx)
 			ides = append(ides, id)
 			ididxes[id] = idx
 		} else {
@@ -606,8 +604,8 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 		slices := reflect.New(reflect.SliceOf(t))
 		beans := slices.Interface()
 		//beans := reflect.New(sliceValue.Type()).Interface()
-		err = newSession.In("(id)", ides...).OrderBy(session.Statement.OrderStr).NoCache().Find(beans)
-		//err = newSession.In("(id)", ides...).NoCache().Find(beans)
+		//err = newSession.In("(id)", ides...).OrderBy(session.Statement.OrderStr).NoCache().Find(beans)
+		err = newSession.In("(id)", ides...).NoCache().Find(beans)
 		if err != nil {
 			return err
 		}

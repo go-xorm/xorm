@@ -2,7 +2,6 @@ package xorm
 
 import (
 	"database/sql"
-	"fmt"
 	"strings"
 )
 
@@ -75,9 +74,7 @@ func (db *sqlite3) TableCheckSql(tableName string) (string, []interface{}) {
 
 func (db *sqlite3) ColumnCheckSql(tableName, colName string) (string, []interface{}) {
 	args := []interface{}{tableName}
-	fmt.Println(tableName, colName)
 	sql := "SELECT name FROM sqlite_master WHERE type='table' and name = ? and ((sql like '%`" + colName + "`%') or (sql like '%[" + colName + "]%'))"
-	fmt.Println(sql)
 	return sql, args
 }
 
