@@ -129,27 +129,36 @@ var tenusers []Userinfo
 err := engine.Cols("id", "name").Find(&tenusers) //Find only id and name
 ```
 
-7.Delete
+7.Iterate, like find, but handle records one by one
 
-7.1 deleted by id
+```Go
+err := engine.Where("age > ? or name=?)", 30, "xlw").Iterate(new(Userinfo), func(i int, bean interface{})error{
+	user := bean.(*Userinfo)
+	//do somthing use i and user
+})
+```
+
+8.Delete one or more records
+
+8.1 deleted by id
 
 ```Go
 err := engine.Id(1).Delete(&User{})
 ```
 
-7.2 deleted by other conditions
+8.2 deleted by other conditions
 
 ```Go
 err := engine.Delete(&User{Name:"xlw"})
 ```
 
-8.Count
+9.Count
 
 ```Go
 total, err := engine.Where("id > ?", 5).Count(&User{Name:"xlw"})
 ```
 
-9.Cache
+10.Cache
 ```Go
 cacher := xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
 engine.SetDefaultCacher(cacher)

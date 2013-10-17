@@ -14,8 +14,9 @@ xorm 快速入门
 	* [6.1.查询条件方法](#61)
 	* [6.2.Get方法](#62)
 	* [6.3.Find方法](#63)
-	* [6.4.Count方法](#64)
-	* [6.5.匿名结构体成员](#65)
+	* [6.4.Iterate方法](#64)
+	* [6.5.Count方法](#65)
+	* [6.6.匿名结构体成员](#66)
 * [7.更新数据](#70)
 * [8.删除数据](#80)
 * [9.执行SQL查询](#90)
@@ -25,7 +26,7 @@ xorm 快速入门
 * [13.Examples](#130)
 * [14.案例](#140)
 * [15.FAQ](#150)
-* [15.讨论](#160)
+* [16.讨论](#160)
 
 <a name="10" id="10"></a>
 ## 1.创建Orm引擎
@@ -344,7 +345,18 @@ err := engine.Where("age > ? or name=?)", 30, "xlw").Limit(20, 10).Find(&users)
 ```
 
 <a name="64" id="64"></a>
-### 6.4.Count方法
+### 6.4.Iterate方法
+
+Iterate方法提供逐条执行查询到的记录的方法，他所能使用的条件和Find方法完全相同
+```Go
+err := engine.Where("age > ? or name=?)", 30, "xlw").Iterate(new(Userinfo), func(i int, bean interface{})error{
+	user := bean.(*Userinfo)
+	//do somthing use i and user
+})
+```
+
+<a name="65" id="65"></a>
+### 6.5.Count方法
 
 统计数据使用`Count`方法，Count方法的参数为struct的指针并且成为查询条件。
 ```Go
@@ -352,7 +364,7 @@ user := new(User)
 total, err := engine.Where("id >?", 1).Count(user)
 ```
 
-<a name="65" id-"65"></a>
+<a name="66" id="66"></a>
 ### 6.5.匿名结构体成员
 
 如果在struct中拥有一个struct，并且在Tag中标记为extends，那么该结构体的成员将作为本结构体的成员进行映射。
@@ -472,17 +484,21 @@ engine.ClearCache(new(User))
 
 ![cache design](https://raw.github.com/lunny/xorm/master/docs/cache_design.png)
 
-## 12.Examples
+<a name="130" id="130"></a>
+## 13.Examples
 
 请访问[https://github.com/lunny/xorm/tree/master/examples](https://github.com/lunny/xorm/tree/master/examples)
 
-<a name="130" id="130"></a>
-## 13.案例
+<a name="140" id="140"></a>
+## 14.案例
 
 * [GoDaily Go语言学习网站](http://godaily.org)，源代码 [github.com/govc/godaily](http://github.com/govc/godaily)
 
-* [godaily](http://godaily.org) 和对应的源代码[github.com/govc/godaily](http://github.com/govc/godaily)
+* [Sudochina](http://sudochina.com) 和对应的源代码[github.com/insionng/toropress](http://github.com/insionng/toropress)
 
-<a name="140" id="140"></a>
-## 14.讨论
+* [VeryHour](http://veryhour.org)
+
+
+<a name="150" id="150"></a>
+## 15.讨论
 请加入QQ群：280360085 进行讨论。
