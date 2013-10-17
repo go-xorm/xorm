@@ -1,6 +1,24 @@
-# Quick Start
+Quick Start
+=====
 
-1.Create a database engine just like sql.Open, commonly you just need create once. Please notice, Create function will be deprecated, use NewEngine instead.
+* [1.Create database engine](#10)
+* [2.Define a struct](#20)
+* [3.Create tables](#30)
+	* [3.1.Sync database schema](#31)
+* [4.Insert, update one or more records](#40)
+* [5.Get one record](#50)
+* [6.Find many records](#60)
+* [7.Iterate records](#70)
+* [8.Delete records](#80)
+* [9.Count records](#90)
+* [10.Cache](#100)
+* [11.Execute SQL](#110)
+* [12.Advanced Usage](#120)
+* [13.Mapping Rules](#130)
+
+<a name="10" id="10"></a>
+## 1.Create database engine
+Create a database engine just like sql.Open, commonly you just need create once. Please notice, Create function will be deprecated, use NewEngine instead.
 
 ```Go
 import (
@@ -27,25 +45,21 @@ defer engine.Close()
 ```Go
 engine.ShowSQL = true
 ```
-1.2 If you want to use your own connection pool
+1.2 Defaultly, xorm use go's connection pool. If you want to use your own connection pool, you can
 
 ```Go
 err = engine.SetPool(NewSimpleConnectPool())
 ```
-1.3 If you want to auto sync database schema
 
-```Go
-err = engine.Sync(new(User), new(Category))
-```
-
-1.4 If you want to enable cache system
+1.3 If you want to enable cache system
 
 ```Go
 cacher := xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
 Engine.SetDefaultCacher(cacher)
 ```
 
-2.Define a struct
+<a name="20" id="20"></a>
+## 2.Define a struct
 
 ```Go
 type User struct {
@@ -57,7 +71,9 @@ type User struct {
 
 2.1.More mapping rules, please see [Mapping Rules](#mapping)
 
-3.When you set up your program, you can use CreateTables to create database tables.
+<a name="30" id="30"></a>
+## 3.Create tables
+When you set up your program, you can use CreateTables to create database tables.
 
 ```Go
 err := engine.CreateTables(&User{})
@@ -65,7 +81,15 @@ err := engine.CreateTables(&User{})
 // err = engine.CreateAll()
 ```
 
-4.then, insert a struct to table, if success, User.Id will be set to id
+3.1 If you want to auto sync database schema
+
+```Go
+err = engine.Sync(new(User), new(Category))
+```
+
+<a name="40" id="40"></a>
+## 4.Insert, Update records
+then, insert a struct to table, if success, User.Id will be set to id
 
 ```Go
 id, err := engine.Insert(&User{Name:"lunny"})
@@ -80,7 +104,9 @@ rows, err := engine.Update(&user, &User{Id:1})
 // or rows, err := engine.Id(1).Update(&user)
 ```
 
-5.Fetch a single object by user
+<a name="50" id="50"></a>
+## 5.Get one record
+Fetch a single object by user
 
 ```Go
 var user = User{Id:27}
@@ -90,8 +116,10 @@ has, err := engine.Get(&user)
 var user = User{Name:"xlw"}
 has, err := engine.Get(&user)
 ```
-	
-6.Fetch multipe objects into a slice or a map, use Find：
+
+<a name="60" id="60"></a>
+## 6.Find many records
+Fetch multipe objects into a slice or a map, use Find：
 
 ```Go
 var everyone []Userinfo
@@ -129,7 +157,9 @@ var tenusers []Userinfo
 err := engine.Cols("id", "name").Find(&tenusers) //Find only id and name
 ```
 
-7.Iterate, like find, but handle records one by one
+<a name="70" id="70"></a>
+## 7.Iterate records
+Iterate, like find, but handle records one by one
 
 ```Go
 err := engine.Where("age > ? or name=?)", 30, "xlw").Iterate(new(Userinfo), func(i int, bean interface{})error{
@@ -138,7 +168,9 @@ err := engine.Where("age > ? or name=?)", 30, "xlw").Iterate(new(Userinfo), func
 })
 ```
 
-8.Delete one or more records
+<a name="80" id="80"></a>
+## 8.Delete one or more records
+Delete one or more records
 
 8.1 deleted by id
 
@@ -152,19 +184,23 @@ err := engine.Id(1).Delete(&User{})
 err := engine.Delete(&User{Name:"xlw"})
 ```
 
+<a name="90" id="90"></a>
+## 9.Count records
 9.Count
 
 ```Go
 total, err := engine.Where("id > ?", 5).Count(&User{Name:"xlw"})
 ```
 
-10.Cache
+<a name="100" id="100"></a>
+## 10.Cache
 ```Go
 cacher := xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
 engine.SetDefaultCacher(cacher)
 ```
 
-## Execute SQL
+<a name="110" id="110"></a>
+## 11.Execute SQL
 
 Of course, SQL execution is also provided.
 
@@ -182,8 +218,8 @@ sql = "update userinfo set username=? where id=?"
 res, err := engine.Exec(sql, "xiaolun", 1) 
 ```
 
-
-## Advanced Usage
+<a name="120" id="120"></a>
+## 12.Advanced Usage
 
 For deep usage, you should create a session.
 
@@ -282,7 +318,8 @@ if err != nil {
 5.Derive mapping
 Please see derive.go in examples folder.
 
-## Mapping Rules 
+<a name="130" id="130"></a>
+## 13.Mapping Rules 
 
 <a name="mapping" id="mapping"></a>
 1.Struct and struct's fields name should be Pascal style, and the table and column's name default is SQL style.

@@ -496,7 +496,7 @@ engine.ClearCache(new(User))
 
 * [Sudochina](http://sudochina.com) 和对应的源代码[github.com/insionng/toropress](http://github.com/insionng/toropress)
 
-* [VeryHour](http://veryhour.org)
+* [VeryHour](http://veryhour.com)
 
 
 <a name="150" id="150"></a>
