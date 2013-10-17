@@ -250,6 +250,12 @@ func (engine *Engine) Cols(columns ...string) *Session {
 	return session.Cols(columns...)
 }
 
+func (engine *Engine) Omit(columns ...string) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.Omit(columns...)
+}
+
 /*func (engine *Engine) Trans(t string) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
@@ -797,6 +803,12 @@ func (engine *Engine) Find(beans interface{}, condiBeans ...interface{}) error {
 	session := engine.NewSession()
 	defer session.Close()
 	return session.Find(beans, condiBeans...)
+}
+
+func (engine *Engine) Iterate(bean interface{}, fun IterFunc) error {
+	session := engine.NewSession()
+	defer session.Close()
+	return session.Iterate(bean, fun)
 }
 
 func (engine *Engine) Count(bean interface{}) (int64, error) {

@@ -101,6 +101,10 @@ func TestPostgres2(t *testing.T) {
 	testCreatedAndUpdated(engine, t)
 	fmt.Println("-------------- testIndexAndUnique --------------")
 	testIndexAndUnique(engine, t)
+	fmt.Println("-------------- testMetaInfo --------------")
+	testMetaInfo(engine, t)
+	fmt.Println("-------------- testIterate --------------")
+	testIterate(engine, t)
 }
 
 func BenchmarkPostgresNoCache(t *testing.B) {

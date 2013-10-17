@@ -22,6 +22,7 @@ type Statement struct {
 	HavingStr    string
 	ColumnStr    string
 	columnMap    map[string]bool
+	OmitStr      string
 	ConditionStr string
 	AltTableName string
 	RawSQL       string
@@ -47,6 +48,7 @@ func (statement *Statement) Init() {
 	statement.GroupByStr = ""
 	statement.HavingStr = ""
 	statement.ColumnStr = ""
+	statement.OmitStr = ""
 	statement.columnMap = make(map[string]bool)
 	statement.ConditionStr = ""
 	statement.AltTableName = ""
@@ -82,9 +84,10 @@ func buildConditions(engine *Engine, table *Table, bean interface{}) ([]string, 
 	for _, col := range table.Columns {
 		fieldValue := col.ValueOf(bean)
 		fieldType := reflect.TypeOf(fieldValue.Interface())
-		val := fieldValue.Interface()
+		var val interface{}
 		switch fieldType.Kind() {
 		case reflect.Bool:
+			val = fieldValue.Interface()
 		case reflect.String:
 			if fieldValue.String() == "" {
 				continue
@@ -92,19 +95,24 @@ func buildConditions(engine *Engine, table *Table, bean interface{}) ([]string, 
 			// for MyString, should convert to string or panic
 			if fieldType.String() != reflect.String.String() {
 				val = fieldValue.String()
+			} else {
+				val = fieldValue.Interface()
 			}
 		case reflect.Int8, reflect.Int16, reflect.Int, reflect.Int32, reflect.Int64:
 			if fieldValue.Int() == 0 {
 				continue
 			}
+			val = fieldValue.Interface()
 		case reflect.Float32, reflect.Float64:
 			if fieldValue.Float() == 0.0 {
 				continue
 			}
+			val = fieldValue.Interface()
 		case reflect.Uint8, reflect.Uint16, reflect.Uint, reflect.Uint32, reflect.Uint64:
 			if fieldValue.Uint() == 0 {
 				continue
 			}
+			val = fieldValue.Interface()
 		case reflect.Struct:
 			if fieldType == reflect.TypeOf(time.Now()) {
 				t := fieldValue.Interface().(time.Time)
@@ -121,6 +129,8 @@ func buildConditions(engine *Engine, table *Table, bean interface{}) ([]string, 
 					} else {
 						continue
 					}
+				} else {
+					val = fieldValue.Interface()
 				}
 			}
 		case reflect.Array, reflect.Slice, reflect.Map:
@@ -219,6 +229,14 @@ func (statement *Statement) Cols(columns ...string) {
 	statement.ColumnStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
 }
 
+func (statement *Statement) Omit(columns ...string) {
+	newColumns := col2NewCols(columns...)
+	for _, nc := range newColumns {
+		statement.columnMap[nc] = false
+	}
+	statement.OmitStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
+}
+
 func (statement *Statement) Limit(limit int, start ...int) {
 	statement.LimitN = limit
 	if len(start) > 0 {
@@ -251,9 +269,15 @@ func (statement *Statement) genColumnStr() string {
 	table := statement.RefTable
 	colNames := make([]string, 0)
 	for _, col := range table.Columns {
-		if col.MapType != ONLYTODB {
-			colNames = append(colNames, statement.Engine.Quote(statement.TableName())+"."+statement.Engine.Quote(col.Name))
+		if statement.OmitStr != "" {
+			if _, ok := statement.columnMap[col.Name]; ok {
+				continue
+			}
 		}
+		if col.MapType == ONLYTODB {
+			continue
+		}
+		colNames = append(colNames, statement.Engine.Quote(statement.TableName())+"."+statement.Engine.Quote(col.Name))
 	}
 	return strings.Join(colNames, ", ")
 }

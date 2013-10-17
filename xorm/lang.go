@@ -43,5 +43,9 @@ func unTitle(src string) string {
 		return ""
 	}
 
-	return strings.ToLower(string(src[0])) + src[1:]
+	if len(src) == 1 {
+		return strings.ToLower(string(src[0]))
+	} else {
+		return strings.ToLower(string(src[0])) + src[1:]
+	}
 }

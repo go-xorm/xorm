@@ -1115,6 +1115,19 @@ func testMetaInfo(engine *Engine, t *testing.T) {
 	}
 }
 
+func testIterate(engine *Engine, t *testing.T) {
+	err := engine.Omit("is_man").Iterate(new(Userinfo), func(idx int, bean interface{}) error {
+		user := bean.(*Userinfo)
+		fmt.Println(idx, "--", user)
+		return nil
+	})
+
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+}
+
 func testAll(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
@@ -1195,6 +1208,8 @@ func testAll2(engine *Engine, t *testing.T) {
 	//testInt32Id(engine, t)
 	fmt.Println("-------------- testMetaInfo --------------")
 	testMetaInfo(engine, t)
+	fmt.Println("-------------- testIterate --------------")
+	testIterate(engine, t)
 	fmt.Println("-------------- transaction --------------")
 	transaction(engine, t)
 }

@@ -313,6 +313,11 @@ func (table *Table) genCols(session *Session, bean interface{}, useCol bool, inc
 				continue
 			}
 		}
+		if session.Statement.OmitStr != "" {
+			if _, ok := session.Statement.columnMap[col.Name]; ok {
+				continue
+			}
+		}
 
 		if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
 			args = append(args, time.Now())
