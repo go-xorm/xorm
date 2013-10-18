@@ -14,7 +14,7 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 目前支持的Go数据库驱动如下：
 
-* Mysql: [github.com/Go-SQL-Driver/MySQL](https://github.com/Go-SQL-Driver/MySQL)
+* Mysql: [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
 
 * MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
 

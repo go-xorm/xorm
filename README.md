@@ -14,7 +14,7 @@ Message me on [G+](https://plus.google.com/u/0/106406879480103142585)
 
 Drivers for Go's sql package which currently support database/sql includes:
 
-* Mysql: [github.com/Go-SQL-Driver/MySQL](https://github.com/Go-SQL-Driver/MySQL)
+* Mysql: [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
 
 * MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
 

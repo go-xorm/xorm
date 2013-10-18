@@ -11,7 +11,7 @@ and you should install the depends below:
 
 * github.com/lunny/xorm
 
-* Mysql: [github.com/Go-SQL-Driver/MySQL](https://github.com/Go-SQL-Driver/MySQL)
+* Mysql: [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
 
 * MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
 
