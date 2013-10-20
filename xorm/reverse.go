@@ -53,6 +53,18 @@ type Tmpl struct {
 	Model   string
 }
 
+func dirExists(dir string) bool {
+	d, e := os.Stat(dir)
+	switch {
+	case e != nil:
+		return false
+	case !d.IsDir():
+		return false
+	}
+
+	return true
+}
+
 func runReverse(cmd *Command, args []string) {
 	num := checkFlags(cmd.Flags, args, printReversePrompt)
 	if num == -1 {
@@ -79,6 +91,7 @@ func runReverse(cmd *Command, args []string) {
 	var genDir string
 	var model string
 	if len(args) == 4 {
+
 		genDir, err = filepath.Abs(args[3])
 		if err != nil {
 			fmt.Println(err)
@@ -93,6 +106,11 @@ func runReverse(cmd *Command, args []string) {
 	dir, err := filepath.Abs(args[2])
 	if err != nil {
 		logging.Error("%v", err)
+		return
+	}
+
+	if !dirExists(dir) {
+		logging.Error("Template %v path is not exist", dir)
 		return
 	}
 
