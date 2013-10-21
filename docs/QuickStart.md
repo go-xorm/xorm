@@ -35,7 +35,7 @@ xorm 快速入门
 
 ```Go
 import (
-	_ "github.com/Go-SQL-Driver/MySQL"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/lunny/xorm"
 )
 engine, err := xorm.NewEngine("mysql", "root:123@/test?charset=utf8")
