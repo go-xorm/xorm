@@ -32,7 +32,7 @@ type dialect interface {
 	TableCheckSql(tableName string) (string, []interface{})
 	ColumnCheckSql(tableName, colName string) (string, []interface{})
 
-	GetColumns(tableName string) (map[string]*Column, error)
+	GetColumns(tableName string) ([]string, map[string]*Column, error)
 	GetTables() ([]*Table, error)
 	GetIndexes(tableName string) (map[string]*Index, error)
 }
@@ -189,11 +189,12 @@ func (engine *Engine) DBMetas() ([]*Table, error) {
 	}
 
 	for _, table := range tables {
-		cols, err := engine.dialect.GetColumns(table.Name)
+		colSeq, cols, err := engine.dialect.GetColumns(table.Name)
 		if err != nil {
 			return nil, err
 		}
 		table.Columns = cols
+		table.ColumnsSeq = colSeq
 
 		indexes, err := engine.dialect.GetIndexes(table.Name)
 		if err != nil {

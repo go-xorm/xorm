@@ -1128,6 +1128,34 @@ func testIterate(engine *Engine, t *testing.T) {
 	}
 }
 
+type StrangeName struct {
+	Id_t int64 `xorm:"pk autoincr"`
+	Name string
+}
+
+func testStrangeName(engine *Engine, t *testing.T) {
+	err := engine.DropTables(new(StrangeName))
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = engine.CreateTables(new(StrangeName))
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = engine.Insert(&StrangeName{Name: "sfsfdsfds"})
+	if err != nil {
+		t.Error(err)
+	}
+
+	beans := make([]StrangeName, 0)
+	err = engine.Find(&beans)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func testAll(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
@@ -1210,6 +1238,8 @@ func testAll2(engine *Engine, t *testing.T) {
 	testMetaInfo(engine, t)
 	fmt.Println("-------------- testIterate --------------")
 	testIterate(engine, t)
+	fmt.Println("-------------- testStrangeName --------------")
+	testStrangeName(engine, t)
 	fmt.Println("-------------- transaction --------------")
 	transaction(engine, t)
 }

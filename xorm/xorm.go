@@ -88,7 +88,7 @@ Use "xorm help [topic]" for more information about that topic.
 
 `
 
-var helpTemplate = `{{if .Runnable}}usage: go {{.UsageLine}}
+var helpTemplate = `{{if .Runnable}}usage: xorm {{.UsageLine}}
 
 {{end}}{{.Long | trim}}
 `

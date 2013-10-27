@@ -6,6 +6,7 @@ import (
 	"sync"
 	//"sync/atomic"
 	"container/list"
+	"reflect"
 	"time"
 )
 
@@ -176,6 +177,10 @@ func (p *SysConnectPool) MaxIdleConns() int {
 // not implemented
 func (p *SysConnectPool) SetMaxConns(conns int) {
 	p.maxConns = conns
+	// if support SetMaxOpenConns, go 1.2+, then set
+	if reflect.ValueOf(p.db).MethodByName("SetMaxOpenConns").IsValid() {
+		reflect.ValueOf(p.db).MethodByName("SetMaxOpenConns").Call([]reflect.Value{reflect.ValueOf(conns)})
+	}
 	//p.db.SetMaxOpenConns(conns)
 }
 

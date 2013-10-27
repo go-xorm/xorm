@@ -140,21 +140,22 @@ func (db *postgres) ColumnCheckSql(tableName, colName string) (string, []interfa
 		" AND column_name = ?", args
 }
 
-func (db *postgres) GetColumns(tableName string) (map[string]*Column, error) {
+func (db *postgres) GetColumns(tableName string) ([]string, map[string]*Column, error) {
 	args := []interface{}{tableName}
 	s := "SELECT column_name, column_default, is_nullable, data_type, character_maximum_length" +
 		", numeric_precision, numeric_precision_radix FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = $1"
 
 	cnn, err := sql.Open(db.drivername, db.dataSourceName)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer cnn.Close()
 	res, err := query(cnn, s, args...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	cols := make(map[string]*Column)
+	colSeq := make([]string, 0)
 	for _, record := range res {
 		col := new(Column)
 		col.Indexes = make(map[string]bool)
@@ -191,12 +192,12 @@ func (db *postgres) GetColumns(tableName string) (map[string]*Column, error) {
 					col.SQLType = SQLType{strings.ToUpper(ct), 0, 0}
 				}
 				if _, ok := sqlTypes[col.SQLType.Name]; !ok {
-					return nil, errors.New(fmt.Sprintf("unkonw colType %v", ct))
+					return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v", ct))
 				}
 			case "character_maximum_length":
 				i, err := strconv.Atoi(string(content))
 				if err != nil {
-					return nil, errors.New("retrieve length error")
+					return nil, nil, errors.New("retrieve length error")
 				}
 				col.Length = i
 			case "numeric_precision":
@@ -209,9 +210,10 @@ func (db *postgres) GetColumns(tableName string) (map[string]*Column, error) {
 			}
 		}
 		cols[col.Name] = col
+		colSeq = append(colSeq, col.Name)
 	}
 
-	return cols, nil
+	return colSeq, cols, nil
 }
 
 func (db *postgres) GetTables() ([]*Table, error) {
@@ -279,7 +281,7 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*Index, error) {
 		if strings.HasSuffix(indexName, "_pkey") {
 			continue
 		}
-		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "QUE_"+tableName) {
+		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
 			indexName = indexName[5+len(tableName) : len(indexName)]
 		}
 

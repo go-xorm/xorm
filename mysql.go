@@ -147,20 +147,21 @@ func (db *mysql) TableCheckSql(tableName string) (string, []interface{}) {
 	return sql, args
 }
 
-func (db *mysql) GetColumns(tableName string) (map[string]*Column, error) {
+func (db *mysql) GetColumns(tableName string) ([]string, map[string]*Column, error) {
 	args := []interface{}{db.dbname, tableName}
 	s := "SELECT `COLUMN_NAME`, `IS_NULLABLE`, `COLUMN_DEFAULT`, `COLUMN_TYPE`," +
 		" `COLUMN_KEY`, `EXTRA` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = ? AND `TABLE_NAME` = ?"
 	cnn, err := sql.Open(db.drivername, db.dataSourceName)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer cnn.Close()
 	res, err := query(cnn, s, args...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	cols := make(map[string]*Column)
+	colSeq := make([]string, 0)
 	for _, record := range res {
 		col := new(Column)
 		col.Indexes = make(map[string]bool)
@@ -183,12 +184,12 @@ func (db *mysql) GetColumns(tableName string) (map[string]*Column, error) {
 					lens := strings.Split(cts[1][0:idx], ",")
 					len1, err = strconv.Atoi(strings.TrimSpace(lens[0]))
 					if err != nil {
-						return nil, err
+						return nil, nil, err
 					}
 					if len(lens) == 2 {
 						len2, err = strconv.Atoi(lens[1])
 						if err != nil {
-							return nil, err
+							return nil, nil, err
 						}
 					}
 				}
@@ -199,7 +200,7 @@ func (db *mysql) GetColumns(tableName string) (map[string]*Column, error) {
 				if _, ok := sqlTypes[colType]; ok {
 					col.SQLType = SQLType{colType, len1, len2}
 				} else {
-					return nil, errors.New(fmt.Sprintf("unkonw colType %v", colType))
+					return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v", colType))
 				}
 			case "COLUMN_KEY":
 				key := string(content)
@@ -222,8 +223,9 @@ func (db *mysql) GetColumns(tableName string) (map[string]*Column, error) {
 			}
 		}
 		cols[col.Name] = col
+		colSeq = append(colSeq, col.Name)
 	}
-	return cols, nil
+	return colSeq, cols, nil
 }
 
 func (db *mysql) GetTables() ([]*Table, error) {
@@ -288,7 +290,7 @@ func (db *mysql) GetIndexes(tableName string) (map[string]*Index, error) {
 		if indexName == "PRIMARY" {
 			continue
 		}
-		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "QUE_"+tableName) {
+		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
 			indexName = indexName[5+len(tableName) : len(indexName)]
 		}
 

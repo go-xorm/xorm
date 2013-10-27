@@ -78,17 +78,17 @@ func (db *sqlite3) ColumnCheckSql(tableName, colName string) (string, []interfac
 	return sql, args
 }
 
-func (db *sqlite3) GetColumns(tableName string) (map[string]*Column, error) {
+func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*Column, error) {
 	args := []interface{}{tableName}
 	s := "SELECT sql FROM sqlite_master WHERE type='table' and name = ?"
 	cnn, err := sql.Open(db.drivername, db.dataSourceName)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer cnn.Close()
 	res, err := query(cnn, s, args...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var sql string
@@ -104,6 +104,7 @@ func (db *sqlite3) GetColumns(tableName string) (map[string]*Column, error) {
 	nEnd := strings.Index(sql, ")")
 	colCreates := strings.Split(sql[nStart+1:nEnd], ",")
 	cols := make(map[string]*Column)
+	colSeq := make([]string, 0)
 	for _, colStr := range colCreates {
 		fields := strings.Fields(strings.TrimSpace(colStr))
 		col := new(Column)
@@ -130,8 +131,9 @@ func (db *sqlite3) GetColumns(tableName string) (map[string]*Column, error) {
 			}
 		}
 		cols[col.Name] = col
+		colSeq = append(colSeq, col.Name)
 	}
-	return cols, nil
+	return colSeq, cols, nil
 }
 
 func (db *sqlite3) GetTables() ([]*Table, error) {
@@ -192,7 +194,7 @@ func (db *sqlite3) GetIndexes(tableName string) (map[string]*Index, error) {
 		nNEnd := strings.Index(sql, "ON")
 		indexName := strings.Trim(sql[nNStart+6:nNEnd], "` []")
 		//fmt.Println(indexName)
-		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "QUE_"+tableName) {
+		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
 			index.Name = indexName[5+len(tableName) : len(indexName)]
 		} else {
 			index.Name = indexName
