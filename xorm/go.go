@@ -230,7 +230,7 @@ func tag(table *xorm.Table, col *xorm.Column) string {
 		} else if index.Type == xorm.IndexType {
 			uistr = "index"
 		}
-		if index.Name != col.Name {
+		if len(index.Cols) > 1 {
 			uistr += "(" + index.Name + ")"
 		}
 		res = append(res, uistr)

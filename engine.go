@@ -650,7 +650,8 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 				session.Statement.RefTable = table
 				defer session.Close()
 				if index.Type == UniqueType {
-					isExist, err := session.isIndexExist(table.Name, name, true)
+					//isExist, err := session.isIndexExist(table.Name, name, true)
+					isExist, err := session.isIndexExist2(table.Name, index.Cols, true)
 					if err != nil {
 						return err
 					}
@@ -664,7 +665,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 						}
 					}
 				} else if index.Type == IndexType {
-					isExist, err := session.isIndexExist(table.Name, name, false)
+					isExist, err := session.isIndexExist2(table.Name, index.Cols, false)
 					if err != nil {
 						return err
 					}

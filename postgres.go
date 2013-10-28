@@ -282,7 +282,10 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*Index, error) {
 			continue
 		}
 		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
-			indexName = indexName[5+len(tableName) : len(indexName)]
+			newIdxName := indexName[5+len(tableName) : len(indexName)]
+			if newIdxName != "" {
+				indexName = newIdxName
+			}
 		}
 
 		index := &Index{Name: indexName, Type: indexType, Cols: make([]string, 0)}

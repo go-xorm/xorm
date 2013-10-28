@@ -982,6 +982,43 @@ func (session *Session) isIndexExist(tableName, idxName string, unique bool) (bo
 	return len(results) > 0, err
 }
 
+func sliceEq(left, right []string) bool {
+	for _, l := range left {
+		var find bool
+		for _, r := range right {
+			if l == r {
+				find = true
+				break
+			}
+		}
+		if !find {
+			return false
+		}
+	}
+
+	return true
+}
+
+// find if index is exist according cols
+func (session *Session) isIndexExist2(tableName string, cols []string, unique bool) (bool, error) {
+	indexes, err := session.Engine.dialect.GetIndexes(tableName)
+	if err != nil {
+		return false, err
+	}
+
+	for _, index := range indexes {
+		//fmt.Println(i, "new:", cols, "-old:", index.Cols)
+		if sliceEq(index.Cols, cols) {
+			if unique {
+				return index.Type == UniqueType, nil
+			} else {
+				return index.Type == IndexType, nil
+			}
+		}
+	}
+	return false, nil
+}
+
 func (session *Session) addColumn(colName string) error {
 	err := session.newDb()
 	if err != nil {

@@ -8,7 +8,7 @@ import (
 	"xorm"
 )
 
-type SyncUser struct {
+type SyncUser2 struct {
 	Id      int64
 	Name    string `xorm:"unique"`
 	Age     int    `xorm:"index"`
@@ -19,7 +19,7 @@ type SyncUser struct {
 	Date    int
 }
 
-type SyncLoginInfo struct {
+type SyncLoginInfo2 struct {
 	Id       int64
 	IP       string `xorm:"index"`
 	UserId   int64
@@ -32,7 +32,7 @@ type SyncLoginInfo struct {
 }
 
 func sync(engine *xorm.Engine) error {
-	return engine.Sync(&SyncLoginInfo{}, &SyncUser{})
+	return engine.Sync(&SyncLoginInfo2{}, &SyncUser2{})
 }
 
 func sqliteEngine() (*xorm.Engine, error) {
@@ -53,7 +53,10 @@ func postgresEngine() (*xorm.Engine, error) {
 type engineFunc func() (*xorm.Engine, error)
 
 func main() {
-	engines := []engineFunc{sqliteEngine, mysqlEngine, postgresEngine}
+	//engines := []engineFunc{sqliteEngine, mysqlEngine, postgresEngine}
+	//engines := []engineFunc{sqliteEngine}
+	//engines := []engineFunc{mysqlEngine}
+	engines := []engineFunc{postgresEngine}
 	for _, enginefunc := range engines {
 		Orm, err := enginefunc()
 		fmt.Println("--------", Orm.DriverName, "----------")
@@ -67,7 +70,12 @@ func main() {
 			fmt.Println(err)
 		}
 
-		user := &SyncUser{
+		_, err = Orm.Where("id > 0").Delete(&SyncUser2{})
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		user := &SyncUser2{
 			Name:    "testsdf",
 			Age:     15,
 			Title:   "newsfds",

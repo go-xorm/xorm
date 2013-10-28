@@ -276,7 +276,7 @@ func (db *mysql) GetIndexes(tableName string) (map[string]*Index, error) {
 		for name, content := range record {
 			switch name {
 			case "NON_UNIQUE":
-				if "YES" == string(content) {
+				if "YES" == string(content) || string(content) == "1" {
 					indexType = IndexType
 				} else {
 					indexType = UniqueType
