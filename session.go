@@ -1411,13 +1411,11 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 		session.cacheInsert(session.Statement.TableName())
 	}
 
-	id, err := res.LastInsertId()
-
-	if err != nil {
-		return -1, err
+	if table.PrimaryKey != "" {
+		return res.LastInsertId()
+	} else {
+		return 0, nil
 	}
-
-	return id, nil
 }
 
 func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
