@@ -97,6 +97,9 @@ func insert(engine *Engine, t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
+	if user.Uid <= 0 {
+		t.Error(errors.New("not return id error"))
+	}
 }
 
 func testQuery(engine *Engine, t *testing.T) {
@@ -149,6 +152,9 @@ func insertAutoIncr(engine *Engine, t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
+	if user.Uid <= 0 {
+		t.Error(errors.New("not return id error"))
+	}
 }
 
 func insertMulti(engine *Engine, t *testing.T) {
@@ -159,10 +165,13 @@ func insertMulti(engine *Engine, t *testing.T) {
 		{Username: "xlw11", Departname: "dev", Alias: "lunny2", Created: time.Now()},
 		{Username: "xlw22", Departname: "dev", Alias: "lunny3", Created: time.Now()},
 	}
-	_, err := engine.Insert(&users)
+	id, err := engine.Insert(&users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
+	}
+	if id <= 0 {
+		t.Error(errors.New("not return id error"))
 	}
 
 	users2 := []*Userinfo{
@@ -172,10 +181,14 @@ func insertMulti(engine *Engine, t *testing.T) {
 		&Userinfo{Username: "1xlw22", Departname: "dev", Alias: "lunny3", Created: time.Now()},
 	}
 
-	_, err = engine.Insert(&users2)
+	id, err = engine.Insert(&users2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
+	}
+
+	if id <= 0 {
+		t.Error(errors.New("not return id error"))
 	}
 }
 
@@ -241,6 +254,18 @@ func updateSameMapper(engine *Engine, t *testing.T) {
 func testdelete(engine *Engine, t *testing.T) {
 	user := Userinfo{Uid: 1}
 	_, err := engine.Delete(&user)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	_, err = engine.Id(2).Get(&user)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	_, err = engine.Delete(&user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -1156,6 +1181,66 @@ func testStrangeName(engine *Engine, t *testing.T) {
 	}
 }
 
+type Version struct {
+	Id   int64
+	Name string
+	Ver  int `xorm:"version"`
+}
+
+func testVersion(engine *Engine, t *testing.T) {
+	err := engine.DropTables(new(Version))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	err = engine.CreateTables(new(Version))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	ver := &Version{Name: "sfsfdsfds"}
+	_, err = engine.Cols("name").Insert(ver)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	newVer := new(Version)
+	has, err := engine.Id(ver.Id).Get(newVer)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if !has {
+		t.Error(errors.New(fmt.Sprintf("no version id is %v", ver.Id)))
+		return
+	}
+
+	newVer.Name = "-------"
+	_, err = engine.Id(ver.Id).Update(newVer, &Version{Ver: newVer.Ver})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	has, err = engine.Id(ver.Id).Get(newVer)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	fmt.Println(ver)
+
+	newVer.Name = "-------"
+	_, err = engine.Id(ver.Id).Update(newVer, &Version{Ver: newVer.Ver})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+}
+
 func testAll(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
@@ -1240,6 +1325,8 @@ func testAll2(engine *Engine, t *testing.T) {
 	testIterate(engine, t)
 	fmt.Println("-------------- testStrangeName --------------")
 	testStrangeName(engine, t)
+	fmt.Println("-------------- testVersion --------------")
+	testVersion(engine, t)
 	fmt.Println("-------------- transaction --------------")
 	transaction(engine, t)
 }

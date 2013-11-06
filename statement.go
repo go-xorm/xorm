@@ -78,15 +78,22 @@ func (statement *Statement) Table(tableNameOrBean interface{}) {
 	}
 }
 
-func buildConditions(engine *Engine, table *Table, bean interface{}) ([]string, []interface{}) {
+// Auto generating conditions according a struct
+func buildConditions(engine *Engine, table *Table, bean interface{}, includeVersion bool) ([]string, []interface{}) {
 	colNames := make([]string, 0)
 	var args = make([]interface{}, 0)
 	for _, col := range table.Columns {
+		if !includeVersion && col.IsVersion {
+			continue
+		}
 		fieldValue := col.ValueOf(bean)
 		fieldType := reflect.TypeOf(fieldValue.Interface())
 		var val interface{}
 		switch fieldType.Kind() {
 		case reflect.Bool:
+			continue
+			// if a bool in a struct, it will not be as a condition because it default is false,
+			// please use Where() instead
 			val = fieldValue.Interface()
 		case reflect.String:
 			if fieldValue.String() == "" {
@@ -364,7 +371,7 @@ func (statement Statement) genGetSql(bean interface{}) (string, []interface{}) {
 	table := statement.Engine.AutoMap(bean)
 	statement.RefTable = table
 
-	colNames, args := buildConditions(statement.Engine, table, bean)
+	colNames, args := buildConditions(statement.Engine, table, bean, true)
 	statement.ConditionStr = strings.Join(colNames, " and ")
 	statement.BeanArgs = args
 
@@ -401,7 +408,7 @@ func (statement Statement) genCountSql(bean interface{}) (string, []interface{})
 	table := statement.Engine.AutoMap(bean)
 	statement.RefTable = table
 
-	colNames, args := buildConditions(statement.Engine, table, bean)
+	colNames, args := buildConditions(statement.Engine, table, bean, true)
 	statement.ConditionStr = strings.Join(colNames, " and ")
 	statement.BeanArgs = args
 	var id string = "*"

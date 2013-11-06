@@ -2,7 +2,8 @@ package xorm
 
 import (
 	"fmt"
-	_ "github.com/bylevel/pq"
+	//_ "github.com/bylevel/pq"
+	_ "github.com/lib/pq"
 	"testing"
 )
 

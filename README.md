@@ -8,7 +8,7 @@ Xorm is a simple and powerful ORM for Go. It makes dabatabse operating simple.
 
 ## Discuss
 
-Message me on [G+](https://plus.google.com/u/0/106406879480103142585)
+Please visit [xorm on Google Groups](https://groups.google.com/forum/#!forum/xorm)
 
 ## Drivers Support
 
@@ -19,6 +19,8 @@ Drivers for Go's sql package which currently support database/sql includes:
 * MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
 
 * SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
+
+* Postgres: [github.com/bylevel/pq](https://github.com/lib/pq)
 
 * Postgres: [github.com/bylevel/pq](https://github.com/bylevel/pq)
 
@@ -40,19 +42,23 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 ## Features
 
-* Struct<->Table Mapping Supports, both name mapping and filed tags mapping
+* Struct<->Table Mapping Supports, both name mapping and filed tag mapping
 
 * Database Transaction Support
 
 * Both ORM and SQL Operation Support
 
-* Simply usage
+* Simply chainable usage
 
 * Support Id, In, Where, Limit, Join, Having, Sql functions and sturct as query conditions
 
-* Support simple cascade load just like Hibernate for Java
+* Cache Support
 
-* Code generator support, See [Xorm Tool README](https://github.com/lunny/xorm/blob/master/xorm/README.md)
+* Reverse Tool Support
+
+* Simple cascade load support
+
+* Database Reverse Tool support, See [Xorm Tool README](https://github.com/lunny/xorm/blob/master/xorm/README.md)
 
 
 ## Installing xorm

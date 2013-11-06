@@ -211,6 +211,7 @@ type Column struct {
 	IsCreated       bool
 	IsUpdated       bool
 	IsCascade       bool
+	IsVersion       bool
 }
 
 func (col *Column) String(d dialect) string {
@@ -264,6 +265,7 @@ type Table struct {
 	PrimaryKey string
 	Created    string
 	Updated    string
+	Version    string
 	Cacher     Cacher
 }
 
@@ -282,6 +284,9 @@ func (table *Table) AddColumn(col *Column) {
 	}
 	if col.IsUpdated {
 		table.Updated = col.Name
+	}
+	if col.IsVersion {
+		table.Version = col.Name
 	}
 }
 

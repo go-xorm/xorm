@@ -138,38 +138,48 @@ func (engine *Engine) Close() error {
 	return engine.Pool.Close(engine)
 }
 
-// Test if database is alive.
+// Test method is deprecated, use Ping() method.
 func (engine *Engine) Test() error {
+	return engine.Ping()
+}
+
+// Ping tests if database is alive.
+func (engine *Engine) Ping() error {
 	session := engine.NewSession()
 	defer session.Close()
 	engine.LogSQL("PING DATABASE", engine.DriverName)
 	return session.Ping()
 }
 
+// logging sql
 func (engine *Engine) LogSQL(contents ...interface{}) {
 	if engine.ShowSQL {
 		io.WriteString(engine.Logger, fmt.Sprintln(contents...))
 	}
 }
 
+// logging error
 func (engine *Engine) LogError(contents ...interface{}) {
 	if engine.ShowErr {
 		io.WriteString(engine.Logger, fmt.Sprintln(contents...))
 	}
 }
 
+// logging debug
 func (engine *Engine) LogDebug(contents ...interface{}) {
 	if engine.ShowDebug {
 		io.WriteString(engine.Logger, fmt.Sprintln(contents...))
 	}
 }
 
+// logging warn
 func (engine *Engine) LogWarn(contents ...interface{}) {
 	if engine.ShowWarn {
 		io.WriteString(engine.Logger, fmt.Sprintln(contents...))
 	}
 }
 
+// execute sql
 func (engine *Engine) Sql(querystring string, args ...interface{}) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
@@ -182,6 +192,7 @@ func (engine *Engine) NoAutoTime() *Session {
 	return session.NoAutoTime()
 }
 
+// retrieve all tables, columns, indexes' informations from database.
 func (engine *Engine) DBMetas() ([]*Table, error) {
 	tables, err := engine.dialect.GetTables()
 	if err != nil {
@@ -215,30 +226,35 @@ func (engine *Engine) DBMetas() ([]*Table, error) {
 	return tables, nil
 }
 
+// use cascade or not
 func (engine *Engine) Cascade(trueOrFalse ...bool) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
 	return session.Cascade(trueOrFalse...)
 }
 
+// Where method provide a condition query
 func (engine *Engine) Where(querystring string, args ...interface{}) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
 	return session.Where(querystring, args...)
 }
 
+// Id mehtod provoide a condition as (id) = ?
 func (engine *Engine) Id(id int64) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
 	return session.Id(id)
 }
 
+// set charset when create table, only support mysql now
 func (engine *Engine) Charset(charset string) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
 	return session.Charset(charset)
 }
 
+// set store engine when create table, only support mysql now
 func (engine *Engine) StoreEngine(storeEngine string) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
@@ -256,12 +272,6 @@ func (engine *Engine) Omit(columns ...string) *Session {
 	session.IsAutoClose = true
 	return session.Omit(columns...)
 }
-
-/*func (engine *Engine) Trans(t string) *Session {
-	session := engine.NewSession()
-	session.IsAutoClose = true
-	return session.Trans(t)
-}*/
 
 func (engine *Engine) In(column string, args ...interface{}) *Session {
 	session := engine.NewSession()
@@ -398,10 +408,11 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 						col.Default = tags[j+1]
 					case k == "CREATED":
 						col.IsCreated = true
+					case k == "VERSION":
+						col.IsVersion = true
+						col.Default = "1"
 					case k == "UPDATED":
 						col.IsUpdated = true
-					/*case strings.HasPrefix(k, "--"):
-					col.Comment = k[2:len(k)]*/
 					case strings.HasPrefix(k, "INDEX(") && strings.HasSuffix(k, ")"):
 						indexType = IndexType
 						indexName = k[len("INDEX")+1 : len(k)-1]
@@ -487,7 +498,7 @@ func (engine *Engine) MapType(t reflect.Type) *Table {
 			sqlType := Type2SQLType(fieldType)
 			col = &Column{engine.Mapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
 				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", make(map[string]bool), false, false,
-				TWOSIDES, false, false, false}
+				TWOSIDES, false, false, false, false}
 		}
 		if col.IsAutoIncrement {
 			col.Nullable = false
