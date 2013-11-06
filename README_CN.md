@@ -25,7 +25,7 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 * Postgres: [github.com/bylevel/pq](https://github.com/bylevel/pq)
 
 ## 更新日志
-
+* **v0.2.2** : Postgres驱动新增了对lib/pq的支持；新增了逐条遍历方法Iterate；新增了SetMaxConns(go1.2+)支持，修复了bug若干；
 * **v0.2.1** : 新增数据库反转工具，当前支持go和c++代码的生成，详见 [Xorm Tool README](https://github.com/lunny/xorm/blob/master/xorm/README.md); 修复了一些bug.
 * **v0.2.0** : 新增 [缓存](https://github.com/lunny/xorm/blob/master/docs/QuickStart.md#120)支持，查询速度提升3-5倍； 新增数据库表和Struct同名的映射方式； 新增Sync同步表结构；
 * **v0.1.9** : 新增 postgres 和 mymysql 驱动支持; 在Postgres中支持原始SQL语句中使用 ` 和 ? 符号; 新增Cols, StoreEngine, Charset 函数；SQL语句打印支持io.Writer接口，默认打印到控制台；新增更多的字段类型支持，详见 [映射规则](https://github.com/lunny/xorm/blob/master/docs/QuickStart.md#21)；删除废弃的MakeSession和Create函数。
@@ -56,7 +56,6 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 * 支持缓存
 
 * 支持根据数据库自动生成xorm的结构体
-
 
 
 ## 安装

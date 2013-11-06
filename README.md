@@ -27,6 +27,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 ## Changelog
 
+* **v0.2.2** : Postgres drivers now support lib/pq; Added method Iterate for record by record to handler；Added SetMaxConns(go1.2+) support; some bugs fixed.
 * **v0.2.1** : Added database reverse tool, now support generate go & c++ codes, see [Xorm Tool README](https://github.com/lunny/xorm/blob/master/xorm/README.md); some bug fixed.
 * **v0.2.0** : Added Cache supported, select is speeder up 3~5x; Added SameMapper for same name between struct and table; Added Sync method for auto added tables, columns, indexes;
 * **v0.1.9** : Added postgres and mymysql supported; Added ` and ? supported on Raw SQL even if postgres; Added Cols, StoreEngine, Charset function, Added many column data type supported, please see [Mapping Rules](#mapping).
@@ -53,8 +54,6 @@ Drivers for Go's sql package which currently support database/sql includes:
 * Support Id, In, Where, Limit, Join, Having, Sql functions and sturct as query conditions
 
 * Cache Support
-
-* Reverse Tool Support
 
 * Simple cascade load support
 
