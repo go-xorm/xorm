@@ -20,7 +20,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 
-* Postgres: [github.com/bylevel/pq](https://github.com/lib/pq)
+* Postgres: [github.com/lib/pq](https://github.com/lib/pq)
 
 * Postgres: [github.com/bylevel/pq](https://github.com/bylevel/pq)
 

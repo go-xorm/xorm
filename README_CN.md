@@ -20,6 +20,8 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 
+* Postgres: [github.com/lib/pq](https://github.com/lib/pq)
+
 * Postgres: [github.com/bylevel/pq](https://github.com/bylevel/pq)
 
 ## 更新日志

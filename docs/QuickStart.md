@@ -63,6 +63,8 @@ xorm当前支持四种驱动如下：
 
 * SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 
+* Postgres: [github.com/lib/pq](https://github.com/lib/pq)
+
 * Postgres: [github.com/bylevel/pq](https://github.com/bylevel/pq)
 
 NewEngine传入的参数和`sql.Open`传入的参数完全相同，因此，使用哪个驱动前，请查看此驱动中关于传入参数的说明文档。
