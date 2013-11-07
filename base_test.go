@@ -43,7 +43,13 @@ type Userdetail struct {
 }
 
 func directCreateTable(engine *Engine, t *testing.T) {
-	err := engine.Sync(&Userinfo{})
+	err := engine.DropTables(&Userinfo{}, &Userdetail{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.Sync(&Userinfo{}, &Userdetail{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -55,7 +61,31 @@ func directCreateTable(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 
-	err = engine.CreateTables(&Userinfo{})
+	err = engine.CreateTables(&Userinfo{}, &Userdetail{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateIndexes(&Userinfo{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateIndexes(&Userdetail{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateUniques(&Userinfo{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateUniques(&Userdetail{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -86,6 +116,30 @@ func mapper(engine *Engine, t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
+
+	err = engine.CreateIndexes(&Userinfo{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateIndexes(&Userdetail{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateUniques(&Userinfo{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateUniques(&Userdetail{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
 }
 
 func insert(engine *Engine, t *testing.T) {
@@ -98,7 +152,17 @@ func insert(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 	if user.Uid <= 0 {
-		t.Error(errors.New("not return id error"))
+		err = errors.New("not return id error")
+		t.Error(err)
+		panic(err)
+	}
+
+	user.Uid = 0
+	_, err = engine.Insert(&user)
+	if err == nil {
+		err = errors.New("insert failed but no return error")
+		t.Error(err)
+		panic(err)
 	}
 }
 
@@ -171,7 +235,9 @@ func insertMulti(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 	if id <= 0 {
-		t.Error(errors.New("not return id error"))
+		err = errors.New("not return id error")
+		t.Error(err)
+		panic(err)
 	}
 
 	users2 := []*Userinfo{
@@ -188,7 +254,9 @@ func insertMulti(engine *Engine, t *testing.T) {
 	}
 
 	if id <= 0 {
-		t.Error(errors.New("not return id error"))
+		err = errors.New("not return id error")
+		t.Error(err)
+		panic(err)
 	}
 }
 
@@ -198,6 +266,18 @@ func insertTwoTable(engine *Engine, t *testing.T) {
 
 	_, err := engine.Insert(&userinfo, &userdetail)
 	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if userinfo.Uid <= 0 {
+		err = errors.New("not return id error")
+		t.Error(err)
+		panic(err)
+	}
+
+	if userdetail.Id <= 0 {
+		err = errors.New("not return id error")
 		t.Error(err)
 		panic(err)
 	}

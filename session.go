@@ -1627,14 +1627,15 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		}
 
 		var id int64 = 0
-		pkValue := table.PKColumn().ValueOf(bean)
-		if !pkValue.IsValid() || pkValue.Int() != 0 || !pkValue.CanSet() {
-			return 0, nil
-		}
 
 		id, err = res.LastInsertId()
 		if err != nil || id <= 0 {
 			return 0, err
+		}
+
+		pkValue := table.PKColumn().ValueOf(bean)
+		if !pkValue.IsValid() || pkValue.Int() != 0 || !pkValue.CanSet() {
+			return id, nil
 		}
 
 		var v interface{} = id
@@ -1654,23 +1655,23 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			return 0, err
 		}
 
-		if len(res) < 1 {
-			return 0, err
-		}
-
 		if table.Cacher != nil && session.Statement.UseCache {
 			session.cacheInsert(session.Statement.TableName())
 		}
 
-		pkValue := table.PKColumn().ValueOf(bean)
-		if !pkValue.IsValid() || pkValue.Int() != 0 || !pkValue.CanSet() {
-			return 0, nil
+		if len(res) < 1 {
+			return 0, errors.New("insert no error but not returned id")
 		}
 
 		idByte := res[0][table.PrimaryKey]
 		id, err := strconv.ParseInt(string(idByte), 10, 64)
 		if err != nil {
 			return 0, err
+		}
+
+		pkValue := table.PKColumn().ValueOf(bean)
+		if !pkValue.IsValid() || pkValue.Int() != 0 || !pkValue.CanSet() {
+			return id, nil
 		}
 
 		var v interface{} = id
