@@ -58,6 +58,18 @@ func (session *Session) Where(querystring string, args ...interface{}) *Session 
 	return session
 }
 
+// Method Where provides custom query condition.
+func (session *Session) And(querystring string, args ...interface{}) *Session {
+	session.Statement.And(querystring, args...)
+	return session
+}
+
+// Method Where provides custom query condition.
+func (session *Session) Or(querystring string, args ...interface{}) *Session {
+	session.Statement.Or(querystring, args...)
+	return session
+}
+
 // Method Id provides converting id as a query condition
 func (session *Session) Id(id int64) *Session {
 	session.Statement.Id(id)

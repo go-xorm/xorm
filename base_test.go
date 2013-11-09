@@ -452,6 +452,13 @@ func where(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 	fmt.Println(users)
+
+	err = engine.Where("(id) > ?", 2).And("(id) < ?", 10).Find(&users)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println(users)
 }
 
 func in(engine *Engine, t *testing.T) {

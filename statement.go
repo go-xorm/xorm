@@ -69,6 +69,24 @@ func (statement *Statement) Where(querystring string, args ...interface{}) {
 	statement.Params = args
 }
 
+func (statement *Statement) And(querystring string, args ...interface{}) {
+	if statement.WhereStr != "" {
+		statement.WhereStr = fmt.Sprintf("(%v) AND (%v)", statement.WhereStr, querystring)
+	} else {
+		statement.WhereStr = querystring
+	}
+	statement.Params = append(statement.Params, args...)
+}
+
+func (statement *Statement) Or(querystring string, args ...interface{}) {
+	if statement.WhereStr != "" {
+		statement.WhereStr = fmt.Sprintf("(%v) OR (%v)", statement.WhereStr, querystring)
+	} else {
+		statement.WhereStr = querystring
+	}
+	statement.Params = append(statement.Params, args...)
+}
+
 func (statement *Statement) Table(tableNameOrBean interface{}) {
 	t := rType(tableNameOrBean)
 	if t.Kind() == reflect.String {
