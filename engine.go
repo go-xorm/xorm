@@ -261,6 +261,12 @@ func (engine *Engine) StoreEngine(storeEngine string) *Session {
 	return session.StoreEngine(storeEngine)
 }
 
+func (engine *Engine) Distinct(columns ...string) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.Distinct(columns...)
+}
+
 func (engine *Engine) Cols(columns ...string) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true

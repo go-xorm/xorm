@@ -1328,6 +1328,37 @@ func testVersion(engine *Engine, t *testing.T) {
 	}
 }
 
+func testDistinct(engine *Engine, t *testing.T) {
+	users := make([]Userinfo, 0)
+	err := engine.Distinct("departname").Find(&users)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if len(users) != 1 {
+		t.Error(err)
+		panic(errors.New("should be one record"))
+	}
+
+	fmt.Println(users)
+
+	type Depart struct {
+		Departname string
+	}
+
+	users2 := make([]Depart, 0)
+	err = engine.Distinct("departname").Table(new(Userinfo)).Find(&users2)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if len(users2) != 1 {
+		t.Error(err)
+		panic(errors.New("should be one record"))
+	}
+	fmt.Println(users2)
+}
+
 func testAll(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
@@ -1414,6 +1445,8 @@ func testAll2(engine *Engine, t *testing.T) {
 	testStrangeName(engine, t)
 	fmt.Println("-------------- testVersion --------------")
 	testVersion(engine, t)
+	fmt.Println("-------------- testDistinct --------------")
+	testDistinct(engine, t)
 	fmt.Println("-------------- transaction --------------")
 	transaction(engine, t)
 }

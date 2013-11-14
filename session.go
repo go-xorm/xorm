@@ -94,6 +94,11 @@ func (session *Session) Cols(columns ...string) *Session {
 	return session
 }
 
+func (session *Session) Distinct(columns ...string) *Session {
+	session.Statement.Distinct(columns...)
+	return session
+}
+
 func (session *Session) Omit(columns ...string) *Session {
 	session.Statement.Omit(columns...)
 	return session
@@ -238,7 +243,7 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 		return errors.New("Expected a pointer to a struct")
 	}
 
-	table := session.Engine.Tables[rType(obj)]
+	table := session.Engine.AutoMapType(rType(obj))
 
 	for key, data := range objMap {
 		if _, ok := table.Columns[key]; !ok {
@@ -848,18 +853,22 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 
 	sliceElementType := sliceValue.Type().Elem()
 	var table *Table
-	if sliceElementType.Kind() == reflect.Ptr {
-		if sliceElementType.Elem().Kind() == reflect.Struct {
-			table = session.Engine.AutoMapType(sliceElementType.Elem())
+	if session.Statement.RefTable == nil {
+		if sliceElementType.Kind() == reflect.Ptr {
+			if sliceElementType.Elem().Kind() == reflect.Struct {
+				table = session.Engine.AutoMapType(sliceElementType.Elem())
+			} else {
+				return errors.New("slice type")
+			}
+		} else if sliceElementType.Kind() == reflect.Struct {
+			table = session.Engine.AutoMapType(sliceElementType)
 		} else {
 			return errors.New("slice type")
 		}
-	} else if sliceElementType.Kind() == reflect.Struct {
-		table = session.Engine.AutoMapType(sliceElementType)
+		session.Statement.RefTable = table
 	} else {
-		return errors.New("slice type")
+		table = session.Statement.RefTable
 	}
-	session.Statement.RefTable = table
 
 	if len(condiBean) > 0 {
 		colNames, args := buildConditions(session.Engine, table, condiBean[0], true)
@@ -881,7 +890,9 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		args = session.Statement.RawParams
 	}
 
-	if table.Cacher != nil && session.Statement.UseCache {
+	if table.Cacher != nil &&
+		session.Statement.UseCache &&
+		!session.Statement.IsDistinct {
 		err = session.cacheFind(sliceElementType, sql, rowsSlicePtr, args...)
 		if err != ErrCacheFailed {
 			return err

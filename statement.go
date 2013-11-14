@@ -34,6 +34,7 @@ type Statement struct {
 	BeanArgs     []interface{}
 	UseCache     bool
 	UseAutoTime  bool
+	IsDistinct   bool
 }
 
 func (statement *Statement) Init() {
@@ -57,6 +58,7 @@ func (statement *Statement) Init() {
 	statement.BeanArgs = make([]interface{}, 0)
 	statement.UseCache = statement.Engine.UseCache
 	statement.UseAutoTime = true
+	statement.IsDistinct = false
 }
 
 func (statement *Statement) Sql(querystring string, args ...interface{}) {
@@ -244,6 +246,11 @@ func col2NewCols(columns ...string) []string {
 		}
 	}
 	return newColumns
+}
+
+func (statement *Statement) Distinct(columns ...string) {
+	statement.IsDistinct = true
+	statement.Cols(columns...)
 }
 
 func (statement *Statement) Cols(columns ...string) {
@@ -441,7 +448,11 @@ func (statement Statement) genSelectSql(columnStr string) (a string) {
 		columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
 		statement.GroupByStr = columnStr
 	}
-	a = fmt.Sprintf("SELECT %v FROM %v", columnStr,
+	var distinct string
+	if statement.IsDistinct {
+		distinct = "DISTINCT "
+	}
+	a = fmt.Sprintf("SELECT %v%v FROM %v", distinct, columnStr,
 		statement.Engine.Quote(statement.TableName()))
 	if statement.JoinStr != "" {
 		a = fmt.Sprintf("%v %v", a, statement.JoinStr)
