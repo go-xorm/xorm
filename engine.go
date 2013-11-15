@@ -273,6 +273,12 @@ func (engine *Engine) Cols(columns ...string) *Session {
 	return session.Cols(columns...)
 }
 
+func (engine *Engine) UseBool(columns ...string) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.UseBool(columns...)
+}
+
 func (engine *Engine) Omit(columns ...string) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true

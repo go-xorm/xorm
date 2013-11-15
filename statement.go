@@ -10,31 +10,33 @@ import (
 )
 
 type Statement struct {
-	RefTable     *Table
-	Engine       *Engine
-	Start        int
-	LimitN       int
-	WhereStr     string
-	Params       []interface{}
-	OrderStr     string
-	JoinStr      string
-	GroupByStr   string
-	HavingStr    string
-	ColumnStr    string
-	columnMap    map[string]bool
-	OmitStr      string
-	ConditionStr string
-	AltTableName string
-	RawSQL       string
-	RawParams    []interface{}
-	UseCascade   bool
-	UseAutoJoin  bool
-	StoreEngine  string
-	Charset      string
-	BeanArgs     []interface{}
-	UseCache     bool
-	UseAutoTime  bool
-	IsDistinct   bool
+	RefTable      *Table
+	Engine        *Engine
+	Start         int
+	LimitN        int
+	WhereStr      string
+	Params        []interface{}
+	OrderStr      string
+	JoinStr       string
+	GroupByStr    string
+	HavingStr     string
+	ColumnStr     string
+	columnMap     map[string]bool
+	OmitStr       string
+	ConditionStr  string
+	AltTableName  string
+	RawSQL        string
+	RawParams     []interface{}
+	UseCascade    bool
+	UseAutoJoin   bool
+	StoreEngine   string
+	Charset       string
+	BeanArgs      []interface{}
+	UseCache      bool
+	UseAutoTime   bool
+	IsDistinct    bool
+	allUseBool    bool
+	boolColumnMap map[string]bool
 }
 
 func (statement *Statement) Init() {
@@ -59,6 +61,8 @@ func (statement *Statement) Init() {
 	statement.UseCache = statement.Engine.UseCache
 	statement.UseAutoTime = true
 	statement.IsDistinct = false
+	statement.allUseBool = false
+	statement.boolColumnMap = make(map[string]bool)
 }
 
 func (statement *Statement) Sql(querystring string, args ...interface{}) {
@@ -99,7 +103,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) {
 }
 
 // Auto generating conditions according a struct
-func buildConditions(engine *Engine, table *Table, bean interface{}, includeVersion bool) ([]string, []interface{}) {
+func buildConditions(engine *Engine, table *Table, bean interface{}, includeVersion bool, allUseBool bool, boolColumnMap map[string]bool) ([]string, []interface{}) {
 	colNames := make([]string, 0)
 	var args = make([]interface{}, 0)
 	for _, col := range table.Columns {
@@ -111,10 +115,15 @@ func buildConditions(engine *Engine, table *Table, bean interface{}, includeVers
 		var val interface{}
 		switch fieldType.Kind() {
 		case reflect.Bool:
-			continue
-			// if a bool in a struct, it will not be as a condition because it default is false,
-			// please use Where() instead
-			val = fieldValue.Interface()
+			if allUseBool {
+				val = fieldValue.Interface()
+			} else if _, ok := boolColumnMap[col.Name]; ok {
+				val = fieldValue.Interface()
+			} else {
+				// if a bool in a struct, it will not be as a condition because it default is false,
+				// please use Where() instead
+				continue
+			}
 		case reflect.String:
 			if fieldValue.String() == "" {
 				continue
@@ -219,7 +228,7 @@ func (statement *Statement) Id(id int64) {
 		statement.WhereStr = "(id)=?"
 		statement.Params = []interface{}{id}
 	} else {
-		statement.WhereStr = statement.WhereStr + " and (id)=?"
+		statement.WhereStr = statement.WhereStr + " AND (id)=?"
 		statement.Params = append(statement.Params, id)
 	}
 }
@@ -230,7 +239,7 @@ func (statement *Statement) In(column string, args ...interface{}) {
 		statement.WhereStr = inStr
 		statement.Params = args
 	} else {
-		statement.WhereStr = statement.WhereStr + " and " + inStr
+		statement.WhereStr = statement.WhereStr + " AND " + inStr
 		statement.Params = append(statement.Params, args...)
 	}
 }
@@ -259,6 +268,17 @@ func (statement *Statement) Cols(columns ...string) {
 		statement.columnMap[nc] = true
 	}
 	statement.ColumnStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
+}
+
+func (statement *Statement) UseBool(columns ...string) {
+	if len(columns) > 0 {
+		newColumns := col2NewCols(columns...)
+		for _, nc := range newColumns {
+			statement.boolColumnMap[nc] = true
+		}
+	} else {
+		statement.allUseBool = true
+	}
 }
 
 func (statement *Statement) Omit(columns ...string) {
@@ -396,8 +416,9 @@ func (statement Statement) genGetSql(bean interface{}) (string, []interface{}) {
 	table := statement.Engine.AutoMap(bean)
 	statement.RefTable = table
 
-	colNames, args := buildConditions(statement.Engine, table, bean, true)
-	statement.ConditionStr = strings.Join(colNames, " and ")
+	colNames, args := buildConditions(statement.Engine, table, bean, true,
+		statement.allUseBool, statement.boolColumnMap)
+	statement.ConditionStr = strings.Join(colNames, " AND ")
 	statement.BeanArgs = args
 
 	var columnStr string = statement.ColumnStr
@@ -433,14 +454,14 @@ func (statement Statement) genCountSql(bean interface{}) (string, []interface{})
 	table := statement.Engine.AutoMap(bean)
 	statement.RefTable = table
 
-	colNames, args := buildConditions(statement.Engine, table, bean, true)
-	statement.ConditionStr = strings.Join(colNames, " and ")
+	colNames, args := buildConditions(statement.Engine, table, bean, true, statement.allUseBool, statement.boolColumnMap)
+	statement.ConditionStr = strings.Join(colNames, " AND ")
 	statement.BeanArgs = args
 	var id string = "*"
 	if table.PrimaryKey != "" {
 		id = statement.Engine.Quote(table.PrimaryKey)
 	}
-	return statement.genSelectSql(fmt.Sprintf("count(%v) as %v", id, statement.Engine.Quote("total"))), append(statement.Params, statement.BeanArgs...)
+	return statement.genSelectSql(fmt.Sprintf("COUNT(%v) AS %v", id, statement.Engine.Quote("total"))), append(statement.Params, statement.BeanArgs...)
 }
 
 func (statement Statement) genSelectSql(columnStr string) (a string) {

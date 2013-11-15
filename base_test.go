@@ -1359,6 +1359,46 @@ func testDistinct(engine *Engine, t *testing.T) {
 	fmt.Println(users2)
 }
 
+func testUseBool(engine *Engine, t *testing.T) {
+	cnt1, err := engine.Count(&Userinfo{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	users := make([]Userinfo, 0)
+	err = engine.Find(&users)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	var fNumber int64
+	for _, u := range users {
+		if u.IsMan == false {
+			fNumber += 1
+		}
+	}
+
+	cnt2, err := engine.UseBool().Update(&Userinfo{IsMan: true})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if fNumber != cnt2 {
+		fmt.Println("cnt1", cnt1, "fNumber", fNumber, "cnt2", cnt2)
+		/*err = errors.New("Updated number is not corrected.")
+		t.Error(err)
+		panic(err)*/
+	}
+
+	_, err = engine.Update(&Userinfo{IsMan: true})
+	if err == nil {
+		err = errors.New("error condition")
+		t.Error(err)
+		panic(err)
+	}
+}
+
 func testAll(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
@@ -1447,6 +1487,8 @@ func testAll2(engine *Engine, t *testing.T) {
 	testVersion(engine, t)
 	fmt.Println("-------------- testDistinct --------------")
 	testDistinct(engine, t)
+	fmt.Println("-------------- testUseBool --------------")
+	testUseBool(engine, t)
 	fmt.Println("-------------- transaction --------------")
 	transaction(engine, t)
 }
