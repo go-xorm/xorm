@@ -27,13 +27,9 @@ type SnakeMapper struct {
 
 func snakeCasedName(name string) string {
 	newstr := make([]rune, 0)
-	firstTime := true
-
-	for _, chr := range name {
+	for idx, chr := range name {
 		if isUpper := 'A' <= chr && chr <= 'Z'; isUpper {
-			if firstTime == true {
-				firstTime = false
-			} else {
+			if idx > 0 {
 				newstr = append(newstr, '_')
 			}
 			chr -= ('A' - 'a')
@@ -44,7 +40,7 @@ func snakeCasedName(name string) string {
 	return string(newstr)
 }
 
-func pascal2Sql(s string) (d string) {
+/*func pascal2Sql(s string) (d string) {
 	d = ""
 	lastIdx := 0
 	for i := 0; i < len(s); i++ {
@@ -61,7 +57,7 @@ func pascal2Sql(s string) (d string) {
 	}
 	d += s[lastIdx+1:]
 	return
-}
+}*/
 
 func (mapper SnakeMapper) Obj2Table(name string) string {
 	return snakeCasedName(name)

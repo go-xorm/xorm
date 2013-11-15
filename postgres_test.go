@@ -1,7 +1,7 @@
 package xorm
 
 import (
-	"fmt"
+	//"fmt"
 	//_ "github.com/bylevel/pq"
 	_ "github.com/lib/pq"
 	"testing"
@@ -20,6 +20,7 @@ func TestPostgres(t *testing.T) {
 	testAll2(engine, t)
 }
 
+/*
 func TestPostgres2(t *testing.T) {
 	engine, err := NewEngine("postgres", "dbname=xorm_test sslmode=disable")
 	if err != nil {
@@ -76,8 +77,6 @@ func TestPostgres2(t *testing.T) {
 	joinSameMapper(engine, t)
 	fmt.Println("-------------- havingSameMapper --------------")
 	havingSameMapper(engine, t)
-	fmt.Println("-------------- transaction --------------")
-	transaction(engine, t)
 	fmt.Println("-------------- combineTransactionSameMapper --------------")
 	combineTransactionSameMapper(engine, t)
 	fmt.Println("-------------- table --------------")
@@ -106,7 +105,17 @@ func TestPostgres2(t *testing.T) {
 	testMetaInfo(engine, t)
 	fmt.Println("-------------- testIterate --------------")
 	testIterate(engine, t)
-}
+	fmt.Println("-------------- testStrangeName --------------")
+	testStrangeName(engine, t)
+	fmt.Println("-------------- testVersion --------------")
+	testVersion(engine, t)
+	fmt.Println("-------------- testDistinct --------------")
+	testDistinct(engine, t)
+	fmt.Println("-------------- testUseBool --------------")
+	testUseBool(engine, t)
+	fmt.Println("-------------- transaction --------------")
+	transaction(engine, t)
+}*/
 
 func BenchmarkPostgresNoCache(t *testing.B) {
 	engine, err := NewEngine("postgres", "dbname=xorm_test sslmode=disable")
