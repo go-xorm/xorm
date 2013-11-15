@@ -74,6 +74,8 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 ## Cases
 
+* [Gowalker](http://gowalker.org) - [github.com/Unknwon/gowalker](http://github.com/Unknwon/gowalker)
+
 * [Sudo China](http://sudochina.com) - [github.com/insionng/toropress](http://github.com/insionng/toropress)
 
 * [Godaily](http://godaily.org) - [github.com/govc/godaily](http://github.com/govc/godaily)

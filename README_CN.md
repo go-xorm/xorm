@@ -70,6 +70,8 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 ## 案例
 
+* [Gowalker](http://gowalker.org) - [github.com/Unknwon/gowalker](http://github.com/Unknwon/gowalker)
+
 * [Sudo China](http://sudochina.com) - [github.com/insionng/toropress](http://github.com/insionng/toropress)
 
 * [Godaily](http://godaily.org) - [github.com/govc/godaily](http://github.com/govc/godaily)
