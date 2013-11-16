@@ -1,7 +1,7 @@
 package xorm
 
 import (
-	_ "github.com/mattn/go-sqlite3"
+	//_ "github.com/mattn/go-sqlite3"
 	"os"
 	"testing"
 )

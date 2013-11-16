@@ -252,6 +252,7 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 
 	for key, data := range objMap {
 		if _, ok := table.Columns[key]; !ok {
+			session.Engine.LogWarn("table %v's has not column %v.", table.Name, key)
 			continue
 		}
 		col := table.Columns[key]
@@ -270,6 +271,8 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 			fieldValue = dataStruct.FieldByName(fieldName)
 		}
 		if !fieldValue.IsValid() || !fieldValue.CanSet() {
+			session.Engine.LogWarn("table %v's column %v is not valid or cannot set",
+				table.Name, key)
 			continue
 		}
 
@@ -546,7 +549,10 @@ func (session *Session) cacheGet(bean interface{}, sql string, args ...interface
 }
 
 func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr interface{}, args ...interface{}) (err error) {
-	if session.Statement.RefTable == nil || session.Statement.RefTable.PrimaryKey == "" {
+	if session.Statement.RefTable == nil ||
+		session.Statement.RefTable.PrimaryKey == "" ||
+		indexNoCase(sql, "having") != -1 ||
+		indexNoCase(sql, "group by") != -1 {
 		return ErrCacheFailed
 	}
 
@@ -1140,16 +1146,16 @@ func row2map(rows *sql.Rows, fields []string) (resultsMap map[string][]byte, err
 		vv := reflect.ValueOf(rawValue.Interface())
 		var str string
 		switch aa.Kind() {
-		case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			str = strconv.FormatInt(vv.Int(), 10)
 			result[key] = []byte(str)
-		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			str = strconv.FormatUint(vv.Uint(), 10)
 			result[key] = []byte(str)
 		case reflect.Float32, reflect.Float64:
 			str = strconv.FormatFloat(vv.Float(), 'f', -1, 64)
 			result[key] = []byte(str)
-		case reflect.Slice:
+		case reflect.Array, reflect.Slice:
 			switch aa.Elem().Kind() {
 			case reflect.Uint8:
 				result[key] = rawValue.Interface().([]byte)
@@ -1165,10 +1171,22 @@ func row2map(rows *sql.Rows, fields []string) (resultsMap map[string][]byte, err
 				str = rawValue.Interface().(time.Time).Format("2006-01-02 15:04:05.000 -0700")
 				result[key] = []byte(str)
 			} else {
-				//session.Engine.LogError("Unsupported struct type")
+				return nil, errors.New(fmt.Sprintf("Unsupported struct type %v", vv.Type().Name()))
 			}
+		case reflect.Bool:
+			str := strconv.FormatBool(vv.Bool())
+			result[key] = []byte(str)
+		case reflect.Complex128, reflect.Complex64:
+			result[key] = []byte(fmt.Sprintf("%v", vv.Complex()))
+		/* TODO: unsupported types below
+		case reflect.Map:
+		case reflect.Ptr:
+		case reflect.Uintptr:
+		case reflect.UnsafePointer:
+		case reflect.Chan, reflect.Func, reflect.Interface:
+		*/
 		default:
-			//session.Engine.LogError("Unsupported type")
+			return nil, errors.New(fmt.Sprintf("Unsupported struct type %v", vv.Type().Name()))
 		}
 	}
 	return result, nil
@@ -1428,6 +1446,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 	var v interface{}
 	key := col.Name
 	fieldType := fieldValue.Type()
+	//fmt.Println("column name:", key, ", fieldType:", fieldType.String())
 	switch fieldType.Kind() {
 	case reflect.Complex64, reflect.Complex128:
 		x := reflect.New(fieldType)
@@ -1468,7 +1487,9 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 	case reflect.String:
 		fieldValue.SetString(string(data))
 	case reflect.Bool:
-		v, err := strconv.ParseBool(string(data))
+		d := string(data)
+		//fmt.Println("------", d, "-------")
+		v, err := strconv.ParseBool(d)
 		if err != nil {
 			return errors.New("arg " + key + " as bool: " + err.Error())
 		}
@@ -1738,6 +1759,11 @@ func (statement *Statement) convertUpdateSql(sql string) (string, string) {
 	}
 	sqls := splitNNoCase(sql, "where", 2)
 	if len(sqls) != 2 {
+		if len(sqls) == 1 {
+			return sqls[0], fmt.Sprintf("SELECT %v FROM %v",
+				statement.Engine.Quote(statement.RefTable.PrimaryKey),
+				statement.Engine.Quote(statement.RefTable.Name))
+		}
 		return "", ""
 	}
 
@@ -1832,7 +1858,7 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 	for _, id := range ids {
 		if bean := cacher.GetBean(tableName, id); bean != nil {
 			sqls := splitNNoCase(sql, "where", 2)
-			if len(sqls) != 2 {
+			if len(sqls) == 0 || len(sqls) > 2 {
 				return ErrCacheFailed
 			}
 
@@ -1858,6 +1884,9 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 					fieldValue := col.ValueOf(bean)
 					session.Engine.LogDebug("[xorm:cacheUpdate] set bean field", bean, colName, fieldValue.Interface())
 					fieldValue.Set(reflect.ValueOf(args[idx]))
+				} else {
+					session.Engine.LogError("[xorm:cacheUpdate] ERROR: column %v is not table %v's",
+						colName, table.Name)
 				}
 			}
 
@@ -1966,7 +1995,6 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	if err != nil {
 		return 0, err
 	}
-
 	if table.Cacher != nil && session.Statement.UseCache {
 		session.cacheUpdate(sql, args...)
 	}

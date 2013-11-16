@@ -1399,6 +1399,46 @@ func testUseBool(engine *Engine, t *testing.T) {
 	}
 }
 
+func testBool(engine *Engine, t *testing.T) {
+	_, err := engine.UseBool().Update(&Userinfo{IsMan: true})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	users := make([]Userinfo, 0)
+	err = engine.Find(&users)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	for _, user := range users {
+		if !user.IsMan {
+			err = errors.New("update bool or find bool error")
+			t.Error(err)
+			panic(err)
+		}
+	}
+
+	_, err = engine.UseBool().Update(&Userinfo{IsMan: false})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	users = make([]Userinfo, 0)
+	err = engine.Find(&users)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	for _, user := range users {
+		if user.IsMan {
+			err = errors.New("update bool or find bool error")
+			t.Error(err)
+			panic(err)
+		}
+	}
+}
+
 func testAll(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
@@ -1489,6 +1529,8 @@ func testAll2(engine *Engine, t *testing.T) {
 	testDistinct(engine, t)
 	fmt.Println("-------------- testUseBool --------------")
 	testUseBool(engine, t)
+	fmt.Println("-------------- testBool --------------")
+	testBool(engine, t)
 	fmt.Println("-------------- transaction --------------")
 	transaction(engine, t)
 }

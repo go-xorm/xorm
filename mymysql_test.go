@@ -13,13 +13,33 @@ utf8 COLLATE utf8_general_ci;
 var showTestSql bool = true
 
 func TestMyMysql(t *testing.T) {
-	engine, err := NewEngine("mymysql", "xorm_test2/root/")
+	engine, err := NewEngine("mymysql", "xorm_test/root/")
 	defer engine.Close()
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	engine.ShowSQL = showTestSql
+	engine.ShowErr = showTestSql
+	engine.ShowWarn = showTestSql
+	engine.ShowDebug = showTestSql
+
+	testAll(engine, t)
+	testAll2(engine, t)
+}
+
+func TestMyMysqlWithCache(t *testing.T) {
+	engine, err := NewEngine("mymysql", "xorm_test2/root/")
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.ShowSQL = showTestSql
+	engine.ShowErr = showTestSql
+	engine.ShowWarn = showTestSql
+	engine.ShowDebug = showTestSql
 
 	testAll(engine, t)
 	testAll2(engine, t)

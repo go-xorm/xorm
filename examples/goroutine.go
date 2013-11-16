@@ -8,6 +8,7 @@ import (
 	"os"
 	//"time"
 	//"sync/atomic"
+	"runtime"
 	xorm "xorm"
 )
 
@@ -84,6 +85,7 @@ func test(engine *xorm.Engine) {
 }
 
 func main() {
+	runtime.GOMAXPROCS(2)
 	fmt.Println("-----start sqlite go routines-----")
 	engine, err := sqliteEngine()
 	if err != nil {

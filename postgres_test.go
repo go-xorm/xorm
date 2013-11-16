@@ -15,6 +15,26 @@ func TestPostgres(t *testing.T) {
 	}
 	defer engine.Close()
 	engine.ShowSQL = showTestSql
+	engine.ShowErr = showTestSql
+	engine.ShowWarn = showTestSql
+	engine.ShowDebug = showTestSql
+
+	testAll(engine, t)
+	testAll2(engine, t)
+}
+
+func TestPostgresWithCache(t *testing.T) {
+	engine, err := NewEngine("postgres", "dbname=xorm_test2 sslmode=disable")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	defer engine.Close()
+	engine.ShowSQL = showTestSql
+	engine.ShowErr = showTestSql
+	engine.ShowWarn = showTestSql
+	engine.ShowDebug = showTestSql
 
 	testAll(engine, t)
 	testAll2(engine, t)

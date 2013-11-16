@@ -97,11 +97,13 @@ func main() {
 		return
 	}
 
-	user6 := new(User)
-	has, err = Orm.Id(1).Get(user6)
-	if err != nil {
-		fmt.Println(err)
-		return
+	for {
+		user6 := new(User)
+		has, err = Orm.Id(1).Get(user6)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Println("user6:", has, user6)
 	}
-	fmt.Println("user6:", has, user6)
 }
