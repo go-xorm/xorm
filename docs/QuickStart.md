@@ -381,7 +381,7 @@ total, err := engine.Where("id >?", 1).Count(user)
 ```Go
 user := new(User)
 user.Name = "myname"
-affected, err := engine.Id(id).Update(&user)
+affected, err := engine.Id(id).Update(user)
 ```
 
 这里需要注意，Update会自动从user结构体中提取非0和非nil得值作为需要更新的内容，因此，如果需要更新一个值为0，则此种方法将无法实现，因此有两种选择：
