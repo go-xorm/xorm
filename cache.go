@@ -153,6 +153,7 @@ func (m *LRUCacher) GC() {
 		}
 	}
 
+	removedNum = 0
 	for e := m.sqlList.Front(); e != nil; {
 		if removedNum <= CacheGcMaxRemoved &&
 			time.Now().Sub(e.Value.(*sqlNode).lastVisit) > m.Expired {
@@ -160,7 +161,7 @@ func (m *LRUCacher) GC() {
 			next := e.Next()
 			//fmt.Println("removing ...", e.Value)
 			node := e.Value.(*sqlNode)
-			m.DelIds(node.tbName, node.sql)
+			m.delIds(node.tbName, node.sql)
 			e = next
 		} else {
 			break
@@ -322,8 +323,8 @@ func (m *LRUCacher) DelIds(tableName, sql string) {
 
 func (m *LRUCacher) delBean(tableName string, id int64) {
 	tid := genId(tableName, id)
-	if el, ok := m.idIndex[tableName][tid]; ok {
-		delete(m.idIndex[tableName], tid)
+	if el, ok := m.idIndex[tableName][id]; ok {
+		delete(m.idIndex[tableName], id)
 		m.idList.Remove(el)
 		m.clearIds(tableName)
 	}
