@@ -339,16 +339,25 @@ func testdelete(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 
-	_, err = engine.Id(2).Get(&user)
+	user.Uid = 0
+	has, err := engine.Id(3).Get(&user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	_, err = engine.Delete(&user)
-	if err != nil {
-		t.Error(err)
-		panic(err)
+	if has {
+		//var tt time.Time
+		//user.Created = tt
+		cnt, err := engine.UseBool().Delete(&user)
+		if err != nil {
+			t.Error(err)
+			panic(err)
+		}
+		if cnt != 1 {
+			t.Error(errors.New("delete failed"))
+			panic(err)
+		}
 	}
 }
 
@@ -937,8 +946,8 @@ type allCols struct {
 	Text       string `xorm:"TEXT"`
 	MediumText string `xorm:"MEDIUMTEXT"`
 	LongText   string `xorm:"LONGTEXT"`
-	Binary     string `xorm:"BINARY"`
-	VarBinary  string `xorm:"VARBINARY(12)"`
+	Binary     []byte `xorm:"BINARY(23)"`
+	VarBinary  []byte `xorm:"VARBINARY(12)"`
 
 	Date      time.Time `xorm:"DATE"`
 	DateTime  time.Time `xorm:"DATETIME"`
@@ -973,6 +982,79 @@ func testColTypes(engine *Engine, t *testing.T) {
 
 	err = engine.CreateTables(&allCols{})
 	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	ac := &allCols{
+		1,
+		4,
+		8,
+		16,
+		32,
+		64,
+		128,
+
+		"123",
+		"fafdafa",
+		"fafafafdsafdsafdaf",
+		"fdsafafdsafdsaf",
+		"fafdsafdsafdsfadasfsfafd",
+		"fadfdsafdsafasfdasfds",
+		[]byte("fdafsafdasfdsafsa"),
+		[]byte("fdsafsdafs"),
+
+		time.Now(),
+		time.Now(),
+		time.Now(),
+		time.Now(),
+
+		1.34,
+		2.44302346,
+
+		1.3344,
+		2.59693523,
+		3.2342523543,
+
+		[]byte("fafdasf"),
+		[]byte("fafdfdsafdsafasf"),
+		[]byte("faffadsfdsdasf"),
+		[]byte("faffdasfdsadasf"),
+		[]byte("fafasdfsadffdasf"),
+
+		true,
+
+		21,
+	}
+
+	_, err = engine.Insert(ac)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	newAc := &allCols{}
+	has, err := engine.Get(newAc)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if !has {
+		err = errors.New("error no ideas")
+		t.Error(err)
+		panic(err)
+	}
+
+	// don't use this type as query condition
+	newAc.Real = 0
+	newAc.Float = 0
+	newAc.Double = 0
+	cnt, err := engine.Delete(newAc)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("delete error")
 		t.Error(err)
 		panic(err)
 	}
@@ -1068,6 +1150,18 @@ func testCustomType(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 	fmt.Println(sss)
+
+	if has {
+		cnt, err := engine.Delete(&sss)
+		if err != nil {
+			t.Error(err)
+			panic(err)
+		}
+		if cnt != 1 {
+			t.Error(errors.New("delete error"))
+			panic(err)
+		}
+	}
 }
 
 type UserCU struct {

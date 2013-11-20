@@ -155,7 +155,15 @@ func buildConditions(engine *Engine, table *Table, bean interface{}, includeVers
 				if t.IsZero() {
 					continue
 				}
-				val = t
+				var str string
+				if col.SQLType.Name == Time {
+					str = strings.Split(t.Format("2006-01-02 15:04:05"), " ")[1]
+				} else if col.SQLType.Name == Date {
+					str = t.Format("2006-01-02")
+				} else {
+					str = t.Format("2006-01-02 15:04:05.000000 -0700")
+				}
+				val = str
 			} else {
 				engine.AutoMapType(fieldValue.Type())
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
@@ -189,7 +197,11 @@ func buildConditions(engine *Engine, table *Table, bean interface{}, includeVers
 				var err error
 				if (fieldType.Kind() == reflect.Array || fieldType.Kind() == reflect.Slice) &&
 					fieldType.Elem().Kind() == reflect.Uint8 {
-					val = fieldValue.Bytes()
+					if fieldValue.Len() > 0 {
+						val = fieldValue.Bytes()
+					} else {
+						continue
+					}
 				} else {
 					bytes, err = json.Marshal(fieldValue.Interface())
 					if err != nil {
@@ -287,6 +299,11 @@ func (statement *Statement) Omit(columns ...string) {
 		statement.columnMap[nc] = false
 	}
 	statement.OmitStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
+}
+
+func (statement *Statement) Top(limit int) *Statement {
+	statement.Limit(limit)
+	return statement
 }
 
 func (statement *Statement) Limit(limit int, start ...int) {

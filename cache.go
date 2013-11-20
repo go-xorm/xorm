@@ -136,6 +136,8 @@ func (m *LRUCacher) RunGC() {
 
 // GC check ids lit and sql list to remove all element expired
 func (m *LRUCacher) GC() {
+	//fmt.Println("begin gc ...")
+	//defer fmt.Println("end gc ...")
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	var removedNum int
@@ -149,10 +151,12 @@ func (m *LRUCacher) GC() {
 			m.delBean(node.tbName, node.id)
 			e = next
 		} else {
+			//fmt.Printf("removing %d cache nodes ..., left %d\n", removedNum, m.idList.Len())
 			break
 		}
 	}
 
+	removedNum = 0
 	for e := m.sqlList.Front(); e != nil; {
 		if removedNum <= CacheGcMaxRemoved &&
 			time.Now().Sub(e.Value.(*sqlNode).lastVisit) > m.Expired {
@@ -160,9 +164,10 @@ func (m *LRUCacher) GC() {
 			next := e.Next()
 			//fmt.Println("removing ...", e.Value)
 			node := e.Value.(*sqlNode)
-			m.DelIds(node.tbName, node.sql)
+			m.delIds(node.tbName, node.sql)
 			e = next
 		} else {
+			//fmt.Printf("removing %d cache nodes ..., left %d\n", removedNum, m.sqlList.Len())
 			break
 		}
 	}
@@ -322,8 +327,8 @@ func (m *LRUCacher) DelIds(tableName, sql string) {
 
 func (m *LRUCacher) delBean(tableName string, id int64) {
 	tid := genId(tableName, id)
-	if el, ok := m.idIndex[tableName][tid]; ok {
-		delete(m.idIndex[tableName], tid)
+	if el, ok := m.idIndex[tableName][id]; ok {
+		delete(m.idIndex[tableName], id)
 		m.idList.Remove(el)
 		m.clearIds(tableName)
 	}
