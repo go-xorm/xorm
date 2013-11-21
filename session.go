@@ -530,8 +530,12 @@ func (session *Session) cacheGet(bean interface{}, sql string, args ...interface
 			newSession := session.Engine.NewSession()
 			defer newSession.Close()
 			cacheBean = reflect.New(structValue.Type()).Interface()
-			has, err = newSession.Id(id).NoCache().Get(cacheBean)
-			if err != nil {
+			if session.Statement.AltTableName != "" {
+				has, err = newSession.Id(id).NoCache().Table(session.Statement.AltTableName).Get(cacheBean)
+			} else {
+				has, err = newSession.Id(id).NoCache().Get(cacheBean)
+			}
+			if err != nil || !has {
 				return has, err
 			}
 
@@ -1251,7 +1255,7 @@ func (session *Session) Query(sql string, paramStr ...interface{}) (resultsSlice
 
 // insert one or more beans
 func (session *Session) Insert(beans ...interface{}) (int64, error) {
-	var lastId int64 = -1
+	var affected int64 = 0
 	var err error = nil
 	err = session.newDb()
 	if err != nil {
@@ -1266,28 +1270,31 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 		sliceValue := reflect.Indirect(reflect.ValueOf(bean))
 		if sliceValue.Kind() == reflect.Slice {
 			if session.Engine.SupportInsertMany() {
-				lastId, err = session.innerInsertMulti(bean)
+				cnt, err := session.innerInsertMulti(bean)
 				if err != nil {
-					return lastId, err
+					return affected, err
 				}
+				affected += cnt
 			} else {
 				size := sliceValue.Len()
 				for i := 0; i < size; i++ {
-					lastId, err = session.innerInsert(sliceValue.Index(i).Interface())
+					cnt, err := session.innerInsert(sliceValue.Index(i).Interface())
 					if err != nil {
-						return lastId, err
+						return affected, err
 					}
+					affected += cnt
 				}
 			}
 		} else {
-			lastId, err = session.innerInsert(bean)
+			cnt, err := session.innerInsert(bean)
 			if err != nil {
-				return lastId, err
+				return affected, err
 			}
+			affected += cnt
 		}
 	}
 
-	return lastId, err
+	return affected, err
 }
 
 func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error) {
@@ -1380,50 +1387,16 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 		session.Engine.QuoteStr(),
 		strings.Join(colMultiPlaces, "),("))
 
-	if session.Engine.DriverName != POSTGRES || table.PrimaryKey == "" {
-		res, err := session.exec(statement, args...)
-		if err != nil {
-			return 0, err
-		}
-
-		if table.Cacher != nil && session.Statement.UseCache {
-			session.cacheInsert(session.Statement.TableName())
-		}
-
-		if table.PrimaryKey != "" {
-			id, err := res.LastInsertId()
-			if err != nil {
-				return 0, err
-			}
-
-			return id, nil
-		} else {
-			return 0, err
-		}
-	} else {
-		statement += " RETURNING (id)"
-
-		res, err := session.query(statement, args...)
-		if err != nil {
-			return 0, err
-		}
-
-		if len(res) < 1 {
-			return 0, err
-		}
-
-		if table.Cacher != nil && session.Statement.UseCache {
-			session.cacheInsert(session.Statement.TableName())
-		}
-
-		idByte := res[0][table.PrimaryKey]
-		id, err := strconv.ParseInt(string(idByte), 10, 64)
-		if err != nil {
-			return 0, err
-		}
-
-		return id, nil
+	res, err := session.exec(statement, args...)
+	if err != nil {
+		return 0, err
 	}
+
+	if table.Cacher != nil && session.Statement.UseCache {
+		session.cacheInsert(session.Statement.TableName())
+	}
+
+	return res.RowsAffected()
 }
 
 func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
@@ -1716,19 +1689,18 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		}
 
 		if table.PrimaryKey == "" {
-			return 0, nil
+			return res.RowsAffected()
 		}
 
 		var id int64 = 0
-
 		id, err = res.LastInsertId()
 		if err != nil || id <= 0 {
-			return 0, err
+			return res.RowsAffected()
 		}
 
 		pkValue := table.PKColumn().ValueOf(bean)
 		if !pkValue.IsValid() || pkValue.Int() != 0 || !pkValue.CanSet() {
-			return id, nil
+			return res.RowsAffected()
 		}
 
 		var v interface{} = id
@@ -1740,7 +1712,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		}
 		pkValue.Set(reflect.ValueOf(v))
 
-		return id, nil
+		return res.RowsAffected()
 	} else {
 		sql = sql + " RETURNING (id)"
 		res, err := session.query(sql, args...)
@@ -1759,12 +1731,12 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		idByte := res[0][table.PrimaryKey]
 		id, err := strconv.ParseInt(string(idByte), 10, 64)
 		if err != nil {
-			return 0, err
+			return 1, err
 		}
 
 		pkValue := table.PKColumn().ValueOf(bean)
 		if !pkValue.IsValid() || pkValue.Int() != 0 || !pkValue.CanSet() {
-			return id, nil
+			return 1, nil
 		}
 
 		var v interface{} = id
@@ -1776,7 +1748,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		}
 		pkValue.Set(reflect.ValueOf(v))
 
-		return id, nil
+		return 1, nil
 	}
 }
 

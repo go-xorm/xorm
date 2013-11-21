@@ -96,6 +96,11 @@ func (engine *Engine) SetMaxConns(conns int) {
 	engine.Pool.SetMaxConns(conns)
 }
 
+// SetMaxIdleConns
+func (engine *Engine) SetMaxIdleConns(conns int) {
+	engine.Pool.SetMaxIdleConns(conns)
+}
+
 // SetDefaltCacher set the default cacher. Xorm's default not enable cacher.
 func (engine *Engine) SetDefaultCacher(cacher Cacher) {
 	if cacher == nil {

@@ -6,8 +6,11 @@ xorm 快速入门
 	* [2.1.名称映射规则](#21)
 	* [2.2.使用Table和Tag改变名称映射](#22)
 	* [2.3.Column属性定义](#23)
-* [3.创建表](#30)
-	* [3.1.同步数据库结构](#31)
+* [3.表结构操作](#30)
+	* [3.1 获取数据库信息](#31)
+	* [3.2 获取数据库信息](#32)
+	* [3.3 获取数据库信息](#33)
+	* [3.4 获取数据库信息](#34)
 * [4.删除表](#40)
 * [5.插入数据](#50)
 * [6.查询和统计数据](#60)
@@ -25,7 +28,7 @@ xorm 快速入门
 * [12.缓存](#120)
 * [13.Examples](#130)
 * [14.案例](#140)
-* [15.FAQ](#150)
+* [15.那些年我们踩过的坑](#150)
 * [16.讨论](#160)
 
 <a name="10" id="10"></a>
@@ -71,7 +74,14 @@ NewEngine传入的参数和`sql.Open`传入的参数完全相同，因此，使�
 
 在engine创建完成后可以进行一些设置，如：
 
-1.设置`engine.ShowSQL = true`，则会在控制台打印出生成的SQL语句；如果希望用其它方式记录，则可以`engine.Logger`赋值为一个`io.Writer`的实现。比如记录到Log文件，则可以：
+1.设置
+
+* `engine.ShowSQL = true`，则会在控制台打印出生成的SQL语句；
+* `engine.ShowDebug = true`，则会在控制台打印调试信息；
+* `engine.ShowError = true`，则会在控制台打印错误信息；
+* `engine.ShowWarn = true`，则会在控制台打印警告信息；
+
+2.如果希望用其它方式记录，则可以`engine.Logger`赋值为一个`io.Writer`的实现。比如记录到Log文件，则可以：
 
 ```Go
 f, err := os.Create("sql.log")
@@ -82,10 +92,11 @@ f, err := os.Create("sql.log")
 engine.Logger = f
 ```
 
-2.engine内部支持连接池接口，默认使用的Go所实现的连接池，同时自带了另外两种实现，一种是不使用连接池，另一种为一个自实现的连接池。推荐使用Go所实现的连接池。如果要使用自己实现的连接池，可以实现`xorm.IConnectPool`并通过`engine.SetPool`进行设置。
-如果需要设置连接池的空闲数大小，可以使用`engine.Pool.SetIdleConns()`来实现。
+3.engine内部支持连接池接口，默认使用的Go所实现的连接池，同时自带了另外两种实现：一种是不使用连接池，另一种为一个自实现的连接池。推荐使用Go所实现的连接池。如果要使用自己实现的连接池，可以实现`xorm.IConnectPool`并通过`engine.SetPool`进行设置。
 
-3.设置`engine.ShowDebug = true`，则会在控制台打印调试信息。
+* 如果需要设置连接池的空闲数大小，可以使用`engine.SetIdleConns()`来实现。
+* 如果需要设置最大打开连接数，则可以使用`engine.SetMaxConns()`来实现。
+
 
 <a name="20" id="20"></a>
 ## 2.定义表结构体
@@ -95,7 +106,9 @@ xorm支持将一个struct映射为数据库中对应的一张表。映射规则�
 <a name="21" id="21"></a>
 ### 2.1.名称映射规则
 
-名称映射规则主要负责结构体名称到表名和结构体field到表字段的名称映射。由xorm.IMapper接口的实现者来管理，xorm内置了两种IMapper实现：`SnakeMapper` 和 `SameMapper`。SnakeMapper支持struct为驼峰式命名，表结构为下划线命名之间的转换；SameMapper支持相同的命名。当前SnakeMapper为默认值，当需要改变时，在engine创建完成后使用
+名称映射规则主要负责结构体名称到表名和结构体field到表字段的名称映射。由xorm.IMapper接口的实现者来管理，xorm内置了两种IMapper实现：`SnakeMapper` 和 `SameMapper`。SnakeMapper支持struct为驼峰式命名，表结构为下划线命名之间的转换；SameMapper支持相同的命名。
+
+当前SnakeMapper为默认值，如果需要改变时，在engine创建完成后使用
 
 ```Go
 engine.Mapper = SameMapper{}
@@ -176,7 +189,7 @@ type User struct {
 
 - 2.string类型默认映射为varchar(255)，如果需要不同的定义，可以在tag中自定义
 
-- 3.支持`type MyString string`等自定义的field，支持Slice, Map等field成员，这些成员默认存储为Text类型，并且默认将使用Json格式来序列化和反序列化。也支持数据库字段类型为Blob类型，如果是Blob类型，则先使用Jsong格式序列化再转成[]byte格式。当然[]byte或者[]uint8默认为Blob类型并且都已二进制方式存储。
+- 3.支持`type MyString string`等自定义的field，支持Slice, Map等field成员，这些成员默认存储为Text类型，并且默认将使用Json格式来序列化和反序列化。也支持数据库字段类型为Blob类型，如果是Blob类型，则先使用Json格式序列化再转成[]byte格式。当然[]byte或者[]uint8默认为Blob类型并且都以二进制方式存储。
 
 - 4.实现了Conversion接口的类型或者结构体，将根据接口的转换方式在类型和数据库记录之间进行相互转换。
 ```Go
@@ -187,28 +200,52 @@ type Conversion interface {
 ```
 
 <a name="30" id="30"></a>
-## 3.创建表
+## 3.表结构操作
 
+xorm提供了一些动态获取和修改表结构的方法。对于一般的应用，很少动态修改表结构，则只需调用Sync()同步下表结构即可。
+
+<a name="31" id="31"></a>
+## 3.1 获取数据库信息
+
+* DBMetas()
+xorm支持获取表结构信息，通过调用`engine.DBMetas()`可以获取到所有的表的信息
+
+<a name="31" id="31"></a>
+## 3.2.表操作
+
+* CreateTables()
 创建表使用`engine.CreateTables()`，参数为一个或多个空的对应Struct的指针。同时可用的方法有Charset()和StoreEngine()，如果对应的数据库支持，这两个方法可以在创建表时指定表的字符编码和使用的引擎。当前仅支持Mysql数据库。
 
-在创建表时会判断表是否已经创建，如果已经创建则不再创建。在创建表的过程中，如果在tag中定义了索引，则索引也会自动创建。
+* IsTableEmpty()
+判断表是否为空，参数和CreateTables相同
 
-<a name="30" id="30"></a>
-## 3.1.同步数据库结构
-同步表能够部分智能的根据结构体的变动检测表结构的变动，并自动同步。目前能够实现：
-1) 自动检测和创建表
-2）自动检测和新增表中的字段
-3）自动检测和创建索引和唯一索引
+* IsTableExist()
+判断表是否存在
+
+* DropTables()
+删除表使用`engine.DropTables()`，参数为一个或多个空的对应Struct的指针或者表的名字。如果为string传入，则只删除对应的表，如果传入的为Struct，则删除表的同时还会删除对应的索引。
+
+<a name="32" id="32"></a>
+## 3.3.创建索引和唯一索引
+
+* CreateIndexes
+根据struct中的tag来创建索引
+
+* CreateUniques
+根据struct中的tag来创建唯一索引
+
+<a name="34" id="34"></a>
+## 3.4.同步数据库结构
+
+同步能够部分智能的根据结构体的变动检测表结构的变动，并自动同步。目前能够实现：
+1) 自动检测和创建表，这个检测是根据表的名字
+2）自动检测和新增表中的字段，这个检测是根据字段名
+3）自动检测和创建索引和唯一索引，这个检测是根据一个或多个字段名，而不根据索引名称
 
 调用方法如下：
 ```Go
 err := engine.Sync(new(User))
 ```
-
-<a name="40" id="40"></a>
-## 4.删除表
-
-删除表使用`engine.DropTables()`，参数为一个或多个空的对应Struct的指针或者表的名字。如果为string传入，则只删除对应的表，如果传入的为Struct，则删除表的同时还会删除对应的索引。
 
 <a name="50" id="50"></a>
 ## 5.插入数据
@@ -216,16 +253,56 @@ err := engine.Sync(new(User))
 插入数据使用Insert方法，Insert方法的参数可以是一个或多个Struct的指针，一个或多个Struct的Slice的指针。
 如果传入的是Slice并且当数据库支持批量插入时，Insert会使用批量插入的方式进行插入。
 
+* 插入一条数据
 ```Go
 user := new(User)
 user.Name = "myname"
-affcted, err := engine.Insert(user)
+affected, err := engine.Insert(user)
 ```
 
 在插入成功后，如果该结构体有PK字段，则PK字段会被自动赋值为数据库中的id
 ```Go
 fmt.Println(user.Id)
 ```
+
+* 插入同一个表的多条数据
+```Go
+users := make([]User, 0)
+users[0].Name = "name0"
+...
+affected, err := engine.Insert(&users)
+```
+
+* 插入不同表的一条记录
+```Go
+user := new(User)
+user.Name = "myname"
+question := new(Question)
+question.Content = "whywhywhwy?"
+affected, err := engine.Insert(user, question)
+```
+
+* 插入不同表的多条记录
+```Go
+users := make([]User, 0)
+users[0].Name = "name0"
+...
+questions := make([]Question, 0)
+questions[0].Content = "whywhywhwy?"
+affected, err := engine.Insert(&users, &questions)
+```
+
+* 插入不同表的一条或多条记录
+```Go
+user := new(User)
+user.Name = "myname"
+...
+questions := make([]Question, 0)
+questions[0].Content = "whywhywhwy?"
+affected, err := engine.Insert(user, &questions)
+```
+
+注意：这里虽然支持同时插入，但这些插入并没有事务关系。因此有可能在中间插入出错后，后面的插入将不会继续。
 
 <a name="60" id="60"></a>
 ## 6.查询和统计数据
@@ -243,22 +320,14 @@ fmt.Println(user.Id)
 * Where(string, …interface{})
 和Where语句中的条件基本相同，作为条件
 
-* Cols(…string)
-只查询或更新某些指定的字段，默认是查询所有映射的字段或者根据Update的第一个参数来判断更新的字段。例如：
-```Go
-engine.Cols("age, name").Update(&user)
-```
+* And(string, …interface{})
+和Where函数中的条件基本相同，作为条件
 
-or 
+* Or(string, …interface{})
+和Where函数中的条件基本相同，作为条件
 
-```Go
-engine.Cols("age", "name").Update(&user)
-```
 * Sql(string, …interface{})
 执行指定的Sql语句，并把结果映射到结构体
-
-* Table()
-指定特殊的Table名，如不加此函数，则根据系统的IMapper自动映射的表名进行查询
 
 * Asc(…string)
 指定字段名正序排序
@@ -266,20 +335,46 @@ engine.Cols("age", "name").Update(&user)
 * Desc(…string)
 指定字段名逆序排序
 
-* OrderBy()
+* OrderBy(string)
 按照指定的顺序进行排序
-
-* NoAutoTime()
-如果此方法执行，则此次生成的语句中Created和Updated字段将不自动赋值为当前时间
 
 * In(string, …interface{})
 某字段在一些值中
+
+* Cols(…string)
+只查询或更新某些指定的字段，默认是查询所有映射的字段或者根据Update的第一个参数来判断更新的字段。例如：
+```Go
+engine.Cols("age", "name").Find(&users)
+// SELECT age, name FROM user
+engine.Cols("age", "name").Update(&user)
+// UPDATE user SET age=? AND name=?
+```
+
+其中的参数"age", "name"也可以写成"age, name"，两种写法均可
+
+* Omit(...string)
+和cols相反，此函数指定排除某些指定的字段。注意：此方法和Cols方法不可同时使用
+```Go
+engine.Cols("age").Update(&user)
+// UPDATE user SET name = ? AND department = ?
+```
+
+* Distinct(…string)
+按照参数中指定的字段归类结果
+```Go
+engine.Distinct("age", "department").Find(&users)
+// SELECT DISTINCT age, department FROM user
+```
+注意：当开启了缓存时，此方法的调用将在当前查询中禁用缓存。因为缓存系统当前依赖Id，而此时无法获得Id
 
 * Table(nameOrStructPtr interface{})
 传入表名称或者结构体指针，如果传入的是结构体指针，则按照IMapper的规则提取出表名
 
 * Limit(int, …int)
 限制获取的数目，第一个参数为条数，第二个参数为可选，表示开始位置
+
+* Top(int)
+相当于Limit(int, 0)
 
 * Join(string,string,string)
 第一个参数为连接类型，当前支持INNER, LEFT OUTER, CROSS中的一个值，第二个参数为表名，第三个参数为连接条件
@@ -290,11 +385,20 @@ Groupby的参数字符串
 * Having(string)
 Having的参数字符串
 
+<a name="62" id="62"></a>
+### 6.2.临时开关方法
+
+* NoAutoTime()
+如果此方法执行，则此次生成的语句中Created和Updated字段将不自动赋值为当前时间
+
+* UseBool(...string)
+当从一个struct来生成查询条件或更新字段时，xorm会判断struct的field是否为0,"",nil，如果为以上则不当做查询条件或者更新内容。因为bool类型只有true和false两种值，因此默认所有bool类型不会作为查询条件或者更新字段。如果可以使用此方法，如果默认不传参数，则所有的bool字段都将会被使用，如果参数不为空，则参数中指定的为字段名，则这些字段对应的bool值将被使用。
+
 * Cascade(bool)
 是否自动关联查询field中的数据，如果struct的field也是一个struct并且映射为某个Id，则可以在查询时自动调用Get方法查询出对应的数据。
 
-<a name="62" id="62"></a>
-### 6.2.Get方法
+<a name="63" id="63"></a>
+### 6.3.Get方法
 
 查询单条数据使用`Get`方法，在调用Get方法时需要传入一个对应结构体的指针，同时结构体中的非空field自动成为查询的条件和前面的方法条件组合在一起查询。
 
@@ -324,8 +428,8 @@ has, err := engine.Get(user)
 
 返回的结果为两个参数，一个`has`为该条记录是否存在，第二个参数`err`为是否有错误。不管err是否为nil，has都有可能为true或者false。
 
-<a name="63" id="63"></a>
-### 6.3.Find方法
+<a name="64" id="64"></a>
+### 6.4.Find方法
 
 查询多条数据使用`Find`方法，Find方法的第一个参数为`slice`的指针或`Map`指针，即为查询后返回的结果，第二个参数可选，为查询的条件struct的指针。
 
@@ -346,8 +450,8 @@ users := make([]Userinfo, 0)
 err := engine.Where("age > ? or name=?)", 30, "xlw").Limit(20, 10).Find(&users)
 ```
 
-<a name="64" id="64"></a>
-### 6.4.Iterate方法
+<a name="65" id="65"></a>
+### 6.5.Iterate方法
 
 Iterate方法提供逐条执行查询到的记录的方法，他所能使用的条件和Find方法完全相同
 ```Go
@@ -357,8 +461,8 @@ err := engine.Where("age > ? or name=?)", 30, "xlw").Iterate(new(Userinfo), func
 })
 ```
 
-<a name="65" id="65"></a>
-### 6.5.Count方法
+<a name="66" id="66"></a>
+### 6.6.Count方法
 
 统计数据使用`Count`方法，Count方法的参数为struct的指针并且成为查询条件。
 ```Go
@@ -366,8 +470,8 @@ user := new(User)
 total, err := engine.Where("id >?", 1).Count(user)
 ```
 
-<a name="66" id="66"></a>
-### 6.5.匿名结构体成员
+<a name="67" id="67"></a>
+### 6.7.匿名结构体成员
 
 如果在struct中拥有一个struct，并且在Tag中标记为extends，那么该结构体的成员将作为本结构体的成员进行映射。
 
@@ -407,6 +511,8 @@ affected, err := engine.Id(id).Delete(user)
 
 `Delete`的返回值第一个参数为删除的记录数，第二个参数为错误。
 
+注意：当删除时，如果user中包含有bool,float64或者float32类型，有可能会使删除失败。具体请查看 <a name="150">FAQ</a>
+
 <a name="90" id="90"></a>
 ## 9.执行SQL查询
 
@@ -430,6 +536,7 @@ res, err := engine.Exec(sql, "xiaolun", 1)
 当使用事务处理时，需要创建Session对象。
 
 ```Go
+session := engine.NewSession()
 // add Begin() before any action
 err := session.Begin()	
 user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
@@ -494,6 +601,8 @@ engine.Exec("update user set name = ? where id = ?", "xlw", 1)
 engine.ClearCache(new(User))
 ```
 
+ClearCacheBean
+
 缓存的实现原理如下图所示：
 
 ![cache design](https://raw.github.com/lunny/xorm/master/docs/cache_design.png)
@@ -515,5 +624,34 @@ engine.ClearCache(new(User))
 * [VeryHour](http://veryhour.com)
 
 <a name="150" id="150"></a>
-## 15.讨论
+## 15.那些年我们踩过的坑
+1. 怎么同时使用xorm的tag和json的tag？
+  
+答：使用空格
+
+```Go
+type User struct {
+    Name string `json:"name" xorm:"name"`
+}
+```
+
+2. 我的struct里面包含bool类型，为什么它不能作为条件也没法用Update更新？
+
+答：默认bool类型因为无法判断是否为空，所以不会自动作为条件也不会作为Update的内容。可以使用UseBool函数，也可以使用Cols函数
+```Go
+engine.Cols("bool_field").Update(&Struct{BoolField:true})
+// UPDATE struct SET bool_field = true
+```
+
+3. 我的struct里面包含float64和float32类型，为什么用他们作为查询条件总是不正确？
+
+答：默认float32和float64映射到数据库中为float,real,double这几种类型，这几种数据库类型数据库的实现一般都是非精确的。因此作为相等条件查询有可能不会返回正确的结果。如果一定要作为查询条件，请将数据库中的类型定义为Numeric或者Decimal。
+```Go
+type account struct {
+money float64 `xorm:"Numeric"`
+}
+```
+
+<a name="160" id="160"></a>
+## 16.FAQ
 请加入QQ群：280360085 进行讨论。

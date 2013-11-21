@@ -145,11 +145,17 @@ func mapper(engine *Engine, t *testing.T) {
 func insert(engine *Engine, t *testing.T) {
 	user := Userinfo{0, "xiaolunwen", "dev", "lunny", time.Now(),
 		Userdetail{Id: 1}, 1.78, []byte{1, 2, 3}, true}
-	_, err := engine.Insert(&user)
+	cnt, err := engine.Insert(&user)
 	fmt.Println(user.Uid)
 	if err != nil {
 		t.Error(err)
 		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert not returned 1")
+		t.Error(err)
+		panic(err)
+		return
 	}
 	if user.Uid <= 0 {
 		err = errors.New("not return id error")
@@ -158,11 +164,17 @@ func insert(engine *Engine, t *testing.T) {
 	}
 
 	user.Uid = 0
-	_, err = engine.Insert(&user)
+	cnt, err = engine.Insert(&user)
 	if err == nil {
 		err = errors.New("insert failed but no return error")
 		t.Error(err)
 		panic(err)
+	}
+	if cnt != 0 {
+		err = errors.New("insert not returned 1")
+		t.Error(err)
+		panic(err)
+		return
 	}
 }
 
@@ -210,11 +222,17 @@ func insertAutoIncr(engine *Engine, t *testing.T) {
 	// auto increment insert
 	user := Userinfo{Username: "xiaolunwen2", Departname: "dev", Alias: "lunny", Created: time.Now(),
 		Detail: Userdetail{Id: 1}, Height: 1.78, Avatar: []byte{1, 2, 3}, IsMan: true}
-	_, err := engine.Insert(&user)
+	cnt, err := engine.Insert(&user)
 	fmt.Println(user.Uid)
 	if err != nil {
 		t.Error(err)
 		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert not returned 1")
+		t.Error(err)
+		panic(err)
+		return
 	}
 	if user.Uid <= 0 {
 		t.Error(errors.New("not return id error"))
@@ -229,15 +247,16 @@ func insertMulti(engine *Engine, t *testing.T) {
 		{Username: "xlw11", Departname: "dev", Alias: "lunny2", Created: time.Now()},
 		{Username: "xlw22", Departname: "dev", Alias: "lunny3", Created: time.Now()},
 	}
-	id, err := engine.Insert(&users)
+	cnt, err := engine.Insert(&users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
-	if id <= 0 {
-		err = errors.New("not return id error")
+	if cnt != int64(len(users)) {
+		err = errors.New("insert not returned 1")
 		t.Error(err)
 		panic(err)
+		return
 	}
 
 	users2 := []*Userinfo{
@@ -247,16 +266,17 @@ func insertMulti(engine *Engine, t *testing.T) {
 		&Userinfo{Username: "1xlw22", Departname: "dev", Alias: "lunny3", Created: time.Now()},
 	}
 
-	id, err = engine.Insert(&users2)
+	cnt, err = engine.Insert(&users2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	if id <= 0 {
-		err = errors.New("not return id error")
+	if cnt != int64(len(users2)) {
+		err = errors.New(fmt.Sprintf("insert not returned %v", len(users2)))
 		t.Error(err)
 		panic(err)
+		return
 	}
 }
 
@@ -264,7 +284,7 @@ func insertTwoTable(engine *Engine, t *testing.T) {
 	userdetail := Userdetail{Id: 1, Intro: "I'm a very beautiful women.", Profile: "sfsaf"}
 	userinfo := Userinfo{Username: "xlw3", Departname: "dev", Alias: "lunny4", Created: time.Now(), Detail: userdetail}
 
-	_, err := engine.Insert(&userinfo, &userdetail)
+	cnt, err := engine.Insert(&userinfo, &userdetail)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -281,6 +301,13 @@ func insertTwoTable(engine *Engine, t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
+
+	if cnt != 2 {
+		err = errors.New("insert not returned 2")
+		t.Error(err)
+		panic(err)
+		return
+	}
 }
 
 type Condi map[string]interface{}
@@ -288,55 +315,105 @@ type Condi map[string]interface{}
 func update(engine *Engine, t *testing.T) {
 	// update by id
 	user := Userinfo{Username: "xxx", Height: 1.2}
-	_, err := engine.Id(1).Update(&user)
+	cnt, err := engine.Id(1).Update(&user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("update not returned 1")
+		t.Error(err)
+		panic(err)
+		return
 	}
 
 	condi := Condi{"username": "zzz", "height": 0.0, "departname": ""}
-	_, err = engine.Table(&user).Id(1).Update(&condi)
+	cnt, err = engine.Table(&user).Id(1).Update(&condi)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("update not returned 1")
+		t.Error(err)
+		panic(err)
+		return
+	}
+
+	cnt, err = engine.Update(&Userinfo{Username: "yyy"}, &user)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	total, err := engine.Count(&user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	_, err = engine.Update(&Userinfo{Username: "yyy"}, &user)
-	if err != nil {
+	if cnt != total {
+		err = errors.New("insert not returned 1")
 		t.Error(err)
 		panic(err)
+		return
 	}
 }
 
 func updateSameMapper(engine *Engine, t *testing.T) {
 	// update by id
 	user := Userinfo{Username: "xxx", Height: 1.2}
-	_, err := engine.Id(1).Update(&user)
+	cnt, err := engine.Id(1).Update(&user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("update not returned 1")
+		t.Error(err)
+		panic(err)
+		return
 	}
 
 	condi := Condi{"Username": "zzz", "Height": 0.0, "Departname": ""}
-	_, err = engine.Table(&user).Id(1).Update(&condi)
+	cnt, err = engine.Table(&user).Id(1).Update(&condi)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	_, err = engine.Update(&Userinfo{Username: "yyy"}, &user)
+	if cnt != 1 {
+		err = errors.New("insert not returned 1")
+		t.Error(err)
+		panic(err)
+		return
+	}
+
+	cnt, err = engine.Update(&Userinfo{Username: "yyy"}, &user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
+	}
+
+	if cnt != 1 {
+		err = errors.New("insert not returned 1")
+		t.Error(err)
+		panic(err)
+		return
 	}
 }
 
 func testdelete(engine *Engine, t *testing.T) {
 	user := Userinfo{Uid: 1}
-	_, err := engine.Delete(&user)
+	cnt, err := engine.Delete(&user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("delete not returned 1")
+		t.Error(err)
+		panic(err)
+		return
 	}
 
 	user.Uid = 0
@@ -599,6 +676,7 @@ func transaction(engine *Engine, t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
+
 	user2 := Userinfo{Username: "yyy"}
 	_, err = session.Where("(id) = ?", 0).Update(&user2)
 	if err != nil {
@@ -772,16 +850,28 @@ func createMultiTables(engine *Engine, t *testing.T) {
 func tableOp(engine *Engine, t *testing.T) {
 	user := Userinfo{Username: "tablexiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
 	tableName := fmt.Sprintf("user_%v", len(user.Username))
-	id, err := engine.Table(tableName).Insert(&user)
+	cnt, err := engine.Table(tableName).Insert(&user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
+	if cnt != 1 {
+		err = errors.New("insert not returned 1")
+		t.Error(err)
+		panic(err)
+		return
+	}
 
-	_, err = engine.Table(tableName).Get(&Userinfo{Username: "tablexiao"})
+	has, err := engine.Table(tableName).Get(&Userinfo{Username: "tablexiao"})
 	if err != nil {
 		t.Error(err)
 		panic(err)
+	}
+	if !has {
+		err = errors.New("Get has return false")
+		t.Error(err)
+		panic(err)
+		return
 	}
 
 	users := make([]Userinfo, 0)
@@ -791,7 +881,8 @@ func tableOp(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 
-	_, err = engine.Table(tableName).Id(id).Update(&Userinfo{Username: "tableda"})
+	id := user.Uid
+	cnt, err = engine.Table(tableName).Id(id).Update(&Userinfo{Username: "tableda"})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -1027,8 +1118,13 @@ func testColTypes(engine *Engine, t *testing.T) {
 		21,
 	}
 
-	_, err = engine.Insert(ac)
+	cnt, err := engine.Insert(ac)
 	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert return not 1")
 		t.Error(err)
 		panic(err)
 	}
@@ -1048,7 +1144,7 @@ func testColTypes(engine *Engine, t *testing.T) {
 	newAc.Real = 0
 	newAc.Float = 0
 	newAc.Double = 0
-	cnt, err := engine.Delete(newAc)
+	cnt, err = engine.Delete(newAc)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -1118,8 +1214,14 @@ func testCustomType(engine *Engine, t *testing.T) {
 	i.UIA8 = []uint8{1, 2, 3, 4}
 	i.NameArray = []string{"ssss", "fsdf", "lllll, ss"}
 	i.MSS = map[string]string{"s": "sfds,ss", "x": "lfjljsl"}
-	_, err = engine.Insert(&i)
+	cnt, err := engine.Insert(&i)
 	if err != nil {
+		t.Error(err)
+		panic(err)
+		return
+	}
+	if cnt != 1 {
+		err = errors.New("insert not returned 1")
 		t.Error(err)
 		panic(err)
 		return
@@ -1186,27 +1288,45 @@ func testCreatedAndUpdated(engine *Engine, t *testing.T) {
 	}
 
 	u.Name = "sss"
-	_, err = engine.Insert(u)
+	cnt, err := engine.Insert(u)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
+	if cnt != 1 {
+		err = errors.New("insert not returned 1")
+		t.Error(err)
+		panic(err)
+		return
+	}
 
 	u.Name = "xxx"
-	_, err = engine.Id(u.Id).Update(u)
+	cnt, err = engine.Id(u.Id).Update(u)
 	if err != nil {
 		t.Error(err)
 		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("update not returned 1")
+		t.Error(err)
+		panic(err)
+		return
 	}
 
 	u.Id = 0
 	u.Created = time.Now().Add(-time.Hour * 24 * 365)
 	u.Updated = u.Created
 	fmt.Println(u)
-	_, err = engine.NoAutoTime().Insert(u)
+	cnt, err = engine.NoAutoTime().Insert(u)
 	if err != nil {
 		t.Error(err)
 		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert not returned 1")
+		t.Error(err)
+		panic(err)
+		return
 	}
 }
 
