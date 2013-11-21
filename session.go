@@ -1169,7 +1169,7 @@ func row2map(rows *sql.Rows, fields []string) (resultsMap map[string][]byte, err
 		//时间类型
 		case reflect.Struct:
 			if aa.String() == "time.Time" {
-				str = rawValue.Interface().(time.Time).Format("2006-01-02 15:04:05.000000 -0700")
+				str = rawValue.Interface().(time.Time).Format(time.RFC3339Nano)
 				result[key] = []byte(str)
 			} else {
 				return nil, errors.New(fmt.Sprintf("Unsupported struct type %v", vv.Type().Name()))
@@ -1499,6 +1499,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 		sdata := string(data)
 		var x int64
 		var err error
+		// for mysql, when use bit, it returned \x01
 		if col.SQLType.Name == Bit &&
 			strings.Contains(session.Engine.DriverName, "mysql") {
 			if len(data) == 1 {
@@ -1506,7 +1507,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			} else {
 				x = 0
 			}
-			fmt.Println("######", x, data)
+			//fmt.Println("######", x, data)
 		} else if strings.HasPrefix(sdata, "0x") {
 			x, err = strconv.ParseInt(sdata, 16, 64)
 		} else if strings.HasPrefix(sdata, "0") {
@@ -1536,8 +1537,14 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			sdata := string(data)
 			var x time.Time
 			var err error
-			if len(sdata) > 19 {
-				x, err = time.Parse("2006-01-02 15:04:05.000000 -0700", sdata)
+			// time stamp
+			if !strings.ContainsAny(sdata, "- :") {
+				sd, err := strconv.ParseInt(sdata, 10, 64)
+				if err == nil {
+					x = time.Unix(0, sd)
+				}
+			} else if len(sdata) > 19 {
+				x, err = time.Parse(time.RFC3339Nano, sdata)
 			} else if len(sdata) == 19 {
 				x, err = time.Parse("2006-01-02 15:04:05", sdata)
 			} else if len(sdata) == 10 && sdata[4] == '-' && sdata[7] == '-' {
@@ -1546,8 +1553,10 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				if len(sdata) > 8 {
 					sdata = sdata[len(sdata)-8:]
 				}
-				st := "2012-03-04 " + sdata
+				st := fmt.Sprintf("2006-01-02 %v", sdata)
 				x, err = time.Parse("2006-01-02 15:04:05", st)
+			} else {
+				return errors.New(fmt.Sprintf("unsupported time format %v", string(data)))
 			}
 			if err != nil {
 				return errors.New(fmt.Sprintf("unsupported time format %v: %v", string(data), err))
@@ -1614,13 +1623,11 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 	case reflect.Struct:
 		if fieldValue.Type().String() == "time.Time" {
 			if col.SQLType.Name == Time {
-				return fieldValue.Interface().(time.Time).Format("2006-01-02 15:04:05"), nil
+				//s := fieldValue.Interface().(time.Time).Format("2006-01-02 15:04:05 -0700")
+				s := fieldValue.Interface().(time.Time).Format(time.RFC3339)
+				return s[11:19], nil
 			} else if col.SQLType.Name == Date {
 				return fieldValue.Interface().(time.Time).Format("2006-01-02"), nil
-			}
-			// crying...
-			if session.Engine.DriverName == POSTGRES {
-				return fieldValue.Interface().(time.Time).Format("2006-01-02 15:04:05.000000 -0700"), nil
 			}
 			return fieldValue.Interface(), nil
 		}

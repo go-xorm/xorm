@@ -1045,6 +1045,12 @@ func testColTypes(engine *Engine, t *testing.T) {
 	}
 
 	// don't use this type as query condition
+	var tt time.Time
+	newAc.Date = tt
+	newAc.DateTime = tt
+	//newAc.Time = tt
+	//newAc.TimeStamp = tt
+
 	newAc.Real = 0
 	newAc.Float = 0
 	newAc.Double = 0
@@ -1054,7 +1060,7 @@ func testColTypes(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 	if cnt != 1 {
-		err = errors.New("delete error")
+		err = errors.New(fmt.Sprintf("delete error, deleted counts is %v", cnt))
 		t.Error(err)
 		panic(err)
 	}
