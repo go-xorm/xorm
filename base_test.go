@@ -1045,12 +1045,6 @@ func testColTypes(engine *Engine, t *testing.T) {
 	}
 
 	// don't use this type as query condition
-	var tt time.Time
-	newAc.Date = tt
-	newAc.DateTime = tt
-	//newAc.Time = tt
-	//newAc.TimeStamp = tt
-
 	newAc.Real = 0
 	newAc.Float = 0
 	newAc.Double = 0
