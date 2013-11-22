@@ -12,11 +12,11 @@ Xorm is a simple and powerful ORM for Go.
  
 * Transaction Support
 
-* Both ORM and raw SQL Operation Support
+* Both ORM and raw SQL operation Support
 
 * Sync database sechmea Support
 
-* Query Cache speed up read
+* Query Cache speed up
 
 * Database Reverse support, See [Xorm Tool README](https://github.com/lunny/xorm/blob/master/xorm/README.md)
 
@@ -34,8 +34,6 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * Postgres: [github.com/lib/pq](https://github.com/lib/pq)
 
-* Postgres: [github.com/bylevel/pq](https://github.com/bylevel/pq)
-
 
 # Changelog
 
@@ -43,20 +41,20 @@ Drivers for Go's sql package which currently support database/sql includes:
 * **v0.2.1** : Added database reverse tool, now support generate go & c++ codes, see [Xorm Tool README](https://github.com/lunny/xorm/blob/master/xorm/README.md); some bug fixed.
 * **v0.2.0** : Added Cache supported, select is speeder up 3~5x; Added SameMapper for same name between struct and table; Added Sync method for auto added tables, columns, indexes;
 
-[More changelog ...](https://github.com/lunny/xorm/blob/master/Changelog.md)
+[More changelogs ...](https://github.com/lunny/xorm/blob/master/Changelog.md)
 
 
 # Installation
 
 	go get github.com/lunny/xorm
 
-# Documents 
-
-* [Quick Start](https://github.com/lunny/xorm/blob/master/docs/QuickStartEn.md)
+# Documents
 
 * [GoDoc](http://godoc.org/github.com/lunny/xorm)
 
 * [GoWalker](http://gowalker.org/github.com/lunny/xorm)
+
+* [Quick Start](https://github.com/lunny/xorm/blob/master/docs/QuickStartEn.md)
 
 # Cases
 
