@@ -92,56 +92,6 @@ func directCreateTable(engine *Engine, t *testing.T) {
 	}
 }
 
-func mapper(engine *Engine, t *testing.T) {
-	err := engine.UnMap(&Userinfo{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-
-	err = engine.Map(&Userinfo{}, &Userdetail{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-
-	err = engine.DropAll()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-
-	err = engine.CreateAll()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-
-	err = engine.CreateIndexes(&Userinfo{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-
-	err = engine.CreateIndexes(&Userdetail{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-
-	err = engine.CreateUniques(&Userinfo{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-
-	err = engine.CreateUniques(&Userdetail{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-}
-
 func insert(engine *Engine, t *testing.T) {
 	user := Userinfo{0, "xiaolunwen", "dev", "lunny", time.Now(),
 		Userdetail{Id: 1}, 1.78, []byte{1, 2, 3}, true}
@@ -1656,8 +1606,6 @@ func testBool(engine *Engine, t *testing.T) {
 func testAll(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
-	fmt.Println("-------------- mapper --------------")
-	mapper(engine, t)
 	fmt.Println("-------------- insert --------------")
 	insert(engine, t)
 	fmt.Println("-------------- query --------------")

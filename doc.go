@@ -3,12 +3,11 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package xorm is a simple and powerful ORM for Go. It makes
-database operation simple.
+Package xorm is a simple and powerful ORM for Go.
 
-First, we should new a engine for a database
+First, we should new an engine for a database
 
-	engine, err = xorm.NewEngine(driverName, dataSourceName)
+	engine, err := xorm.NewEngine(driverName, dataSourceName)
 
 Method NewEngine's parameters is the same as sql.Open. It depends
 drivers' implementation. Generally, one engine is enough.
