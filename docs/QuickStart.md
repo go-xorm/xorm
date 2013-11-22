@@ -637,7 +637,7 @@ xorm工具提供了xorm命令，能够帮助做很多事情。
 
 <a name="160" id="160"></a>
 ## 15.那些年我们踩过的坑
-1. 怎么同时使用xorm的tag和json的tag？
+* 怎么同时使用xorm的tag和json的tag？
   
 答：使用空格
 
@@ -647,17 +647,19 @@ type User struct {
 }
 ```
 
-2. 我的struct里面包含bool类型，为什么它不能作为条件也没法用Update更新？
+* 我的struct里面包含bool类型，为什么它不能作为条件也没法用Update更新？
 
 答：默认bool类型因为无法判断是否为空，所以不会自动作为条件也不会作为Update的内容。可以使用UseBool函数，也可以使用Cols函数
+
 ```Go
 engine.Cols("bool_field").Update(&Struct{BoolField:true})
 // UPDATE struct SET bool_field = true
 ```
 
-3. 我的struct里面包含float64和float32类型，为什么用他们作为查询条件总是不正确？
+* 我的struct里面包含float64和float32类型，为什么用他们作为查询条件总是不正确？
 
 答：默认float32和float64映射到数据库中为float,real,double这几种类型，这几种数据库类型数据库的实现一般都是非精确的。因此作为相等条件查询有可能不会返回正确的结果。如果一定要作为查询条件，请将数据库中的类型定义为Numeric或者Decimal。
+
 ```Go
 type account struct {
 money float64 `xorm:"Numeric"`
