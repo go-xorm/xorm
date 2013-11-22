@@ -13,10 +13,34 @@ First, we should new a engine for a database
 Method NewEngine's parameters is the same as sql.Open. It depends
 drivers' implementation. Generally, one engine is enough.
 
-engine.Get(...)
-engine.Insert(...)
-engine.Find(...)
-engine.Iterate(...)
-engine.Delete(...)
+There are 7 major methods and many helpful methods to use to operate database.
+
+1. Insert one or multipe records to database
+
+	engine.Insert(...)
+
+2. Query one record from database
+
+	engine.Get(...)
+
+3. Query multiple records from database
+
+	engine.Find(...)
+
+4. Query multiple records and record by record handle
+
+	engine.Iterate(...)
+
+5. Update one or more records
+
+	engine.Update(...)
+
+6. Delete one or more records
+
+	engine.Delete(...)
+
+7. Count records
+
+	engine.Count(...)
 */
 package xorm

@@ -98,7 +98,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) {
 	if t.Kind() == reflect.String {
 		statement.AltTableName = tableNameOrBean.(string)
 	} else if t.Kind() == reflect.Struct {
-		statement.RefTable = statement.Engine.AutoMapType(t)
+		statement.RefTable = statement.Engine.autoMapType(t)
 	}
 }
 
@@ -166,7 +166,7 @@ func buildConditions(engine *Engine, table *Table, bean interface{}, includeVers
 					val = t
 				}
 			} else {
-				engine.AutoMapType(fieldValue.Type())
+				engine.autoMapType(fieldValue.Type())
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
 					pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumn().FieldName)
 					if pkField.Int() != 0 {
@@ -431,7 +431,7 @@ func (s *Statement) genDropSQL() string {
 }
 
 func (statement Statement) genGetSql(bean interface{}) (string, []interface{}) {
-	table := statement.Engine.AutoMap(bean)
+	table := statement.Engine.autoMap(bean)
 	statement.RefTable = table
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true,
@@ -469,7 +469,7 @@ func (s *Statement) genAddUniqueStr(uqeName string, cols []string) (string, []in
 }
 
 func (statement Statement) genCountSql(bean interface{}) (string, []interface{}) {
-	table := statement.Engine.AutoMap(bean)
+	table := statement.Engine.autoMap(bean)
 	statement.RefTable = table
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true, statement.allUseBool, statement.boolColumnMap)

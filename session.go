@@ -248,7 +248,7 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 		return errors.New("Expected a pointer to a struct")
 	}
 
-	table := session.Engine.AutoMapType(rType(obj))
+	table := session.Engine.autoMapType(rType(obj))
 
 	for key, data := range objMap {
 		if _, ok := table.Columns[key]; !ok {
@@ -329,7 +329,7 @@ func (session *Session) Exec(sql string, args ...interface{}) (sql.Result, error
 
 // this function create a table according a bean
 func (session *Session) CreateTable(bean interface{}) error {
-	session.Statement.RefTable = session.Engine.AutoMap(bean)
+	session.Statement.RefTable = session.Engine.autoMap(bean)
 
 	err := session.newDb()
 	if err != nil {
@@ -344,7 +344,7 @@ func (session *Session) CreateTable(bean interface{}) error {
 }
 
 func (session *Session) CreateIndexes(bean interface{}) error {
-	session.Statement.RefTable = session.Engine.AutoMap(bean)
+	session.Statement.RefTable = session.Engine.autoMap(bean)
 
 	err := session.newDb()
 	if err != nil {
@@ -366,7 +366,7 @@ func (session *Session) CreateIndexes(bean interface{}) error {
 }
 
 func (session *Session) CreateUniques(bean interface{}) error {
-	session.Statement.RefTable = session.Engine.AutoMap(bean)
+	session.Statement.RefTable = session.Engine.autoMap(bean)
 
 	err := session.newDb()
 	if err != nil {
@@ -450,7 +450,7 @@ func (session *Session) DropTable(bean interface{}) error {
 	if t.Kind() == reflect.String {
 		session.Statement.AltTableName = bean.(string)
 	} else if t.Kind() == reflect.Struct {
-		session.Statement.RefTable = session.Engine.AutoMap(bean)
+		session.Statement.RefTable = session.Engine.autoMap(bean)
 	} else {
 		return errors.New("Unsupported type")
 	}
@@ -715,7 +715,7 @@ func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
 
 	var sql string
 	var args []interface{}
-	session.Statement.RefTable = session.Engine.AutoMap(bean)
+	session.Statement.RefTable = session.Engine.autoMap(bean)
 	if session.Statement.RawSQL == "" {
 		sql, args = session.Statement.genGetSql(bean)
 	} else {
@@ -780,7 +780,7 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	session.Statement.Limit(1)
 	var sql string
 	var args []interface{}
-	session.Statement.RefTable = session.Engine.AutoMap(bean)
+	session.Statement.RefTable = session.Engine.autoMap(bean)
 	if session.Statement.RawSQL == "" {
 		sql, args = session.Statement.genGetSql(bean)
 	} else {
@@ -871,12 +871,12 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	if session.Statement.RefTable == nil {
 		if sliceElementType.Kind() == reflect.Ptr {
 			if sliceElementType.Elem().Kind() == reflect.Struct {
-				table = session.Engine.AutoMapType(sliceElementType.Elem())
+				table = session.Engine.autoMapType(sliceElementType.Elem())
 			} else {
 				return errors.New("slice type")
 			}
 		} else if sliceElementType.Kind() == reflect.Struct {
-			table = session.Engine.AutoMapType(sliceElementType)
+			table = session.Engine.autoMapType(sliceElementType)
 		} else {
 			return errors.New("slice type")
 		}
@@ -1306,7 +1306,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 	bean := sliceValue.Index(0).Interface()
 	sliceElementType := rType(bean)
 
-	table := session.Engine.AutoMapType(sliceElementType)
+	table := session.Engine.autoMapType(sliceElementType)
 	session.Statement.RefTable = table
 
 	size := sliceValue.Len()
@@ -1538,7 +1538,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			v = x
 			fieldValue.Set(reflect.ValueOf(v))
 		} else if session.Statement.UseCascade {
-			table := session.Engine.AutoMapType(fieldValue.Type())
+			table := session.Engine.autoMapType(fieldValue.Type())
 			if table != nil {
 				x, err := strconv.ParseInt(string(data), 10, 64)
 				if err != nil {
@@ -1656,7 +1656,7 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 }
 
 func (session *Session) innerInsert(bean interface{}) (int64, error) {
-	table := session.Engine.AutoMap(bean)
+	table := session.Engine.autoMap(bean)
 	session.Statement.RefTable = table
 
 	colNames, args, err := table.genCols(session, bean, false, false)
@@ -1931,7 +1931,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	var table *Table
 
 	if t.Kind() == reflect.Struct {
-		table = session.Engine.AutoMap(bean)
+		table = session.Engine.autoMap(bean)
 		session.Statement.RefTable = table
 
 		if session.Statement.ColumnStr == "" {
@@ -2078,7 +2078,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		defer session.Close()
 	}
 
-	table := session.Engine.AutoMap(bean)
+	table := session.Engine.autoMap(bean)
 	session.Statement.RefTable = table
 	colNames, args := buildConditions(session.Engine, table, bean, true,
 		session.Statement.allUseBool, session.Statement.boolColumnMap)
