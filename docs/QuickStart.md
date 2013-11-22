@@ -26,10 +26,12 @@ xorm 快速入门
 * [10.执行SQL命令](#100)
 * [11.事务处理](#110)
 * [12.缓存](#120)
-* [13.Examples](#130)
-* [14.案例](#140)
-* [15.那些年我们踩过的坑](#150)
-* [16.讨论](#160)
+* [13.xorm工具](#130)
+	* [13.1.反转命令](#131)
+* [14.Examples](#140)
+* [15.案例](#150)
+* [16.那些年我们踩过的坑](#160)
+* [17.讨论](#170)
 
 <a name="10" id="10"></a>
 ## 1.创建Orm引擎
@@ -611,12 +613,19 @@ ClearCacheBean
 ![cache design](https://raw.github.com/lunny/xorm/master/docs/cache_design.png)
 
 <a name="130" id="130"></a>
-## 13.Examples
+## 13.xorm工具
+xorm工具提供了xorm命令，能够帮助做很多事情。
+
+### 13.1.反转命令
+参见 [xorm工具](https://github.com/lunny/xorm/tree/master/xorm)
+
+<a name="140" id="140"></a>
+## 14.Examples
 
 请访问[https://github.com/lunny/xorm/tree/master/examples](https://github.com/lunny/xorm/tree/master/examples)
 
-<a name="140" id="140"></a>
-## 14.案例
+<a name="150" id="150"></a>
+## 15.案例
 
 * [Gowalker](http://gowalker.org)，源代码 [github.com/Unknwon/gowalker](http://github.com/Unknwon/gowalker)
 
@@ -626,8 +635,8 @@ ClearCacheBean
 
 * [VeryHour](http://veryhour.com)
 
-<a name="150" id="150"></a>
-## 15.那些年我们踩过的坑
+<a name="160" id="160"></a>
+## 16.那些年我们踩过的坑
 1. 怎么同时使用xorm的tag和json的tag？
   
 答：使用空格
@@ -655,6 +664,6 @@ money float64 `xorm:"Numeric"`
 }
 ```
 
-<a name="160" id="160"></a>
-## 16.FAQ
+<a name="170" id="170"></a>
+## 17.FAQ
 请加入QQ群：280360085 进行讨论。
