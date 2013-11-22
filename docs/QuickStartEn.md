@@ -15,6 +15,7 @@ Quick Start
 * [11.Execute SQL](#110)
 * [12.Advanced Usage](#120)
 * [13.Mapping Rules](#130)
+* [14.FAQ](#140)
 
 <a name="10" id="10"></a>
 ## 1.Create database engine
@@ -400,4 +401,17 @@ for i := 0; i < 10; i++ {
 // insert into table according id
 user := Userinfo{Uid: 25, Username:"sslfs"}
 engine.Table(fmt.Sprintf("user_%v", user.Uid % 10)).Insert(&user)
+```
+
+<a name="140"></a>
+## 14.FAQ 
+
+1.How the xorm tag use both with json?
+  
+  Use space.
+
+```Go
+type User struct {
+    Name string `json:"name" xorm:"name"`
+}
 ```
