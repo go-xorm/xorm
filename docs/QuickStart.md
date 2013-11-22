@@ -11,27 +11,27 @@ xorm 快速入门
 	* [3.2 表操作](#32)
 	* [3.3 创建索引和唯一索引](#33)
 	* [3.4 同步数据库结构](#34)
-* [4.删除表](#40)
-* [5.插入数据](#50)
-* [6.查询和统计数据](#60)
-	* [6.1.查询条件方法](#61)
-	* [6.2.Get方法](#62)
-	* [6.3.Find方法](#63)
-	* [6.4.Iterate方法](#64)
-	* [6.5.Count方法](#65)
-	* [6.6.匿名结构体成员](#66)
-* [7.更新数据](#70)
-* [8.删除数据](#80)
-* [9.执行SQL查询](#90)
-* [10.执行SQL命令](#100)
-* [11.事务处理](#110)
-* [12.缓存](#120)
-* [13.xorm工具](#130)
-	* [13.1.反转命令](#131)
-* [14.Examples](#140)
-* [15.案例](#150)
-* [16.那些年我们踩过的坑](#160)
-* [17.讨论](#170)
+* [4.插入数据](#50)
+* [5.查询和统计数据](#60)
+	* [5.1.查询条件方法](#61)
+	* [5.2.临时开关方法](#62)
+	* [5.3.Get方法](#63)
+	* [5.4.Find方法](#64)
+	* [5.5.Iterate方法](#65)
+	* [5.6.Count方法](#66)
+	* [5.7.匿名结构体成员](#67)
+* [6.更新数据](#70)
+* [7.删除数据](#80)
+* [8.执行SQL查询](#90)
+* [9.执行SQL命令](#100)
+* [10.事务处理](#110)
+* [11.缓存](#120)
+* [12.xorm工具](#130)
+	* [12.1.反转命令](#131)
+* [13.Examples](#140)
+* [14.案例](#150)
+* [15.那些年我们踩过的坑](#160)
+* [16.讨论](#170)
 
 <a name="10" id="10"></a>
 ## 1.创建Orm引擎
@@ -250,7 +250,7 @@ err := engine.Sync(new(User))
 ```
 
 <a name="50" id="50"></a>
-## 5.插入数据
+## 4.插入数据
 
 插入数据使用Insert方法，Insert方法的参数可以是一个或多个Struct的指针，一个或多个Struct的Slice的指针。
 如果传入的是Slice并且当数据库支持批量插入时，Insert会使用批量插入的方式进行插入。
@@ -307,12 +307,12 @@ affected, err := engine.Insert(user, &questions)
 注意：这里虽然支持同时插入，但这些插入并没有事务关系。因此有可能在中间插入出错后，后面的插入将不会继续。
 
 <a name="60" id="60"></a>
-## 6.查询和统计数据
+## 5.查询和统计数据
 
 所有的查询条件不区分调用顺序，但必须在调用Get，Find，Count这三个函数之前调用。同时需要注意的一点是，在调用的参数中，所有的字符字段名均为映射后的数据库的字段名，而不是field的名字。
 
 <a name="61" id="61"></a>
-### 6.1.查询条件方法
+### 5.1.查询条件方法
 
 查询和统计主要使用`Get`, `Find`, `Count`三个方法。在进行查询时可以使用多个方法来形成查询条件，条件函数如下：
 
@@ -388,7 +388,7 @@ Groupby的参数字符串
 Having的参数字符串
 
 <a name="62" id="62"></a>
-### 6.2.临时开关方法
+### 5.2.临时开关方法
 
 * NoAutoTime()
 如果此方法执行，则此次生成的语句中Created和Updated字段将不自动赋值为当前时间
@@ -403,7 +403,7 @@ Having的参数字符串
 是否自动关联查询field中的数据，如果struct的field也是一个struct并且映射为某个Id，则可以在查询时自动调用Get方法查询出对应的数据。
 
 <a name="63" id="63"></a>
-### 6.3.Get方法
+### 5.3.Get方法
 
 查询单条数据使用`Get`方法，在调用Get方法时需要传入一个对应结构体的指针，同时结构体中的非空field自动成为查询的条件和前面的方法条件组合在一起查询。
 
@@ -434,7 +434,7 @@ has, err := engine.Get(user)
 返回的结果为两个参数，一个`has`为该条记录是否存在，第二个参数`err`为是否有错误。不管err是否为nil，has都有可能为true或者false。
 
 <a name="64" id="64"></a>
-### 6.4.Find方法
+### 5.4.Find方法
 
 查询多条数据使用`Find`方法，Find方法的第一个参数为`slice`的指针或`Map`指针，即为查询后返回的结果，第二个参数可选，为查询的条件struct的指针。
 
@@ -456,7 +456,7 @@ err := engine.Where("age > ? or name=?)", 30, "xlw").Limit(20, 10).Find(&users)
 ```
 
 <a name="65" id="65"></a>
-### 6.5.Iterate方法
+### 5.5.Iterate方法
 
 Iterate方法提供逐条执行查询到的记录的方法，他所能使用的条件和Find方法完全相同
 ```Go
@@ -467,7 +467,7 @@ err := engine.Where("age > ? or name=?)", 30, "xlw").Iterate(new(Userinfo), func
 ```
 
 <a name="66" id="66"></a>
-### 6.6.Count方法
+### 5.6.Count方法
 
 统计数据使用`Count`方法，Count方法的参数为struct的指针并且成为查询条件。
 ```Go
@@ -476,14 +476,14 @@ total, err := engine.Where("id >?", 1).Count(user)
 ```
 
 <a name="67" id="67"></a>
-### 6.7.匿名结构体成员
+### 5.7.匿名结构体成员
 
 如果在struct中拥有一个struct，并且在Tag中标记为extends，那么该结构体的成员将作为本结构体的成员进行映射。
 
 请查看Examples中的derive.go文件。
 
 <a name="70" id="70"></a>
-## 7.更新数据
+## 6.更新数据
     
 更新数据使用`Update`方法，Update方法的第一个参数为需要更新的内容，可以为一个结构体指针或者一个Map[string]interface{}类型。当传入的为结构体指针时，只有非空和0的field才会被作为更新的字段。当传入的为Map类型时，key为数据库Column的名字，value为要更新的内容。
 
@@ -506,7 +506,7 @@ affected, err := engine.Table(new(User)).Id(id).Update(map[string]interface{}{"a
 ```
 
 <a name="80" id="80"></a>
-## 8.删除数据
+## 7.删除数据
 
 删除数据`Delete`方法，参数为struct的指针并且成为查询条件。
 ```Go
@@ -519,7 +519,7 @@ affected, err := engine.Id(id).Delete(user)
 注意：当删除时，如果user中包含有bool,float64或者float32类型，有可能会使删除失败。具体请查看 <a name="150">FAQ</a>
 
 <a name="90" id="90"></a>
-## 9.执行SQL查询
+## 8.执行SQL查询
 
 也可以直接执行一个SQL查询，即Select命令。在Postgres中支持原始SQL语句中使用 ` 和 ? 符号。
 ```Go
@@ -528,7 +528,7 @@ results, err := engine.Query(sql)
 ```
 
 <a name="100" id="100"></a>
-## 10.执行SQL命令
+## 9.执行SQL命令
 
 也可以直接执行一个SQL命令，即执行Insert， Update， Delete 等操作。同样在Postgres中支持原始SQL语句中使用 ` 和 ? 符号。
 ```Go
@@ -537,7 +537,7 @@ res, err := engine.Exec(sql, "xiaolun", 1)
 ```
 
 <a name="110" id="110"></a>
-## 11.事务处理
+## 10.事务处理
 当使用事务处理时，需要创建Session对象。
 
 ```Go
@@ -571,7 +571,7 @@ if err != nil {
 ```
 
 <a name="120" id="120"></a>
-## 12.缓存
+## 11.缓存
 
 xorm内置了一致性缓存支持，不过默认并没有开启。要开启缓存，需要在engine创建完后进行配置，如：
 启用一个全局的内存缓存
@@ -613,19 +613,19 @@ ClearCacheBean
 ![cache design](https://raw.github.com/lunny/xorm/master/docs/cache_design.png)
 
 <a name="130" id="130"></a>
-## 13.xorm工具
+## 12.xorm工具
 xorm工具提供了xorm命令，能够帮助做很多事情。
 
-### 13.1.反转命令
+### 12.1.反转命令
 参见 [xorm工具](https://github.com/lunny/xorm/tree/master/xorm)
 
 <a name="140" id="140"></a>
-## 14.Examples
+## 13.Examples
 
 请访问[https://github.com/lunny/xorm/tree/master/examples](https://github.com/lunny/xorm/tree/master/examples)
 
 <a name="150" id="150"></a>
-## 15.案例
+## 14.案例
 
 * [Gowalker](http://gowalker.org)，源代码 [github.com/Unknwon/gowalker](http://github.com/Unknwon/gowalker)
 
@@ -636,7 +636,7 @@ xorm工具提供了xorm命令，能够帮助做很多事情。
 * [VeryHour](http://veryhour.com)
 
 <a name="160" id="160"></a>
-## 16.那些年我们踩过的坑
+## 15.那些年我们踩过的坑
 1. 怎么同时使用xorm的tag和json的tag？
   
 答：使用空格
@@ -665,5 +665,5 @@ money float64 `xorm:"Numeric"`
 ```
 
 <a name="170" id="170"></a>
-## 17.FAQ
+## 16.讨论
 请加入QQ群：280360085 进行讨论。
