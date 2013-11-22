@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// xorm SQL types
 type SQLType struct {
 	Name           string
 	DefaultLength  int
@@ -143,6 +144,7 @@ func Type2SQLType(t reflect.Type) (st SQLType) {
 	return
 }
 
+// default sql type change to go types
 func SQLType2Type(st SQLType) reflect.Type {
 	name := strings.ToUpper(st.Name)
 	switch name {
@@ -174,18 +176,21 @@ const (
 	UniqueType
 )
 
+// database index
 type Index struct {
 	Name string
 	Type int
 	Cols []string
 }
 
+// add columns which will be composite index
 func (index *Index) AddColumn(cols ...string) {
 	for _, col := range cols {
 		index.Cols = append(index.Cols, col)
 	}
 }
 
+// new an index
 func NewIndex(name string, indexType int) *Index {
 	return &Index{name, indexType, make([]string, 0)}
 }
@@ -196,6 +201,7 @@ const (
 	ONLYFROMDB
 )
 
+// database column
 type Column struct {
 	Name            string
 	FieldName       string
@@ -214,6 +220,7 @@ type Column struct {
 	IsVersion       bool
 }
 
+// generate column description string according dialect
 func (col *Column) String(d dialect) string {
 	sql := d.QuoteStr() + col.Name + d.QuoteStr() + " "
 
@@ -240,6 +247,7 @@ func (col *Column) String(d dialect) string {
 	return sql
 }
 
+// return col's filed of struct's value
 func (col *Column) ValueOf(bean interface{}) reflect.Value {
 	var fieldValue reflect.Value
 	if strings.Contains(col.FieldName, ".") {
@@ -256,6 +264,7 @@ func (col *Column) ValueOf(bean interface{}) reflect.Value {
 	return fieldValue
 }
 
+// database table
 type Table struct {
 	Name       string
 	Type       reflect.Type
@@ -269,10 +278,12 @@ type Table struct {
 	Cacher     Cacher
 }
 
+// if has primary key, return column
 func (table *Table) PKColumn() *Column {
 	return table.Columns[table.PrimaryKey]
 }
 
+// add a column to table
 func (table *Table) AddColumn(col *Column) {
 	table.ColumnsSeq = append(table.ColumnsSeq, col.Name)
 	table.Columns[col.Name] = col
@@ -290,6 +301,7 @@ func (table *Table) AddColumn(col *Column) {
 	}
 }
 
+// add an index or an unique to table
 func (table *Table) AddIndex(index *Index) {
 	table.Indexes[index.Name] = index
 }
@@ -343,6 +355,8 @@ func (table *Table) genCols(session *Session, bean interface{}, useCol bool, inc
 	return colNames, args, nil
 }
 
+// Conversion is an interface. A type implements Conversion will according
+// the custom method to fill into database and retrieve from database.
 type Conversion interface {
 	FromDB([]byte) error
 	ToDB() ([]byte, error)

@@ -44,3 +44,20 @@ func structName(v reflect.Type) string {
 	}
 	return v.Name()
 }
+
+func sliceEq(left, right []string) bool {
+	for _, l := range left {
+		var find bool
+		for _, r := range right {
+			if l == r {
+				find = true
+				break
+			}
+		}
+		if !find {
+			return false
+		}
+	}
+
+	return true
+}

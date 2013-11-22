@@ -23,10 +23,8 @@ func (vs values) Get(k string) (v string) {
 	return vs[k]
 }
 
-type Error error
-
 func errorf(s string, args ...interface{}) {
-	panic(Error(fmt.Errorf("pq: %s", fmt.Sprintf(s, args...))))
+	panic(fmt.Errorf("pq: %s", fmt.Sprintf(s, args...)))
 }
 
 func parseOpts(name string, o values) {

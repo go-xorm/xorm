@@ -11,7 +11,9 @@ import (
 )
 
 const (
-	CacheExpired   = 60 * time.Minute
+	// default cache expired time
+	CacheExpired = 60 * time.Minute
+	// not use now
 	CacheMaxMemory = 256
 	// evey ten minutes to clear all expired nodes
 	CacheGcInterval = 10 * time.Minute
@@ -19,12 +21,15 @@ const (
 	CacheGcMaxRemoved = 20
 )
 
+// CacheStore is a interface to store cache
 type CacheStore interface {
 	Put(key, value interface{}) error
 	Get(key interface{}) (interface{}, error)
 	Del(key interface{}) error
 }
 
+// MemoryStore implements CacheStore provide local machine
+// memory store
 type MemoryStore struct {
 	store map[interface{}]interface{}
 	mutex sync.RWMutex
@@ -58,6 +63,7 @@ func (s *MemoryStore) Del(key interface{}) error {
 	return nil
 }
 
+// Cacher is an interface to provide cache
 type Cacher interface {
 	GetIds(tableName, sql string) interface{}
 	GetBean(tableName string, id int64) interface{}
@@ -122,9 +128,9 @@ func NewLRUCacher2(store CacheStore, expired time.Duration, max int) *LRUCacher 
 	return newLRUCacher(store, expired, 0, max)
 }
 
-func NewLRUCacher3(store CacheStore, expired time.Duration, maxSize int) *LRUCacher {
-	return newLRUCacher(store, expired, maxSize, 0)
-}
+//func NewLRUCacher3(store CacheStore, expired time.Duration, maxSize int) *LRUCacher {
+//	return newLRUCacher(store, expired, maxSize, 0)
+//}
 
 // RunGC run once every m.GcInterval
 func (m *LRUCacher) RunGC() {

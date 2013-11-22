@@ -5,10 +5,12 @@ import (
 	"strings"
 )
 
+// Filter is an interface to filter SQL
 type Filter interface {
 	Do(sql string, session *Session) string
 }
 
+// PgSeqFilter filter SQL replace ?, ? ... to $1, $2 ...
 type PgSeqFilter struct {
 }
 
@@ -25,6 +27,7 @@ func (s *PgSeqFilter) Do(sql string, session *Session) string {
 	return res
 }
 
+// QuoteFilter filter SQL replace ` to database's own quote character
 type QuoteFilter struct {
 }
 
@@ -32,6 +35,7 @@ func (s *QuoteFilter) Do(sql string, session *Session) string {
 	return strings.Replace(sql, "`", session.Engine.QuoteStr(), -1)
 }
 
+// IdFilter filter SQL replace (id) to primary key column name
 type IdFilter struct {
 }
 

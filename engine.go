@@ -354,19 +354,21 @@ func (engine *Engine) OrderBy(order string) *Session {
 	return session.OrderBy(order)
 }
 
-//The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
+// The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
 func (engine *Engine) Join(join_operator, tablename, condition string) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
 	return session.Join(join_operator, tablename, condition)
 }
 
+// Generate Group By statement
 func (engine *Engine) GroupBy(keys string) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
 	return session.GroupBy(keys)
 }
 
+// Generate Having statement
 func (engine *Engine) Having(conditions string) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
@@ -763,7 +765,7 @@ func (engine *Engine) dropAll() error {
 	if err != nil {
 		return err
 	}
-	err = session.DropAll()
+	err = session.dropAll()
 	if err != nil {
 		session.Rollback()
 		return err
@@ -811,64 +813,83 @@ func (engine *Engine) DropTables(beans ...interface{}) error {
 func (engine *Engine) createAll() error {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.CreateAll()
+	return session.createAll()
 }
 
+// Exec raw sql
 func (engine *Engine) Exec(sql string, args ...interface{}) (sql.Result, error) {
 	session := engine.NewSession()
 	defer session.Close()
 	return session.Exec(sql, args...)
 }
 
+// Exec a raw sql and return records as []map[string][]byte
 func (engine *Engine) Query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
 	session := engine.NewSession()
 	defer session.Close()
 	return session.Query(sql, paramStr...)
 }
 
+// Insert one or more records
 func (engine *Engine) Insert(beans ...interface{}) (int64, error) {
 	session := engine.NewSession()
 	defer session.Close()
 	return session.Insert(beans...)
 }
 
+// Insert only one record
 func (engine *Engine) InsertOne(bean interface{}) (int64, error) {
 	session := engine.NewSession()
 	defer session.Close()
 	return session.InsertOne(bean)
 }
 
+// Update records, bean's non-empty fields are updated contents,
+// condiBean' non-empty filds are conditions
+// CAUTION:
+//	    1.bool will defaultly be updated content nor conditions
+// 		You should call UseBool if you have bool to use.
+//		2.float32 & float64 may be not inexact as conditions
 func (engine *Engine) Update(bean interface{}, condiBeans ...interface{}) (int64, error) {
 	session := engine.NewSession()
 	defer session.Close()
 	return session.Update(bean, condiBeans...)
 }
 
+// Delete records, bean's non-empty fields are conditions
 func (engine *Engine) Delete(bean interface{}) (int64, error) {
 	session := engine.NewSession()
 	defer session.Close()
 	return session.Delete(bean)
 }
 
-// Get retrieve one record from table
+// Get retrieve one record from table, bean's non-empty fields
+// are conditions
 func (engine *Engine) Get(bean interface{}) (bool, error) {
 	session := engine.NewSession()
 	defer session.Close()
 	return session.Get(bean)
 }
 
+// Find retrieve records from table, condiBeans's non-empty fields
+// are conditions. beans could be []Struct, []*Struct, map[int64]Struct
+// map[int64]*Struct
 func (engine *Engine) Find(beans interface{}, condiBeans ...interface{}) error {
 	session := engine.NewSession()
 	defer session.Close()
 	return session.Find(beans, condiBeans...)
 }
 
+// Iterate record by record handle records from table, bean's non-empty fields
+// are conditions.
 func (engine *Engine) Iterate(bean interface{}, fun IterFunc) error {
 	session := engine.NewSession()
 	defer session.Close()
 	return session.Iterate(bean, fun)
 }
 
+// Count counts the records. bean's non-empty fields
+// are conditions.
 func (engine *Engine) Count(bean interface{}) (int64, error) {
 	session := engine.NewSession()
 	defer session.Close()

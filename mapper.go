@@ -11,6 +11,8 @@ type IMapper interface {
 	Table2Obj(string) string
 }
 
+// SameMapper implements IMapper and provides same name between struct and
+// database table
 type SameMapper struct {
 }
 
@@ -22,6 +24,8 @@ func (m SameMapper) Table2Obj(t string) string {
 	return t
 }
 
+// SnakeMapper implements IMapper and provides name transaltion between
+// struct and database table
 type SnakeMapper struct {
 }
 

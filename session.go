@@ -94,16 +94,25 @@ func (session *Session) Cols(columns ...string) *Session {
 	return session
 }
 
+// Xorm automatically retrieve condition according struct, but
+// if struct has bool field, it will ignore them. So use UseBool
+// to tell system to do not ignore them.
+// If no paramters, it will use all the bool field of struct, or
+// it will use paramters's columns
 func (session *Session) UseBool(columns ...string) *Session {
 	session.Statement.UseBool(columns...)
 	return session
 }
 
+// use for distinct columns. Caution: when you are using cache,
+// distinct will not be cached because cache system need id,
+// but distinct will not provide id
 func (session *Session) Distinct(columns ...string) *Session {
 	session.Statement.Distinct(columns...)
 	return session
 }
 
+// Only not use the paramters as select or update columns
 func (session *Session) Omit(columns ...string) *Session {
 	session.Statement.Omit(columns...)
 	return session
@@ -163,7 +172,7 @@ func (session *Session) Charset(charset string) *Session {
 	return session
 }
 
-// Method Cascade
+// Method Cascade indicates if loading sub Struct
 func (session *Session) Cascade(trueOrFalse ...bool) *Session {
 	if len(trueOrFalse) >= 1 {
 		session.Statement.UseCascade = trueOrFalse[0]
@@ -184,11 +193,13 @@ func (session *Session) Join(join_operator, tablename, condition string) *Sessio
 	return session
 }
 
+// Generate Group By statement
 func (session *Session) GroupBy(keys string) *Session {
 	session.Statement.GroupBy(keys)
 	return session
 }
 
+// Generate Having statement
 func (session *Session) Having(conditions string) *Session {
 	session.Statement.Having(conditions)
 	return session
@@ -205,6 +216,7 @@ func (session *Session) newDb() error {
 	return nil
 }
 
+// Begin a transaction
 func (session *Session) Begin() error {
 	err := session.newDb()
 	if err != nil {
@@ -224,6 +236,7 @@ func (session *Session) Begin() error {
 	return nil
 }
 
+// When using transaction, you can rollback if any error
 func (session *Session) Rollback() error {
 	if !session.IsAutoCommit && !session.IsCommitedOrRollbacked {
 		session.Engine.LogSQL("ROLL BACK")
@@ -233,6 +246,7 @@ func (session *Session) Rollback() error {
 	return nil
 }
 
+// When using transaction, Commit will commit all operations.
 func (session *Session) Commit() error {
 	if !session.IsAutoCommit && !session.IsCommitedOrRollbacked {
 		session.Engine.LogSQL("COMMIT")
@@ -314,6 +328,7 @@ func (session *Session) exec(sql string, args ...interface{}) (sql.Result, error
 	return session.Tx.Exec(sql, args...)
 }
 
+// Exec raw sql
 func (session *Session) Exec(sql string, args ...interface{}) (sql.Result, error) {
 	err := session.newDb()
 	if err != nil {
@@ -343,6 +358,7 @@ func (session *Session) CreateTable(bean interface{}) error {
 	return session.createOneTable()
 }
 
+// create indexes
 func (session *Session) CreateIndexes(bean interface{}) error {
 	session.Statement.RefTable = session.Engine.autoMap(bean)
 
@@ -365,6 +381,7 @@ func (session *Session) CreateIndexes(bean interface{}) error {
 	return nil
 }
 
+// create uniques
 func (session *Session) CreateUniques(bean interface{}) error {
 	session.Statement.RefTable = session.Engine.autoMap(bean)
 
@@ -393,7 +410,8 @@ func (session *Session) createOneTable() error {
 	return err
 }
 
-func (session *Session) CreateAll() error {
+// to be deleted
+func (session *Session) createAll() error {
 	err := session.newDb()
 	if err != nil {
 		return err
@@ -413,6 +431,7 @@ func (session *Session) CreateAll() error {
 	return nil
 }
 
+// drop indexes
 func (session *Session) DropIndexes(bean interface{}) error {
 	err := session.newDb()
 	if err != nil {
@@ -700,8 +719,12 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 	return nil
 }
 
+// IterFunc only use by Iterate
 type IterFunc func(idx int, bean interface{}) error
 
+// Iterate record by record handle records from table, condiBeans's non-empty fields
+// are conditions. beans could be []Struct, []*Struct, map[int64]Struct
+// map[int64]*Struct
 func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
 	err := session.newDb()
 	if err != nil {
@@ -765,7 +788,8 @@ func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
 	return nil
 }
 
-// get retrieve one record from database
+// get retrieve one record from database, bean's non-empty fields
+// will be as conditions
 func (session *Session) Get(bean interface{}) (bool, error) {
 	err := session.newDb()
 	if err != nil {
@@ -814,6 +838,8 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	}
 }
 
+// Count counts the records. bean's non-empty fields
+// are conditions.
 func (session *Session) Count(bean interface{}) (int64, error) {
 	err := session.newDb()
 	if err != nil {
@@ -851,6 +877,9 @@ func (session *Session) Count(bean interface{}) (int64, error) {
 	return int64(total), err
 }
 
+// Find retrieve records from table, condiBeans's non-empty fields
+// are conditions. beans could be []Struct, []*Struct, map[int64]Struct
+// map[int64]*Struct
 func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{}) error {
 	err := session.newDb()
 	if err != nil {
@@ -959,7 +988,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	return nil
 }
 
-// test if database is ok
+// Test if database is ok
 func (session *Session) Ping() error {
 	err := session.newDb()
 	if err != nil {
@@ -1019,23 +1048,6 @@ func (session *Session) isIndexExist(tableName, idxName string, unique bool) (bo
 	sql, args := session.Engine.dialect.IndexCheckSql(tableName, idx)
 	results, err := session.query(sql, args...)
 	return len(results) > 0, err
-}
-
-func sliceEq(left, right []string) bool {
-	for _, l := range left {
-		var find bool
-		for _, r := range right {
-			if l == r {
-				find = true
-				break
-			}
-		}
-		if !find {
-			return false
-		}
-	}
-
-	return true
 }
 
 // find if index is exist according cols
@@ -1106,7 +1118,8 @@ func (session *Session) addUnique(tableName, uqeName string) error {
 	return err
 }
 
-func (session *Session) DropAll() error {
+// To be deleted
+func (session *Session) dropAll() error {
 	err := session.newDb()
 	if err != nil {
 		return err
@@ -1240,6 +1253,7 @@ func (session *Session) query(sql string, paramStr ...interface{}) (resultsSlice
 	return query(session.Db, sql, paramStr...)
 }
 
+// Exec a raw sql and return records as []map[string][]byte
 func (session *Session) Query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
 	err = session.newDb()
 	if err != nil {
@@ -1399,6 +1413,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 	return res.RowsAffected()
 }
 
+// Insert multiple records
 func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 	err := session.newDb()
 	if err != nil {
@@ -1914,6 +1929,12 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 	return nil
 }
 
+// Update records, bean's non-empty fields are updated contents,
+// condiBean' non-empty filds are conditions
+// CAUTION:
+//	    1.bool will defaultly be updated content nor conditions
+// 		You should call UseBool if you have bool to use.
+//		2.float32 & float64 may be not inexact as conditions
 func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int64, error) {
 	err := session.newDb()
 	if err != nil {
@@ -2068,6 +2089,7 @@ func (session *Session) cacheDelete(sql string, args ...interface{}) error {
 	return nil
 }
 
+// Delete records, bean's non-empty fields are conditions
 func (session *Session) Delete(bean interface{}) (int64, error) {
 	err := session.newDb()
 	if err != nil {
