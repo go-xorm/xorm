@@ -1522,7 +1522,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 	//Now only support Time type
 	case reflect.Struct:
 		if fieldValue.Type().String() == "time.Time" {
-			sdata := string(data)
+			sdata := strings.TrimSpace(string(data))
 			var x time.Time
 			var err error
 			// time stamp
@@ -1543,6 +1543,9 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				}
 				st := fmt.Sprintf("2006-01-02 %v", sdata)
 				x, err = time.Parse("2006-01-02 15:04:05", st)
+			} else if sdata == "0000-00-00 00:00:00" {
+				var t time.Time
+				x = t
 			} else {
 				return errors.New(fmt.Sprintf("unsupported time format %v", string(data)))
 			}

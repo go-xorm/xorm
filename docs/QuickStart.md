@@ -440,16 +440,23 @@ has, err := engine.Get(user)
 
 1) 传入Slice用于返回数据
 ```Go
-var everyone []Userinfo
+everyone := make([]Userinfo, 0)
 err := engine.Find(&everyone)
+
+pEveryOne := make([]*Userinfo, 0)
+err := engine.Find(&pEveryOne)
 ```
+
 2) 传入Map用户返回数据，map必须为`map[int64]Userinfo`的形式，map的key为id
 ```Go
 users := make(map[int64]Userinfo)
 err := engine.Find(&users)
+
+pUsers := make(map[int64]*Userinfo)
+err := engine.Find(&pUsers)
 ```
 
-3) 也可以加入条件
+3) 也可以加入各种条件
 ```Go
 users := make([]Userinfo, 0)
 err := engine.Where("age > ? or name=?)", 30, "xlw").Limit(20, 10).Find(&users)
