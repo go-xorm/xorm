@@ -275,6 +275,15 @@ users[0].Name = "name0"
 affected, err := engine.Insert(&users)
 ```
 
+* 使用指针Slice插入多条记录
+```Go
+users := make([]*User, 0)
+users[0] = new(User)
+users[0].Name = "name0"
+...
+affected, err := engine.Insert(&users)
+```
+
 * 插入不同表的一条记录
 ```Go
 user := new(User)
