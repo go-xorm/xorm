@@ -20,7 +20,6 @@ xorm 快速入门
 	* [5.4.Find方法](#64)
 	* [5.5.Iterate方法](#65)
 	* [5.6.Count方法](#66)
-	* [5.7.匿名结构体成员](#67)
 * [6.更新数据](#70)
 * [7.删除数据](#80)
 * [8.执行SQL查询](#90)
@@ -496,13 +495,6 @@ user := new(User)
 total, err := engine.Where("id >?", 1).Count(user)
 ```
 
-<a name="67" id="67"></a>
-### 5.7.匿名结构体成员
-
-如果在struct中拥有一个struct，并且在Tag中标记为extends，那么该结构体的成员将作为本结构体的成员进行映射。
-
-请查看Examples中的derive.go文件。
-
 <a name="70" id="70"></a>
 ## 6.更新数据
     
@@ -690,6 +682,10 @@ money float64 `xorm:"Numeric"`
 * 为什么Update时Sqlite3返回的affected和其它数据库不一样？
 
 答：Sqlite3默认Update时返回的是update的查询条件的记录数条数，不管记录是否真的有更新。而Mysql和Postgres默认情况下都是只返回记录中有字段改变的记录数。
+
+* xorm有几种命名映射规则？
+
+答：目前支持SnakeMapper和SameMapper两种。SnakeMapper支持结构体和成员以驼峰式命名而数据库表和字段以下划线连接命名；SameMapper支持结构体和数据库的命名保持一致的映射。
 
 <a name="170" id="170"></a>
 ## 16.讨论

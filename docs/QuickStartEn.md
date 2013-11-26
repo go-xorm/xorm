@@ -1,25 +1,41 @@
 Quick Start
 =====
 
-* [1.Create database engine](#10)
+* [1.Create ORM Engine](#10)
 * [2.Define a struct](#20)
-* [3.Create tables](#30)
-	* [3.1.Sync database schema](#31)
-* [4.Insert, update one or more records](#40)
-* [5.Get one record](#50)
-* [6.Find many records](#60)
-* [7.Iterate records](#70)
-* [8.Delete records](#80)
-* [9.Count records](#90)
-* [10.Cache](#100)
-* [11.Execute SQL](#110)
-* [12.Advanced Usage](#120)
-* [13.Mapping Rules](#130)
-* [14.FAQ](#140)
+	* [2.1.Name mapping rule](#21)
+	* [2.2.Use Table or Tag to change table or column name](#22)
+	* [2.3.Column define](#23)
+* [3. database schema operation](#30)
+	* [3.1.Retrieve database schema infomation](#31)
+	* [3.2.Table Operation](#32)
+	* [3.3.Create indexes and uniques](#33)
+	* [3.4.Sync database schema](#34)
+* [4.Insert records](#40)
+* [5.Query and Count records](#60)
+	* [5.1.Query condition methods](#61)
+	* [5.2.Temporory methods](#62)
+	* [5.3.Get](#63)
+	* [5.4.Find](#64)
+	* [5.5.Iterate](#65)
+	* [5.6.Count](#66)
+* [6.Update records](#70)
+* [7.Delete records](#80)
+* [8.Execute SQL command](#90)
+* [9.Execute SQL query](#100)
+* [10.Transaction](#110)
+* [11.Cache](#120)
+* [12.Xorm Tool](#130)
+	* [12.1.Reverse command](#131)
+* [13.Examples](#140)
+* [14.Cases](#150)
+* [15.FAQ](#160)
+* [16.Discuss](#170)
 
 <a name="10" id="10"></a>
-## 1.Create database engine
-Create a database engine just like sql.Open, commonly you just need create once. Please notice, Create function will be deprecated, use NewEngine instead.
+## 1.Create ORM Engine 
+
+When using xorm, you can create multiple orm engines, an engine means a databse. So you can：
 
 ```Go
 import (
@@ -36,77 +52,362 @@ or
 import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/lunny/xorm"
-)
+	)
 engine, err = xorm.NewEngine("sqlite3", "./test.db")
 defer engine.Close()
 ```
 
-1.1.If you want to show all generated SQL
+Generally, you can only create one engine. Engine supports run on go rutines.
+
+xorm supports four drivers now:
+
+* Mysql: [github.com/Go-SQL-Driver/MySQL](https://github.com/Go-SQL-Driver/MySQL)
+
+* MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
+
+* SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
+
+* Postgres: [github.com/lib/pq](https://github.com/lib/pq)
+
+NewEngine's parameters are the same as `sql.Open`. So you should read the drivers' document for parameters' usage.
+
+After engine created, you can do some settings.
+
+1.Logs
+
+* `engine.ShowSQL = true`, Show SQL statement on standard output;
+* `engine.ShowDebug = true`, Show debug infomation on standard output;
+* `engine.ShowError = true`, Show error infomation on standard output;
+* `engine.ShowWarn = true`, Show warnning information on standard output;
+
+2.If want to record infomation with another method: use `engine.Logger` as `io.Writer`:
 
 ```Go
-engine.ShowSQL = true
+f, err := os.Create("sql.log")
+	if err != nil {
+		println(err.Error())
+		return
+	}
+engine.Logger = f
 ```
-1.2 Defaultly, xorm use go's connection pool. If you want to use your own connection pool, you can
 
-```Go
-err = engine.SetPool(NewSimpleConnectPool())
-```
+3.Engine support connection pool. The default pool is database/sql's and also you can use custom pool. Xorm provides two connection pool `xorm.NonConnectionPool` & `xorm.SimpleConnectPool`. If you want to use yourself pool, you can use `engine.SetPool` to set it.
 
-1.3 If you want to enable cache system
-
-```Go
-cacher := xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
-Engine.SetDefaultCacher(cacher)
-```
+* Use `engine.SetIdleConns()` to set idle connections.
+* Use `engine.SetMaxConns()` to set Max connections. This methods support only Go 1.2+.
 
 <a name="20" id="20"></a>
-## 2.Define a struct
+## 2.Define struct
+
+xorm支持将一个struct映射为数据库中对应的一张表。映射规则如下：
+
+<a name="21" id="21"></a>
+### 2.1.名称映射规则
+
+名称映射规则主要负责结构体名称到表名和结构体field到表字段的名称映射。由xorm.IMapper接口的实现者来管理，xorm内置了两种IMapper实现：`SnakeMapper` 和 `SameMapper`。SnakeMapper支持struct为驼峰式命名，表结构为下划线命名之间的转换；SameMapper支持相同的命名。
+
+当前SnakeMapper为默认值，如果需要改变时，在engine创建完成后使用
 
 ```Go
+engine.Mapper = SameMapper{}
+```
+
+当然，如果你使用了别的命名规则映射方案，也可以自己实现一个IMapper。
+
+<a name="22" id="22"></a>
+### 2.2.使用Table和Tag改变名称映射
+
+如果所有的命名都是按照IMapper的映射来操作的，那当然是最理想的。但是如果碰到某个表名或者某个字段名跟映射规则不匹配时，我们就需要别的机制来改变。
+
+通过`engine.Table()`方法可以改变struct对应的数据库表的名称，通过sturct中field对应的Tag中使用`xorm:"'table_name'"`可以使该field对应的Column名称为指定名称。这里使用两个单引号将Column名称括起来是为了防止名称冲突，因为我们在Tag中还可以对这个Column进行更多的定义。如果名称不冲突的情况，单引号也可以不使用。
+
+<a name="23" id="23"></a>
+### 2.3.Column属性定义
+我们在field对应的Tag中对Column的一些属性进行定义，定义的方法基本和我们写SQL定义表结构类似，比如：
+
+```
 type User struct {
-	Id int
-    Name string
-    Age int    `xorm:"-"`
+	Id 	 int64
+	Name string  `xorm:"varchar(25) not null unique 'usr_name'"`
 }
 ```
 
-2.1.More mapping rules, please see [Mapping Rules](#mapping)
+对于不同的数据库系统，数据类型其实是有些差异的。因此xorm中对数据类型有自己的定义，基本的原则是尽量兼容各种数据库的字段类型，具体的字段对应关系可以查看[字段类型对应表](https://github.com/lunny/xorm/blob/master/docs/COLUMNTYPE.md)。
+
+具体的映射规则如下，另Tag中的关键字均不区分大小写，字段名区分大小写：
+
+<table>
+    <tr>
+        <td>name</td><td>当前field对应的字段的名称，可选，如不写，则自动根据field名字和转换规则命名</td>
+    </tr>
+    <tr>
+        <td>pk</td><td>是否是Primary Key，当前仅支持int64类型</td>
+    </tr>
+    <tr>
+        <td>当前支持30多种字段类型，详情参见 [字段类型](https://github.com/lunny/xorm/blob/master/docs/COLUMNTYPE.md)</td><td>字段类型</td>
+    </tr>
+    <tr>
+        <td>autoincr</td><td>是否是自增</td>
+    </tr>
+    <tr>
+        <td>[not ]null</td><td>是否可以为空</td>
+    </tr>
+    <tr>
+        <td>unique或unique(uniquename)</td><td>是否是唯一，如不加括号则该字段不允许重复；如加上括号，则括号中为联合唯一索引的名字，此时如果有另外一个或多个字段和本unique的uniquename相同，则这些uniquename相同的字段组成联合唯一索引</td>
+    </tr>
+    <tr>
+        <td>index或index(indexname)</td><td>是否是索引，如不加括号则该字段自身为索引，如加上括号，则括号中为联合索引的名字，此时如果有另外一个或多个字段和本index的indexname相同，则这些indexname相同的字段组成联合索引</td>
+    </tr>
+    <tr>
+    	<td>extends</td><td>应用于一个匿名结构体之上，表示此匿名结构体的成员也映射到数据库中</td>
+    </tr>
+    <tr>
+        <td>-</td><td>这个Field将不进行字段映射</td>
+    </tr>
+     <tr>
+        <td>-></td><td>这个Field将只写入到数据库而不从数据库读取</td>
+    </tr>
+     <tr>
+        <td>&lt;-</td><td>这个Field将只从数据库读取，而不写入到数据库</td>
+    </tr>
+     <tr>
+        <td>created</td><td>这个Field将在Insert时自动赋值为当前时间</td>
+    </tr>
+     <tr>
+        <td>updated</td><td>这个Field将在Insert或Update时自动赋值为当前时间</td>
+    </tr>
+    <tr>
+        <td>default 0</td><td>设置默认值，紧跟的内容如果是Varchar等需要加上单引号</td>
+    </tr>
+</table>
+
+另外有如下几条自动映射的规则：
+
+- 1.如果field名称为`Id`而且类型为`int64`的话，会被xorm视为主键，并且拥有自增属性。如果想用`Id`以外的名字做为主键名，可以在对应的Tag上加上`xorm:"pk"`来定义主键。
+
+- 2.string类型默认映射为varchar(255)，如果需要不同的定义，可以在tag中自定义
+
+- 3.支持`type MyString string`等自定义的field，支持Slice, Map等field成员，这些成员默认存储为Text类型，并且默认将使用Json格式来序列化和反序列化。也支持数据库字段类型为Blob类型，如果是Blob类型，则先使用Json格式序列化再转成[]byte格式。当然[]byte或者[]uint8默认为Blob类型并且都以二进制方式存储。
+
+- 4.实现了Conversion接口的类型或者结构体，将根据接口的转换方式在类型和数据库记录之间进行相互转换。
+```Go
+type Conversion interface {
+	FromDB([]byte) error
+	ToDB() ([]byte, error)
+}
+```
 
 <a name="30" id="30"></a>
-## 3.Create tables
-When you set up your program, you can use CreateTables to create database tables.
+## 3.表结构操作
 
+xorm提供了一些动态获取和修改表结构的方法。对于一般的应用，很少动态修改表结构，则只需调用Sync()同步下表结构即可。
+
+<a name="31" id="31"></a>
+## 3.1 获取数据库信息
+
+* DBMetas()
+xorm支持获取表结构信息，通过调用`engine.DBMetas()`可以获取到所有的表的信息
+
+<a name="31" id="31"></a>
+## 3.2.表操作
+
+* CreateTables()
+创建表使用`engine.CreateTables()`，参数为一个或多个空的对应Struct的指针。同时可用的方法有Charset()和StoreEngine()，如果对应的数据库支持，这两个方法可以在创建表时指定表的字符编码和使用的引擎。当前仅支持Mysql数据库。
+
+* IsTableEmpty()
+判断表是否为空，参数和CreateTables相同
+
+* IsTableExist()
+判断表是否存在
+
+* DropTables()
+删除表使用`engine.DropTables()`，参数为一个或多个空的对应Struct的指针或者表的名字。如果为string传入，则只删除对应的表，如果传入的为Struct，则删除表的同时还会删除对应的索引。
+
+<a name="32" id="32"></a>
+## 3.3.创建索引和唯一索引
+
+* CreateIndexes
+根据struct中的tag来创建索引
+
+* CreateUniques
+根据struct中的tag来创建唯一索引
+
+<a name="34" id="34"></a>
+## 3.4.同步数据库结构
+
+同步能够部分智能的根据结构体的变动检测表结构的变动，并自动同步。目前能够实现：
+1) 自动检测和创建表，这个检测是根据表的名字
+2）自动检测和新增表中的字段，这个检测是根据字段名
+3）自动检测和创建索引和唯一索引，这个检测是根据一个或多个字段名，而不根据索引名称
+
+调用方法如下：
 ```Go
-err := engine.CreateTables(&User{})
-// or err := engine.Map(&User{}, &Article{})
-// err = engine.CreateAll()
-```
-
-3.1 If you want to auto sync database schema
-
-```Go
-err = engine.Sync(new(User), new(Category))
-```
-
-<a name="40" id="40"></a>
-## 4.Insert, Update records
-then, insert a struct to table, if success, User.Id will be set to id
-
-```Go
-id, err := engine.Insert(&User{Name:"lunny"})
-```
-
-or if you want to update records
-
-```Go
-user := User{Name:"xlw"}
-rows, err := engine.Update(&user, &User{Id:1})
-// or rows, err := engine.Where("id = ?", 1).Update(&user)
-// or rows, err := engine.Id(1).Update(&user)
+err := engine.Sync(new(User))
 ```
 
 <a name="50" id="50"></a>
-## 5.Get one record
+## 4.插入数据
+
+Inserting records use Insert method. 
+
+* Insert one record
+```Go
+user := new(User)
+user.Name = "myname"
+affected, err := engine.Insert(user)
+```
+
+After inseted, `user.Id` will be filled with primary key column value.
+```Go
+fmt.Println(user.Id)
+```
+
+* Insert multiple records by Slice on one table
+```Go
+users := make([]User, 0)
+users[0].Name = "name0"
+...
+affected, err := engine.Insert(&users)
+```
+
+* Insert multiple records by Slice of pointer on one table
+```Go
+users := make([]*User, 0)
+users[0] = new(User)
+users[0].Name = "name0"
+...
+affected, err := engine.Insert(&users)
+```
+
+* Insert one record on two table.
+```Go
+user := new(User)
+user.Name = "myname"
+question := new(Question)
+question.Content = "whywhywhwy?"
+affected, err := engine.Insert(user, question)
+```
+
+* Insert multiple records on multiple tables.
+```Go
+users := make([]User, 0)
+users[0].Name = "name0"
+...
+questions := make([]Question, 0)
+questions[0].Content = "whywhywhwy?"
+affected, err := engine.Insert(&users, &questions)
+```
+
+* Insert one or multple records on multiple tables.
+```Go
+user := new(User)
+user.Name = "myname"
+...
+questions := make([]Question, 0)
+questions[0].Content = "whywhywhwy?"
+affected, err := engine.Insert(user, &questions)
+```
+
+Notice: If you want to use transaction on inserting, you should use session.Begin() before calling Insert.
+
+<a name="60" id="60"></a>
+## 5.Query and count
+
+所有的查询条件不区分调用顺序，但必须在调用Get，Find，Count这三个函数之前调用。同时需要注意的一点是，在调用的参数中，所有的字符字段名均为映射后的数据库的字段名，而不是field的名字。
+
+<a name="61" id="61"></a>
+### 5.1.查询条件方法
+
+查询和统计主要使用`Get`, `Find`, `Count`三个方法。在进行查询时可以使用多个方法来形成查询条件，条件函数如下：
+
+* Id(int64)
+传入一个PK字段的值，作为查询条件
+
+* Where(string, …interface{})
+和Where语句中的条件基本相同，作为条件
+
+* And(string, …interface{})
+和Where函数中的条件基本相同，作为条件
+
+* Or(string, …interface{})
+和Where函数中的条件基本相同，作为条件
+
+* Sql(string, …interface{})
+执行指定的Sql语句，并把结果映射到结构体
+
+* Asc(…string)
+指定字段名正序排序
+
+* Desc(…string)
+指定字段名逆序排序
+
+* OrderBy(string)
+按照指定的顺序进行排序
+
+* In(string, …interface{})
+某字段在一些值中
+
+* Cols(…string)
+只查询或更新某些指定的字段，默认是查询所有映射的字段或者根据Update的第一个参数来判断更新的字段。例如：
+```Go
+engine.Cols("age", "name").Find(&users)
+// SELECT age, name FROM user
+engine.Cols("age", "name").Update(&user)
+// UPDATE user SET age=? AND name=?
+```
+
+其中的参数"age", "name"也可以写成"age, name"，两种写法均可
+
+* Omit(...string)
+和cols相反，此函数指定排除某些指定的字段。注意：此方法和Cols方法不可同时使用
+```Go
+engine.Cols("age").Update(&user)
+// UPDATE user SET name = ? AND department = ?
+```
+
+* Distinct(…string)
+按照参数中指定的字段归类结果
+```Go
+engine.Distinct("age", "department").Find(&users)
+// SELECT DISTINCT age, department FROM user
+```
+注意：当开启了缓存时，此方法的调用将在当前查询中禁用缓存。因为缓存系统当前依赖Id，而此时无法获得Id
+
+* Table(nameOrStructPtr interface{})
+传入表名称或者结构体指针，如果传入的是结构体指针，则按照IMapper的规则提取出表名
+
+* Limit(int, …int)
+限制获取的数目，第一个参数为条数，第二个参数为可选，表示开始位置
+
+* Top(int)
+相当于Limit(int, 0)
+
+* Join(string,string,string)
+第一个参数为连接类型，当前支持INNER, LEFT OUTER, CROSS中的一个值，第二个参数为表名，第三个参数为连接条件
+
+* GroupBy(string)
+Groupby的参数字符串
+
+* Having(string)
+Having的参数字符串
+
+<a name="62" id="62"></a>
+### 5.2.临时开关方法
+
+* NoAutoTime()
+如果此方法执行，则此次生成的语句中Created和Updated字段将不自动赋值为当前时间
+
+* NoCache()
+如果此方法执行，则此次生成的语句则在非缓存模式下执行
+
+* UseBool(...string)
+当从一个struct来生成查询条件或更新字段时，xorm会判断struct的field是否为0,"",nil，如果为以上则不当做查询条件或者更新内容。因为bool类型只有true和false两种值，因此默认所有bool类型不会作为查询条件或者更新字段。如果可以使用此方法，如果默认不传参数，则所有的bool字段都将会被使用，如果参数不为空，则参数中指定的为字段名，则这些字段对应的bool值将被使用。
+
+* Cascade(bool)
+是否自动关联查询field中的数据，如果struct的field也是一个struct并且映射为某个Id，则可以在查询时自动调用Get方法查询出对应的数据。
+
+<a name="50" id="50"></a>
+### 5.3.Get one record
 Fetch a single object by user
 
 ```Go
@@ -119,7 +420,7 @@ has, err := engine.Get(&user)
 ```
 
 <a name="60" id="60"></a>
-## 6.Find many records
+### 5.4.Find
 Fetch multipe objects into a slice or a map, use Find：
 
 ```Go
@@ -130,28 +431,28 @@ users := make(map[int64]Userinfo)
 err := engine.Find(&users)
 ```
 
-6.1 also you can use Where, Limit
+* also you can use Where, Limit
 
 ```Go
 var allusers []Userinfo
 err := engine.Where("id > ?", "3").Limit(10,20).Find(&allusers) //Get id>3 limit 10 offset 20
 ```
 
-6.2 or you can use a struct query
+* or you can use a struct query
 
 ```Go
 var tenusers []Userinfo
 err := engine.Limit(10).Find(&tenusers, &Userinfo{Name:"xlw"}) //Get All Name="xlw" limit 10 offset 0
 ```
 
-6.3 or In function
+* or In function
 
 ```Go
 var tenusers []Userinfo
 err := engine.In("id", 1, 3, 5).Find(&tenusers) //Get All id in (1, 3, 5)
 ```
 
-6.4 The default will query all columns of a table. Use Cols function if you want to select some columns
+* The default will query all columns of a table. Use Cols function if you want to select some columns
 
 ```Go
 var tenusers []Userinfo
@@ -159,7 +460,7 @@ err := engine.Cols("id", "name").Find(&tenusers) //Find only id and name
 ```
 
 <a name="70" id="70"></a>
-## 7.Iterate records
+### 5.5.Iterate records
 Iterate, like find, but handle records one by one
 
 ```Go
@@ -169,126 +470,80 @@ err := engine.Where("age > ? or name=?)", 30, "xlw").Iterate(new(Userinfo), func
 })
 ```
 
+<a name="66" id="66"></a>
+### 5.6.Count方法
+
+统计数据使用`Count`方法，Count方法的参数为struct的指针并且成为查询条件。
+```Go
+user := new(User)
+total, err := engine.Where("id >?", 1).Count(user)
+```
+
+<a name="70" id="70"></a>
+## 6.更新数据
+    
+更新数据使用`Update`方法，Update方法的第一个参数为需要更新的内容，可以为一个结构体指针或者一个Map[string]interface{}类型。当传入的为结构体指针时，只有非空和0的field才会被作为更新的字段。当传入的为Map类型时，key为数据库Column的名字，value为要更新的内容。
+
+```Go
+user := new(User)
+user.Name = "myname"
+affected, err := engine.Id(id).Update(user)
+```
+
+这里需要注意，Update会自动从user结构体中提取非0和非nil得值作为需要更新的内容，因此，如果需要更新一个值为0，则此种方法将无法实现，因此有两种选择：
+
+1. 通过添加Cols函数指定需要更新结构体中的哪些值，未指定的将不更新，指定了的即使为0也会更新。
+```Go
+affected, err := engine.Id(id).Cols("age").Update(&user)
+```
+
+2. 通过传入map[string]interface{}来进行更新，但这时需要额外指定更新到哪个表，因为通过map是无法自动检测更新哪个表的。
+```Go
+affected, err := engine.Table(new(User)).Id(id).Update(map[string]interface{}{"age":0})
+```
+
 <a name="80" id="80"></a>
-## 8.Delete one or more records
+## 7.Delete one or more records
 Delete one or more records
 
-8.1 deleted by id
+* delete by id
 
 ```Go
 err := engine.Id(1).Delete(&User{})
 ```
 
-8.2 deleted by other conditions
+* delete by other conditions
 
 ```Go
 err := engine.Delete(&User{Name:"xlw"})
 ```
 
 <a name="90" id="90"></a>
-## 9.Count records
-9.Count
-
-```Go
-total, err := engine.Where("id > ?", 5).Count(&User{Name:"xlw"})
-```
-
-<a name="100" id="100"></a>
-## 10.Cache
-```Go
-cacher := xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
-engine.SetDefaultCacher(cacher)
-```
-
-<a name="110" id="110"></a>
-## 11.Execute SQL
+## 8.Execute SQL query
 
 Of course, SQL execution is also provided.
 
-1.if select then use Query
+If select then use Query
 
 ```Go
 sql := "select * from userinfo"
 results, err := engine.Query(sql)
 ```
 
-2.if insert, update or delete then use Exec
+<a name="100" id="100"></a>
+## 9.Execute SQL command
+If insert, update or delete then use Exec
 
 ```Go
 sql = "update userinfo set username=? where id=?"
 res, err := engine.Exec(sql, "xiaolun", 1) 
 ```
 
-<a name="120" id="120"></a>
-## 12.Advanced Usage
-
-For deep usage, you should create a session.
+<a name="110" id="110"></a>
+## 10.Transaction
 
 ```Go
 session := engine.NewSession()
-defer session.Close()
-```
-
-1.Fetch a single object by where, these methods are same to engine.
-
-```Go
-var user Userinfo
-session.Where("id=?", 27).Get(&user)
-
-var userJohn Userinfo
-session.Where("name = ?", "john").Get(&userJohn) // more complex query
-
-var userOldJohn Userinfo
-session.Where("name = ? and age > ?", "john", 88).Get(&userOldJohn) // even more complex
-```
-
-2.Fetch multiple objects
-
-```Go
-var allusers []Userinfo
-err := session.Where("id > ?", "3").Limit(10,20).Find(&allusers) //Get id>3 limit 10 offset 20
-
-var tenusers []Userinfo
-err := session.Limit(10).Find(&tenusers, &Userinfo{Name:"xlw"}) //Get All Name="xlw" limit 10  if omit offset the default is 0
-
-var everyone []Userinfo
-err := session.Find(&everyone)
-```
-	
-3.Transaction
-
-```Go
-// add Begin() before any action
-err := session.Begin()	
-user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
-_, err = session.Insert(&user1)
-if err != nil {
-	session.Rollback()
-	return
-}
-user2 := Userinfo{Username: "yyy"}
-_, err = session.Where("id = ?", 2).Update(&user2)
-if err != nil {
-	session.Rollback()
-	return
-}
-
-_, err = session.Delete(&user2)
-if err != nil {
-	session.Rollback()
-	return
-}
-
-// add Commit() after all actions
-err = session.Commit()
-if err != nil {
-	return
-}
-```
-
-4.Mixed Transaction
-
-```Go
 // add Begin() before any action
 err := session.Begin()	
 user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
@@ -316,95 +571,72 @@ if err != nil {
 	return
 }
 ```
-5.Derive mapping
-Please see derive.go in examples folder.
+
+<a name="120" id="120"></a>
+## 11.缓存
+
+1. Global Cache
+Xorm implements cache support. Defaultly, it's disabled. If enable it, use below code.
+
+```Go
+cacher := xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
+engine.SetDefaultCacher(cacher)
+```
+
+If disable some tables' cache, then:
+
+```Go
+engine.MapCacher(&user, nil)
+```
+
+2. Table's Cache
+If only some tables need cache, then:
+
+```Go
+cacher := xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
+engine.MapCacher(&user, cacher)
+```
+
+Caution:
+
+1. When use Cols methods on cache enabled, the system still return all the columns.
+
+2. When using Exec method, you should clear cache：
+
+```Go
+engine.Exec("update user set name = ? where id = ?", "xlw", 1)
+engine.ClearCache(new(User))
+```
+
+Cache implement theory below:
+
+![cache design](https://raw.github.com/lunny/xorm/master/docs/cache_design.png)
 
 <a name="130" id="130"></a>
-## 13.Mapping Rules 
+## 12.xorm tool
+xorm工具提供了xorm命令，能够帮助做很多事情。
 
-<a name="mapping" id="mapping"></a>
-1.Struct and struct's fields name should be Pascal style, and the table and column's name default is SQL style.
+### 12.1.Reverse command
+Please visit [xorm tool](https://github.com/lunny/xorm/tree/master/xorm)
 
-For example: 
+<a name="140" id="140"></a>
+## 13.Examples
 
-The struct's Name 'UserInfo' will turn into the table name 'user_info', the same as the keyname. If the keyname is 'UserName' will turn into the select colum 'user_name'
+请访问[https://github.com/lunny/xorm/tree/master/examples](https://github.com/lunny/xorm/tree/master/examples)
 
-2.If You want change the mapping rules, you have two methods. One is to implement your own Map struct interface according IMapper, you can find the interface in mapper.go and set it to engine.Mapper
+<a name="150" id="150"></a>
+## 14.Cases
 
-Another is use field tag, field tag support the below keywords which split with space:
+* [Gowalker](http://gowalker.org)，source [github.com/Unknwon/gowalker](http://github.com/Unknwon/gowalker)
 
-<table>
-    <tr>
-        <td>name</td><td>column name, if no this name, the name is auto generated according field name and mapper rule.</td>
-    </tr>
-    <tr>
-        <td>pk</td><td>the field is a primary key</td>
-    </tr>
-    <tr>
-        <td>more than 30 column type supported, please see [Column Type](https://github.com/lunny/xorm/blob/master/docs/COLUMNTYPE.md)</td><td>column type</td>
-    </tr>
-    <tr>
-        <td>autoincr</td><td>auto incrment</td>
-    </tr>
-    <tr>
-        <td>[not ]null</td><td>if column can be null value</td>
-    </tr>
-    <tr>
-        <td>unique or unique(uniquename)</td><td>unique or union unique as uniquename</td>
-    </tr>
-    <tr>
-        <td>index or index(indexname)</td><td>index or union index as indexname</td>
-    </tr>
-     <tr>
-        <td>extends</td><td>used in anonymous struct means mapping this struct's fields to table</td>
-    </tr>
-    <tr>
-        <td>-</td><td>this field is not map as a table column</td>
-    </tr>
-    <tr>
-        <td>-></td><td>this field only write to db and not read from db</td>
-    </tr>
-     <tr>
-        <td>&lt;-</td><td>this field only read from db and not write to db</td>
-    </tr>
-     <tr>
-        <td>created</td><td>this field will auto fill current time when insert</td>
-    </tr>
-     <tr>
-        <td>updated</td><td>this field will auto fill current time when update</td>
-    </tr>
-    <tr>
-        <td>default 0 or default 'abc'</td><td>default value, use single quote for string</td>
-    </tr>
-</table>
+* [GoDaily](http://godaily.org)，source [github.com/govc/godaily](http://github.com/govc/godaily)
 
-For Example
+* [Sudochina](http://sudochina.com) source [github.com/insionng/toropress](http://github.com/insionng/toropress)
 
-```Go
-type Userinfo struct {
-	Uid        int `xorm:"id pk not null autoincr"`
-	Username   string `xorm:"unique"`
-	Departname string
-	Alias      string `xorm:"-"`
-	Created    time.Time
-}
-```
+* [VeryHour](http://veryhour.com)
 
-3.For customize table name, use Table() function, for example:
-
-```Go
-// batch create tables
-for i := 0; i < 10; i++ {
-	engine.Table(fmt.Sprintf("user_%v", i)).CreateTable(&Userinfo{}) 
-}
-
-// insert into table according id
-user := Userinfo{Uid: 25, Username:"sslfs"}
-engine.Table(fmt.Sprintf("user_%v", user.Uid % 10)).Insert(&user)
-```
-
-<a name="140"></a>
-## 14.FAQ 
+<a name="160"></a>
+## 15.FAQ 
 
 1.How the xorm tag use both with json?
   
