@@ -6,6 +6,7 @@ xorm 快速入门
 	* [2.1.名称映射规则](#21)
 	* [2.2.使用Table和Tag改变名称映射](#22)
 	* [2.3.Column属性定义](#23)
+	* [2.4.默认字段类型](#24)
 * [3.表结构操作](#30)
 	* [3.1 获取数据库信息](#31)
 	* [3.2 表操作](#32)
@@ -70,8 +71,6 @@ xorm当前支持四种驱动如下：
 
 * Postgres: [github.com/lib/pq](https://github.com/lib/pq)
 
-* Postgres: [github.com/bylevel/pq](https://github.com/bylevel/pq)
-
 NewEngine传入的参数和`sql.Open`传入的参数完全相同，因此，使用哪个驱动前，请查看此驱动中关于传入参数的说明文档。
 
 在engine创建完成后可以进行一些设置，如：
@@ -98,7 +97,6 @@ engine.Logger = f
 
 * 如果需要设置连接池的空闲数大小，可以使用`engine.SetIdleConns()`来实现。
 * 如果需要设置最大打开连接数，则可以使用`engine.SetMaxConns()`来实现。
-
 
 <a name="20" id="20"></a>
 ## 2.定义表结构体
@@ -200,6 +198,13 @@ type Conversion interface {
 	ToDB() ([]byte, error)
 }
 ```
+
+<a name="24" id="24"></a>
+### 2.4.默认字段类型
+
+如果不使用tag来定义field对应的数据库字段类型，那么系统会自动给出一个默认的字段类型，对应表如下：
+
+[go类型<->数据库类型对应表](https://github.com/lunny/xorm/blob/master/docs/AutoMap.md)
 
 <a name="30" id="30"></a>
 ## 3.表结构操作
@@ -681,6 +686,10 @@ type account struct {
 money float64 `xorm:"Numeric"`
 }
 ```
+
+* 为什么Update时Sqlite3返回的affected和其它数据库不一样？
+
+答：Sqlite3默认Update时返回的是update的查询条件的记录数条数，不管记录是否真的有更新。而Mysql和Postgres默认情况下都是只返回记录中有字段改变的记录数。
 
 <a name="170" id="170"></a>
 ## 16.讨论

@@ -5,8 +5,9 @@
 /*
 Package xorm is a simple and powerful ORM for Go.
 
-
 Installation
+
+Make sure you have installed Go 1.1+ and then:
 
 	go get github.com/lunny/xorm
 
@@ -20,7 +21,7 @@ Method NewEngine's parameters is the same as sql.Open. It depends
 drivers' implementation.
 Generally, one engine is enough. You can set it as package variable.
 
-Usage
+Raw Methods
 
 Xorm also support raw sql execution:
 
@@ -31,6 +32,8 @@ Xorm also support raw sql execution:
 2. exec sql, the returned results
 
 	affected, err := engine.Exec("update user set .... where ...")
+
+ORM Methods
 
 There are 7 major ORM methods and many helpful methods to use to operate database.
 
@@ -77,7 +80,7 @@ There are 7 major ORM methods and many helpful methods to use to operate databas
 	counts, err := engine.Count(&user)
 	// SELECT count(*) AS total FROM user
 
-Condition
+Conditions
 
 The above 7 methods could use with condition methods.
 
@@ -85,6 +88,8 @@ The above 7 methods could use with condition methods.
 
 	engine.Id(1).Get(&user)
 	// SELECT * FROM user WHERE id = 1
+	engine.In("id", 1, 2, 3).Find(&users)
+	// SELECT * FROM user WHERE id IN (1, 2, 3)
 
 2. Where, And, Or
 
@@ -125,5 +130,6 @@ The above 7 methods could use with condition methods.
 	engine.Join("LEFT", "userdetail", "user.id=userdetail.id").Find()
 	//SELECT * FROM user LEFT JOIN userdetail ON user.id=userdetail.id
 
+More usage, please visit https://github.com/lunny/xorm/blob/master/docs/QuickStartEn.md
 */
 package xorm
