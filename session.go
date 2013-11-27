@@ -1533,6 +1533,9 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				}
 			} else if len(sdata) > 19 {
 				x, err = time.Parse(time.RFC3339Nano, sdata)
+				if err != nil {
+					x, err = time.Parse("2006-01-02 15:04:05.999999999", sdata)
+				}
 			} else if len(sdata) == 19 {
 				x, err = time.Parse("2006-01-02 15:04:05", sdata)
 			} else if len(sdata) == 10 && sdata[4] == '-' && sdata[7] == '-' {
