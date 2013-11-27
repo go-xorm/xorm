@@ -1525,8 +1525,11 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			sdata := strings.TrimSpace(string(data))
 			var x time.Time
 			var err error
-			// time stamp
-			if !strings.ContainsAny(sdata, "- :") {
+
+			if sdata == "0000-00-00 00:00:00" ||
+				sdata == "0001-01-01 00:00:00" {
+			} else if !strings.ContainsAny(sdata, "- :") {
+				// time stamp
 				sd, err := strconv.ParseInt(sdata, 10, 64)
 				if err == nil {
 					x = time.Unix(0, sd)
@@ -1546,9 +1549,6 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				}
 				st := fmt.Sprintf("2006-01-02 %v", sdata)
 				x, err = time.Parse("2006-01-02 15:04:05", st)
-			} else if sdata == "0000-00-00 00:00:00" {
-				var t time.Time
-				x = t
 			} else {
 				return errors.New(fmt.Sprintf("unsupported time format %v", string(data)))
 			}
