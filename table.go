@@ -272,15 +272,29 @@ type Table struct {
 	Columns    map[string]*Column
 	Indexes    map[string]*Index
 	PrimaryKey string
-	Created    string
+	Created    map[string]bool
 	Updated    string
 	Version    string
 	Cacher     Cacher
 }
 
+/*
+func NewTable(name string, t reflect.Type) *Table {
+	return &Table{Name: name, Type: t,
+		ColumnsSeq: make([]string, 0),
+		Columns:    make(map[string]*Column),
+		Indexes:    make(map[string]*Index),
+		Created:    make(map[string]bool),
+	}
+}*/
+
 // if has primary key, return column
 func (table *Table) PKColumn() *Column {
 	return table.Columns[table.PrimaryKey]
+}
+
+func (table *Table) VersionColumn() *Column {
+	return table.Columns[table.Version]
 }
 
 // add a column to table
@@ -291,7 +305,7 @@ func (table *Table) AddColumn(col *Column) {
 		table.PrimaryKey = col.Name
 	}
 	if col.IsCreated {
-		table.Created = col.Name
+		table.Created[col.Name] = true
 	}
 	if col.IsUpdated {
 		table.Updated = col.Name
@@ -311,7 +325,7 @@ func (table *Table) genCols(session *Session, bean interface{}, useCol bool, inc
 	args := make([]interface{}, 0)
 
 	for _, col := range table.Columns {
-		if useCol {
+		if useCol && !col.IsVersion && !col.IsCreated && !col.IsUpdated {
 			if _, ok := session.Statement.columnMap[col.Name]; !ok {
 				continue
 			}
@@ -338,6 +352,8 @@ func (table *Table) genCols(session *Session, bean interface{}, useCol bool, inc
 
 		if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
 			args = append(args, time.Now())
+		} else if col.IsVersion && session.Statement.checkVersion {
+			args = append(args, 1)
 		} else {
 			arg, err := session.value2Interface(col, fieldValue)
 			if err != nil {

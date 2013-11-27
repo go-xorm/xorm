@@ -92,3 +92,39 @@ func titleCasedName(name string) string {
 func (mapper SnakeMapper) Table2Obj(name string) string {
 	return titleCasedName(name)
 }
+
+// provide prefix table name support
+type PrefixMapper struct {
+	Mapper IMapper
+	Prefix string
+}
+
+func (mapper PrefixMapper) Obj2Table(name string) string {
+	return mapper.Prefix + mapper.Mapper.Obj2Table(name)
+}
+
+func (mapper PrefixMapper) Table2Obj(name string) string {
+	return mapper.Mapper.Table2Obj(name[len(mapper.Prefix):])
+}
+
+func NewPrefixMapper(mapper IMapper, prefix string) PrefixMapper {
+	return PrefixMapper{mapper, prefix}
+}
+
+// provide suffix table name support
+type SuffixMapper struct {
+	Mapper IMapper
+	Suffix string
+}
+
+func (mapper SuffixMapper) Obj2Table(name string) string {
+	return mapper.Suffix + mapper.Mapper.Obj2Table(name)
+}
+
+func (mapper SuffixMapper) Table2Obj(name string) string {
+	return mapper.Mapper.Table2Obj(name[len(mapper.Suffix):])
+}
+
+func NewSuffixMapper(mapper IMapper, suffix string) SuffixMapper {
+	return SuffixMapper{mapper, suffix}
+}

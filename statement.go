@@ -37,6 +37,7 @@ type Statement struct {
 	UseAutoTime   bool
 	IsDistinct    bool
 	allUseBool    bool
+	checkVersion  bool
 	boolColumnMap map[string]bool
 }
 
@@ -65,6 +66,7 @@ func (statement *Statement) Init() {
 	statement.IsDistinct = false
 	statement.allUseBool = false
 	statement.boolColumnMap = make(map[string]bool)
+	statement.checkVersion = true
 }
 
 // add the raw sql statement
@@ -164,7 +166,7 @@ func buildConditions(engine *Engine, table *Table, bean interface{}, includeVers
 		case reflect.Struct:
 			if fieldType == reflect.TypeOf(time.Now()) {
 				t := fieldValue.Interface().(time.Time)
-				if t.IsZero() {
+				if t.IsZero() || !fieldValue.IsValid() {
 					continue
 				}
 				var str string

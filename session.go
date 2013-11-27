@@ -1706,6 +1706,13 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			session.cacheInsert(session.Statement.TableName())
 		}
 
+		if table.Version != "" && session.Statement.checkVersion {
+			verValue := table.VersionColumn().ValueOf(bean)
+			if verValue.IsValid() && verValue.CanSet() {
+				verValue.SetInt(1)
+			}
+		}
+
 		if table.PrimaryKey == "" {
 			return res.RowsAffected()
 		}
@@ -1740,6 +1747,13 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 
 		if table.Cacher != nil && session.Statement.UseCache {
 			session.cacheInsert(session.Statement.TableName())
+		}
+
+		if table.Version != "" && session.Statement.checkVersion {
+			verValue := table.VersionColumn().ValueOf(bean)
+			if verValue.IsValid() && verValue.CanSet() {
+				verValue.SetInt(1)
+			}
 		}
 
 		if len(res) < 1 {
@@ -1916,7 +1930,13 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 				if col, ok := table.Columns[colName]; ok {
 					fieldValue := col.ValueOf(bean)
 					session.Engine.LogDebug("[xorm:cacheUpdate] set bean field", bean, colName, fieldValue.Interface())
-					fieldValue.Set(reflect.ValueOf(args[idx]))
+					if col.IsVersion && session.Statement.checkVersion {
+						fieldValue.SetInt(fieldValue.Int() + 1)
+						fmt.Println("-----", fieldValue)
+					} else {
+						fieldValue.Set(reflect.ValueOf(args[idx]))
+						fmt.Println("xxxxxx", fieldValue)
+					}
 				} else {
 					session.Engine.LogError("[xorm:cacheUpdate] ERROR: column %v is not table %v's",
 						colName, table.Name)
@@ -2001,27 +2021,38 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	st := session.Statement
 	defer session.Statement.Init()
 	if st.WhereStr != "" {
-		condition = fmt.Sprintf("WHERE %v", st.WhereStr)
+		condition = fmt.Sprintf("%v", st.WhereStr)
 	}
 
 	if condition == "" {
 		if len(condiColNames) > 0 {
-			condition = fmt.Sprintf("WHERE %v ", strings.Join(condiColNames, " and "))
+			condition = fmt.Sprintf("%v", strings.Join(condiColNames, " AND "))
 		}
 	} else {
 		if len(condiColNames) > 0 {
-			condition = fmt.Sprintf("%v and %v", condition, strings.Join(condiColNames, " and "))
+			condition = fmt.Sprintf("(%v) AND (%v)", condition, strings.Join(condiColNames, " AND "))
 		}
 	}
 
 	var sql string
-	if table.Version != "" {
+	if table.Version != "" && session.Statement.checkVersion {
+		if condition != "" {
+			condition = fmt.Sprintf("WHERE (%v) AND %v = ?", condition,
+				session.Engine.Quote(table.Version))
+		} else {
+			condition = fmt.Sprintf("WHERE %v = ?", session.Engine.Quote(table.Version))
+		}
 		sql = fmt.Sprintf("UPDATE %v SET %v, %v %v",
 			session.Engine.Quote(session.Statement.TableName()),
 			strings.Join(colNames, ", "),
 			session.Engine.Quote(table.Version)+" = "+session.Engine.Quote(table.Version)+" + 1",
 			condition)
+
+		condiArgs = append(condiArgs, table.VersionColumn().ValueOf(bean).Interface())
 	} else {
+		if condition != "" {
+			condition = "WHERE " + condition
+		}
 		sql = fmt.Sprintf("UPDATE %v SET %v %v",
 			session.Engine.Quote(session.Statement.TableName()),
 			strings.Join(colNames, ", "),
@@ -2034,6 +2065,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	if err != nil {
 		return 0, err
 	}
+
 	if table.Cacher != nil && session.Statement.UseCache {
 		session.cacheUpdate(sql, args...)
 	}

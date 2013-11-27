@@ -40,7 +40,8 @@ type dialect interface {
 // Engine is the major struct of xorm, it means a database manager.
 // Commonly, an application only need one engine
 type Engine struct {
-	Mapper         IMapper
+	columnMapper   IMapper
+	tableMapper    IMapper
 	TagIdentifier  string
 	DriverName     string
 	DataSourceName string
@@ -56,6 +57,19 @@ type Engine struct {
 	Logger         io.Writer
 	Cacher         Cacher
 	UseCache       bool
+}
+
+func (engine *Engine) SetMapper(mapper IMapper) {
+	engine.SetTableMapper(mapper)
+	engine.SetColumnMapper(mapper)
+}
+
+func (engine *Engine) SetTableMapper(mapper IMapper) {
+	engine.tableMapper = mapper
+}
+
+func (engine *Engine) SetColumnMapper(mapper IMapper) {
+	engine.columnMapper = mapper
 }
 
 // If engine's database support batch insert records like
@@ -396,13 +410,14 @@ func (engine *Engine) newTable() *Table {
 	table.Indexes = make(map[string]*Index)
 	table.Columns = make(map[string]*Column)
 	table.ColumnsSeq = make([]string, 0)
+	table.Created = make(map[string]bool)
 	table.Cacher = engine.Cacher
 	return table
 }
 
 func (engine *Engine) mapType(t reflect.Type) *Table {
 	table := engine.newTable()
-	table.Name = engine.Mapper.Obj2Table(t.Name())
+	table.Name = engine.tableMapper.Obj2Table(t.Name())
 	table.Type = t
 
 	var idFieldColName string
@@ -510,7 +525,7 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 					col.Length2 = col.SQLType.DefaultLength2
 				}
 				if col.Name == "" {
-					col.Name = engine.Mapper.Obj2Table(t.Field(i).Name)
+					col.Name = engine.columnMapper.Obj2Table(t.Field(i).Name)
 				}
 				if indexType == IndexType {
 					if indexName == "" {
@@ -542,7 +557,7 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 			}
 		} else {
 			sqlType := Type2SQLType(fieldType)
-			col = &Column{engine.Mapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
+			col = &Column{engine.columnMapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
 				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", make(map[string]bool), false, false,
 				TWOSIDES, false, false, false, false}
 		}

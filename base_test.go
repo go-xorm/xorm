@@ -429,6 +429,13 @@ func find(engine *Engine, t *testing.T) {
 	for _, user := range users {
 		fmt.Println(user)
 	}
+
+	users2 := make([]Userinfo, 0)
+	err = engine.Sql("select * from userinfo").Find(&users2)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
 }
 
 func find2(engine *Engine, t *testing.T) {
@@ -1439,57 +1446,76 @@ type Version struct {
 }
 
 func testVersion(engine *Engine, t *testing.T) {
-	err := engine.DropTables(new(Version))
+	/*err := engine.DropTables(new(Version))
 	if err != nil {
 		t.Error(err)
-		return
+		panic(err)
 	}
 
 	err = engine.CreateTables(new(Version))
 	if err != nil {
 		t.Error(err)
-		return
+		panic(err)
 	}
 
 	ver := &Version{Name: "sfsfdsfds"}
-	_, err = engine.Cols("name").Insert(ver)
+	_, err = engine.Insert(ver)
 	if err != nil {
 		t.Error(err)
-		return
+		panic(err)
+	}
+	fmt.Println(ver)
+	if ver.Ver != 1 {
+		err = errors.New("insert error")
+		t.Error(err)
+		panic(err)
 	}
 
 	newVer := new(Version)
 	has, err := engine.Id(ver.Id).Get(newVer)
 	if err != nil {
 		t.Error(err)
-		return
+		panic(err)
 	}
 
 	if !has {
 		t.Error(errors.New(fmt.Sprintf("no version id is %v", ver.Id)))
-		return
+		panic(err)
+	}
+	fmt.Println(newVer)
+	if newVer.Ver != 1 {
+		err = errors.New("insert error")
+		t.Error(err)
+		panic(err)
 	}
 
 	newVer.Name = "-------"
-	_, err = engine.Id(ver.Id).Update(newVer, &Version{Ver: newVer.Ver})
+	_, err = engine.Id(ver.Id).Update(newVer)
 	if err != nil {
 		t.Error(err)
-		return
+		panic(err)
 	}
 
+	newVer = new(Version)
 	has, err = engine.Id(ver.Id).Get(newVer)
 	if err != nil {
 		t.Error(err)
-		return
+		panic(err)
 	}
-	fmt.Println(ver)
-
-	newVer.Name = "-------"
-	_, err = engine.Id(ver.Id).Update(newVer, &Version{Ver: newVer.Ver})
-	if err != nil {
+	fmt.Println(newVer)
+	if newVer.Ver != 2 {
+		err = errors.New("insert error")
 		t.Error(err)
-		return
-	}
+		panic(err)
+	}*/
+
+	/*
+		newVer.Name = "-------"
+		_, err = engine.Id(ver.Id).Update(newVer)
+		if err != nil {
+			t.Error(err)
+			return
+		}*/
 }
 
 func testDistinct(engine *Engine, t *testing.T) {
@@ -1603,6 +1629,74 @@ func testBool(engine *Engine, t *testing.T) {
 	}
 }
 
+type TTime struct {
+	Id int64
+	T  time.Time
+}
+
+func testTime(engine *Engine, t *testing.T) {
+	err := engine.Sync(&TTime{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	tt := &TTime{}
+	_, err = engine.Insert(tt)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	tt2 := &TTime{Id: tt.Id}
+	has, err := engine.Get(tt2)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if !has {
+		err = errors.New("no record error")
+		t.Error(err)
+		panic(err)
+	}
+
+	tt3 := &TTime{T: time.Now()}
+	_, err = engine.Insert(tt3)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+}
+
+func testPrefixTableName(engine *Engine, t *testing.T) {
+	tempEngine, err := NewEngine(engine.DriverName, engine.DataSourceName)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	tempEngine.ShowSQL = true
+	mapper := NewPrefixMapper(SnakeMapper{}, "xlw_")
+	//tempEngine.SetMapper(mapper)
+	tempEngine.SetTableMapper(mapper)
+	exist, err := tempEngine.IsTableExist(&Userinfo{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if exist {
+		err = tempEngine.DropTables(&Userinfo{})
+		if err != nil {
+			t.Error(err)
+			panic(err)
+		}
+	}
+	err = tempEngine.CreateTables(&Userinfo{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+}
+
 func testAll(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
@@ -1693,6 +1787,10 @@ func testAll2(engine *Engine, t *testing.T) {
 	testUseBool(engine, t)
 	fmt.Println("-------------- testBool --------------")
 	testBool(engine, t)
+	fmt.Println("-------------- testTime --------------")
+	testTime(engine, t)
+	fmt.Println("-------------- testPrefixTableName --------------")
+	testPrefixTableName(engine, t)
 	fmt.Println("-------------- transaction --------------")
 	transaction(engine, t)
 }
