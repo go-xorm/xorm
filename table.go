@@ -42,10 +42,11 @@ var (
 	Binary     = "BINARY"
 	VarBinary  = "VARBINARY"
 
-	Date      = "DATE"
-	DateTime  = "DATETIME"
-	Time      = "TIME"
-	TimeStamp = "TIMESTAMP"
+	Date       = "DATE"
+	DateTime   = "DATETIME"
+	Time       = "TIME"
+	TimeStamp  = "TIMESTAMP"
+	TimeStampz = "TIMESTAMPZ"
 
 	Decimal = "DECIMAL"
 	Numeric = "NUMERIC"
@@ -83,10 +84,11 @@ var (
 		Binary:     true,
 		VarBinary:  true,
 
-		Date:      true,
-		DateTime:  true,
-		Time:      true,
-		TimeStamp: true,
+		Date:       true,
+		DateTime:   true,
+		Time:       true,
+		TimeStamp:  true,
+		TimeStampz: true,
 
 		Decimal: true,
 		Numeric: true,
@@ -122,7 +124,7 @@ func Type2SQLType(t reflect.Type) (st SQLType) {
 		st = SQLType{Double, 0, 0}
 	case reflect.Complex64, reflect.Complex128:
 		st = SQLType{Varchar, 64, 0}
-	case reflect.Array, reflect.Slice:
+	case reflect.Array, reflect.Slice, reflect.Map:
 		if t.Elem() == reflect.TypeOf(b) {
 			st = SQLType{Blob, 0, 0}
 		} else {
@@ -162,7 +164,7 @@ func SQLType2Type(st SQLType) reflect.Type {
 		return reflect.TypeOf([]byte{})
 	case Bool:
 		return reflect.TypeOf(true)
-	case DateTime, Date, Time, TimeStamp:
+	case DateTime, Date, Time, TimeStamp, TimeStampz:
 		return reflect.TypeOf(tm)
 	case Decimal, Numeric:
 		return reflect.TypeOf("")

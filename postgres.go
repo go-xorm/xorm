@@ -72,6 +72,8 @@ func (db *postgres) SqlType(c *Column) string {
 		return Bytea
 	case DateTime:
 		res = TimeStamp
+	case TimeStampz:
+		return "timestamp with time zone"
 	case Float:
 		res = Real
 	case TinyText, MediumText, LongText:
@@ -180,6 +182,8 @@ func (db *postgres) GetColumns(tableName string) ([]string, map[string]*Column, 
 					col.SQLType = SQLType{Varchar, 0, 0}
 				case "timestamp without time zone":
 					col.SQLType = SQLType{DateTime, 0, 0}
+				case "timestamp with time zone":
+					col.SQLType = SQLType{TimeStampz, 0, 0}
 				case "double precision":
 					col.SQLType = SQLType{Double, 0, 0}
 				case "boolean":

@@ -90,6 +90,9 @@ func (db *mysql) SqlType(c *Column) string {
 		res = BigInt
 	case Bytea:
 		res = Blob
+	case TimeStampz:
+		res = Char
+		c.Length = 64
 	default:
 		res = t
 	}

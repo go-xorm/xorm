@@ -18,6 +18,8 @@ func (db *sqlite3) SqlType(c *Column) string {
 	switch t := c.SQLType.Name; t {
 	case Date, DateTime, TimeStamp, Time:
 		return Numeric
+	case TimeStampz:
+		return Text
 	case Char, Varchar, TinyText, Text, MediumText, LongText:
 		return Text
 	case Bit, TinyInt, SmallInt, MediumInt, Int, Integer, BigInt, Bool:

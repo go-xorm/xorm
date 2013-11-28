@@ -1632,6 +1632,7 @@ func testBool(engine *Engine, t *testing.T) {
 type TTime struct {
 	Id int64
 	T  time.Time
+	Tz time.Time `xorm:"timestampz"`
 }
 
 func testTime(engine *Engine, t *testing.T) {
@@ -1660,12 +1661,20 @@ func testTime(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 
-	tt3 := &TTime{T: time.Now()}
+	tt3 := &TTime{T: time.Now(), Tz: time.Now()}
 	_, err = engine.Insert(tt3)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
+
+	tt4s := make([]TTime, 0)
+	err = engine.Find(&tt4s)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println("=======\n", tt4s, "=======\n")
 }
 
 func testPrefixTableName(engine *Engine, t *testing.T) {

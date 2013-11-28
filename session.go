@@ -1622,6 +1622,8 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 				return s[11:19], nil
 			} else if col.SQLType.Name == Date {
 				return fieldValue.Interface().(time.Time).Format("2006-01-02"), nil
+			} else if col.SQLType.Name == TimeStampz {
+				return fieldValue.Interface().(time.Time).Format(time.RFC3339Nano), nil
 			}
 			return fieldValue.Interface(), nil
 		}
