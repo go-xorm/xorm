@@ -2072,7 +2072,9 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	}
 
 	if table.Cacher != nil && session.Statement.UseCache {
-		session.cacheUpdate(sql, args...)
+		//session.cacheUpdate(sql, args...)
+		table.Cacher.ClearIds(session.Statement.TableName())
+		table.Cacher.ClearBeans(session.Statement.TableName())
 	}
 
 	return res.RowsAffected()

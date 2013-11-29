@@ -1446,7 +1446,7 @@ type Version struct {
 }
 
 func testVersion(engine *Engine, t *testing.T) {
-	/*err := engine.DropTables(new(Version))
+	err := engine.DropTables(new(Version))
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -1507,7 +1507,7 @@ func testVersion(engine *Engine, t *testing.T) {
 		err = errors.New("insert error")
 		t.Error(err)
 		panic(err)
-	}*/
+	}
 
 	/*
 		newVer.Name = "-------"

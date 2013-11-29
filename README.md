@@ -22,6 +22,9 @@ Xorm is a simple and powerful ORM for Go.
 
 * Simple cascade loading support
 
+* Optimistic Locking support
+
+
 # Drivers Support
 
 Drivers for Go's sql package which currently support database/sql includes:
@@ -37,6 +40,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 # Changelog
 
+* **v0.2.3** : Improved documents; Optimistic Locking support; Timestamp with time zone support; Mapper change to tableMapper and columnMapper & added PrefixMapper & SuffixMapper support custom table or column name's prefix and suffix;Insert now return affected, err instead of id, err; Added UseBool & Distinct;
 * **v0.2.2** : Postgres drivers now support lib/pq; Added method Iterate for record by record to handler；Added SetMaxConns(go1.2+) support; some bugs fixed.
 * **v0.2.1** : Added database reverse tool, now support generate go & c++ codes, see [Xorm Tool README](https://github.com/lunny/xorm/blob/master/xorm/README.md); some bug fixed.
 * **v0.2.0** : Added Cache supported, select is speeder up 3~5x; Added SameMapper for same name between struct and table; Added Sync method for auto added tables, columns, indexes;

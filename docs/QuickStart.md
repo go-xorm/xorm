@@ -21,6 +21,7 @@ xorm 快速入门
 	* [5.5.Iterate方法](#65)
 	* [5.6.Count方法](#66)
 * [6.更新数据](#70)
+* [6.1.乐观锁](#71)
 * [7.删除数据](#80)
 * [8.执行SQL查询](#90)
 * [9.执行SQL命令](#100)
@@ -176,6 +177,9 @@ type User struct {
     </tr>
      <tr>
         <td>updated</td><td>这个Field将在Insert或Update时自动赋值为当前时间</td>
+    </tr>
+     <tr>
+        <td>version</td><td>这个Field将会在insert时默认为1，每次更新自动加1</td>
     </tr>
     <tr>
         <td>default 0</td><td>设置默认值，紧跟的内容如果是Varchar等需要加上单引号</td>
@@ -516,6 +520,26 @@ affected, err := engine.Id(id).Cols("age").Update(&user)
 2. 通过传入map[string]interface{}来进行更新，但这时需要额外指定更新到哪个表，因为通过map是无法自动检测更新哪个表的。
 ```Go
 affected, err := engine.Table(new(User)).Id(id).Update(map[string]interface{}{"age":0})
+```
+
+<a name="71" id="71"></a>
+### 6.1.乐观锁
+
+要使用乐观锁，需要使用version标记
+type User struct {
+	Id int64
+	Name string
+	Version int `xorm:"version"`
+}
+
+在Insert时，version标记的字段将会被设置为1，在Update时，Update的内容必须包含version原来的值。
+
+```Go
+var user User
+engine.Id(1).Get(&user)
+// SELECT * FROM user WHERE id = ?
+engine.Id(1).Update(&user)
+// UPDATE user SET ..., version = version + 1 WHERE id = ? AND version = ?
 ```
 
 <a name="80" id="80"></a>

@@ -20,6 +20,7 @@ Quick Start
 	* [5.5.Iterate](#65)
 	* [5.6.Count](#66)
 * [6.Update records](#70)
+* [6.1.Optimistic Locking](#71)
 * [7.Delete records](#80)
 * [8.Execute SQL command](#90)
 * [9.Execute SQL query](#100)
@@ -171,10 +172,13 @@ type User struct {
         <td>&lt;-</td><td>这个Field将只从数据库读取，而不写入到数据库</td>
     </tr>
      <tr>
-        <td>created</td><td>这个Field将在Insert时自动赋值为当前时间</td>
+        <td>created</td><td>This field will be filled in current time on insert</td>
     </tr>
      <tr>
-        <td>updated</td><td>这个Field将在Insert或Update时自动赋值为当前时间</td>
+        <td>updated</td><td>This field will be filled in current time on insert or update</td>
+    </tr>
+    <tr>
+        <td>version</td><td>This field will be filled 1 on insert and autoincrement on update</td>
     </tr>
     <tr>
         <td>default 0</td><td>设置默认值，紧跟的内容如果是Varchar等需要加上单引号</td>
@@ -501,6 +505,27 @@ affected, err := engine.Id(id).Cols("age").Update(&user)
 ```Go
 affected, err := engine.Table(new(User)).Id(id).Update(map[string]interface{}{"age":0})
 ```
+
+
+### 6.1.乐观锁
+
+要使用乐观锁，需要使用version标记
+type User struct {
+	Id int64
+	Name string
+	Version int `xorm:"version"`
+}
+
+在Insert时，version标记的字段将会被设置为1，在Update时，Update的内容必须包含version原来的值。
+
+```Go
+var user User
+engine.Id(1).Get(&user)
+// SELECT * FROM user WHERE id = ?
+engine.Id(1).Update(&user)
+// UPDATE user SET ..., version = version + 1 WHERE id = ? AND version = ?
+```
+
 
 <a name="80" id="80"></a>
 ## 7.Delete one or more records
