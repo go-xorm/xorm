@@ -1,5 +1,6 @@
 ## 更新日志
 
+* **v0.2.3** : 改善了文档；提供了乐观锁支持；添加了带时区时间字段支持；Mapper现在分成表名Mapper和字段名Mapper，同时实现了表或字段的自定义前缀后缀；Insert方法的返回值含义从id, err更改为 affected, err，请大家注意；添加了UseBool 和 Distinct函数。
 * **v0.2.2** : Postgres驱动新增了对lib/pq的支持；新增了逐条遍历方法Iterate；新增了SetMaxConns(go1.2+)支持，修复了bug若干；
 * **v0.2.1** : 新增数据库反转工具，当前支持go和c++代码的生成，详见 [Xorm Tool README](https://github.com/lunny/xorm/blob/master/xorm/README.md); 修复了一些bug.
 * **v0.2.0** : 新增 [缓存](https://github.com/lunny/xorm/blob/master/docs/QuickStart.md#120)支持，查询速度提升3-5倍； 新增数据库表和Struct同名的映射方式； 新增Sync同步表结构；
