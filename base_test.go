@@ -1706,6 +1706,165 @@ func testPrefixTableName(engine *Engine, t *testing.T) {
 	}
 }
 
+type ProcessorsStruct struct {
+	Id int64
+	
+	B4InsertFlag bool
+	AfterInsertedFlag bool 
+	B4UpdateFlag bool
+	AfterUpdatedFlag bool
+	B4DeleteFlag bool `xorm:"-"`
+	AfterDeletedFlag bool `xorm:"-"`
+
+	B4InsertViaExt bool
+	AfterInsertedViaExt bool 
+	B4UpdateViaExt bool
+	AfterUpdatedViaExt bool
+	B4DeleteViaExt bool `xorm:"-"`
+	AfterDeletedViaExt bool `xorm:"-"`
+}
+
+func (p *ProcessorsStruct) BeforeInsert() {
+	p.B4InsertFlag = true
+}
+
+func (p *ProcessorsStruct) BeforeUpdate() {
+	p.B4UpdateFlag = true
+}
+
+func (p *ProcessorsStruct) BeforeDelete() {
+	p.B4DeleteFlag = true
+}
+
+func (p *ProcessorsStruct) AfterInsert() {
+	p.AfterInsertedFlag = true
+}
+
+func (p *ProcessorsStruct) AfterUpdate() {
+	p.AfterUpdatedFlag = true
+}
+
+func (p *ProcessorsStruct) AfterDelete() {
+	p.AfterDeletedFlag = true
+}
+
+func testProcessors(engine *Engine, t *testing.T) {
+	err := engine.Sync(&ProcessorsStruct{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	p := &ProcessorsStruct{}
+	b4InsertFunc := func(bean interface{}) {
+		if v, ok := interface{}(bean).(ProcessorsStruct); ok {
+			v.B4InsertViaExt = true
+		} else {
+			t.Fail()
+		}
+	}
+
+	afterInsertFunc := func(bean interface{}) {
+		if v, ok := interface{}(bean).(ProcessorsStruct); ok {
+			v.AfterInsertedViaExt = true
+		} else {
+			t.Fail()
+		}
+	}
+		
+	_, err = engine.BeforeInsert(b4InsertFunc).AfterInsert(afterInsertFunc).Insert(p)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	} else {
+		if !p.B4InsertFlag { t.Fail() }
+		if !p.AfterInsertedFlag { t.Fail() }
+		if !p.B4InsertViaExt { t.Fail() }
+		if !p.AfterInsertedViaExt { t.Fail() }
+	}
+		
+	p2 := &ProcessorsStruct{}
+	_, err = engine.Id(p.Id).Get(p2)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	} else {
+		if !p.B4InsertFlag { t.Fail() }
+		if p.AfterInsertedFlag { t.Fail() }
+		if !p.B4InsertViaExt { t.Fail() }
+		if p.AfterInsertedViaExt { t.Fail() }
+	}
+
+	b4UpdateFunc := func(bean interface{}) {
+		if v, ok := interface{}(bean).(ProcessorsStruct); ok {
+			v.B4UpdateViaExt = true
+		} else {
+			t.Fail()
+		}
+	}
+
+	afterUpdateFunc := func(bean interface{}) {
+		if v, ok := interface{}(bean).(ProcessorsStruct); ok {
+			v.AfterUpdatedViaExt = true
+		} else {
+			t.Fail()
+		}
+	}
+
+	_, err = engine.BeforeUpdate(b4UpdateFunc).AfterUpdate(afterUpdateFunc).Update(p)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	} else {
+		if !p.B4UpdateFlag { t.Fail() }
+		if !p.AfterUpdatedFlag { t.Fail() }
+		if !p.B4UpdateViaExt { t.Fail() }
+		if !p.AfterUpdatedViaExt { t.Fail() }
+	}
+		
+	_, err = engine.Id(p.Id).Get(p2)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	} else {
+		if !p.B4UpdateFlag { t.Fail() }
+		if p.AfterUpdatedFlag { t.Fail() }
+		if !p.B4UpdateViaExt { t.Fail() }
+		if p.AfterUpdatedViaExt { t.Fail() }
+	}
+
+	b4DeleteFunc := func(bean interface{}) {
+		if v, ok := interface{}(bean).(ProcessorsStruct); ok {
+			v.B4DeleteViaExt = true
+		} else {
+			t.Fail()
+		}
+	}
+
+	afterDeleteFunc := func(bean interface{}) {
+		if v, ok := interface{}(bean).(ProcessorsStruct); ok {
+			v.AfterDeletedViaExt = true
+		} else {
+			t.Fail()
+		}
+	}
+
+		
+	_, err = engine.BeforeDelete(b4DeleteFunc).AfterDelete(afterDeleteFunc).Delete(p)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	} else {
+		if !p.B4DeleteFlag { t.Fail() }
+		if !p.AfterDeletedFlag { t.Fail() }
+		if !p.B4DeleteViaExt { t.Fail() }
+		if !p.AfterDeletedViaExt { t.Fail() }
+	}
+
+	// !nashtsai! TODO insert many beans tests
+	
+}
+
 func testAll(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
@@ -1802,4 +1961,6 @@ func testAll2(engine *Engine, t *testing.T) {
 	testPrefixTableName(engine, t)
 	fmt.Println("-------------- transaction --------------")
 	transaction(engine, t)
+	fmt.Println("-------------- processors --------------")
+	testProcessors(engine, t)
 }
