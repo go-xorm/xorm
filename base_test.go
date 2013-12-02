@@ -1706,6 +1706,48 @@ func testPrefixTableName(engine *Engine, t *testing.T) {
 	}
 }
 
+type CreatedUpdated struct {
+	Id       int64
+	Name     string
+	Value    float64   `xorm:"numeric"`
+	Created  time.Time `xorm:"created"`
+	Created2 time.Time `xorm:"created"`
+	Updated  time.Time `xorm:"updated"`
+}
+
+func testCreatedUpdated(engine *Engine, t *testing.T) {
+	err := engine.Sync(&CreatedUpdated{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	c := &CreatedUpdated{Name: "test"}
+	_, err = engine.Insert(c)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	c2 := new(CreatedUpdated)
+	has, err := engine.Id(c.Id).Get(c2)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if !has {
+		panic(errors.New("no id"))
+	}
+
+	c2.Value -= 1
+	_, err = engine.Id(c2.Id).Update(c2)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+}
+
 func testAll(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
@@ -1800,6 +1842,8 @@ func testAll2(engine *Engine, t *testing.T) {
 	testTime(engine, t)
 	fmt.Println("-------------- testPrefixTableName --------------")
 	testPrefixTableName(engine, t)
+	fmt.Println("-------------- testCreatedUpdated --------------")
+	testCreatedUpdated(engine, t)
 	fmt.Println("-------------- transaction --------------")
 	transaction(engine, t)
 }
