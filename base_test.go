@@ -1771,7 +1771,7 @@ func testProcessors(engine *Engine, t *testing.T) {
 	p := &ProcessorsStruct{}
 
 	b4InsertFunc := func(bean interface{}) {
-		if v, ok := interface{}(bean).(*ProcessorsStruct); ok {
+		if v, ok := (bean).(*ProcessorsStruct); ok {
 			v.B4InsertViaExt = 1
 		} else {
 			t.Error(errors.New("cast to ProcessorsStruct failed, how can this be!?"))
@@ -1779,7 +1779,7 @@ func testProcessors(engine *Engine, t *testing.T) {
 	}
 
 	afterInsertFunc := func(bean interface{}) {
-		if v, ok := interface{}(bean).(*ProcessorsStruct); ok {
+		if v, ok := (bean).(*ProcessorsStruct); ok {
 			v.AfterInsertedViaExt = 1
 		} else {
 			t.Error(errors.New("cast to ProcessorsStruct failed, how can this be!?"))
@@ -1810,7 +1810,7 @@ func testProcessors(engine *Engine, t *testing.T) {
 	}
 
 	b4UpdateFunc := func(bean interface{}) {
-		if v, ok := interface{}(bean).(*ProcessorsStruct); ok {
+		if v, ok := (bean).(*ProcessorsStruct); ok {
 			v.B4UpdateViaExt = 1
 		} else {
 			t.Error(errors.New("cast to ProcessorsStruct failed, how can this be!?"))
@@ -1818,7 +1818,7 @@ func testProcessors(engine *Engine, t *testing.T) {
 	}
 
 	afterUpdateFunc := func(bean interface{}) {
-		if v, ok := interface{}(bean).(*ProcessorsStruct); ok {
+		if v, ok := (bean).(*ProcessorsStruct); ok {
 			v.AfterUpdatedViaExt = 1
 		} else {
 			t.Error(errors.New("cast to ProcessorsStruct failed, how can this be!?"))
@@ -1851,7 +1851,7 @@ func testProcessors(engine *Engine, t *testing.T) {
 	}
 
 	b4DeleteFunc := func(bean interface{}) {
-		if v, ok := interface{}(bean).(*ProcessorsStruct); ok {
+		if v, ok := (bean).(*ProcessorsStruct); ok {
 			v.B4DeleteViaExt = 1
 		} else {
 			t.Error(errors.New("cast to ProcessorsStruct failed, how can this be!?"))
@@ -1859,7 +1859,7 @@ func testProcessors(engine *Engine, t *testing.T) {
 	}
 
 	afterDeleteFunc := func(bean interface{}) {
-		if v, ok := interface{}(bean).(*ProcessorsStruct); ok {
+		if v, ok := (bean).(*ProcessorsStruct); ok {
 			v.AfterDeletedViaExt = 1
 		} else {
 			t.Error(errors.New("cast to ProcessorsStruct failed, how can this be!?"))
