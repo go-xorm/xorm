@@ -272,47 +272,19 @@ func (engine *Engine) Id(id int64) *Session {
 	return session.Id(id)
 }
 
-// Apply before insert Processor, affected bean is passed to closure arg
-func (engine *Engine) BeforeInsert(closures func(interface{})) *Session {
+// Apply before Processor, affected bean is passed to closure arg
+func (engine *Engine) Before(closures func(interface{})) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
-	return session.BeforeInsert(closures)
-} 
-
-// Apply before update Processor, affected bean is passed to closure arg
-func (engine *Engine) BeforeUpdate(closures func(interface{})) *Session {
-	session := engine.NewSession()
-	session.IsAutoClose = true
-	return session.BeforeUpdate(closures)
-} 
-
-// Apply before delete Processor, affected bean is passed to closure arg
-func (engine *Engine) BeforeDelete(closures func(interface{})) *Session {
-	session := engine.NewSession()
-	session.IsAutoClose = true
-	return session.BeforeDelete(closures)
+	return session.Before(closures)
 } 
 
 // Apply after insert Processor, affected bean is passed to closure arg
-func (engine *Engine) AfterInsert(closures func(interface{})) *Session {
+func (engine *Engine) After(closures func(interface{})) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
-	return session.AfterInsert(closures)
+	return session.After(closures)
 } 
-
-// Apply after update Processor, affected bean is passed to closure arg
-func (engine *Engine) AfterUpdate(closures func(interface{})) *Session {
-	session := engine.NewSession()
-	session.IsAutoClose = true
-	return session.AfterUpdate(closures)
-} 
-
-// Apply after delete Processor, affected bean is passed to closure arg
-func (engine *Engine) AfterDelete(closures func(interface{})) *Session {
-	session := engine.NewSession()
-	session.IsAutoClose = true
-	return session.AfterDelete(closures)
-}
 
 // set charset when create table, only support mysql now
 func (engine *Engine) Charset(charset string) *Session {

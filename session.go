@@ -29,12 +29,8 @@ type Session struct {
 	afterDeleteBeans []interface{}
 	// --
 	
-	beforeInsertClosures []func(interface{})
-	beforeUpdateClosures []func(interface{})
-	beforeDeleteClosures []func(interface{})
-	afterInsertClosures []func(interface{})
-	afterUpdateClosures []func(interface{})
-	afterDeleteClosures []func(interface{})
+	beforeClosures []func(interface{})
+	afterClosures []func(interface{})
 }
 
 // Method Init reset the session as the init status.
@@ -49,12 +45,8 @@ func (session *Session) Init() {
 	session.afterInsertBeans = make([]interface{}, 0)
 	session.afterUpdateBeans = make([]interface{}, 0)
 	session.afterDeleteBeans = make([]interface{}, 0)
-	session.beforeInsertClosures = make([]func(interface{}), 0)
-	session.beforeUpdateClosures = make([]func(interface{}), 0)
-	session.beforeDeleteClosures = make([]func(interface{}), 0)
-	session.afterInsertClosures = make([]func(interface{}), 0)
-	session.afterUpdateClosures = make([]func(interface{}), 0)	
-	session.afterDeleteClosures = make([]func(interface{}), 0)
+	session.beforeClosures = make([]func(interface{}), 0)
+	session.afterClosures = make([]func(interface{}), 0)
 }
 
 // Method Close release the connection from pool
@@ -100,53 +92,21 @@ func (session *Session) Id(id int64) *Session {
 	return session
 }
 
-// Apply before insert Processor, affected bean is passed to closure arg
-func (session *Session) BeforeInsert(closures func(interface{})) *Session {
+// Apply before Processor, affected bean is passed to closure arg
+func (session *Session) Before(closures func(interface{})) *Session {
 	if closures != nil {
-		session.beforeInsertClosures = append(session.beforeInsertClosures, closures)
+		session.beforeClosures = append(session.beforeClosures, closures)
 	}
 	return session
 } 
 
-// Apply before update Processor, affected bean is passed to closure arg
-func (session *Session) BeforeUpdate(closures func(interface{})) *Session {
+// Apply after Processor, affected bean is passed to closure arg
+func (session *Session) After(closures func(interface{})) *Session {
 	if closures != nil {
-		session.beforeUpdateClosures = append(session.beforeUpdateClosures, closures)
+		session.afterClosures = append(session.afterClosures, closures)
 	}
 	return session
-} 
-
-// Apply before delete Processor, affected bean is passed to closure arg
-func (session *Session) BeforeDelete(closures func(interface{})) *Session {
-	if closures != nil {
-		session.beforeDeleteClosures = append(session.beforeDeleteClosures, closures)
-	}
-	return session
-} 
-
-// Apply after insert Processor, affected bean is passed to closure arg
-func (session *Session) AfterInsert(closures func(interface{})) *Session {
-	if closures != nil {
-		session.afterInsertClosures = append(session.afterInsertClosures, closures)
-	}
-	return session
-} 
-
-// Apply after update Processor, affected bean is passed to closure arg
-func (session *Session) AfterUpdate(closures func(interface{})) *Session {
-	if closures != nil {
-		session.afterUpdateClosures = append(session.afterUpdateClosures, closures)
-	}
-	return session
-} 
-
-// Apply after delete Processor, affected bean is passed to closure arg
-func (session *Session) AfterDelete(closures func(interface{})) *Session {
-	if closures != nil {
-		session.afterDeleteClosures = append(session.afterDeleteClosures, closures)
-	}
-	return session
-} 
+}
 
 // Method Table can input a string or pointer to struct for special a table to operate.
 func (session *Session) Table(tableNameOrBean interface{}) *Session {
@@ -324,12 +284,10 @@ func (session *Session) Commit() error {
 		session.Engine.LogSQL("COMMIT")
 		session.IsCommitedOrRollbacked = true
 		var err error
-		
-		
 		if err = session.Tx.Commit(); err == nil { 
 			// handle processors after tx committed
 			for _, elem := range session.afterInsertBeans {
-				for _, closure := range session.afterInsertClosures {
+				for _, closure := range session.afterClosures {
 					closure(elem)
 				}
 				
@@ -338,7 +296,7 @@ func (session *Session) Commit() error {
 				}
 			}
 			for _, elem := range session.afterUpdateBeans {
-				for _, closure := range session.afterUpdateClosures {
+				for _, closure := range session.afterClosures {
 					closure(elem)
 				}
 				if processor, ok := interface{}(elem).(AfterUpdateProcessor); ok {
@@ -346,7 +304,7 @@ func (session *Session) Commit() error {
 				}
 			}
 			for _, elem := range session.afterDeleteBeans {
-				for _, closure := range session.afterDeleteClosures {
+				for _, closure := range session.afterClosures {
 					closure(elem)
 				}			 
 				if processor, ok := interface{}(elem).(AfterDeleteProcessor); ok {
@@ -367,10 +325,8 @@ func (session *Session) Commit() error {
 			cleanUpFunc(&session.afterUpdateBeans)
 			cleanUpFunc(&session.afterDeleteBeans)
 
-			// !nash! shoule session based processors get cleanup?
-			cleanUpProcessorsFunc(&session.afterInsertClosures)
-			cleanUpProcessorsFunc(&session.afterUpdateClosures)
-			cleanUpProcessorsFunc(&session.afterDeleteClosures)
+			// !nash! should session based processors get cleanup?
+			cleanUpProcessorsFunc(&session.afterClosures)
 		} 
 		return err
 	}
@@ -1456,7 +1412,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 		colPlaces := make([]string, 0)
 		
 		// handle BeforeInsertProcessor
-		for _, closure := range session.beforeInsertClosures {
+		for _, closure := range session.beforeClosures {
 			closure(elemValue)
 		}
 
@@ -1542,19 +1498,19 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 		session.cacheInsert(session.Statement.TableName())
 	}
 	
-	hasAfterInsertClosures := len(session.afterInsertClosures) > 0 
+	hasAfterClosures := len(session.afterClosures) > 0 
 	for i := 0; i < size; i++ {
 		elemValue := sliceValue.Index(i).Interface()
 		// handle AfterInsertProcessor
 		if session.IsAutoCommit {
-			for _, closure := range session.afterInsertClosures {
+			for _, closure := range session.afterClosures {
 				closure(elemValue)
 			}
 			if processor, ok := interface{}(elemValue).(AfterInsertProcessor); ok {
 				processor.AfterInsert()
 			}
 		} else {
-			if hasAfterInsertClosures {
+			if hasAfterClosures {
 				session.afterInsertBeans = append(session.afterInsertBeans, elemValue)				
 			} else {
 				if _, ok := interface{}(elemValue).(AfterInsertProcessor); ok {
@@ -1837,7 +1793,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	session.Statement.RefTable = table
 
 	// handle BeforeInsertProcessor
-	for _, closure := range session.beforeInsertClosures {
+	for _, closure := range session.beforeClosures {
 		closure(bean)
 	}
 	if processor, ok := interface{}(bean).(BeforeInsertProcessor); ok {
@@ -1869,7 +1825,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	handleAfterInsertProcessorFunc := func(bean interface{}) {
 
 		if session.IsAutoCommit {
-			for _, closure := range session.afterInsertClosures {
+			for _, closure := range session.afterClosures {
 				closure(bean)
 			}
  			if processor, ok := interface{}(bean).(AfterInsertProcessor); ok {
@@ -1877,7 +1833,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 				processor.AfterInsert()
 			}
 		} else {
-			if len(session.afterInsertClosures) > 0 {
+			if len(session.afterClosures) > 0 {
 				session.afterInsertBeans = append(session.afterInsertBeans, bean)				
 			} else {
  				if _, ok := interface{}(bean).(AfterInsertProcessor); ok {
@@ -2173,7 +2129,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 
 	// handle before update processors
-	for _, closure := range session.beforeUpdateClosures {
+	for _, closure := range session.beforeClosures {
 		closure(bean)
 	}
 
@@ -2282,7 +2238,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	// handle after update processors
 	if session.IsAutoCommit {
-		for _, closure := range session.afterUpdateClosures {
+		for _, closure := range session.afterClosures {
 			closure(bean)
 		}
 		if processor, ok := interface{}(bean).(AfterUpdateProcessor); ok {
@@ -2290,7 +2246,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			processor.AfterUpdate()
 		}
 	} else {
-		if len(session.afterInsertClosures) > 0 {
+		if len(session.afterClosures) > 0 {
 			session.afterUpdateBeans = append(session.afterUpdateBeans, bean)                               
 		} else {
 			if _, ok := interface{}(bean).(AfterUpdateProcessor); ok {
@@ -2367,7 +2323,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 
 
 	// handle before delete processors
-	for _, closure := range session.beforeDeleteClosures {
+	for _, closure := range session.beforeClosures {
 		closure(bean)
 	}
 
@@ -2410,7 +2366,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 
 	// handle after delete processors
 	if session.IsAutoCommit {
-		for _, closure := range session.afterDeleteClosures {
+		for _, closure := range session.afterClosures {
 			closure(bean)
 		}
 		if processor, ok := interface{}(bean).(AfterDeleteProcessor); ok {
@@ -2418,7 +2374,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 			processor.AfterDelete()
 		}
 	} else {
-		if len(session.afterDeleteClosures) > 0 {
+		if len(session.afterClosures) > 0 {
 			session.afterDeleteBeans = append(session.afterDeleteBeans, bean)                               
 		} else {
 			if _, ok := interface{}(bean).(AfterDeleteProcessor); ok {
