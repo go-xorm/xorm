@@ -116,7 +116,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 	return statement
 }
 
-func (statement *Statement) genFields(bean interface{}) map[string]interface{} {
+/*func (statement *Statement) genFields(bean interface{}) map[string]interface{} {
 	results := make(map[string]interface{})
 	table := statement.Engine.autoMap(bean)
 	for _, col := range table.Columns {
@@ -230,7 +230,7 @@ func (statement *Statement) genFields(bean interface{}) map[string]interface{} {
 		results[col.Name] = val
 	}
 	return results
-}
+}*/
 
 // Auto generating conditions according a struct
 func buildConditions(engine *Engine, table *Table, bean interface{}, includeVersion bool, allUseBool bool, boolColumnMap map[string]bool) ([]string, []interface{}) {

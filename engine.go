@@ -272,6 +272,20 @@ func (engine *Engine) Id(id int64) *Session {
 	return session.Id(id)
 }
 
+// Apply before Processor, affected bean is passed to closure arg
+func (engine *Engine) Before(closures func(interface{})) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.Before(closures)
+} 
+
+// Apply after insert Processor, affected bean is passed to closure arg
+func (engine *Engine) After(closures func(interface{})) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.After(closures)
+} 
+
 // set charset when create table, only support mysql now
 func (engine *Engine) Charset(charset string) *Session {
 	session := engine.NewSession()
