@@ -22,6 +22,7 @@ const go11tag = true
 // The order here is the order in which they are printed by 'gopm help'.
 var commands = []*Command{
 	CmdReverse,
+	CmdShell,
 }
 
 func init() {

@@ -1307,6 +1307,30 @@ func rows2maps(rows *sql.Rows) (resultsSlice []map[string][]byte, err error) {
 	return resultsSlice, nil
 }
 
+func (session *Session) query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
+	for _, filter := range session.Engine.Filters {
+		sql = filter.Do(sql, session)
+	}
+
+	session.Engine.LogSQL(sql)
+	session.Engine.LogSQL(paramStr)
+
+	if session.IsAutoCommit {
+		return query(session.Db, sql, paramStr...)
+	}
+	return txQuery(session.Tx, sql, paramStr...)
+}
+
+func txQuery(tx *sql.Tx, sql string, params ...interface{}) (resultsSlice []map[string][]byte, err error) {
+	rows, err := tx.Query(sql, params...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return rows2maps(rows)
+}
+
 func query(db *sql.DB, sql string, params ...interface{}) (resultsSlice []map[string][]byte, err error) {
 	s, err := db.Prepare(sql)
 	if err != nil {
@@ -1320,17 +1344,6 @@ func query(db *sql.DB, sql string, params ...interface{}) (resultsSlice []map[st
 	defer rows.Close()
 
 	return rows2maps(rows)
-}
-
-func (session *Session) query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
-	for _, filter := range session.Engine.Filters {
-		sql = filter.Do(sql, session)
-	}
-
-	session.Engine.LogSQL(sql)
-	session.Engine.LogSQL(paramStr)
-
-	return query(session.Db, sql, paramStr...)
 }
 
 // Exec a raw sql and return records as []map[string][]byte
