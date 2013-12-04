@@ -1,10 +1,13 @@
 package xorm
 
 import (
+	"bufio"
+	"bytes"
 	"database/sql"
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -277,14 +280,14 @@ func (engine *Engine) Before(closures func(interface{})) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
 	return session.Before(closures)
-} 
+}
 
 // Apply after insert Processor, affected bean is passed to closure arg
 func (engine *Engine) After(closures func(interface{})) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
 	return session.After(closures)
-} 
+}
 
 // set charset when create table, only support mysql now
 func (engine *Engine) Charset(charset string) *Session {
@@ -923,4 +926,51 @@ func (engine *Engine) Count(bean interface{}) (int64, error) {
 	session := engine.NewSession()
 	defer session.Close()
 	return session.Count(bean)
+}
+
+// Import SQL DDL file
+func (engine *Engine) Import(ddlPath string) ([]sql.Result, error) {
+
+	file, err := os.Open(ddlPath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var results []sql.Result
+	var lastError error
+	scanner := bufio.NewScanner(file)
+
+	semiColSpliter := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		if atEOF && len(data) == 0 {
+			return 0, nil, nil
+		}
+		if i := bytes.IndexByte(data, ';'); i >= 0 {
+			return i + 1, data[0:i], nil
+		}
+		// If we're at EOF, we have a final, non-terminated line. Return it.
+		if atEOF {
+			return len(data), data, nil
+		}
+		// Request more data.
+		return 0, nil, nil
+	}
+
+	scanner.Split(semiColSpliter)
+
+	session := engine.NewSession()
+	session.IsAutoClose = false
+	for scanner.Scan() {
+		query := scanner.Text()
+		query = strings.Trim(query, " \t")
+		if len(query) > 0 {
+			result, err := session.Exec(query)
+			results = append(results, result)
+			if err != nil {
+				lastError = err
+			}
+		}
+	}
+	session.Close()
+	return results, lastError
 }
