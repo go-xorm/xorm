@@ -655,7 +655,7 @@ func transaction(engine *Engine, t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
-	panic(err)
+	// panic(err) !nashtsai! should remove this
 }
 
 func combineTransaction(engine *Engine, t *testing.T) {
