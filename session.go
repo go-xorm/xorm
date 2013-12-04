@@ -992,7 +992,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	}
 
 	if len(condiBean) > 0 {
-		colNames, args := buildConditions(session.Engine, table, condiBean[0], true,
+		colNames, args := buildConditions(session.Engine, table, condiBean[0], true, true,
 			session.Statement.allUseBool, session.Statement.boolColumnMap)
 		session.Statement.ConditionStr = strings.Join(colNames, " AND ")
 		session.Statement.BeanArgs = args
@@ -2153,7 +2153,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		session.Statement.RefTable = table
 
 		if session.Statement.ColumnStr == "" {
-			colNames, args = buildConditions(session.Engine, table, bean, false,
+			colNames, args = buildConditions(session.Engine, table, bean, false, false,
 				session.Statement.allUseBool, session.Statement.boolColumnMap)
 		} else {
 			colNames, args, err = table.genCols(session, bean, true, true)
@@ -2187,7 +2187,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	var condiArgs []interface{}
 
 	if len(condiBean) > 0 {
-		condiColNames, condiArgs = buildConditions(session.Engine, session.Statement.RefTable, condiBean[0], true,
+		condiColNames, condiArgs = buildConditions(session.Engine, session.Statement.RefTable, condiBean[0], true, true,
 			session.Statement.allUseBool, session.Statement.boolColumnMap)
 	}
 
@@ -2343,7 +2343,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 
 	table := session.Engine.autoMap(bean)
 	session.Statement.RefTable = table
-	colNames, args := buildConditions(session.Engine, table, bean, true,
+	colNames, args := buildConditions(session.Engine, table, bean, true, true,
 		session.Statement.allUseBool, session.Statement.boolColumnMap)
 
 	var condition = ""

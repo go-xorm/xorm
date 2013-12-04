@@ -7,8 +7,12 @@ import (
 	"testing"
 )
 
+func newPostgresEngine() (*Engine, error) {
+	return NewEngine("postgres", "dbname=xorm_test sslmode=disable")
+}
+
 func TestPostgres(t *testing.T) {
-	engine, err := NewEngine("postgres", "dbname=xorm_test sslmode=disable")
+	engine, err := newPostgresEngine()
 	if err != nil {
 		t.Error(err)
 		return
@@ -24,7 +28,7 @@ func TestPostgres(t *testing.T) {
 }
 
 func TestPostgresWithCache(t *testing.T) {
-	engine, err := NewEngine("postgres", "dbname=xorm_test2 sslmode=disable")
+	engine, err := newPostgresEngine()
 	if err != nil {
 		t.Error(err)
 		return
@@ -137,8 +141,49 @@ func TestPostgres2(t *testing.T) {
 	transaction(engine, t)
 }*/
 
-func BenchmarkPostgresNoCache(t *testing.B) {
-	engine, err := NewEngine("postgres", "dbname=xorm_test sslmode=disable")
+/*
+func BenchmarkPostgresDriverInsert(t *testing.B) {
+	t.StopTimer()
+	engine, err := newPostgresEngine()
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer engine.Close()
+
+	db, err := engine.OpenDB()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer db.Close()
+
+	doBenchDriverInsert(engine, db, t)
+}
+
+func BenchmarkPostgresDriverFind(t *testing.B) {
+	t.StopTimer()
+	engine, err := newPostgresEngine()
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer engine.Close()
+
+	db, err := engine.OpenDB()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	//defer db.Close()
+
+	doBenchDriverFind(engine, db, t)
+}*/
+
+func BenchmarkPostgresNoCacheInsert(t *testing.B) {
+	engine, err := newPostgresEngine()
 
 	defer engine.Close()
 	if err != nil {
@@ -146,11 +191,35 @@ func BenchmarkPostgresNoCache(t *testing.B) {
 		return
 	}
 	//engine.ShowSQL = true
-	doBenchCacheFind(engine, t)
+	doBenchInsert(engine, t)
 }
 
-func BenchmarkPostgresCache(t *testing.B) {
-	engine, err := NewEngine("postgres", "dbname=xorm_test sslmode=disable")
+func BenchmarkPostgresNoCacheFind(t *testing.B) {
+	engine, err := newPostgresEngine()
+
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	//engine.ShowSQL = true
+	doBenchFind(engine, t)
+}
+
+func BenchmarkPostgresNoCacheFindPtr(t *testing.B) {
+	engine, err := newPostgresEngine()
+
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	//engine.ShowSQL = true
+	doBenchFindPtr(engine, t)
+}
+
+func BenchmarkPostgresCacheInsert(t *testing.B) {
+	engine, err := newPostgresEngine()
 
 	defer engine.Close()
 	if err != nil {
@@ -158,5 +227,32 @@ func BenchmarkPostgresCache(t *testing.B) {
 		return
 	}
 	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
-	doBenchCacheFind(engine, t)
+
+	doBenchInsert(engine, t)
+}
+
+func BenchmarkPostgresCacheFind(t *testing.B) {
+	engine, err := newPostgresEngine()
+
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+
+	doBenchFind(engine, t)
+}
+
+func BenchmarkPostgresCacheFindPtr(t *testing.B) {
+	engine, err := newPostgresEngine()
+
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+
+	doBenchFindPtr(engine, t)
 }

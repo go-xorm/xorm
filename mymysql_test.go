@@ -45,24 +45,74 @@ func TestMyMysqlWithCache(t *testing.T) {
 	testAll2(engine, t)
 }
 
-func BenchmarkMyMysqlNoCache(t *testing.B) {
-	engine, err := NewEngine("mymysql", "xorm_test2/root/")
+func newMyMysqlEngine() (*Engine, error) {
+	return NewEngine("mymysql", "xorm_test2/root/")
+}
+
+func BenchmarkMyMysqlNoCacheInsert(t *testing.B) {
+	engine, err := newMyMysqlEngine()
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	doBenchInsert(engine, t)
+}
+
+func BenchmarkMyMysqlNoCacheFind(t *testing.B) {
+	engine, err := newMyMysqlEngine()
 	defer engine.Close()
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	//engine.ShowSQL = true
-	doBenchCacheFind(engine, t)
+	doBenchFind(engine, t)
 }
 
-func BenchmarkMyMysqlCache(t *testing.B) {
-	engine, err := NewEngine("mymysql", "xorm_test2/root/")
+func BenchmarkMyMysqlNoCacheFindPtr(t *testing.B) {
+	engine, err := newMyMysqlEngine()
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	//engine.ShowSQL = true
+	doBenchFindPtr(engine, t)
+}
+
+func BenchmarkMyMysqlCacheInsert(t *testing.B) {
+	engine, err := newMyMysqlEngine()
 	defer engine.Close()
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
-	doBenchCacheFind(engine, t)
+
+	doBenchInsert(engine, t)
+}
+
+func BenchmarkMyMysqlCacheFind(t *testing.B) {
+	engine, err := newMyMysqlEngine()
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+
+	doBenchFind(engine, t)
+}
+
+func BenchmarkMyMysqlCacheFindPtr(t *testing.B) {
+	engine, err := newMyMysqlEngine()
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+
+	doBenchFindPtr(engine, t)
 }
