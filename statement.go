@@ -348,8 +348,17 @@ func buildConditions(engine *Engine, table *Table, bean interface{}, includeVers
 			if fieldValue.IsNil() || !fieldValue.IsValid() {
 				continue
 			} else {
-				// TODO need to filter support types
-				val = fieldValue.Elem()
+				typeStr := fieldType.String()
+				switch typeStr {
+				case "*string", "*bool", "*float32", "*float64", "*int64", "*uint64", "*int", "*int16", "*int32 ", "*int8 ", "*uint", "*uint16", "*uint32", "*uint8":
+					val = fieldValue.Elem()
+				case "*complex64", "*complex128":
+					continue // TODO
+				case "*time.Time":
+					continue // TODO
+				default:
+					continue // TODO
+				}
 			}
 		default:
 			val = fieldValue.Interface()

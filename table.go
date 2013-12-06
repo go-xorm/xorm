@@ -111,7 +111,7 @@ var (
 		BigSerial: true,
 	}
 
-	intTypes  = sort.StringSlice{"*int", "*int16", "*int32 ", "*int8 "}
+	intTypes  = sort.StringSlice{"*int", "*int16", "*int32", "*int8"}
 	uintTypes = sort.StringSlice{"*uint", "*uint16", "*uint32", "*uint8"}
 )
 
@@ -157,23 +157,25 @@ func Type2SQLType(t reflect.Type) (st SQLType) {
 func ptrType2SQLType(t reflect.Type) (st SQLType, has bool) {
 	typeStr := t.String()
 	has = true
-	if typeStr == "*string" {
+
+	switch typeStr {
+	case "*string":
 		st = SQLType{Varchar, 255, 0}
-	} else if typeStr == "*bool" {
+	case "*bool":
 		st = SQLType{Bool, 0, 0}
-	} else if typeStr == "*complex64" || typeStr == "*complex128" {
+	case "*complex64", "*complex128":
 		st = SQLType{Varchar, 64, 0}
-	} else if typeStr == "*float32" {
+	case "*float32":
 		st = SQLType{Float, 0, 0}
-	} else if typeStr == "*float64" {
+	case "*float64":
 		st = SQLType{Varchar, 64, 0}
-	} else if typeStr == "*int64" || typeStr == "*uint64" {
+	case "*int64", "*uint64":
 		st = SQLType{BigInt, 0, 0}
-	} else if typeStr == "*time.Time" {
+	case "*time.Time":
 		st = SQLType{DateTime, 0, 0}
-	} else if intTypes.Search(typeStr) < len(intTypes) || uintTypes.Search(typeStr) < len(uintTypes) {
+	case "*int", "*int16", "*int32", "*int8", "*uint", "*uint16", "*uint32", "*uint8":
 		st = SQLType{Int, 0, 0}
-	} else {
+	default:
 		has = false
 	}
 	return
