@@ -347,6 +347,9 @@ func buildConditions(engine *Engine, table *Table, bean interface{}, includeVers
 		case reflect.Ptr:
 			if fieldValue.IsNil() || !fieldValue.IsValid() {
 				continue
+			} else {
+				// TODO need to filter support types
+				val = fieldValue.Elem()
 			}
 		default:
 			val = fieldValue.Interface()
