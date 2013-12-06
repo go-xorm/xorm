@@ -2926,6 +2926,7 @@ func testNullValue(engine *Engine, t *testing.T) {
 		panic(err)
 	} else if cnt != 1 {
 		t.Error(errors.New("update count == 0, how can this happen!?"))
+		return
 	}
 
 	// verify get values
@@ -2933,9 +2934,10 @@ func testNullValue(engine *Engine, t *testing.T) {
 	has, err = engine.Id(nullData.Id).Get(&nullDataGet)
 	if err != nil {
 		t.Error(err)
-		panic(err)
+		return
 	} else if !has {
 		t.Error(errors.New("ID not found"))
+		return
 	}
 
 	if *nullDataGet.StringPtr != *nullDataUpdate.StringPtr {
@@ -3116,8 +3118,8 @@ func testAll2(engine *Engine, t *testing.T) {
 
 // !nash! the 3rd set of the test is intended for non-cache enabled engine
 func testAll3(engine *Engine, t *testing.T) {
-	// fmt.Println("-------------- processors TX --------------")
-	// testProcessorsTx(engine, t)
+	fmt.Println("-------------- processors TX --------------")
+	testProcessorsTx(engine, t)
 	fmt.Println("-------------- insert pointer data --------------")
 	testPointerData(engine, t)
 	fmt.Println("-------------- insert null data --------------")
