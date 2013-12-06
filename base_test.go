@@ -2469,6 +2469,109 @@ func testProcessorsTx(engine *Engine, t *testing.T) {
 	// --
 }
 
+type NullData struct {
+	Id         int64
+	StringPtr  *string
+	StringPtr2 *string `xorm:"text"`
+	BoolPtr    *bool
+	BytePtr    *byte
+	UintPtr    *uint
+	Uint8Ptr   *uint8
+	Uint16Ptr  *uint16
+	Uint32Ptr  *uint32
+	UInt64Ptr  *uint64
+	IntPtr     *int
+	Int8Ptr    *int8
+	Int16Ptr   *int16
+	Int32Ptr   *int32
+	Int64Ptr   *int64
+	RunePtr    *rune
+	Float32Ptr *float32
+	Float64Ptr *float64
+	// Complex64Ptr  *complex64
+	// Complex128Ptr *complex128
+	TimePtr *time.Time
+}
+
+type NullData2 struct {
+	Id         int64
+	StringPtr  string
+	StringPtr2 string `xorm:"text"`
+	BoolPtr    bool
+	BytePtr    byte
+	UintPtr    uint
+	Uint8Ptr   uint8
+	Uint16Ptr  uint16
+	Uint32Ptr  uint32
+	UInt64Ptr  uint64
+	IntPtr     int
+	Int8Ptr    int8
+	Int16Ptr   int16
+	Int32Ptr   int32
+	Int64Ptr   int64
+	RunePtr    rune
+	Float32Ptr float32
+	Float64Ptr float64
+	//Complex64Ptr  complex64
+	//Complex128Ptr complex128
+	TimePtr time.Time
+}
+
+type NullData3 struct {
+	Id        int64
+	StringPtr *string
+}
+
+func insertNullData(engine *Engine, t *testing.T) {
+
+	err := engine.DropTables(&NullData{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(&NullData{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	nullData := NullData{BoolPtr: new(bool)}
+	*nullData.BoolPtr = true
+	cnt, err := engine.Insert(&nullData)
+	fmt.Println(nullData.Id)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert not returned 1")
+		t.Error(err)
+		panic(err)
+		return
+	}
+	if nullData.Id <= 0 {
+		err = errors.New("not return id error")
+		t.Error(err)
+		panic(err)
+	}
+
+	nullDataGet := NullData{}
+
+	has, err := engine.Table("null_data").Id(nullData.Id).Get(&nullDataGet)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	} else if !has {
+		t.Error(errors.New("ID not found"))
+	}
+
+	// if nullData2.BoolPtr == nil || !*(nullData2.BoolPtr) {
+	// 	t.Error(errors.New("BoolPtr wrong value"))
+	// }
+
+}
+
 func testAll(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
@@ -2571,4 +2674,6 @@ func testAll2(engine *Engine, t *testing.T) {
 	testProcessorsTx(engine, t)
 	fmt.Println("-------------- transaction --------------")
 	transaction(engine, t)
+	fmt.Println("-------------- insert null data --------------")
+	insertNullData(engine, t)
 }

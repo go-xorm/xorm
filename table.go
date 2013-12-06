@@ -2,6 +2,7 @@ package xorm
 
 import (
 	"reflect"
+	"sort"
 	"strings"
 	"time"
 )
@@ -23,6 +24,8 @@ func (s *SQLType) IsBlob() bool {
 		s.Name == MediumBlob || s.Name == LongBlob ||
 		s.Name == Binary || s.Name == VarBinary || s.Name == Bytea
 }
+
+const ()
 
 var (
 	Bit       = "BIT"
@@ -107,6 +110,8 @@ var (
 		Serial:    true,
 		BigSerial: true,
 	}
+
+	intTypes = sort.StringSlice{"*int", "*int16", "*int32 ", "*int8 ", "*uint", "*uint16", "*uint32", "*uint8"}
 )
 
 var b byte
@@ -140,8 +145,35 @@ func Type2SQLType(t reflect.Type) (st SQLType) {
 		} else {
 			st = SQLType{Text, 0, 0}
 		}
+	case reflect.Ptr:
+		st, _ = ptrType2SQLType(t)
 	default:
 		st = SQLType{Text, 0, 0}
+	}
+	return
+}
+
+func ptrType2SQLType(t reflect.Type) (st SQLType, has bool) {
+	typeStr := t.String()
+	has = true
+	if typeStr == "*string" {
+		st = SQLType{Varchar, 255, 0}
+	} else if typeStr == "*bool" {
+		st = SQLType{Bool, 0, 0}
+	} else if typeStr == "*complex64" || typeStr == "*complex128" {
+		st = SQLType{Varchar, 64, 0}
+	} else if typeStr == "*float32" {
+		st = SQLType{Float, 0, 0}
+	} else if typeStr == "*float64" {
+		st = SQLType{Varchar, 64, 0}
+	} else if typeStr == "*int64" || typeStr == "*uint64" {
+		st = SQLType{BigInt, 0, 0}
+	} else if typeStr == "*time.Time" {
+		st = SQLType{DateTime, 0, 0}
+	} else if intTypes.Search(typeStr) < len(intTypes) {
+		st = SQLType{Int, 0, 0}
+	} else {
+		has = false
 	}
 	return
 }
