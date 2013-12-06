@@ -34,6 +34,7 @@ func TestMyMysql(t *testing.T) {
 
 	testAll(engine, t)
 	testAll2(engine, t)
+	testAll3(engine, t)
 }
 
 func TestMyMysqlWithCache(t *testing.T) {

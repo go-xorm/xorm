@@ -2598,9 +2598,9 @@ func testPointerData(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 
+	// verify get values
 	nullDataGet := NullData{}
-
-	has, err := engine.Table("null_data").Id(nullData.Id).Get(&nullDataGet)
+	has, err := engine.Id(nullData.Id).Get(&nullDataGet)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -2674,7 +2674,94 @@ func testPointerData(engine *Engine, t *testing.T) {
 
 	if (*nullDataGet.TimePtr).Unix() != (*nullData.TimePtr).Unix() {
 		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]:[%v]", *nullDataGet.TimePtr, *nullData.TimePtr)))
+	} else {
+		fmt.Printf("time value: [%v]:[%v]", *nullDataGet.TimePtr, *nullData.TimePtr)
+		fmt.Println()
 	}
+	// --
+
+	// using instance type should just work too
+	nullData2Get := NullData2{}
+
+	has, err = engine.Table("null_data").Id(nullData.Id).Get(&nullData2Get)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	} else if !has {
+		t.Error(errors.New("ID not found"))
+	}
+
+	if nullData2Get.StringPtr != *nullData.StringPtr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.StringPtr)))
+	}
+
+	if nullData2Get.StringPtr2 != *nullData.StringPtr2 {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.StringPtr2)))
+	}
+
+	if nullData2Get.BoolPtr != *nullData.BoolPtr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%t]", nullData2Get.BoolPtr)))
+	}
+
+	if nullData2Get.UintPtr != *nullData.UintPtr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.UintPtr)))
+	}
+
+	if nullData2Get.Uint8Ptr != *nullData.Uint8Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.Uint8Ptr)))
+	}
+
+	if nullData2Get.Uint16Ptr != *nullData.Uint16Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.Uint16Ptr)))
+	}
+
+	if nullData2Get.Uint32Ptr != *nullData.Uint32Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.Uint32Ptr)))
+	}
+
+	if nullData2Get.Uint64Ptr != *nullData.Uint64Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.Uint64Ptr)))
+	}
+
+	if nullData2Get.IntPtr != *nullData.IntPtr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.IntPtr)))
+	}
+
+	if nullData2Get.Int8Ptr != *nullData.Int8Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.Int8Ptr)))
+	}
+
+	if nullData2Get.Int16Ptr != *nullData.Int16Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.Int16Ptr)))
+	}
+
+	if nullData2Get.Int32Ptr != *nullData.Int32Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.Int32Ptr)))
+	}
+
+	if nullData2Get.Int64Ptr != *nullData.Int64Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.Int64Ptr)))
+	}
+
+	if nullData2Get.RunePtr != *nullData.RunePtr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.RunePtr)))
+	}
+
+	if nullData2Get.Float32Ptr != *nullData.Float32Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.Float32Ptr)))
+	}
+
+	if nullData2Get.Float64Ptr != *nullData.Float64Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.Float64Ptr)))
+	}
+
+	if nullData2Get.TimePtr.Unix() != (*nullData.TimePtr).Unix() {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]:[%v]", nullData2Get.TimePtr, *nullData.TimePtr)))
+	} else {
+		fmt.Printf("time value: [%v]:[%v]", nullData2Get.TimePtr, *nullData.TimePtr)
+		fmt.Println()
+	}
+	// --
 }
 
 func testNullValue(engine *Engine, t *testing.T) {
@@ -2713,15 +2800,13 @@ func testNullValue(engine *Engine, t *testing.T) {
 
 	nullDataGet := NullData{}
 
-	has, err := engine.Table("null_data").Id(nullData.Id).Get(&nullDataGet)
+	has, err := engine.Id(nullData.Id).Get(&nullDataGet)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	} else if !has {
 		t.Error(errors.New("ID not found"))
 	}
-
-	fmt.Printf("val: %+v\n", nullDataGet)
 
 	if nullDataGet.StringPtr != nil {
 		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.StringPtr)))
@@ -2790,6 +2875,141 @@ func testNullValue(engine *Engine, t *testing.T) {
 	if nullDataGet.TimePtr != nil {
 		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.TimePtr)))
 	}
+
+	nullDataUpdate := NullData{
+		StringPtr:  new(string),
+		StringPtr2: new(string),
+		BoolPtr:    new(bool),
+		BytePtr:    new(byte),
+		UintPtr:    new(uint),
+		Uint8Ptr:   new(uint8),
+		Uint16Ptr:  new(uint16),
+		Uint32Ptr:  new(uint32),
+		Uint64Ptr:  new(uint64),
+		IntPtr:     new(int),
+		Int8Ptr:    new(int8),
+		Int16Ptr:   new(int16),
+		Int32Ptr:   new(int32),
+		Int64Ptr:   new(int64),
+		RunePtr:    new(rune),
+		Float32Ptr: new(float32),
+		Float64Ptr: new(float64),
+		// Complex64Ptr  :new(complex64),
+		// Complex128Ptr :new(complex128),
+		TimePtr: new(time.Time),
+	}
+
+	*nullDataUpdate.StringPtr = "abc"
+	*nullDataUpdate.StringPtr2 = "123"
+	*nullDataUpdate.BoolPtr = true
+	*nullDataUpdate.BytePtr = 1
+	*nullDataUpdate.UintPtr = 1
+	*nullDataUpdate.Uint8Ptr = 1
+	*nullDataUpdate.Uint16Ptr = 1
+	*nullDataUpdate.Uint32Ptr = 1
+	*nullDataUpdate.Uint64Ptr = 1
+	*nullDataUpdate.IntPtr = -1
+	*nullDataUpdate.Int8Ptr = -1
+	*nullDataUpdate.Int16Ptr = -1
+	*nullDataUpdate.Int32Ptr = -1
+	*nullDataUpdate.Int64Ptr = -1
+	*nullDataUpdate.RunePtr = 1
+	*nullDataUpdate.Float32Ptr = -1.2
+	*nullDataUpdate.Float64Ptr = -1.1
+	// *nullDataUpdate.Complex64Ptr  :new(complex64),
+	// *nullDataUpdate.Complex128Ptr :new(complex128),
+	*nullDataUpdate.TimePtr = time.Now()
+
+	cnt, err = engine.Id(nullData.Id).Update(&nullDataUpdate)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	} else if cnt != 1 {
+		t.Error(errors.New("update count == 0, how can this happen!?"))
+	}
+
+	// verify get values
+	nullDataGet = NullData{}
+	has, err = engine.Id(nullData.Id).Get(&nullDataGet)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	} else if !has {
+		t.Error(errors.New("ID not found"))
+	}
+
+	if *nullDataGet.StringPtr != *nullDataUpdate.StringPtr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.StringPtr)))
+	}
+
+	if *nullDataGet.StringPtr2 != *nullDataUpdate.StringPtr2 {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.StringPtr2)))
+	}
+
+	if *nullDataGet.BoolPtr != *nullDataUpdate.BoolPtr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%t]", *nullDataGet.BoolPtr)))
+	}
+
+	if *nullDataGet.UintPtr != *nullDataUpdate.UintPtr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.UintPtr)))
+	}
+
+	if *nullDataGet.Uint8Ptr != *nullDataUpdate.Uint8Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Uint8Ptr)))
+	}
+
+	if *nullDataGet.Uint16Ptr != *nullDataUpdate.Uint16Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Uint16Ptr)))
+	}
+
+	if *nullDataGet.Uint32Ptr != *nullDataUpdate.Uint32Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Uint32Ptr)))
+	}
+
+	if *nullDataGet.Uint64Ptr != *nullDataUpdate.Uint64Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Uint64Ptr)))
+	}
+
+	if *nullDataGet.IntPtr != *nullDataUpdate.IntPtr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.IntPtr)))
+	}
+
+	if *nullDataGet.Int8Ptr != *nullDataUpdate.Int8Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Int8Ptr)))
+	}
+
+	if *nullDataGet.Int16Ptr != *nullDataUpdate.Int16Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Int16Ptr)))
+	}
+
+	if *nullDataGet.Int32Ptr != *nullDataUpdate.Int32Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Int32Ptr)))
+	}
+
+	if *nullDataGet.Int64Ptr != *nullDataUpdate.Int64Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Int64Ptr)))
+	}
+
+	if *nullDataGet.RunePtr != *nullDataUpdate.RunePtr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.RunePtr)))
+	}
+
+	if *nullDataGet.Float32Ptr != *nullDataUpdate.Float32Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Float32Ptr)))
+	}
+
+	if *nullDataGet.Float64Ptr != *nullDataUpdate.Float64Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Float64Ptr)))
+	}
+
+	if (*nullDataGet.TimePtr).Unix() != (*nullDataUpdate.TimePtr).Unix() {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]:[%v]", *nullDataGet.TimePtr, *nullDataUpdate.TimePtr)))
+	} else {
+		fmt.Printf("time value: [%v]:[%v]", *nullDataGet.TimePtr, *nullDataUpdate.TimePtr)
+		fmt.Println()
+	}
+	// --
+
 }
 
 func testAll(engine *Engine, t *testing.T) {
@@ -2890,10 +3110,14 @@ func testAll2(engine *Engine, t *testing.T) {
 	//testCreatedUpdated(engine, t)
 	fmt.Println("-------------- processors --------------")
 	testProcessors(engine, t)
-	fmt.Println("-------------- processors TX --------------")
-	testProcessorsTx(engine, t)
 	fmt.Println("-------------- transaction --------------")
 	transaction(engine, t)
+}
+
+// !nash! the 3rd set of the test is intended for non-cache enabled engine
+func testAll3(engine *Engine, t *testing.T) {
+	fmt.Println("-------------- processors TX --------------")
+	testProcessorsTx(engine, t)
 	fmt.Println("-------------- insert pointer data --------------")
 	testPointerData(engine, t)
 	fmt.Println("-------------- insert null data --------------")
