@@ -3116,8 +3116,8 @@ func testAll2(engine *Engine, t *testing.T) {
 
 // !nash! the 3rd set of the test is intended for non-cache enabled engine
 func testAll3(engine *Engine, t *testing.T) {
-	fmt.Println("-------------- processors TX --------------")
-	testProcessorsTx(engine, t)
+	// fmt.Println("-------------- processors TX --------------")
+	// testProcessorsTx(engine, t)
 	fmt.Println("-------------- insert pointer data --------------")
 	testPointerData(engine, t)
 	fmt.Println("-------------- insert null data --------------")
