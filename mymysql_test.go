@@ -13,7 +13,7 @@ utf8 COLLATE utf8_general_ci;
 var showTestSql bool = true
 
 func TestMyMysql(t *testing.T) {
-	err := mysqlDdlImport()
+	err := mymysqlDdlImport()
 	if err != nil {
 		t.Error(err)
 		return
@@ -37,7 +37,7 @@ func TestMyMysql(t *testing.T) {
 }
 
 func TestMyMysqlWithCache(t *testing.T) {
-	err := mysqlDdlImport()
+	err := mymysqlDdlImport()
 	if err != nil {
 		t.Error(err)
 		return
@@ -61,7 +61,7 @@ func TestMyMysqlWithCache(t *testing.T) {
 	testAll2(engine, t)
 }
 
-func mysqlDdlImport() error {
+func mymysqlDdlImport() error {
 	engine, err := NewEngine("mymysql", "/root/")
 	if err != nil {
 		return err
