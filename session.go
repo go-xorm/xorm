@@ -1729,14 +1729,14 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 		switch typeStr {
 		case "*string":
 			x := string(data)
-			fieldValue.Set(reflect.ValueOf(x).Addr())
+			fieldValue.Set(reflect.ValueOf(&x))
 		case "*bool":
 			d := string(data)
 			v, err := strconv.ParseBool(d)
 			if err != nil {
 				return errors.New("arg " + key + " as bool: " + err.Error())
 			}
-			fieldValue.Set(reflect.ValueOf(v).Addr())
+			fieldValue.Set(reflect.ValueOf(&v))
 		case "*complex64":
 			var x complex64
 			err := json.Unmarshal(data, &x)
@@ -1744,7 +1744,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				session.Engine.LogSQL(err)
 				return err
 			}
-			fieldValue.Set(reflect.ValueOf(x).Addr())
+			fieldValue.Set(reflect.ValueOf(&x))
 		case "*complex128":
 			var x complex128
 			err := json.Unmarshal(data, &x)
@@ -1752,13 +1752,13 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				session.Engine.LogSQL(err)
 				return err
 			}
-			fieldValue.Set(reflect.ValueOf(x).Addr())
+			fieldValue.Set(reflect.ValueOf(&x))
 		case "*float64":
 			x, err := strconv.ParseFloat(string(data), 64)
 			if err != nil {
 				return errors.New("arg " + key + " as float64: " + err.Error())
 			}
-			fieldValue.Set(reflect.ValueOf(x).Addr())
+			fieldValue.Set(reflect.ValueOf(&x))
 		case "*float32":
 			var x float32
 			x1, err := strconv.ParseFloat(string(data), 32)
@@ -1766,7 +1766,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				return errors.New("arg " + key + " as float32: " + err.Error())
 			}
 			x = float32(x1)
-			fieldValue.Set(reflect.ValueOf(x).Addr())
+			fieldValue.Set(reflect.ValueOf(&x))
 		case "*time.Time":
 			sdata := strings.TrimSpace(string(data))
 			var x time.Time
@@ -1803,14 +1803,14 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			}
 
 			v = x
-			fieldValue.Set(reflect.ValueOf(v).Addr())
+			fieldValue.Set(reflect.ValueOf(&x))
 		case "*uint64":
 			var x uint64
 			x, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
 				return errors.New("arg " + key + " as int: " + err.Error())
 			}
-			fieldValue.Set(reflect.ValueOf(x).Addr())
+			fieldValue.Set(reflect.ValueOf(&x))
 		case "*uint":
 			var x uint
 			x1, err := strconv.ParseUint(string(data), 10, 64)
@@ -1818,7 +1818,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				return errors.New("arg " + key + " as int: " + err.Error())
 			}
 			x = uint(x1)
-			fieldValue.Set(reflect.ValueOf(x).Addr())
+			fieldValue.Set(reflect.ValueOf(&x))
 		case "*uint32":
 			var x uint32
 			x1, err := strconv.ParseUint(string(data), 10, 64)
@@ -1826,7 +1826,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				return errors.New("arg " + key + " as int: " + err.Error())
 			}
 			x = uint32(x1)
-			fieldValue.Set(reflect.ValueOf(x).Addr())
+			fieldValue.Set(reflect.ValueOf(&x))
 		case "*uint8":
 			var x uint8
 			x1, err := strconv.ParseUint(string(data), 10, 64)
@@ -1834,7 +1834,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				return errors.New("arg " + key + " as int: " + err.Error())
 			}
 			x = uint8(x1)
-			fieldValue.Set(reflect.ValueOf(x).Addr())
+			fieldValue.Set(reflect.ValueOf(&x))
 		case "*uint16":
 			var x uint16
 			x1, err := strconv.ParseUint(string(data), 10, 64)
@@ -1842,7 +1842,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				return errors.New("arg " + key + " as int: " + err.Error())
 			}
 			x = uint16(x1)
-			fieldValue.Set(reflect.ValueOf(x).Addr())
+			fieldValue.Set(reflect.ValueOf(&x))
 		case "*int64":
 			sdata := string(data)
 			var x int64
@@ -1866,7 +1866,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			if err != nil {
 				return errors.New("arg " + key + " as int: " + err.Error())
 			}
-			fieldValue.Set(reflect.ValueOf(x).Addr())
+			fieldValue.Set(reflect.ValueOf(&x))
 		case "*int":
 			sdata := string(data)
 			var x int
@@ -1894,7 +1894,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			if err != nil {
 				return errors.New("arg " + key + " as int: " + err.Error())
 			}
-			fieldValue.Set(reflect.ValueOf(x).Addr())
+			fieldValue.Set(reflect.ValueOf(&x))
 		case "*int32":
 			sdata := string(data)
 			var x int32
@@ -1922,7 +1922,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			if err != nil {
 				return errors.New("arg " + key + " as int: " + err.Error())
 			}
-			fieldValue.Set(reflect.ValueOf(x).Addr())
+			fieldValue.Set(reflect.ValueOf(&x))
 		case "*int8":
 			sdata := string(data)
 			var x int8
@@ -1950,7 +1950,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			if err != nil {
 				return errors.New("arg " + key + " as int: " + err.Error())
 			}
-			fieldValue.Set(reflect.ValueOf(x).Addr())
+			fieldValue.Set(reflect.ValueOf(&x))
 		case "*int16":
 			sdata := string(data)
 			var x int16
@@ -1978,9 +1978,10 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			if err != nil {
 				return errors.New("arg " + key + " as int: " + err.Error())
 			}
-			fieldValue.Set(reflect.ValueOf(x).Addr())
+			fieldValue.Set(reflect.ValueOf(&x))
+		default:
+			return errors.New("unsupported type in Scan: " + reflect.TypeOf(v).String())
 		}
-		fallthrough
 	default:
 		return errors.New("unsupported type in Scan: " + reflect.TypeOf(v).String())
 	}
@@ -2116,13 +2117,20 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 				}
 				return fieldValue.Elem().Interface(), nil
 			}
-		} else if typeStr == "*int64" || typeStr == "*uint64" || intTypes.Search(typeStr) < len(intTypes) {
+		} else if typeStr == "*int64" || intTypes.Search(typeStr) < len(intTypes) {
 			if fieldValue.IsNil() {
 				return nil, nil
 			} else {
 				return fieldValue.Elem().Int(), nil
 			}
+		} else if typeStr == "*uint64" || uintTypes.Search(typeStr) < len(uintTypes) {
+			if fieldValue.IsNil() {
+				return nil, nil
+			} else {
+				return fieldValue.Elem().Uint(), nil
+			}
 		}
+
 		fallthrough
 	default:
 		return fieldValue.Interface(), nil

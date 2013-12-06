@@ -111,7 +111,8 @@ var (
 		BigSerial: true,
 	}
 
-	intTypes = sort.StringSlice{"*int", "*int16", "*int32 ", "*int8 ", "*uint", "*uint16", "*uint32", "*uint8"}
+	intTypes  = sort.StringSlice{"*int", "*int16", "*int32 ", "*int8 "}
+	uintTypes = sort.StringSlice{"*uint", "*uint16", "*uint32", "*uint8"}
 )
 
 var b byte
@@ -170,7 +171,7 @@ func ptrType2SQLType(t reflect.Type) (st SQLType, has bool) {
 		st = SQLType{BigInt, 0, 0}
 	} else if typeStr == "*time.Time" {
 		st = SQLType{DateTime, 0, 0}
-	} else if intTypes.Search(typeStr) < len(intTypes) {
+	} else if intTypes.Search(typeStr) < len(intTypes) || uintTypes.Search(typeStr) < len(uintTypes) {
 		st = SQLType{Int, 0, 0}
 	} else {
 		has = false
