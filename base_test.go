@@ -2479,7 +2479,7 @@ type NullData struct {
 	Uint8Ptr   *uint8
 	Uint16Ptr  *uint16
 	Uint32Ptr  *uint32
-	UInt64Ptr  *uint64
+	Uint64Ptr  *uint64
 	IntPtr     *int
 	Int8Ptr    *int8
 	Int16Ptr   *int16
@@ -2503,7 +2503,7 @@ type NullData2 struct {
 	Uint8Ptr   uint8
 	Uint16Ptr  uint16
 	Uint32Ptr  uint32
-	UInt64Ptr  uint64
+	Uint64Ptr  uint64
 	IntPtr     int
 	Int8Ptr    int8
 	Int16Ptr   int16
@@ -2522,7 +2522,7 @@ type NullData3 struct {
 	StringPtr *string
 }
 
-func insertNullData(engine *Engine, t *testing.T) {
+func testPointerData(engine *Engine, t *testing.T) {
 
 	err := engine.DropTables(&NullData{})
 	if err != nil {
@@ -2536,8 +2536,50 @@ func insertNullData(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 
-	nullData := NullData{BoolPtr: new(bool)}
+	nullData := NullData{
+		StringPtr:  new(string),
+		StringPtr2: new(string),
+		BoolPtr:    new(bool),
+		BytePtr:    new(byte),
+		UintPtr:    new(uint),
+		Uint8Ptr:   new(uint8),
+		Uint16Ptr:  new(uint16),
+		Uint32Ptr:  new(uint32),
+		Uint64Ptr:  new(uint64),
+		IntPtr:     new(int),
+		Int8Ptr:    new(int8),
+		Int16Ptr:   new(int16),
+		Int32Ptr:   new(int32),
+		Int64Ptr:   new(int64),
+		RunePtr:    new(rune),
+		Float32Ptr: new(float32),
+		Float64Ptr: new(float64),
+		// Complex64Ptr  :new(complex64),
+		// Complex128Ptr :new(complex128),
+		TimePtr: new(time.Time),
+	}
+
+	*nullData.StringPtr = "abc"
+	*nullData.StringPtr2 = "123"
 	*nullData.BoolPtr = true
+	*nullData.BytePtr = 1
+	*nullData.UintPtr = 1
+	*nullData.Uint8Ptr = 1
+	*nullData.Uint16Ptr = 1
+	*nullData.Uint32Ptr = 1
+	*nullData.Uint64Ptr = 1
+	*nullData.IntPtr = -1
+	*nullData.Int8Ptr = -1
+	*nullData.Int16Ptr = -1
+	*nullData.Int32Ptr = -1
+	*nullData.Int64Ptr = -1
+	*nullData.RunePtr = 1
+	*nullData.Float32Ptr = -1.2
+	*nullData.Float64Ptr = -1.1
+	// *nullData.Complex64Ptr  :new(complex64),
+	// *nullData.Complex128Ptr :new(complex128),
+	*nullData.TimePtr = time.Now()
+
 	cnt, err := engine.Insert(&nullData)
 	fmt.Println(nullData.Id)
 	if err != nil {
@@ -2566,10 +2608,188 @@ func insertNullData(engine *Engine, t *testing.T) {
 		t.Error(errors.New("ID not found"))
 	}
 
-	// if nullData2.BoolPtr == nil || !*(nullData2.BoolPtr) {
-	// 	t.Error(errors.New("BoolPtr wrong value"))
-	// }
+	if *nullDataGet.StringPtr != *nullData.StringPtr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.StringPtr)))
+	}
 
+	if *nullDataGet.StringPtr2 != *nullData.StringPtr2 {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.StringPtr2)))
+	}
+
+	if *nullDataGet.BoolPtr != *nullData.BoolPtr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%t]", *nullDataGet.BoolPtr)))
+	}
+
+	if *nullDataGet.UintPtr != *nullData.UintPtr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.UintPtr)))
+	}
+
+	if *nullDataGet.Uint8Ptr != *nullData.Uint8Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Uint8Ptr)))
+	}
+
+	if *nullDataGet.Uint16Ptr != *nullData.Uint16Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Uint16Ptr)))
+	}
+
+	if *nullDataGet.Uint32Ptr != *nullData.Uint32Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Uint32Ptr)))
+	}
+
+	if *nullDataGet.Uint64Ptr != *nullData.Uint64Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Uint64Ptr)))
+	}
+
+	if *nullDataGet.IntPtr != *nullData.IntPtr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.IntPtr)))
+	}
+
+	if *nullDataGet.Int8Ptr != *nullData.Int8Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Int8Ptr)))
+	}
+
+	if *nullDataGet.Int16Ptr != *nullData.Int16Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Int16Ptr)))
+	}
+
+	if *nullDataGet.Int32Ptr != *nullData.Int32Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Int32Ptr)))
+	}
+
+	if *nullDataGet.Int64Ptr != *nullData.Int64Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Int64Ptr)))
+	}
+
+	if *nullDataGet.RunePtr != *nullData.RunePtr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.RunePtr)))
+	}
+
+	if *nullDataGet.Float32Ptr != *nullData.Float32Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Float32Ptr)))
+	}
+
+	if *nullDataGet.Float64Ptr != *nullData.Float64Ptr {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Float64Ptr)))
+	}
+
+	if (*nullDataGet.TimePtr).Unix() != (*nullData.TimePtr).Unix() {
+		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]:[%v]", *nullDataGet.TimePtr, *nullData.TimePtr)))
+	}
+}
+
+func testNullValue(engine *Engine, t *testing.T) {
+
+	err := engine.DropTables(&NullData{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(&NullData{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	nullData := NullData{}
+
+	cnt, err := engine.Insert(&nullData)
+	fmt.Println(nullData.Id)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert not returned 1")
+		t.Error(err)
+		panic(err)
+		return
+	}
+	if nullData.Id <= 0 {
+		err = errors.New("not return id error")
+		t.Error(err)
+		panic(err)
+	}
+
+	nullDataGet := NullData{}
+
+	has, err := engine.Table("null_data").Id(nullData.Id).Get(&nullDataGet)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	} else if !has {
+		t.Error(errors.New("ID not found"))
+	}
+
+	fmt.Printf("val: %+v\n", nullDataGet)
+
+	if nullDataGet.StringPtr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.StringPtr)))
+	}
+
+	if nullDataGet.StringPtr2 != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.StringPtr2)))
+	}
+
+	if nullDataGet.BoolPtr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%t]", *nullDataGet.BoolPtr)))
+	}
+
+	if nullDataGet.UintPtr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.UintPtr)))
+	}
+
+	if nullDataGet.Uint8Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Uint8Ptr)))
+	}
+
+	if nullDataGet.Uint16Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Uint16Ptr)))
+	}
+
+	if nullDataGet.Uint32Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Uint32Ptr)))
+	}
+
+	if nullDataGet.Uint64Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Uint64Ptr)))
+	}
+
+	if nullDataGet.IntPtr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.IntPtr)))
+	}
+
+	if nullDataGet.Int8Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Int8Ptr)))
+	}
+
+	if nullDataGet.Int16Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Int16Ptr)))
+	}
+
+	if nullDataGet.Int32Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Int32Ptr)))
+	}
+
+	if nullDataGet.Int64Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Int64Ptr)))
+	}
+
+	if nullDataGet.RunePtr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.RunePtr)))
+	}
+
+	if nullDataGet.Float32Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Float32Ptr)))
+	}
+
+	if nullDataGet.Float64Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Float64Ptr)))
+	}
+
+	if nullDataGet.TimePtr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.TimePtr)))
+	}
 }
 
 func testAll(engine *Engine, t *testing.T) {
@@ -2674,6 +2894,8 @@ func testAll2(engine *Engine, t *testing.T) {
 	testProcessorsTx(engine, t)
 	fmt.Println("-------------- transaction --------------")
 	transaction(engine, t)
+	fmt.Println("-------------- insert pointer data --------------")
+	testPointerData(engine, t)
 	fmt.Println("-------------- insert null data --------------")
-	insertNullData(engine, t)
+	testNullValue(engine, t)
 }
