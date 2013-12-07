@@ -233,7 +233,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 }*/
 
 // Auto generating conditions according a struct
-func buildConditions(engine *Engine, table *Table, bean interface{}, includeVersion bool, allUseBool bool, boolColumnMap map[string]bool) ([]string, []interface{}) {
+func buildConditions(engine *Engine, table *Table, bean interface{}, includeVersion bool, allUseBool bool, includeNil bool, boolColumnMap map[string]bool) ([]string, []interface{}) {
 	colNames := make([]string, 0)
 	var args = make([]interface{}, 0)
 	for _, col := range table.Columns {
@@ -242,10 +242,29 @@ func buildConditions(engine *Engine, table *Table, bean interface{}, includeVers
 		}
 		fieldValue := col.ValueOf(bean)
 		fieldType := reflect.TypeOf(fieldValue.Interface())
+
+		requiredField := false
+		if fieldType.Kind() == reflect.Ptr {
+			if fieldValue.IsNil() {
+				if includeNil {
+					args = append(args, nil)
+					colNames = append(colNames, fmt.Sprintf("%v = ?", engine.Quote(col.Name)))
+				}
+				continue
+			} else if !fieldValue.IsValid() {
+				continue
+			} else {
+				// dereference ptr type to instance type
+				fieldValue = fieldValue.Elem()
+				fieldType = reflect.TypeOf(fieldValue.Interface())
+				requiredField = true
+			}
+		}
+
 		var val interface{}
 		switch fieldType.Kind() {
 		case reflect.Bool:
-			if allUseBool {
+			if allUseBool || requiredField {
 				val = fieldValue.Interface()
 			} else if _, ok := boolColumnMap[col.Name]; ok {
 				val = fieldValue.Interface()
@@ -255,7 +274,7 @@ func buildConditions(engine *Engine, table *Table, bean interface{}, includeVers
 				continue
 			}
 		case reflect.String:
-			if fieldValue.String() == "" {
+			if !requiredField && fieldValue.String() == "" {
 				continue
 			}
 			// for MyString, should convert to string or panic
@@ -265,24 +284,24 @@ func buildConditions(engine *Engine, table *Table, bean interface{}, includeVers
 				val = fieldValue.Interface()
 			}
 		case reflect.Int8, reflect.Int16, reflect.Int, reflect.Int32, reflect.Int64:
-			if fieldValue.Int() == 0 {
+			if !requiredField && fieldValue.Int() == 0 {
 				continue
 			}
 			val = fieldValue.Interface()
 		case reflect.Float32, reflect.Float64:
-			if fieldValue.Float() == 0.0 {
+			if !requiredField && fieldValue.Float() == 0.0 {
 				continue
 			}
 			val = fieldValue.Interface()
 		case reflect.Uint8, reflect.Uint16, reflect.Uint, reflect.Uint32, reflect.Uint64:
-			if fieldValue.Uint() == 0 {
+			if !requiredField && fieldValue.Uint() == 0 {
 				continue
 			}
 			val = fieldValue.Interface()
 		case reflect.Struct:
 			if fieldType == reflect.TypeOf(time.Now()) {
 				t := fieldValue.Interface().(time.Time)
-				if t.IsZero() || !fieldValue.IsValid() {
+				if !requiredField && (t.IsZero() || !fieldValue.IsValid()) {
 					continue
 				}
 				var str string
@@ -343,22 +362,6 @@ func buildConditions(engine *Engine, table *Table, bean interface{}, includeVers
 				}
 			} else {
 				continue
-			}
-		case reflect.Ptr:
-			if fieldValue.IsNil() || !fieldValue.IsValid() {
-				continue
-			} else {
-				typeStr := fieldType.String()
-				switch typeStr {
-				case "*string", "*bool", "*float32", "*float64", "*int64", "*uint64", "*int", "*int16", "*int32 ", "*int8 ", "*uint", "*uint16", "*uint32", "*uint8":
-					val = fieldValue.Elem()
-				case "*complex64", "*complex128":
-					continue // TODO
-				case "*time.Time":
-					continue // TODO
-				default:
-					continue // TODO
-				}
 			}
 		default:
 			val = fieldValue.Interface()
@@ -598,12 +601,14 @@ func (s *Statement) genDropSQL() string {
 	return sql
 }
 
+// !nashtsai! REVIEW, Statement is a huge struct why is this method not passing *Statement?
 func (statement Statement) genGetSql(bean interface{}) (string, []interface{}) {
 	table := statement.Engine.autoMap(bean)
 	statement.RefTable = table
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true,
-		statement.allUseBool, statement.boolColumnMap)
+		statement.allUseBool, false, statement.boolColumnMap)
+
 	statement.ConditionStr = strings.Join(colNames, " AND ")
 	statement.BeanArgs = args
 
@@ -640,7 +645,8 @@ func (statement Statement) genCountSql(bean interface{}) (string, []interface{})
 	table := statement.Engine.autoMap(bean)
 	statement.RefTable = table
 
-	colNames, args := buildConditions(statement.Engine, table, bean, true, statement.allUseBool, statement.boolColumnMap)
+	colNames, args := buildConditions(statement.Engine, table, bean, true,
+		statement.allUseBool, false, statement.boolColumnMap)
 	statement.ConditionStr = strings.Join(colNames, " AND ")
 	statement.BeanArgs = args
 	var id string = "*"

@@ -875,6 +875,7 @@ func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
 // get retrieve one record from database, bean's non-empty fields
 // will be as conditions
 func (session *Session) Get(bean interface{}) (bool, error) {
+
 	err := session.newDb()
 	if err != nil {
 		return false, err
@@ -889,6 +890,7 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	var sql string
 	var args []interface{}
 	session.Statement.RefTable = session.Engine.autoMap(bean)
+
 	if session.Statement.RawSQL == "" {
 		sql, args = session.Statement.genGetSql(bean)
 	} else {
@@ -1000,7 +1002,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 
 	if len(condiBean) > 0 {
 		colNames, args := buildConditions(session.Engine, table, condiBean[0], true,
-			session.Statement.allUseBool, session.Statement.boolColumnMap)
+			session.Statement.allUseBool, false, session.Statement.boolColumnMap)
 		session.Statement.ConditionStr = strings.Join(colNames, " AND ")
 		session.Statement.BeanArgs = args
 	}
@@ -1724,7 +1726,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			}
 		}
 	case reflect.Ptr:
-		// TODO merge duplicated codes above
+		// !nashtsai! TODO merge duplicated codes above
 		typeStr := fieldType.String()
 		switch typeStr {
 		case "*string":
@@ -2498,7 +2500,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 		if session.Statement.ColumnStr == "" {
 			colNames, args = buildConditions(session.Engine, table, bean, false,
-				session.Statement.allUseBool, session.Statement.boolColumnMap)
+				session.Statement.allUseBool, true, session.Statement.boolColumnMap)
 		} else {
 			colNames, args, err = table.genCols(session, bean, true, true)
 			if err != nil {
@@ -2532,7 +2534,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	if len(condiBean) > 0 {
 		condiColNames, condiArgs = buildConditions(session.Engine, session.Statement.RefTable, condiBean[0], true,
-			session.Statement.allUseBool, session.Statement.boolColumnMap)
+			session.Statement.allUseBool, false, session.Statement.boolColumnMap)
 	}
 
 	var condition = ""
@@ -2698,7 +2700,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	table := session.Engine.autoMap(bean)
 	session.Statement.RefTable = table
 	colNames, args := buildConditions(session.Engine, table, bean, true,
-		session.Statement.allUseBool, session.Statement.boolColumnMap)
+		session.Statement.allUseBool, false, session.Statement.boolColumnMap)
 
 	var condition = ""
 	if session.Statement.WhereStr != "" {

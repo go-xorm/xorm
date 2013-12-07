@@ -2488,8 +2488,8 @@ type NullData struct {
 	RunePtr    *rune
 	Float32Ptr *float32
 	Float64Ptr *float64
-	// Complex64Ptr  *complex64
-	// Complex128Ptr *complex128
+	// Complex64Ptr *complex64 // !nashtsai! XORM yet support complex128:  'json: unsupported type: complex128'
+	// Complex128Ptr *complex128 // !nashtsai! XORM yet support complex128:  'json: unsupported type: complex128'
 	TimePtr *time.Time
 }
 
@@ -2512,8 +2512,8 @@ type NullData2 struct {
 	RunePtr    rune
 	Float32Ptr float32
 	Float64Ptr float64
-	//Complex64Ptr  complex64
-	//Complex128Ptr complex128
+	// Complex64Ptr complex64 // !nashtsai! XORM yet support complex128:  'json: unsupported type: complex128'
+	// Complex128Ptr complex128 // !nashtsai! XORM yet support complex128:  'json: unsupported type: complex128'
 	TimePtr time.Time
 }
 
@@ -2554,8 +2554,8 @@ func testPointerData(engine *Engine, t *testing.T) {
 		RunePtr:    new(rune),
 		Float32Ptr: new(float32),
 		Float64Ptr: new(float64),
-		// Complex64Ptr  :new(complex64),
-		// Complex128Ptr :new(complex128),
+		// Complex64Ptr: new(complex64),
+		// Complex128Ptr: new(complex128),
 		TimePtr: new(time.Time),
 	}
 
@@ -2576,8 +2576,8 @@ func testPointerData(engine *Engine, t *testing.T) {
 	*nullData.RunePtr = 1
 	*nullData.Float32Ptr = -1.2
 	*nullData.Float64Ptr = -1.1
-	// *nullData.Complex64Ptr  :new(complex64),
-	// *nullData.Complex128Ptr :new(complex128),
+	// *nullData.Complex64Ptr = 123456789012345678901234567890
+	// *nullData.Complex128Ptr = 123456789012345678901234567890123456789012345678901234567890
 	*nullData.TimePtr = time.Now()
 
 	cnt, err := engine.Insert(&nullData)
@@ -2672,9 +2672,18 @@ func testPointerData(engine *Engine, t *testing.T) {
 		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Float64Ptr)))
 	}
 
+	// if *nullDataGet.Complex64Ptr != *nullData.Complex64Ptr {
+	// 	t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Complex64Ptr)))
+	// }
+
+	// if *nullDataGet.Complex128Ptr != *nullData.Complex128Ptr {
+	// 	t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Complex128Ptr)))
+	// }
+
 	if (*nullDataGet.TimePtr).Unix() != (*nullData.TimePtr).Unix() {
 		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]:[%v]", *nullDataGet.TimePtr, *nullData.TimePtr)))
 	} else {
+		// !nashtsai! mymysql driver will failed this test case, due the time is roundup to nearest second, I would considered this is a bug in mymysql driver
 		fmt.Printf("time value: [%v]:[%v]", *nullDataGet.TimePtr, *nullData.TimePtr)
 		fmt.Println()
 	}
@@ -2755,9 +2764,18 @@ func testPointerData(engine *Engine, t *testing.T) {
 		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.Float64Ptr)))
 	}
 
+	// if nullData2Get.Complex64Ptr != *nullData.Complex64Ptr {
+	// 	t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.Complex64Ptr)))
+	// }
+
+	// if nullData2Get.Complex128Ptr != *nullData.Complex128Ptr {
+	// 	t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", nullData2Get.Complex128Ptr)))
+	// }
+
 	if nullData2Get.TimePtr.Unix() != (*nullData.TimePtr).Unix() {
 		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]:[%v]", nullData2Get.TimePtr, *nullData.TimePtr)))
 	} else {
+		// !nashtsai! mymysql driver will failed this test case, due the time is roundup to nearest second, I would considered this is a bug in mymysql driver
 		fmt.Printf("time value: [%v]:[%v]", nullData2Get.TimePtr, *nullData.TimePtr)
 		fmt.Println()
 	}
@@ -2872,6 +2890,14 @@ func testNullValue(engine *Engine, t *testing.T) {
 		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Float64Ptr)))
 	}
 
+	// if nullDataGet.Complex64Ptr != nil {
+	// 	t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Complex64Ptr)))
+	// }
+
+	// if nullDataGet.Complex128Ptr != nil {
+	// 	t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Complex128Ptr)))
+	// }
+
 	if nullDataGet.TimePtr != nil {
 		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.TimePtr)))
 	}
@@ -2894,8 +2920,8 @@ func testNullValue(engine *Engine, t *testing.T) {
 		RunePtr:    new(rune),
 		Float32Ptr: new(float32),
 		Float64Ptr: new(float64),
-		// Complex64Ptr  :new(complex64),
-		// Complex128Ptr :new(complex128),
+		// Complex64Ptr: new(complex64),
+		// Complex128Ptr: new(complex128),
 		TimePtr: new(time.Time),
 	}
 
@@ -2916,8 +2942,8 @@ func testNullValue(engine *Engine, t *testing.T) {
 	*nullDataUpdate.RunePtr = 1
 	*nullDataUpdate.Float32Ptr = -1.2
 	*nullDataUpdate.Float64Ptr = -1.1
-	// *nullDataUpdate.Complex64Ptr  :new(complex64),
-	// *nullDataUpdate.Complex128Ptr :new(complex128),
+	// *nullDataUpdate.Complex64Ptr = 123456789012345678901234567890
+	// *nullDataUpdate.Complex128Ptr = 123456789012345678901234567890123456789012345678901234567890
 	*nullDataUpdate.TimePtr = time.Now()
 
 	cnt, err = engine.Id(nullData.Id).Update(&nullDataUpdate)
@@ -3004,11 +3030,123 @@ func testNullValue(engine *Engine, t *testing.T) {
 		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Float64Ptr)))
 	}
 
+	// if *nullDataGet.Complex64Ptr != *nullDataUpdate.Complex64Ptr {
+	// 	t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Complex64Ptr)))
+	// }
+
+	// if *nullDataGet.Complex128Ptr != *nullDataUpdate.Complex128Ptr {
+	// 	t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Complex128Ptr)))
+	// }
+
 	if (*nullDataGet.TimePtr).Unix() != (*nullDataUpdate.TimePtr).Unix() {
 		t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]:[%v]", *nullDataGet.TimePtr, *nullDataUpdate.TimePtr)))
 	} else {
+		// !nashtsai! mymysql driver will failed this test case, due the time is roundup to nearest second, I would considered this is a bug in mymysql driver
 		fmt.Printf("time value: [%v]:[%v]", *nullDataGet.TimePtr, *nullDataUpdate.TimePtr)
 		fmt.Println()
+	}
+	// --
+
+	// update to null values
+	nullDataUpdate = NullData{}
+
+	cnt, err = engine.Id(nullData.Id).Update(&nullDataUpdate)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	} else if cnt != 1 {
+		t.Error(errors.New("update count == 0, how can this happen!?"))
+		return
+	}
+
+	// verify get values
+	nullDataGet = NullData{}
+	has, err = engine.Id(nullData.Id).Get(&nullDataGet)
+	if err != nil {
+		t.Error(err)
+		return
+	} else if !has {
+		t.Error(errors.New("ID not found"))
+		return
+	}
+
+	fmt.Printf("%+v", nullDataGet)
+	fmt.Println()
+
+	if nullDataGet.StringPtr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.StringPtr)))
+	}
+
+	if nullDataGet.StringPtr2 != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.StringPtr2)))
+	}
+
+	if nullDataGet.BoolPtr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%t]", *nullDataGet.BoolPtr)))
+	}
+
+	if nullDataGet.UintPtr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.UintPtr)))
+	}
+
+	if nullDataGet.Uint8Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Uint8Ptr)))
+	}
+
+	if nullDataGet.Uint16Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Uint16Ptr)))
+	}
+
+	if nullDataGet.Uint32Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Uint32Ptr)))
+	}
+
+	if nullDataGet.Uint64Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Uint64Ptr)))
+	}
+
+	if nullDataGet.IntPtr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.IntPtr)))
+	}
+
+	if nullDataGet.Int8Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Int8Ptr)))
+	}
+
+	if nullDataGet.Int16Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Int16Ptr)))
+	}
+
+	if nullDataGet.Int32Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Int32Ptr)))
+	}
+
+	if nullDataGet.Int64Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Int64Ptr)))
+	}
+
+	if nullDataGet.RunePtr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.RunePtr)))
+	}
+
+	if nullDataGet.Float32Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Float32Ptr)))
+	}
+
+	if nullDataGet.Float64Ptr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Float64Ptr)))
+	}
+
+	// if nullDataGet.Complex64Ptr != nil {
+	// 	t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Float64Ptr)))
+	// }
+
+	// if nullDataGet.Complex128Ptr != nil {
+	// 	t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.Float64Ptr)))
+	// }
+
+	if nullDataGet.TimePtr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.TimePtr)))
 	}
 	// --
 
