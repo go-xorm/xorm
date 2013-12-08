@@ -168,7 +168,7 @@ func ptrType2SQLType(t reflect.Type) (st SQLType, has bool) {
 	case "*float32":
 		st = SQLType{Float, 0, 0}
 	case "*float64":
-		st = SQLType{Varchar, 64, 0}
+		st = SQLType{Double, 0, 0}
 	case "*int64", "*uint64":
 		st = SQLType{BigInt, 0, 0}
 	case "*time.Time":
