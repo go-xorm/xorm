@@ -80,6 +80,11 @@ Or
 
 Please visit [Xorm on Google Groups](https://groups.google.com/forum/#!forum/xorm)
 
+# Contributors
+
+* [Lunny](https://github.com/lunny)
+* [Nashtsai](https://github.com/nashtsai)
+
 # LICENSE
 
  BSD License

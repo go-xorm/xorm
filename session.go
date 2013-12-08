@@ -875,6 +875,7 @@ func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
 // get retrieve one record from database, bean's non-empty fields
 // will be as conditions
 func (session *Session) Get(bean interface{}) (bool, error) {
+
 	err := session.newDb()
 	if err != nil {
 		return false, err
@@ -889,6 +890,7 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	var sql string
 	var args []interface{}
 	session.Statement.RefTable = session.Engine.autoMap(bean)
+
 	if session.Statement.RawSQL == "" {
 		sql, args = session.Statement.genGetSql(bean)
 	} else {
@@ -1000,7 +1002,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 
 	if len(condiBean) > 0 {
 		colNames, args := buildConditions(session.Engine, table, condiBean[0], true, true,
-			session.Statement.allUseBool, session.Statement.boolColumnMap)
+			false, session.Statement.allUseBool, session.Statement.boolColumnMap)
 		session.Statement.ConditionStr = strings.Join(colNames, " AND ")
 		session.Statement.BeanArgs = args
 	}
@@ -1660,7 +1662,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 		fieldValue.SetUint(x)
 	//Now only support Time type
 	case reflect.Struct:
-		if fieldValue.Type().String() == "time.Time" {
+		if fieldType.String() == "time.Time" {
 			sdata := strings.TrimSpace(string(data))
 			var x time.Time
 			var err error
@@ -1723,6 +1725,265 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				return errors.New("unsupported struct type in Scan: " + fieldValue.Type().String())
 			}
 		}
+	case reflect.Ptr:
+		// !nashtsai! TODO merge duplicated codes above
+		typeStr := fieldType.String()
+		switch typeStr {
+		case "*string":
+			x := string(data)
+			fieldValue.Set(reflect.ValueOf(&x))
+		case "*bool":
+			d := string(data)
+			v, err := strconv.ParseBool(d)
+			if err != nil {
+				return errors.New("arg " + key + " as bool: " + err.Error())
+			}
+			fieldValue.Set(reflect.ValueOf(&v))
+		case "*complex64":
+			var x complex64
+			err := json.Unmarshal(data, &x)
+			if err != nil {
+				session.Engine.LogSQL(err)
+				return err
+			}
+			fieldValue.Set(reflect.ValueOf(&x))
+		case "*complex128":
+			var x complex128
+			err := json.Unmarshal(data, &x)
+			if err != nil {
+				session.Engine.LogSQL(err)
+				return err
+			}
+			fieldValue.Set(reflect.ValueOf(&x))
+		case "*float64":
+			x, err := strconv.ParseFloat(string(data), 64)
+			if err != nil {
+				return errors.New("arg " + key + " as float64: " + err.Error())
+			}
+			fieldValue.Set(reflect.ValueOf(&x))
+		case "*float32":
+			var x float32
+			x1, err := strconv.ParseFloat(string(data), 32)
+			if err != nil {
+				return errors.New("arg " + key + " as float32: " + err.Error())
+			}
+			x = float32(x1)
+			fieldValue.Set(reflect.ValueOf(&x))
+		case "*time.Time":
+			sdata := strings.TrimSpace(string(data))
+			var x time.Time
+			var err error
+
+			if sdata == "0000-00-00 00:00:00" ||
+				sdata == "0001-01-01 00:00:00" {
+			} else if !strings.ContainsAny(sdata, "- :") {
+				// time stamp
+				sd, err := strconv.ParseInt(sdata, 10, 64)
+				if err == nil {
+					x = time.Unix(0, sd)
+				}
+			} else if len(sdata) > 19 {
+				x, err = time.Parse(time.RFC3339Nano, sdata)
+				if err != nil {
+					x, err = time.Parse("2006-01-02 15:04:05.999999999", sdata)
+				}
+			} else if len(sdata) == 19 {
+				x, err = time.Parse("2006-01-02 15:04:05", sdata)
+			} else if len(sdata) == 10 && sdata[4] == '-' && sdata[7] == '-' {
+				x, err = time.Parse("2006-01-02", sdata)
+			} else if col.SQLType.Name == Time {
+				if len(sdata) > 8 {
+					sdata = sdata[len(sdata)-8:]
+				}
+				st := fmt.Sprintf("2006-01-02 %v", sdata)
+				x, err = time.Parse("2006-01-02 15:04:05", st)
+			} else {
+				return errors.New(fmt.Sprintf("unsupported time format %v", string(data)))
+			}
+			if err != nil {
+				return errors.New(fmt.Sprintf("unsupported time format %v: %v", string(data), err))
+			}
+
+			v = x
+			fieldValue.Set(reflect.ValueOf(&x))
+		case "*uint64":
+			var x uint64
+			x, err := strconv.ParseUint(string(data), 10, 64)
+			if err != nil {
+				return errors.New("arg " + key + " as int: " + err.Error())
+			}
+			fieldValue.Set(reflect.ValueOf(&x))
+		case "*uint":
+			var x uint
+			x1, err := strconv.ParseUint(string(data), 10, 64)
+			if err != nil {
+				return errors.New("arg " + key + " as int: " + err.Error())
+			}
+			x = uint(x1)
+			fieldValue.Set(reflect.ValueOf(&x))
+		case "*uint32":
+			var x uint32
+			x1, err := strconv.ParseUint(string(data), 10, 64)
+			if err != nil {
+				return errors.New("arg " + key + " as int: " + err.Error())
+			}
+			x = uint32(x1)
+			fieldValue.Set(reflect.ValueOf(&x))
+		case "*uint8":
+			var x uint8
+			x1, err := strconv.ParseUint(string(data), 10, 64)
+			if err != nil {
+				return errors.New("arg " + key + " as int: " + err.Error())
+			}
+			x = uint8(x1)
+			fieldValue.Set(reflect.ValueOf(&x))
+		case "*uint16":
+			var x uint16
+			x1, err := strconv.ParseUint(string(data), 10, 64)
+			if err != nil {
+				return errors.New("arg " + key + " as int: " + err.Error())
+			}
+			x = uint16(x1)
+			fieldValue.Set(reflect.ValueOf(&x))
+		case "*int64":
+			sdata := string(data)
+			var x int64
+			var err error
+			// for mysql, when use bit, it returned \x01
+			if col.SQLType.Name == Bit &&
+				strings.Contains(session.Engine.DriverName, "mysql") {
+				if len(data) == 1 {
+					x = int64(data[0])
+				} else {
+					x = 0
+				}
+				//fmt.Println("######", x, data)
+			} else if strings.HasPrefix(sdata, "0x") {
+				x, err = strconv.ParseInt(sdata, 16, 64)
+			} else if strings.HasPrefix(sdata, "0") {
+				x, err = strconv.ParseInt(sdata, 8, 64)
+			} else {
+				x, err = strconv.ParseInt(sdata, 10, 64)
+			}
+			if err != nil {
+				return errors.New("arg " + key + " as int: " + err.Error())
+			}
+			fieldValue.Set(reflect.ValueOf(&x))
+		case "*int":
+			sdata := string(data)
+			var x int
+			var x1 int64
+			var err error
+			// for mysql, when use bit, it returned \x01
+			if col.SQLType.Name == Bit &&
+				strings.Contains(session.Engine.DriverName, "mysql") {
+				if len(data) == 1 {
+					x = int(data[0])
+				} else {
+					x = 0
+				}
+				//fmt.Println("######", x, data)
+			} else if strings.HasPrefix(sdata, "0x") {
+				x1, err = strconv.ParseInt(sdata, 16, 64)
+				x = int(x1)
+			} else if strings.HasPrefix(sdata, "0") {
+				x1, err = strconv.ParseInt(sdata, 8, 64)
+				x = int(x1)
+			} else {
+				x1, err = strconv.ParseInt(sdata, 10, 64)
+				x = int(x1)
+			}
+			if err != nil {
+				return errors.New("arg " + key + " as int: " + err.Error())
+			}
+			fieldValue.Set(reflect.ValueOf(&x))
+		case "*int32":
+			sdata := string(data)
+			var x int32
+			var x1 int64
+			var err error
+			// for mysql, when use bit, it returned \x01
+			if col.SQLType.Name == Bit &&
+				strings.Contains(session.Engine.DriverName, "mysql") {
+				if len(data) == 1 {
+					x = int32(data[0])
+				} else {
+					x = 0
+				}
+				//fmt.Println("######", x, data)
+			} else if strings.HasPrefix(sdata, "0x") {
+				x1, err = strconv.ParseInt(sdata, 16, 64)
+				x = int32(x1)
+			} else if strings.HasPrefix(sdata, "0") {
+				x1, err = strconv.ParseInt(sdata, 8, 64)
+				x = int32(x1)
+			} else {
+				x1, err = strconv.ParseInt(sdata, 10, 64)
+				x = int32(x1)
+			}
+			if err != nil {
+				return errors.New("arg " + key + " as int: " + err.Error())
+			}
+			fieldValue.Set(reflect.ValueOf(&x))
+		case "*int8":
+			sdata := string(data)
+			var x int8
+			var x1 int64
+			var err error
+			// for mysql, when use bit, it returned \x01
+			if col.SQLType.Name == Bit &&
+				strings.Contains(session.Engine.DriverName, "mysql") {
+				if len(data) == 1 {
+					x = int8(data[0])
+				} else {
+					x = 0
+				}
+				//fmt.Println("######", x, data)
+			} else if strings.HasPrefix(sdata, "0x") {
+				x1, err = strconv.ParseInt(sdata, 16, 64)
+				x = int8(x1)
+			} else if strings.HasPrefix(sdata, "0") {
+				x1, err = strconv.ParseInt(sdata, 8, 64)
+				x = int8(x1)
+			} else {
+				x1, err = strconv.ParseInt(sdata, 10, 64)
+				x = int8(x1)
+			}
+			if err != nil {
+				return errors.New("arg " + key + " as int: " + err.Error())
+			}
+			fieldValue.Set(reflect.ValueOf(&x))
+		case "*int16":
+			sdata := string(data)
+			var x int16
+			var x1 int64
+			var err error
+			// for mysql, when use bit, it returned \x01
+			if col.SQLType.Name == Bit &&
+				strings.Contains(session.Engine.DriverName, "mysql") {
+				if len(data) == 1 {
+					x = int16(data[0])
+				} else {
+					x = 0
+				}
+				//fmt.Println("######", x, data)
+			} else if strings.HasPrefix(sdata, "0x") {
+				x1, err = strconv.ParseInt(sdata, 16, 64)
+				x = int16(x1)
+			} else if strings.HasPrefix(sdata, "0") {
+				x1, err = strconv.ParseInt(sdata, 8, 64)
+				x = int16(x1)
+			} else {
+				x1, err = strconv.ParseInt(sdata, 10, 64)
+				x = int16(x1)
+			}
+			if err != nil {
+				return errors.New("arg " + key + " as int: " + err.Error())
+			}
+			fieldValue.Set(reflect.ValueOf(&x))
+		default:
+			return errors.New("unsupported type in Scan: " + reflect.TypeOf(v).String())
+		}
 	default:
 		return errors.New("unsupported type in Scan: " + reflect.TypeOf(v).String())
 	}
@@ -1742,8 +2003,22 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 			}
 		}
 	}
+	fieldType := fieldValue.Type()
+	k := fieldType.Kind()
+	if k == reflect.Ptr {
+		if fieldValue.IsNil() {
+			return nil, nil
+		} else if !fieldValue.IsValid() {
+			session.Engine.LogWarn("the field[", col.FieldName, "] is invalid")
+			return nil, nil
+		} else {
+			// !nashtsai! deference pointer type to instance type
+			fieldValue = fieldValue.Elem()
+			fieldType = fieldValue.Type()
+			k = fieldType.Kind()
+		}
+	}
 
-	k := fieldValue.Type().Kind()
 	switch k {
 	case reflect.Bool:
 		if fieldValue.Bool() {
@@ -1754,7 +2029,7 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 	case reflect.String:
 		return fieldValue.String(), nil
 	case reflect.Struct:
-		if fieldValue.Type().String() == "time.Time" {
+		if fieldType.String() == "time.Time" {
 			if col.SQLType.Name == Time {
 				//s := fieldValue.Interface().(time.Time).Format("2006-01-02 15:04:05 -0700")
 				s := fieldValue.Interface().(time.Time).Format(time.RFC3339)
@@ -2178,7 +2453,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 		if session.Statement.ColumnStr == "" {
 			colNames, args = buildConditions(session.Engine, table, bean, false, false,
-				session.Statement.allUseBool, session.Statement.boolColumnMap)
+				false, session.Statement.allUseBool, session.Statement.boolColumnMap)
 		} else {
 			colNames, args, err = table.genCols(session, bean, true, true)
 			if err != nil {
@@ -2212,7 +2487,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	if len(condiBean) > 0 {
 		condiColNames, condiArgs = buildConditions(session.Engine, session.Statement.RefTable, condiBean[0], true, true,
-			session.Statement.allUseBool, session.Statement.boolColumnMap)
+			false, session.Statement.allUseBool, session.Statement.boolColumnMap)
 	}
 
 	var condition = ""
@@ -2378,7 +2653,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	table := session.Engine.autoMap(bean)
 	session.Statement.RefTable = table
 	colNames, args := buildConditions(session.Engine, table, bean, true, true,
-		session.Statement.allUseBool, session.Statement.boolColumnMap)
+		false, session.Statement.allUseBool, session.Statement.boolColumnMap)
 
 	var condition = ""
 	if session.Statement.WhereStr != "" {

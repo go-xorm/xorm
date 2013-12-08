@@ -132,7 +132,7 @@ func runReverse(cmd *Command, args []string) {
 	}
 
 	if langTmpl, ok = langTmpls[lang]; !ok {
-		fmt.Println("Unsupported lang", lang)
+		fmt.Println("Unsupported programing language", lang)
 		return
 	}
 

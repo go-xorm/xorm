@@ -26,6 +26,7 @@ func TestSqlite3(t *testing.T) {
 
 	testAll(engine, t)
 	testAll2(engine, t)
+	testAll3(engine, t)
 }
 
 func TestSqlite3WithCache(t *testing.T) {

@@ -25,6 +25,7 @@ func TestPostgres(t *testing.T) {
 
 	testAll(engine, t)
 	testAll2(engine, t)
+	testAll3(engine, t)
 }
 
 func TestPostgresWithCache(t *testing.T) {
