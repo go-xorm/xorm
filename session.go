@@ -2005,6 +2005,20 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 	}
 	fieldType := fieldValue.Type()
 	k := fieldType.Kind()
+	if k == reflect.Ptr {
+		if fieldValue.IsNil() {
+			return nil, nil
+		} else if !fieldValue.IsValid() {
+			session.Engine.LogWarn("the field[", col.FieldName, "] is invalid")
+			return nil, nil
+		} else {
+			// !nashtsai! deference pointer type to instance type
+			fieldValue = fieldValue.Elem()
+			fieldType = fieldValue.Type()
+			k = fieldType.Kind()
+		}
+	}
+
 	switch k {
 	case reflect.Bool:
 		if fieldValue.Bool() {
@@ -2073,67 +2087,6 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 		} else {
 			return nil, ErrUnSupportedType
 		}
-	case reflect.Ptr:
-		typeStr := fieldType.String()
-		if typeStr == "*string" {
-			if fieldValue.IsNil() {
-				return nil, nil
-			} else {
-				return fieldValue.Elem().String(), nil
-			}
-		} else if typeStr == "*bool" {
-			if fieldValue.IsNil() {
-				return nil, nil
-			} else {
-				return fieldValue.Elem().Bool(), nil
-			}
-		} else if typeStr == "*complex64" || typeStr == "*complex128" {
-			if fieldValue.IsNil() {
-				return nil, nil
-			} else {
-				bytes, err := json.Marshal(fieldValue.Elem().Complex())
-				if err != nil {
-					session.Engine.LogSQL(err)
-					return 0, err
-				}
-				return string(bytes), nil
-			}
-		} else if typeStr == "*float32" || typeStr == "*float64" {
-			if fieldValue.IsNil() {
-				return nil, nil
-			} else {
-				return fieldValue.Elem().Float(), nil
-			}
-		} else if typeStr == "*time.Time" {
-			if fieldValue.IsNil() {
-				return nil, nil
-			} else {
-				if col.SQLType.Name == Time {
-					//s := fieldValue.Interface().(time.Time).Format("2006-01-02 15:04:05 -0700")
-					s := fieldValue.Elem().Interface().(time.Time).Format(time.RFC3339)
-					return s[11:19], nil
-				} else if col.SQLType.Name == Date {
-					return fieldValue.Elem().Interface().(time.Time).Format("2006-01-02"), nil
-				} else if col.SQLType.Name == TimeStampz {
-					return fieldValue.Elem().Interface().(time.Time).Format(time.RFC3339Nano), nil
-				}
-				return fieldValue.Elem().Interface(), nil
-			}
-		} else if typeStr == "*int64" || intTypes.Search(typeStr) < len(intTypes) {
-			if fieldValue.IsNil() {
-				return nil, nil
-			} else {
-				return fieldValue.Elem().Int(), nil
-			}
-		} else if typeStr == "*uint64" || uintTypes.Search(typeStr) < len(uintTypes) {
-			if fieldValue.IsNil() {
-				return nil, nil
-			} else {
-				return fieldValue.Elem().Uint(), nil
-			}
-		}
-
-		fallthrough
 	default:
 		return fieldValue.Interface(), nil
 	}
