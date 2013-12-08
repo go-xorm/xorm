@@ -476,7 +476,7 @@ err := engine.Find(&pUsers)
 3) 也可以加入各种条件
 ```Go
 users := make([]Userinfo, 0)
-err := engine.Where("age > ? or name=?)", 30, "xlw").Limit(20, 10).Find(&users)
+err := engine.Where("age > ? or name = ?", 30, "xlw").Limit(20, 10).Find(&users)
 ```
 
 <a name="65" id="65"></a>
