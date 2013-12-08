@@ -24,6 +24,19 @@ func init() {
 
 var engine *xorm.Engine
 
+func help() {
+	fmt.Println(`
+		show tables					show all tables
+		columns <table_name> 		show table's column info
+		indexes <table_name>		show table's index info
+		exit 						exit shell
+		source <sql_file>			exec sql file to current database
+		dump [-nodata] <sql_file>	dump structs or records to sql file
+		help						show this document
+		<statement>					SQL statement
+	`)
+}
+
 func runShell(cmd *Command, args []string) {
 	if len(args) != 2 {
 		fmt.Println("params error, please see xorm help shell")
@@ -32,6 +45,12 @@ func runShell(cmd *Command, args []string) {
 
 	var err error
 	engine, err = xorm.NewEngine(args[0], args[1])
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	err = engine.Ping()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -106,6 +125,13 @@ func runShell(cmd *Command, args []string) {
 					fmt.Println(strings.Repeat("-", maxlen))
 					//fmt.Println(res)
 				}
+			}
+		} else if lcmd == "show tables;" {
+			tables, err := engine.DBMetas()
+			if err != nil {
+				fmt.Println(err)
+			} else {
+
 			}
 		} else {
 			cnt, err := engine.Exec(scmd)

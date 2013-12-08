@@ -81,6 +81,10 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 请加入QQ群：280360085 进行讨论。
 
+# 贡献者
+
+* [Lunny](https://github.com/lunny)
+* [Nashtsai](https://github.com/nashtsai)
 
 ## LICENSE
 
