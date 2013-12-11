@@ -1015,6 +1015,9 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		if columnStr == "" {
 			columnStr = session.Statement.genColumnStr()
 		}
+
+		session.Statement.attachInSql()
+
 		sql = session.Statement.genSelectSql(columnStr)
 		args = append(session.Statement.Params, session.Statement.BeanArgs...)
 	} else {
@@ -2508,7 +2511,8 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		}
 	}
 
-	var sql string
+	var sql, inSql string
+	var inArgs []interface{}
 	if table.Version != "" && session.Statement.checkVersion {
 		if condition != "" {
 			condition = fmt.Sprintf("WHERE (%v) AND %v = ?", condition,
@@ -2516,6 +2520,15 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		} else {
 			condition = fmt.Sprintf("WHERE %v = ?", session.Engine.Quote(table.Version))
 		}
+		inSql, inArgs = session.Statement.genInSql()
+		if len(inSql) > 0 {
+			if condition != "" {
+				condition += " AND " + inSql
+			} else {
+				condition = "WHERE " + inSql
+			}
+		}
+
 		sql = fmt.Sprintf("UPDATE %v SET %v, %v %v",
 			session.Engine.Quote(session.Statement.TableName()),
 			strings.Join(colNames, ", "),
@@ -2527,13 +2540,24 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		if condition != "" {
 			condition = "WHERE " + condition
 		}
+		inSql, inArgs = session.Statement.genInSql()
+		if len(inSql) > 0 {
+			if condition != "" {
+				condition += " AND " + inSql
+			} else {
+				condition = "WHERE " + inSql
+			}
+		}
+
 		sql = fmt.Sprintf("UPDATE %v SET %v %v",
 			session.Engine.Quote(session.Statement.TableName()),
 			strings.Join(colNames, ", "),
 			condition)
 	}
 
-	args = append(append(args, st.Params...), condiArgs...)
+	args = append(args, st.Params...)
+	args = append(args, inArgs...)
+	args = append(args, condiArgs...)
 
 	res, err := session.exec(sql, args...)
 	if err != nil {
@@ -2660,10 +2684,18 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	if session.Statement.WhereStr != "" {
 		condition = session.Statement.WhereStr
 		if len(colNames) > 0 {
-			condition += " and " + strings.Join(colNames, " and ")
+			condition += " AND " + strings.Join(colNames, " AND ")
 		}
 	} else {
-		condition = strings.Join(colNames, " and ")
+		condition = strings.Join(colNames, " AND ")
+	}
+	inSql, inArgs := session.Statement.genInSql()
+	if len(inSql) > 0 {
+		if len(condition) > 0 {
+			condition += " AND "
+		}
+		condition += inSql
+		args = append(args, inArgs...)
 	}
 	if len(condition) == 0 {
 		return 0, ErrNeedDeletedCond
