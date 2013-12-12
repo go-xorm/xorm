@@ -579,6 +579,7 @@ res, err := engine.Exec(sql, "xiaolun", 1)
 
 ```Go
 session := engine.NewSession()
+defer session.Close()
 // add Begin() before any action
 err := session.Begin()	
 user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
