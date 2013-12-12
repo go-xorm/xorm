@@ -3,9 +3,9 @@ package main
 import (
     "errors"
     "fmt"
+    "github.com/lunny/xorm"
     _ "github.com/mattn/go-sqlite3"
     "os"
-    . "xorm"
 )
 
 type Status struct {

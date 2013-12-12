@@ -1,8 +1,7 @@
 package xorm
 
 import (
-//"reflect"
-//"strings"
+    "strings"
 )
 
 // name translation between struct, fields names and table, column names
@@ -70,6 +69,8 @@ func (mapper SnakeMapper) Obj2Table(name string) string {
 func titleCasedName(name string) string {
     newstr := make([]rune, 0)
     upNextChar := true
+
+    name = strings.ToLower(name)
 
     for _, chr := range name {
         switch {

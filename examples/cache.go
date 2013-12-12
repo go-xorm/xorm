@@ -2,9 +2,9 @@ package main
 
 import (
     "fmt"
+    "github.com/lunny/xorm"
     _ "github.com/mattn/go-sqlite3"
     "os"
-    . "xorm"
 )
 
 type User struct {
@@ -16,13 +16,13 @@ func main() {
     f := "cache.db"
     os.Remove(f)
 
-    Orm, err := NewEngine("sqlite3", f)
+    Orm, err := xorm.NewEngine("sqlite3", f)
     if err != nil {
         fmt.Println(err)
         return
     }
     Orm.ShowSQL = true
-    cacher := NewLRUCacher(NewMemoryStore(), 1000)
+    cacher := xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
     Orm.SetDefaultCacher(cacher)
 
     err = Orm.CreateTables(&User{})

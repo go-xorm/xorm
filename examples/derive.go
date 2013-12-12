@@ -2,9 +2,9 @@ package main
 
 import (
     "fmt"
+    "github.com/lunny/xorm"
     _ "github.com/mattn/go-sqlite3"
     "os"
-    . "xorm"
 )
 
 type User struct {

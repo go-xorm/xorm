@@ -24,7 +24,7 @@ func init() {
 
 var engine *xorm.Engine
 
-func help() {
+func shellHelp() {
     fmt.Println(`
         show tables                    show all tables
         columns <table_name>         show table's column info
@@ -127,12 +127,12 @@ func runShell(cmd *Command, args []string) {
                 }
             }
         } else if lcmd == "show tables;" {
-            tables, err := engine.DBMetas()
-            if err != nil {
-                fmt.Println(err)
-            } else {
+            /*tables, err := engine.DBMetas()
+              if err != nil {
+                  fmt.Println(err)
+              } else {
 
-            }
+              }*/
         } else {
             cnt, err := engine.Exec(scmd)
             if err != nil {

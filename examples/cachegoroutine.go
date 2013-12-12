@@ -1,14 +1,11 @@
 package main
 
 import (
-    //xorm "github.com/lunny/xorm"
     "fmt"
     _ "github.com/go-sql-driver/mysql"
+    "github.com/lunny/xorm"
     _ "github.com/mattn/go-sqlite3"
     "os"
-    //"time"
-    //"sync/atomic"
-    xorm "xorm"
 )
 
 type User struct {
@@ -40,36 +37,31 @@ func test(engine *xorm.Engine) {
     for i := 0; i < size; i++ {
         go func(x int) {
             //x := i
-            err := engine.Test()
+            err := engine.Ping()
             if err != nil {
                 fmt.Println(err)
             } else {
-                err = engine.Map(u)
-                if err != nil {
-                    fmt.Println("Map user failed")
-                } else {
-                    for j := 0; j < 10; j++ {
-                        if x+j < 2 {
-                            _, err = engine.Get(u)
-                        } else if x+j < 4 {
-                            users := make([]User, 0)
-                            err = engine.Find(&users)
-                        } else if x+j < 8 {
-                            _, err = engine.Count(u)
-                        } else if x+j < 16 {
-                            _, err = engine.Insert(&User{Name: "xlw"})
-                        } else if x+j < 32 {
-                            //_, err = engine.Id(1).Delete(u)
-                            _, err = engine.Delete(u)
-                        }
-                        if err != nil {
-                            fmt.Println(err)
-                            queue <- x
-                            return
-                        }
+                for j := 0; j < 10; j++ {
+                    if x+j < 2 {
+                        _, err = engine.Get(u)
+                    } else if x+j < 4 {
+                        users := make([]User, 0)
+                        err = engine.Find(&users)
+                    } else if x+j < 8 {
+                        _, err = engine.Count(u)
+                    } else if x+j < 16 {
+                        _, err = engine.Insert(&User{Name: "xlw"})
+                    } else if x+j < 32 {
+                        //_, err = engine.Id(1).Delete(u)
+                        _, err = engine.Delete(u)
                     }
-                    fmt.Printf("%v success!\n", x)
+                    if err != nil {
+                        fmt.Println(err)
+                        queue <- x
+                        return
+                    }
                 }
+                fmt.Printf("%v success!\n", x)
             }
             queue <- x
         }(i)

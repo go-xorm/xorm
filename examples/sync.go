@@ -4,8 +4,8 @@ import (
     "fmt"
     _ "github.com/bylevel/pq"
     _ "github.com/go-sql-driver/mysql"
+    "github.com/lunny/xorm"
     _ "github.com/mattn/go-sqlite3"
-    "xorm"
 )
 
 type SyncUser2 struct {

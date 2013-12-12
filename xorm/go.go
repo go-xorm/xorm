@@ -184,9 +184,9 @@ func genGoImports(tables []*xorm.Table) map[string]string {
 
 func typestring(col *xorm.Column) string {
     st := col.SQLType
-    if col.IsPrimaryKey {
+    /*if col.IsPrimaryKey {
         return "int64"
-    }
+    }*/
     t := xorm.SQLType2Type(st)
     s := t.String()
     if s == "[]uint8" {
@@ -197,14 +197,16 @@ func typestring(col *xorm.Column) string {
 
 func tag(table *xorm.Table, col *xorm.Column) string {
     isNameId := (mapper.Table2Obj(col.Name) == "Id")
+    isIdPk := isNameId && typestring(col) == "int64"
+
     res := make([]string, 0)
     if !col.Nullable {
-        if !isNameId {
+        if !isIdPk {
             res = append(res, "not null")
         }
     }
     if col.IsPrimaryKey {
-        if !isNameId {
+        if !isIdPk {
             res = append(res, "pk")
         }
     }
@@ -212,7 +214,7 @@ func tag(table *xorm.Table, col *xorm.Column) string {
         res = append(res, "default "+col.Default)
     }
     if col.IsAutoIncrement {
-        if !isNameId {
+        if !isIdPk {
             res = append(res, "autoincr")
         }
     }

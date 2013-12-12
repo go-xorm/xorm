@@ -18,6 +18,8 @@ import (
 // Test that go1.1 tag above is included in builds. main.go refers to this definition.
 const go11tag = true
 
+const version = "0.1"
+
 // Commands lists the available commands and help topics.
 // The order here is the order in which they are printed by 'gopm help'.
 var commands = []*Command{
@@ -70,7 +72,6 @@ func setExitStatus(n int) {
 }
 
 var usageTemplate = `xorm is a database tool based xorm package.
-
 Usage:
 
     xorm command [arguments]
