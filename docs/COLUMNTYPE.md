@@ -98,7 +98,7 @@
     </td>
     <td></td>
     </tr>
-
+ <tr><td cols="5"></td></tr>
 
 <tr>
     <td>CHAR
@@ -174,7 +174,7 @@
     </td>
     <td></td>
     </tr>
-
+<tr><td cols="5"></td></tr>
 
 <tr>
     <td>BINARY
@@ -200,7 +200,7 @@
     </td>
     <td></td>
     </tr>
-
+<tr><td cols="5"></td></tr>
 
 <tr>
     <td>DATE
@@ -252,8 +252,21 @@
     </td>
     <td></td>
     </tr>
+    
+    
+<tr>
+    <td>TIMESTAMPZ
+    </td>
+    <td>TEXT
+    </td>
+    <td>TEXT
+    </td>
+    <td>TIMESTAMP with zone
+    </td>
+    <td>timestamp with zone info</td>
+    </tr>
 
-
+<tr><td cols="5"></td></tr>
 <tr>
     <td>REAL
     </td>
@@ -292,7 +305,7 @@
     <td></td>
     </tr>
 
-
+<tr><td cols="5"></td></tr>
 <tr>
     <td>DECIMAL
     </td>
@@ -318,7 +331,7 @@
     <td></td>
     </tr>
 
-
+<tr><td cols="5"></td></tr>
 <tr>
     <td>TINYBLOB
     </td>
@@ -382,7 +395,7 @@
     <td></td>
     </tr>
 
-
+<tr><td cols="5"></td></tr>
 
 <tr>
     <td>BOOL
