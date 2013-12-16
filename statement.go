@@ -9,6 +9,27 @@ import (
     "time"
 )
 
+// !nashtsai! treat following var as interal const values
+var (
+    c_EMPTY_STRING = ""
+    c_BOOL_DEFAULT = false
+    c_COMPLEX64_DEFAULT = complex64(0)
+    c_COMPLEX128_DEFAULT  = complex128(0)
+    c_FLOAT32_DEFAULT  = float32(0)
+    c_FLOAT64_DEFAULT  = float64(0)
+    c_INT64_DEFAULT = int64(0)
+    c_UINT64_DEFAULT = uint64(0)
+    c_INT32_DEFAULT = int32(0)
+    c_UINT32_DEFAULT = uint32(0)
+    c_INT16_DEFAULT = int16(0)
+    c_UINT16_DEFAULT = uint16(0)
+    c_INT8_DEFAULT = int8(0)
+    c_UINT8_DEFAULT = uint8(0)
+    c_INT_DEFAULT = int(0)
+    c_UINT_DEFAULT = uint(0)
+    c_TIME_DEFAULT time.Time = time.Unix(0, 0)
+)
+
 // statement save all the sql info for executing SQL
 type Statement struct {
     RefTable      *Table
@@ -16,6 +37,7 @@ type Statement struct {
     Start         int
     LimitN        int
     WhereStr      string
+    IdParam       *PK
     Params        []interface{}
     OrderStr      string
     JoinStr       string
@@ -256,7 +278,7 @@ func buildConditions(engine *Engine, table *Table, bean interface{},
             if fieldValue.IsNil() {
                 if includeNil {
                     args = append(args, nil)
-                    colNames = append(colNames, fmt.Sprintf("%v = ?", engine.Quote(col.Name)))
+                    colNames = append(colNames, fmt.Sprintf("%v=?", engine.Quote(col.Name)))
                 }
                 continue
             } else if !fieldValue.IsValid() {
@@ -376,7 +398,7 @@ func buildConditions(engine *Engine, table *Table, bean interface{},
         }
 
         args = append(args, val)
-        colNames = append(colNames, fmt.Sprintf("%v = ?", engine.Quote(col.Name)))
+        colNames = append(colNames, fmt.Sprintf("%v=?", engine.Quote(col.Name)))
     }
 
     return colNames, args
@@ -394,15 +416,40 @@ func (statement *Statement) TableName() string {
     return ""
 }
 
-// Generate "Where id = ? " statment
-func (statement *Statement) Id(id int64) *Statement {
-    if statement.WhereStr == "" {
-        statement.WhereStr = "(id)=?"
-        statement.Params = []interface{}{id}
-    } else {
-        statement.WhereStr = statement.WhereStr + " AND (id)=?"
-        statement.Params = append(statement.Params, id)
+// Generate "where id = ? " statment or for composite key "where key1 = ? and key2 = ?"
+func (statement *Statement) Id(id interface{}) *Statement {
+  
+    idValue := reflect.ValueOf(id)
+    idType := reflect.TypeOf(idValue.Interface())
+
+    switch idType {
+    case reflect.TypeOf(&PK{}):
+        if pkPtr, ok := (id).(*PK); ok {
+           statement.IdParam = pkPtr
+        }
+    case reflect.TypeOf(PK{}):
+        if pk, ok := (id).(PK); ok {
+           statement.IdParam = &pk
+        }
+    default: 
+        // TODO treat as int primitve for now, need to handle type check  
+        statement.IdParam = &PK{id}
+
+        // !nashtsai! REVIEW although it will be user's mistake if called Id() twice with 
+        // different value and Id should be PK's field name, however, at this stage probably
+        // can't tell which table is gonna be used
+        // if statement.WhereStr == "" {
+        //     statement.WhereStr = "(id)=?"
+        //     statement.Params = []interface{}{id}
+        // } else {
+        //     // TODO what if id param has already passed
+        //     statement.WhereStr = statement.WhereStr + " AND (id)=?"
+        //     statement.Params = append(statement.Params, id)
+        // }
     }
+
+    // !nashtsai! perhaps no need to validate pk values' type just let sql complaint happen
+
     return statement
 }
 
@@ -559,14 +606,37 @@ func (statement *Statement) genColumnStr() string {
     return strings.Join(colNames, ", ")
 }
 
-func (statement *Statement) genCreateSQL() string {
+func (statement *Statement) genCreateTableSQL() string {
     sql := "CREATE TABLE IF NOT EXISTS " + statement.Engine.Quote(statement.TableName()) + " ("
+
+
+    pkList := []string{} 
+
     for _, colName := range statement.RefTable.ColumnsSeq {
         col := statement.RefTable.Columns[colName]
-        sql += col.String(statement.Engine.dialect)
+        if col.IsPrimaryKey {
+            pkList = append(pkList, col.Name)    
+        }
+    }
+
+    statement.Engine.LogDebug("len:", len(pkList))
+    for _, colName := range statement.RefTable.ColumnsSeq {
+        col := statement.RefTable.Columns[colName]
+        if col.IsPrimaryKey && len(pkList) == 1 {
+            sql += col.String(statement.Engine.dialect)
+        } else {
+            sql += col.stringNoPk(statement.Engine.dialect)
+        }
         sql = strings.TrimSpace(sql)
         sql += ", "
     }
+
+    if len(pkList) > 1 {
+        sql += "PRIMARY KEY ( "
+        sql += strings.Join(pkList, ",")
+        sql += " ), "   
+    }
+
     sql = sql[:len(sql)-2] + ")"
     if statement.Engine.dialect.SupportEngine() && statement.StoreEngine != "" {
         sql += " ENGINE=" + statement.StoreEngine
@@ -702,11 +772,14 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
     if statement.IsDistinct {
         distinct = "DISTINCT "
     }
+
+    // !nashtsai! REVIEW Sprintf is considered slowest mean of string concatnation, better to work with builder pattern
     a = fmt.Sprintf("SELECT %v%v FROM %v", distinct, columnStr,
         statement.Engine.Quote(statement.TableName()))
     if statement.JoinStr != "" {
         a = fmt.Sprintf("%v %v", a, statement.JoinStr)
     }
+    statement.processIdParam()
     if statement.WhereStr != "" {
         a = fmt.Sprintf("%v WHERE %v", a, statement.WhereStr)
         if statement.ConditionStr != "" {
@@ -732,3 +805,34 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
     }
     return
 }
+
+func (statement *Statement) processIdParam() {
+
+    if statement.IdParam != nil {
+        i := 0
+        colCnt := len(statement.RefTable.ColumnsSeq)
+        for _, elem := range *(statement.IdParam) {
+            for ; i < colCnt; i++ {
+                colName := statement.RefTable.ColumnsSeq[i]
+                col := statement.RefTable.Columns[colName] 
+                if col.IsPrimaryKey {
+                    statement.And(fmt.Sprintf("%v=?", col.Name), elem)
+                    i++
+                    break 
+                }    
+            }
+        }
+
+        // !nashtsai! REVIEW what if statement.IdParam has insufficient pk item? handle it 
+        // as empty string for now, so this will result sql exec failed instead of unexpected
+        // false update/delete
+        for ; i < colCnt; i++ {
+            colName := statement.RefTable.ColumnsSeq[i]
+            col := statement.RefTable.Columns[colName] 
+            if col.IsPrimaryKey {
+                statement.And(fmt.Sprintf("%v=?", col.Name), "")
+            }    
+        }
+    }
+}
+

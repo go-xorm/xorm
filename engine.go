@@ -40,6 +40,8 @@ type dialect interface {
     GetIndexes(tableName string) (map[string]*Index, error)
 }
 
+type PK []interface{}
+
 // Engine is the major struct of xorm, it means a database manager.
 // Commonly, an application only need one engine
 type Engine struct {
@@ -269,7 +271,7 @@ func (engine *Engine) Where(querystring string, args ...interface{}) *Session {
 }
 
 // Id mehtod provoide a condition as (id) = ?
-func (engine *Engine) Id(id int64) *Session {
+func (engine *Engine) Id(id interface{}) *Session {
     session := engine.NewSession()
     session.IsAutoClose = true
     return session.Id(id)
