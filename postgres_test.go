@@ -1,48 +1,52 @@
 package xorm
 
 import (
-    //"fmt"
-    //_ "github.com/bylevel/pq"
-    _ "github.com/lib/pq"
-    "testing"
+	"database/sql"
+	"testing"
+
+	_ "github.com/lib/pq"
 )
 
 func newPostgresEngine() (*Engine, error) {
-    return NewEngine("postgres", "dbname=xorm_test sslmode=disable")
+	return NewEngine("postgres", "dbname=xorm_test sslmode=disable")
+}
+
+func newPostgresDriverDB() (*sql.DB, error) {
+	return sql.Open("postgres", "dbname=xorm_test sslmode=disable")
 }
 
 func TestPostgres(t *testing.T) {
-    engine, err := newPostgresEngine()
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    defer engine.Close()
-    engine.ShowSQL = showTestSql
-    engine.ShowErr = showTestSql
-    engine.ShowWarn = showTestSql
-    engine.ShowDebug = showTestSql
+	engine, err := newPostgresEngine()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer engine.Close()
+	engine.ShowSQL = showTestSql
+	engine.ShowErr = showTestSql
+	engine.ShowWarn = showTestSql
+	engine.ShowDebug = showTestSql
 
-    testAll(engine, t)
-    testAll2(engine, t)
-    testAll3(engine, t)
+	testAll(engine, t)
+	testAll2(engine, t)
+	testAll3(engine, t)
 }
 
 func TestPostgresWithCache(t *testing.T) {
-    engine, err := newPostgresEngine()
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
-    defer engine.Close()
-    engine.ShowSQL = showTestSql
-    engine.ShowErr = showTestSql
-    engine.ShowWarn = showTestSql
-    engine.ShowDebug = showTestSql
+	engine, err := newPostgresEngine()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	defer engine.Close()
+	engine.ShowSQL = showTestSql
+	engine.ShowErr = showTestSql
+	engine.ShowWarn = showTestSql
+	engine.ShowDebug = showTestSql
 
-    testAll(engine, t)
-    testAll2(engine, t)
+	testAll(engine, t)
+	testAll2(engine, t)
 }
 
 /*
@@ -142,118 +146,92 @@ func TestPostgres2(t *testing.T) {
     transaction(engine, t)
 }*/
 
-/*
+const (
+	createTablePostgres = `CREATE TABLE IF NOT EXISTS "big_struct" ("id" SERIAL PRIMARY KEY  NOT NULL, "name" VARCHAR(255) NULL, "title" VARCHAR(255) NULL, "age" VARCHAR(255) NULL, "alias" VARCHAR(255) NULL, "nick_name" VARCHAR(255) NULL);`
+	dropTablePostgres   = `DROP TABLE IF EXISTS "big_struct";`
+)
+
 func BenchmarkPostgresDriverInsert(t *testing.B) {
-    t.StopTimer()
-    engine, err := newPostgresEngine()
-
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    defer engine.Close()
-
-    db, err := engine.OpenDB()
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    defer db.Close()
-
-    doBenchDriverInsert(engine, db, t)
+	doBenchDriver(newPostgresDriverDB, createTablePostgres, dropTablePostgres,
+		doBenchDriverInsert, t)
 }
 
 func BenchmarkPostgresDriverFind(t *testing.B) {
-    t.StopTimer()
-    engine, err := newPostgresEngine()
-
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    defer engine.Close()
-
-    db, err := engine.OpenDB()
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    //defer db.Close()
-
-    doBenchDriverFind(engine, db, t)
-}*/
+	doBenchDriver(newPostgresDriverDB, createTablePostgres, dropTablePostgres,
+		doBenchDriverFind, t)
+}
 
 func BenchmarkPostgresNoCacheInsert(t *testing.B) {
-    engine, err := newPostgresEngine()
+	engine, err := newPostgresEngine()
 
-    defer engine.Close()
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    //engine.ShowSQL = true
-    doBenchInsert(engine, t)
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	//engine.ShowSQL = true
+	doBenchInsert(engine, t)
 }
 
 func BenchmarkPostgresNoCacheFind(t *testing.B) {
-    engine, err := newPostgresEngine()
+	engine, err := newPostgresEngine()
 
-    defer engine.Close()
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    //engine.ShowSQL = true
-    doBenchFind(engine, t)
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	//engine.ShowSQL = true
+	doBenchFind(engine, t)
 }
 
 func BenchmarkPostgresNoCacheFindPtr(t *testing.B) {
-    engine, err := newPostgresEngine()
+	engine, err := newPostgresEngine()
 
-    defer engine.Close()
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    //engine.ShowSQL = true
-    doBenchFindPtr(engine, t)
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	//engine.ShowSQL = true
+	doBenchFindPtr(engine, t)
 }
 
 func BenchmarkPostgresCacheInsert(t *testing.B) {
-    engine, err := newPostgresEngine()
+	engine, err := newPostgresEngine()
 
-    defer engine.Close()
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
 
-    doBenchInsert(engine, t)
+	doBenchInsert(engine, t)
 }
 
 func BenchmarkPostgresCacheFind(t *testing.B) {
-    engine, err := newPostgresEngine()
+	engine, err := newPostgresEngine()
 
-    defer engine.Close()
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
 
-    doBenchFind(engine, t)
+	doBenchFind(engine, t)
 }
 
 func BenchmarkPostgresCacheFindPtr(t *testing.B) {
-    engine, err := newPostgresEngine()
+	engine, err := newPostgresEngine()
 
-    defer engine.Close()
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
 
-    doBenchFindPtr(engine, t)
+	doBenchFindPtr(engine, t)
 }
