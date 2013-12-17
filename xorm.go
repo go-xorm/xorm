@@ -10,7 +10,7 @@ import (
 )
 
 const (
-    version string = "0.2.2"
+    version string = "0.2.3"
 )
 
 func close(engine *Engine) {

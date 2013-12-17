@@ -42,8 +42,6 @@ var (
     Text       = "TEXT"
     MediumText = "MEDIUMTEXT"
     LongText   = "LONGTEXT"
-    Binary     = "BINARY"
-    VarBinary  = "VARBINARY"
 
     Date       = "DATE"
     DateTime   = "DATETIME"
@@ -58,6 +56,8 @@ var (
     Float  = "FLOAT"
     Double = "DOUBLE"
 
+    Binary     = "BINARY"
+    VarBinary  = "VARBINARY"
     TinyBlob   = "TINYBLOB"
     Blob       = "BLOB"
     MediumBlob = "MEDIUMBLOB"
@@ -84,8 +84,6 @@ var (
         Text:       true,
         MediumText: true,
         LongText:   true,
-        Binary:     true,
-        VarBinary:  true,
 
         Date:       true,
         DateTime:   true,
@@ -96,6 +94,8 @@ var (
         Decimal: true,
         Numeric: true,
 
+        Binary:     true,
+        VarBinary:  true,
         Real:       true,
         Float:      true,
         Double:     true,
