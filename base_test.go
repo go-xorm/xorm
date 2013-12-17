@@ -1892,21 +1892,21 @@ func (p *ProcessorsStruct) AfterDelete() {
 }
 
 func testProcessors(engine *Engine, t *testing.T) {
-    tempEngine, err := NewEngine(engine.DriverName, engine.DataSourceName)
-    if err != nil {
-        t.Error(err)
-        panic(err)
-    }
+    // tempEngine, err := NewEngine(engine.DriverName, engine.DataSourceName)
+    // if err != nil {
+    //     t.Error(err)
+    //     panic(err)
+    // }
 
-    tempEngine.ShowSQL = true
-    err = tempEngine.DropTables(&ProcessorsStruct{})
+    engine.ShowSQL = true
+    err := engine.DropTables(&ProcessorsStruct{})
     if err != nil {
         t.Error(err)
         panic(err)
     }
     p := &ProcessorsStruct{}
 
-    err = tempEngine.CreateTables(&ProcessorsStruct{})
+    err = engine.CreateTables(&ProcessorsStruct{})
     if err != nil {
         t.Error(err)
         panic(err)
@@ -1928,7 +1928,7 @@ func testProcessors(engine *Engine, t *testing.T) {
         }
     }
 
-    _, err = tempEngine.Before(b4InsertFunc).After(afterInsertFunc).Insert(p)
+    _, err = engine.Before(b4InsertFunc).After(afterInsertFunc).Insert(p)
     if err != nil {
         t.Error(err)
         panic(err)
@@ -1948,7 +1948,7 @@ func testProcessors(engine *Engine, t *testing.T) {
     }
 
     p2 := &ProcessorsStruct{}
-    _, err = tempEngine.Id(p.Id).Get(p2)
+    _, err = engine.Id(p.Id).Get(p2)
     if err != nil {
         t.Error(err)
         panic(err)
@@ -1987,7 +1987,7 @@ func testProcessors(engine *Engine, t *testing.T) {
 
     p = p2 // reset
 
-    _, err = tempEngine.Before(b4UpdateFunc).After(afterUpdateFunc).Update(p)
+    _, err = engine.Before(b4UpdateFunc).After(afterUpdateFunc).Update(p)
     if err != nil {
         t.Error(err)
         panic(err)
@@ -2007,7 +2007,7 @@ func testProcessors(engine *Engine, t *testing.T) {
     }
 
     p2 = &ProcessorsStruct{}
-    _, err = tempEngine.Id(p.Id).Get(p2)
+    _, err = engine.Id(p.Id).Get(p2)
     if err != nil {
         t.Error(err)
         panic(err)
@@ -2045,7 +2045,7 @@ func testProcessors(engine *Engine, t *testing.T) {
     }
 
     p = p2 // reset
-    _, err = tempEngine.Before(b4DeleteFunc).After(afterDeleteFunc).Delete(p)
+    _, err = engine.Before(b4DeleteFunc).After(afterDeleteFunc).Delete(p)
     if err != nil {
         t.Error(err)
         panic(err)
@@ -2069,7 +2069,7 @@ func testProcessors(engine *Engine, t *testing.T) {
     pslice := make([]*ProcessorsStruct, 0)
     pslice = append(pslice, &ProcessorsStruct{})
     pslice = append(pslice, &ProcessorsStruct{})
-    cnt, err := tempEngine.Before(b4InsertFunc).After(afterInsertFunc).Insert(&pslice)
+    cnt, err := engine.Before(b4InsertFunc).After(afterInsertFunc).Insert(&pslice)
     if err != nil {
         t.Error(err)
         panic(err)
@@ -2095,7 +2095,7 @@ func testProcessors(engine *Engine, t *testing.T) {
 
     for _, elem := range pslice {
         p = &ProcessorsStruct{}
-        _, err = tempEngine.Id(elem.Id).Get(p)
+        _, err = engine.Id(elem.Id).Get(p)
         if err != nil {
             t.Error(err)
             panic(err)
@@ -2118,27 +2118,27 @@ func testProcessors(engine *Engine, t *testing.T) {
 }
 
 func testProcessorsTx(engine *Engine, t *testing.T) {
-    tempEngine, err := NewEngine(engine.DriverName, engine.DataSourceName)
+    // tempEngine, err := NewEngine(engine.DriverName, engine.DataSourceName)
+    // if err != nil {
+    //     t.Error(err)
+    //     panic(err)
+    // }
+
+    // tempEngine.ShowSQL = true
+    err := engine.DropTables(&ProcessorsStruct{})
     if err != nil {
         t.Error(err)
         panic(err)
     }
 
-    tempEngine.ShowSQL = true
-    err = tempEngine.DropTables(&ProcessorsStruct{})
-    if err != nil {
-        t.Error(err)
-        panic(err)
-    }
-
-    err = tempEngine.CreateTables(&ProcessorsStruct{})
+    err = engine.CreateTables(&ProcessorsStruct{})
     if err != nil {
         t.Error(err)
         panic(err)
     }
 
     // test insert processors with tx rollback
-    session := tempEngine.NewSession()
+    session := engine.NewSession()
     err = session.Begin()
     if err != nil {
         t.Error(err)
@@ -2200,7 +2200,7 @@ func testProcessorsTx(engine *Engine, t *testing.T) {
     }
     session.Close()
     p2 := &ProcessorsStruct{}
-    _, err = tempEngine.Id(p.Id).Get(p2)
+    _, err = engine.Id(p.Id).Get(p2)
     if err != nil {
         t.Error(err)
         panic(err)
@@ -2214,7 +2214,7 @@ func testProcessorsTx(engine *Engine, t *testing.T) {
     // --
 
     // test insert processors with tx commit
-    session = tempEngine.NewSession()
+    session = engine.NewSession()
     err = session.Begin()
     if err != nil {
         t.Error(err)
@@ -2261,7 +2261,7 @@ func testProcessorsTx(engine *Engine, t *testing.T) {
     }
     session.Close()
     p2 = &ProcessorsStruct{}
-    _, err = tempEngine.Id(p.Id).Get(p2)
+    _, err = engine.Id(p.Id).Get(p2)
     if err != nil {
         t.Error(err)
         panic(err)
@@ -2283,7 +2283,7 @@ func testProcessorsTx(engine *Engine, t *testing.T) {
     // --
 
     // test update processors with tx rollback
-    session = tempEngine.NewSession()
+    session = engine.NewSession()
     err = session.Begin()
     if err != nil {
         t.Error(err)
@@ -2347,7 +2347,7 @@ func testProcessorsTx(engine *Engine, t *testing.T) {
 
     session.Close()
     p2 = &ProcessorsStruct{}
-    _, err = tempEngine.Id(insertedId).Get(p2)
+    _, err = engine.Id(insertedId).Get(p2)
     if err != nil {
         t.Error(err)
         panic(err)
@@ -2368,7 +2368,7 @@ func testProcessorsTx(engine *Engine, t *testing.T) {
     // --
 
     // test update processors with tx commit
-    session = tempEngine.NewSession()
+    session = engine.NewSession()
     err = session.Begin()
     if err != nil {
         t.Error(err)
@@ -2415,7 +2415,7 @@ func testProcessorsTx(engine *Engine, t *testing.T) {
     }
     session.Close()
     p2 = &ProcessorsStruct{}
-    _, err = tempEngine.Id(insertedId).Get(p2)
+    _, err = engine.Id(insertedId).Get(p2)
     if err != nil {
         t.Error(err)
         panic(err)
@@ -2436,7 +2436,7 @@ func testProcessorsTx(engine *Engine, t *testing.T) {
     // --
 
     // test delete processors with tx rollback
-    session = tempEngine.NewSession()
+    session = engine.NewSession()
     err = session.Begin()
     if err != nil {
         t.Error(err)
@@ -2500,7 +2500,7 @@ func testProcessorsTx(engine *Engine, t *testing.T) {
     session.Close()
 
     p2 = &ProcessorsStruct{}
-    _, err = tempEngine.Id(insertedId).Get(p2)
+    _, err = engine.Id(insertedId).Get(p2)
     if err != nil {
         t.Error(err)
         panic(err)
@@ -2521,7 +2521,7 @@ func testProcessorsTx(engine *Engine, t *testing.T) {
     // --
 
     // test delete processors with tx commit
-    session = tempEngine.NewSession()
+    session = engine.NewSession()
     err = session.Begin()
     if err != nil {
         t.Error(err)
@@ -3253,6 +3253,71 @@ func testNullValue(engine *Engine, t *testing.T) {
 
 }
 
+type CompositeKey struct {
+    Id1        int64  `xorm:"id1 pk"`
+    Id2        int64  `xorm:"id2 pk"`
+    UpdateStr  string
+}
+
+func testCompositeKey(engine *Engine, t *testing.T) {
+
+    err := engine.DropTables(&CompositeKey{})
+    if err != nil {
+        t.Error(err)
+        panic(err)
+    }
+
+    err = engine.CreateTables(&CompositeKey{})
+    if err != nil {
+        t.Error(err)
+        panic(err)
+    }
+
+    cnt, err := engine.Insert(&CompositeKey{11, 22, ""})
+    if err != nil {
+        t.Error(err)
+    } else if cnt != 1 {
+        t.Error(errors.New("failed to insert CompositeKey{11, 22}"))
+    }
+
+    cnt, err = engine.Insert(&CompositeKey{11, 22, ""})
+    if err == nil || cnt == 1 {
+        t.Error(errors.New("inserted CompositeKey{11, 22}"))
+    } 
+
+    var compositeKeyVal CompositeKey
+    has, err := engine.Id(PK{11, 22}).Get(&compositeKeyVal)
+    if err != nil {
+        t.Error(err)
+    } else if !has {
+        t.Error(errors.New("can't get CompositeKey{11, 22}"))
+    }
+
+    // test passing PK ptr, this test seem failed withCache
+    has, err = engine.Id(&PK{11, 22}).Get(&compositeKeyVal)
+    if err != nil {
+        t.Error(err)
+    } else if !has {
+        t.Error(errors.New("can't get CompositeKey{11, 22}"))
+    }
+
+    compositeKeyVal = CompositeKey{UpdateStr:"test1"}
+    cnt, err = engine.Id(PK{11, 22}).Update(&compositeKeyVal)
+    if err != nil {
+        t.Error(err)
+    } else if cnt != 1 {
+        t.Error(errors.New("can't update CompositeKey{11, 22}"))
+    }
+
+    cnt, err = engine.Id(PK{11, 22}).Delete(&CompositeKey{})
+    if err != nil {
+        t.Error(err)
+    } else if cnt != 1 {
+        t.Error(errors.New("can't delete CompositeKey{11, 22}"))
+    }
+}
+
+
 func testAll(engine *Engine, t *testing.T) {
     fmt.Println("-------------- directCreateTable --------------")
     directCreateTable(engine, t)
@@ -3363,4 +3428,6 @@ func testAll3(engine *Engine, t *testing.T) {
     testPointerData(engine, t)
     fmt.Println("-------------- insert null data --------------")
     testNullValue(engine, t)
+    fmt.Println("-------------- testCompositeKey --------------")
+    testCompositeKey(engine, t)    
 }

@@ -90,7 +90,7 @@ func (session *Session) Or(querystring string, args ...interface{}) *Session {
 }
 
 // Method Id provides converting id as a query condition
-func (session *Session) Id(id int64) *Session {
+func (session *Session) Id(id interface{}) *Session {
     session.Statement.Id(id)
     return session
 }
@@ -490,7 +490,8 @@ func (session *Session) CreateUniques(bean interface{}) error {
 }
 
 func (session *Session) createOneTable() error {
-    sql := session.Statement.genCreateSQL()
+    sql := session.Statement.genCreateTableSQL()
+    session.Engine.LogDebug("create table sql: [", sql, "]")
     _, err := session.exec(sql)
     return err
 }
@@ -1580,6 +1581,8 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
     var v interface{}
     key := col.Name
     fieldType := fieldValue.Type()
+    
+
     //fmt.Println("column name:", key, ", fieldType:", fieldType.String())
     switch fieldType.Kind() {
     case reflect.Complex64, reflect.Complex128:
@@ -1730,19 +1733,22 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
         }
     case reflect.Ptr:
         // !nashtsai! TODO merge duplicated codes above
-        typeStr := fieldType.String()
-        switch typeStr {
-        case "*string":
+        //typeStr := fieldType.String()
+        switch fieldType {
+        // case "*string":
+        case reflect.TypeOf(&c_EMPTY_STRING):
             x := string(data)
             fieldValue.Set(reflect.ValueOf(&x))
-        case "*bool":
+        // case "*bool":
+        case reflect.TypeOf(&c_BOOL_DEFAULT):
             d := string(data)
             v, err := strconv.ParseBool(d)
             if err != nil {
                 return errors.New("arg " + key + " as bool: " + err.Error())
             }
             fieldValue.Set(reflect.ValueOf(&v))
-        case "*complex64":
+        // case "*complex64":
+        case reflect.TypeOf(&c_COMPLEX64_DEFAULT):
             var x complex64
             err := json.Unmarshal(data, &x)
             if err != nil {
@@ -1750,7 +1756,8 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
                 return err
             }
             fieldValue.Set(reflect.ValueOf(&x))
-        case "*complex128":
+        // case "*complex128":
+        case reflect.TypeOf(&c_COMPLEX128_DEFAULT):
             var x complex128
             err := json.Unmarshal(data, &x)
             if err != nil {
@@ -1758,13 +1765,15 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
                 return err
             }
             fieldValue.Set(reflect.ValueOf(&x))
-        case "*float64":
+        // case "*float64":
+        case reflect.TypeOf(&c_FLOAT64_DEFAULT):
             x, err := strconv.ParseFloat(string(data), 64)
             if err != nil {
                 return errors.New("arg " + key + " as float64: " + err.Error())
             }
             fieldValue.Set(reflect.ValueOf(&x))
-        case "*float32":
+        // case "*float32":
+        case reflect.TypeOf(&c_FLOAT32_DEFAULT):
             var x float32
             x1, err := strconv.ParseFloat(string(data), 32)
             if err != nil {
@@ -1772,7 +1781,8 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
             }
             x = float32(x1)
             fieldValue.Set(reflect.ValueOf(&x))
-        case "*time.Time":
+        // case "*time.Time":
+        case reflect.TypeOf(&c_TIME_DEFAULT):
             sdata := strings.TrimSpace(string(data))
             var x time.Time
             var err error
@@ -1809,14 +1819,16 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 
             v = x
             fieldValue.Set(reflect.ValueOf(&x))
-        case "*uint64":
+        // case "*uint64":
+        case reflect.TypeOf(&c_UINT64_DEFAULT):
             var x uint64
             x, err := strconv.ParseUint(string(data), 10, 64)
             if err != nil {
                 return errors.New("arg " + key + " as int: " + err.Error())
             }
             fieldValue.Set(reflect.ValueOf(&x))
-        case "*uint":
+        // case "*uint":
+        case reflect.TypeOf(&c_UINT_DEFAULT):
             var x uint
             x1, err := strconv.ParseUint(string(data), 10, 64)
             if err != nil {
@@ -1824,7 +1836,8 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
             }
             x = uint(x1)
             fieldValue.Set(reflect.ValueOf(&x))
-        case "*uint32":
+        // case "*uint32":
+        case reflect.TypeOf(&c_UINT32_DEFAULT):
             var x uint32
             x1, err := strconv.ParseUint(string(data), 10, 64)
             if err != nil {
@@ -1832,7 +1845,8 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
             }
             x = uint32(x1)
             fieldValue.Set(reflect.ValueOf(&x))
-        case "*uint8":
+        // case "*uint8":
+        case reflect.TypeOf(&c_UINT8_DEFAULT):
             var x uint8
             x1, err := strconv.ParseUint(string(data), 10, 64)
             if err != nil {
@@ -1840,7 +1854,8 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
             }
             x = uint8(x1)
             fieldValue.Set(reflect.ValueOf(&x))
-        case "*uint16":
+        // case "*uint16":
+        case reflect.TypeOf(&c_UINT16_DEFAULT):
             var x uint16
             x1, err := strconv.ParseUint(string(data), 10, 64)
             if err != nil {
@@ -1848,7 +1863,8 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
             }
             x = uint16(x1)
             fieldValue.Set(reflect.ValueOf(&x))
-        case "*int64":
+        // case "*int64":
+        case reflect.TypeOf(&c_INT64_DEFAULT):
             sdata := string(data)
             var x int64
             var err error
@@ -1872,7 +1888,8 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
                 return errors.New("arg " + key + " as int: " + err.Error())
             }
             fieldValue.Set(reflect.ValueOf(&x))
-        case "*int":
+        // case "*int":
+        case reflect.TypeOf(&c_INT_DEFAULT):
             sdata := string(data)
             var x int
             var x1 int64
@@ -1900,7 +1917,8 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
                 return errors.New("arg " + key + " as int: " + err.Error())
             }
             fieldValue.Set(reflect.ValueOf(&x))
-        case "*int32":
+        // case "*int32":
+        case reflect.TypeOf(&c_INT32_DEFAULT):
             sdata := string(data)
             var x int32
             var x1 int64
@@ -1928,7 +1946,8 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
                 return errors.New("arg " + key + " as int: " + err.Error())
             }
             fieldValue.Set(reflect.ValueOf(&x))
-        case "*int8":
+        // case "*int8":
+        case reflect.TypeOf(&c_INT8_DEFAULT):
             sdata := string(data)
             var x int8
             var x1 int64
@@ -1956,7 +1975,8 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
                 return errors.New("arg " + key + " as int: " + err.Error())
             }
             fieldValue.Set(reflect.ValueOf(&x))
-        case "*int16":
+        // case "*int16":
+        case reflect.TypeOf(&c_INT16_DEFAULT):
             sdata := string(data)
             var x int16
             var x1 int64
@@ -2494,6 +2514,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
     }
 
     var condition = ""
+    session.Statement.processIdParam()
     st := session.Statement
     defer session.Statement.Init()
     if st.WhereStr != "" {
@@ -2680,6 +2701,8 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
         false, session.Statement.allUseBool, session.Statement.boolColumnMap)
 
     var condition = ""
+
+    session.Statement.processIdParam()
     if session.Statement.WhereStr != "" {
         condition = session.Statement.WhereStr
         if len(colNames) > 0 {

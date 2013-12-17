@@ -155,25 +155,25 @@ func Type2SQLType(t reflect.Type) (st SQLType) {
 }
 
 func ptrType2SQLType(t reflect.Type) (st SQLType, has bool) {
-    typeStr := t.String()
     has = true
 
-    switch typeStr {
-    case "*string":
+    switch t {
+    case reflect.TypeOf(&c_EMPTY_STRING):
         st = SQLType{Varchar, 255, 0}
-    case "*bool":
+        return
+    case reflect.TypeOf(&c_BOOL_DEFAULT):
         st = SQLType{Bool, 0, 0}
-    case "*complex64", "*complex128":
+    case reflect.TypeOf(&c_COMPLEX64_DEFAULT), reflect.TypeOf(&c_COMPLEX128_DEFAULT):
         st = SQLType{Varchar, 64, 0}
-    case "*float32":
+    case reflect.TypeOf(&c_FLOAT32_DEFAULT):
         st = SQLType{Float, 0, 0}
-    case "*float64":
+    case reflect.TypeOf(&c_FLOAT64_DEFAULT):
         st = SQLType{Double, 0, 0}
-    case "*int64", "*uint64":
+    case reflect.TypeOf(&c_INT64_DEFAULT), reflect.TypeOf(&c_UINT64_DEFAULT):
         st = SQLType{BigInt, 0, 0}
-    case "*time.Time":
+    case reflect.TypeOf(&c_TIME_DEFAULT):
         st = SQLType{DateTime, 0, 0}
-    case "*int", "*int16", "*int32", "*int8", "*uint", "*uint16", "*uint32", "*uint8":
+    case reflect.TypeOf(&c_INT_DEFAULT), reflect.TypeOf(&c_INT32_DEFAULT), reflect.TypeOf(&c_INT8_DEFAULT), reflect.TypeOf(&c_INT16_DEFAULT), reflect.TypeOf(&c_UINT_DEFAULT), reflect.TypeOf(&c_UINT32_DEFAULT), reflect.TypeOf(&c_UINT8_DEFAULT), reflect.TypeOf(&c_UINT16_DEFAULT):
         st = SQLType{Int, 0, 0}
     default:
         has = false
@@ -265,11 +265,28 @@ func (col *Column) String(d dialect) string {
 
     if col.IsPrimaryKey {
         sql += "PRIMARY KEY "
+        if col.IsAutoIncrement {
+            sql += d.AutoIncrStr() + " "
+        }
     }
 
-    if col.IsAutoIncrement {
-        sql += d.AutoIncrStr() + " "
+    if col.Nullable {
+        sql += "NULL "
+    } else {
+        sql += "NOT NULL "
     }
+
+    if col.Default != "" {
+        sql += "DEFAULT " + col.Default + " "
+    }
+
+    return sql
+}
+
+func (col *Column) stringNoPk(d dialect) string {
+    sql := d.QuoteStr() + col.Name + d.QuoteStr() + " "
+
+    sql += d.SqlType(col) + " "
 
     if col.Nullable {
         sql += "NULL "
