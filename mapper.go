@@ -1,13 +1,13 @@
 package xorm
 
 import (
-    "strings"
+	"strings"
 )
 
 // name translation between struct, fields names and table, column names
 type IMapper interface {
-    Obj2Table(string) string
-    Table2Obj(string) string
+	Obj2Table(string) string
+	Table2Obj(string) string
 }
 
 // SameMapper implements IMapper and provides same name between struct and
@@ -16,11 +16,11 @@ type SameMapper struct {
 }
 
 func (m SameMapper) Obj2Table(o string) string {
-    return o
+	return o
 }
 
 func (m SameMapper) Table2Obj(t string) string {
-    return t
+	return t
 }
 
 // SnakeMapper implements IMapper and provides name transaltion between
@@ -29,18 +29,18 @@ type SnakeMapper struct {
 }
 
 func snakeCasedName(name string) string {
-    newstr := make([]rune, 0)
-    for idx, chr := range name {
-        if isUpper := 'A' <= chr && chr <= 'Z'; isUpper {
-            if idx > 0 {
-                newstr = append(newstr, '_')
-            }
-            chr -= ('A' - 'a')
-        }
-        newstr = append(newstr, chr)
-    }
+	newstr := make([]rune, 0)
+	for idx, chr := range name {
+		if isUpper := 'A' <= chr && chr <= 'Z'; isUpper {
+			if idx > 0 {
+				newstr = append(newstr, '_')
+			}
+			chr -= ('A' - 'a')
+		}
+		newstr = append(newstr, chr)
+	}
 
-    return string(newstr)
+	return string(newstr)
 }
 
 /*func pascal2Sql(s string) (d string) {
@@ -63,69 +63,69 @@ func snakeCasedName(name string) string {
 }*/
 
 func (mapper SnakeMapper) Obj2Table(name string) string {
-    return snakeCasedName(name)
+	return snakeCasedName(name)
 }
 
 func titleCasedName(name string) string {
-    newstr := make([]rune, 0)
-    upNextChar := true
+	newstr := make([]rune, 0)
+	upNextChar := true
 
-    name = strings.ToLower(name)
+	name = strings.ToLower(name)
 
-    for _, chr := range name {
-        switch {
-        case upNextChar:
-            upNextChar = false
-            if 'a' <= chr && chr <= 'z' {
-                chr -= ('a' - 'A')
-            }
-        case chr == '_':
-            upNextChar = true
-            continue
-        }
+	for _, chr := range name {
+		switch {
+		case upNextChar:
+			upNextChar = false
+			if 'a' <= chr && chr <= 'z' {
+				chr -= ('a' - 'A')
+			}
+		case chr == '_':
+			upNextChar = true
+			continue
+		}
 
-        newstr = append(newstr, chr)
-    }
+		newstr = append(newstr, chr)
+	}
 
-    return string(newstr)
+	return string(newstr)
 }
 
 func (mapper SnakeMapper) Table2Obj(name string) string {
-    return titleCasedName(name)
+	return titleCasedName(name)
 }
 
 // provide prefix table name support
 type PrefixMapper struct {
-    Mapper IMapper
-    Prefix string
+	Mapper IMapper
+	Prefix string
 }
 
 func (mapper PrefixMapper) Obj2Table(name string) string {
-    return mapper.Prefix + mapper.Mapper.Obj2Table(name)
+	return mapper.Prefix + mapper.Mapper.Obj2Table(name)
 }
 
 func (mapper PrefixMapper) Table2Obj(name string) string {
-    return mapper.Mapper.Table2Obj(name[len(mapper.Prefix):])
+	return mapper.Mapper.Table2Obj(name[len(mapper.Prefix):])
 }
 
 func NewPrefixMapper(mapper IMapper, prefix string) PrefixMapper {
-    return PrefixMapper{mapper, prefix}
+	return PrefixMapper{mapper, prefix}
 }
 
 // provide suffix table name support
 type SuffixMapper struct {
-    Mapper IMapper
-    Suffix string
+	Mapper IMapper
+	Suffix string
 }
 
 func (mapper SuffixMapper) Obj2Table(name string) string {
-    return mapper.Suffix + mapper.Mapper.Obj2Table(name)
+	return mapper.Suffix + mapper.Mapper.Obj2Table(name)
 }
 
 func (mapper SuffixMapper) Table2Obj(name string) string {
-    return mapper.Mapper.Table2Obj(name[len(mapper.Suffix):])
+	return mapper.Mapper.Table2Obj(name[len(mapper.Suffix):])
 }
 
 func NewSuffixMapper(mapper IMapper, suffix string) SuffixMapper {
-    return SuffixMapper{mapper, suffix}
+	return SuffixMapper{mapper, suffix}
 }

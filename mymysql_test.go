@@ -1,10 +1,10 @@
 package xorm
 
 import (
-    "database/sql"
-    "testing"
+	"database/sql"
+	"testing"
 
-    _ "github.com/ziutek/mymysql/godrv"
+	_ "github.com/ziutek/mymysql/godrv"
 )
 
 /*
@@ -15,153 +15,153 @@ utf8 COLLATE utf8_general_ci;
 var showTestSql bool = true
 
 func TestMyMysql(t *testing.T) {
-    err := mymysqlDdlImport()
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    engine, err := NewEngine("mymysql", "xorm_test/root/")
-    defer engine.Close()
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    engine.ShowSQL = showTestSql
-    engine.ShowErr = showTestSql
-    engine.ShowWarn = showTestSql
-    engine.ShowDebug = showTestSql
+	err := mymysqlDdlImport()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine, err := NewEngine("mymysql", "xorm_test/root/")
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.ShowSQL = showTestSql
+	engine.ShowErr = showTestSql
+	engine.ShowWarn = showTestSql
+	engine.ShowDebug = showTestSql
 
-    testAll(engine, t)
-    testAll2(engine, t)
-    testAll3(engine, t)
+	testAll(engine, t)
+	testAll2(engine, t)
+	testAll3(engine, t)
 }
 
 func TestMyMysqlWithCache(t *testing.T) {
-    err := mymysqlDdlImport()
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    engine, err := NewEngine("mymysql", "xorm_test2/root/")
-    defer engine.Close()
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
-    engine.ShowSQL = showTestSql
-    engine.ShowErr = showTestSql
-    engine.ShowWarn = showTestSql
-    engine.ShowDebug = showTestSql
+	err := mymysqlDdlImport()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine, err := NewEngine("mymysql", "xorm_test2/root/")
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.ShowSQL = showTestSql
+	engine.ShowErr = showTestSql
+	engine.ShowWarn = showTestSql
+	engine.ShowDebug = showTestSql
 
-    testAll(engine, t)
-    testAll2(engine, t)
+	testAll(engine, t)
+	testAll2(engine, t)
 }
 
 func newMyMysqlEngine() (*Engine, error) {
-    return NewEngine("mymysql", "xorm_test2/root/")
+	return NewEngine("mymysql", "xorm_test2/root/")
 }
 
 func newMyMysqlDriverDB() (*sql.DB, error) {
-    return sql.Open("mymysql", "xorm_test2/root/")
+	return sql.Open("mymysql", "xorm_test2/root/")
 }
 
 func BenchmarkMyMysqlDriverInsert(t *testing.B) {
-    doBenchDriver(newMyMysqlDriverDB, createTableMySql, dropTableMySql,
-        doBenchDriverInsert, t)
+	doBenchDriver(newMyMysqlDriverDB, createTableMySql, dropTableMySql,
+		doBenchDriverInsert, t)
 }
 
 func BenchmarkMyMysqlDriverFind(t *testing.B) {
-    doBenchDriver(newMyMysqlDriverDB, createTableMySql, dropTableMySql,
-        doBenchDriverFind, t)
+	doBenchDriver(newMyMysqlDriverDB, createTableMySql, dropTableMySql,
+		doBenchDriverFind, t)
 }
 
 func mymysqlDdlImport() error {
-    engine, err := NewEngine("mymysql", "/root/")
-    if err != nil {
-        return err
-    }
-    engine.ShowSQL = showTestSql
-    engine.ShowErr = showTestSql
-    engine.ShowWarn = showTestSql
-    engine.ShowDebug = showTestSql
+	engine, err := NewEngine("mymysql", "/root/")
+	if err != nil {
+		return err
+	}
+	engine.ShowSQL = showTestSql
+	engine.ShowErr = showTestSql
+	engine.ShowWarn = showTestSql
+	engine.ShowDebug = showTestSql
 
-    sqlResults, _ := engine.Import("tests/mysql_ddl.sql")
-    engine.LogDebug("sql results: %v", sqlResults)
-    engine.Close()
-    return nil
+	sqlResults, _ := engine.Import("tests/mysql_ddl.sql")
+	engine.LogDebug("sql results: %v", sqlResults)
+	engine.Close()
+	return nil
 }
 
 func BenchmarkMyMysqlNoCacheInsert(t *testing.B) {
-    engine, err := newMyMysqlEngine()
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    defer engine.Close()
+	engine, err := newMyMysqlEngine()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer engine.Close()
 
-    doBenchInsert(engine, t)
+	doBenchInsert(engine, t)
 }
 
 func BenchmarkMyMysqlNoCacheFind(t *testing.B) {
-    engine, err := newMyMysqlEngine()
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    defer engine.Close()
+	engine, err := newMyMysqlEngine()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer engine.Close()
 
-    //engine.ShowSQL = true
-    doBenchFind(engine, t)
+	//engine.ShowSQL = true
+	doBenchFind(engine, t)
 }
 
 func BenchmarkMyMysqlNoCacheFindPtr(t *testing.B) {
-    engine, err := newMyMysqlEngine()
-    if err != nil {
-        t.Error(err)
-        return
-    }
-    defer engine.Close()
+	engine, err := newMyMysqlEngine()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer engine.Close()
 
-    //engine.ShowSQL = true
-    doBenchFindPtr(engine, t)
+	//engine.ShowSQL = true
+	doBenchFindPtr(engine, t)
 }
 
 func BenchmarkMyMysqlCacheInsert(t *testing.B) {
-    engine, err := newMyMysqlEngine()
-    if err != nil {
-        t.Error(err)
-        return
-    }
+	engine, err := newMyMysqlEngine()
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
-    defer engine.Close()
-    engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	defer engine.Close()
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
 
-    doBenchInsert(engine, t)
+	doBenchInsert(engine, t)
 }
 
 func BenchmarkMyMysqlCacheFind(t *testing.B) {
-    engine, err := newMyMysqlEngine()
-    if err != nil {
-        t.Error(err)
-        return
-    }
+	engine, err := newMyMysqlEngine()
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
-    defer engine.Close()
-    engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	defer engine.Close()
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
 
-    doBenchFind(engine, t)
+	doBenchFind(engine, t)
 }
 
 func BenchmarkMyMysqlCacheFindPtr(t *testing.B) {
-    engine, err := newMyMysqlEngine()
-    if err != nil {
-        t.Error(err)
-        return
-    }
+	engine, err := newMyMysqlEngine()
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
-    defer engine.Close()
-    engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	defer engine.Close()
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
 
-    doBenchFindPtr(engine, t)
+	doBenchFindPtr(engine, t)
 }
