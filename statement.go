@@ -1,6 +1,7 @@
 package xorm
 
 import (
+    "bytes"
     "fmt"
     "reflect"
     //"strconv"
@@ -9,14 +10,14 @@ import (
     "time"
 )
 
-// !nashtsai! treat following var as interal const values
+// !nashtsai! treat following var as interal const values, these are used for reflect.TypeOf comparision
 var (
     c_EMPTY_STRING = ""
     c_BOOL_DEFAULT = false
     c_COMPLEX64_DEFAULT = complex64(0)
-    c_COMPLEX128_DEFAULT  = complex128(0)
-    c_FLOAT32_DEFAULT  = float32(0)
-    c_FLOAT64_DEFAULT  = float64(0)
+    c_COMPLEX128_DEFAULT = complex128(0)
+    c_FLOAT32_DEFAULT = float32(0)
+    c_FLOAT64_DEFAULT = float64(0)
     c_INT64_DEFAULT = int64(0)
     c_UINT64_DEFAULT = uint64(0)
     c_INT32_DEFAULT = int32(0)
@@ -707,7 +708,6 @@ func (s *Statement) genDropSQL() string {
     return sql
 }
 
-// !nashtsai! REVIEW, Statement is a huge struct why is this method not passing *Statement?
 func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) {
     table := statement.Engine.autoMap(bean)
     statement.RefTable = table
