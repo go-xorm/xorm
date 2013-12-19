@@ -1693,7 +1693,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 		if col.SQLType.Name == Bit &&
 			strings.Contains(session.Engine.DriverName, "mysql") {
 			if len(data) == 1 {
-				x = int64((data)[0])
+				x = int64(data[0])
 			} else {
 				x = 0
 			}
@@ -2047,7 +2047,7 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 	case reflect.String:
 		return fieldValue.String(), nil
 	case reflect.Struct:
-		if fieldType.String() == "time.Time" {
+		if fieldType == reflect.TypeOf(c_TIME_DEFAULT) {
 			if col.SQLType.Name == Time {
 				//s := fieldValue.Interface().(time.Time).Format("2006-01-02 15:04:05 -0700")
 				s := fieldValue.Interface().(time.Time).Format(time.RFC3339)
