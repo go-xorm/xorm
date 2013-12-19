@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	version string = "0.2.3"
+	Version string = "0.2.3"
 )
 
 func close(engine *Engine) {
@@ -34,6 +34,9 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		engine.Filters = append(engine.Filters, &QuoteFilter{})
 	} else if driverName == MYMYSQL {
 		engine.dialect = &mymysql{}
+	} else if driverName == ORACLE_OCI {
+		engine.dialect = &oracle{}
+		engine.Filters = append(engine.Filters, &QuoteFilter{})
 	} else {
 		return nil, errors.New(fmt.Sprintf("Unsupported driver name: %v", driverName))
 	}

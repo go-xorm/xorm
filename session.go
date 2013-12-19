@@ -2142,7 +2142,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	}
 	// --
 
-	colNames, args, err := table.genCols(session, bean, true, false)
+	colNames, args, err := table.genCols(session, bean, false, false)
 	if err != nil {
 		return 0, err
 	}
