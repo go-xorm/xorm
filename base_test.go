@@ -189,6 +189,13 @@ func insertAutoIncr(engine *Engine, t *testing.T) {
 	}
 }
 
+type BigInsert struct {
+}
+
+func insertDefault(engine *Engine, t *testing.T) {
+
+}
+
 func insertMulti(engine *Engine, t *testing.T) {
 	//engine.InsertMany = true
 	users := []Userinfo{
@@ -1540,26 +1547,26 @@ func testStrangeName(engine *Engine, t *testing.T) {
 	}
 }
 
-type Version struct {
+type VersionS struct {
 	Id   int64
 	Name string
 	Ver  int `xorm:"version"`
 }
 
 func testVersion(engine *Engine, t *testing.T) {
-	err := engine.DropTables(new(Version))
+	err := engine.DropTables(new(VersionS))
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = engine.CreateTables(new(Version))
+	err = engine.CreateTables(new(VersionS))
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	ver := &Version{Name: "sfsfdsfds"}
+	ver := &VersionS{Name: "sfsfdsfds"}
 	_, err = engine.Insert(ver)
 	if err != nil {
 		t.Error(err)
@@ -1572,7 +1579,7 @@ func testVersion(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 
-	newVer := new(Version)
+	newVer := new(VersionS)
 	has, err := engine.Id(ver.Id).Get(newVer)
 	if err != nil {
 		t.Error(err)
@@ -1597,7 +1604,7 @@ func testVersion(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 
-	newVer = new(Version)
+	newVer = new(VersionS)
 	has, err = engine.Id(ver.Id).Get(newVer)
 	if err != nil {
 		t.Error(err)
