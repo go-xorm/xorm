@@ -129,6 +129,16 @@ func (session *Session) Cols(columns ...string) *Session {
 	return session
 }
 
+func (session *Session) NoCascade() *Session {
+	session.Statement.UseCascade = false
+	return session
+}
+
+/*
+func (session *Session) MustCols(columns ...string) *Session {
+	session.Statement.Must()
+}*/
+
 // Xorm automatically retrieve condition according struct, but
 // if struct has bool field, it will ignore them. So use UseBool
 // to tell system to do not ignore them.
@@ -635,11 +645,14 @@ func (session *Session) cacheGet(bean interface{}, sql string, args ...interface
 			newSession := session.Engine.NewSession()
 			defer newSession.Close()
 			cacheBean = reflect.New(structValue.Type()).Interface()
+			newSession.Id(id).NoCache()
 			if session.Statement.AltTableName != "" {
-				has, err = newSession.Id(id).NoCache().Table(session.Statement.AltTableName).Get(cacheBean)
-			} else {
-				has, err = newSession.Id(id).NoCache().Get(cacheBean)
+				newSession.Table(session.Statement.AltTableName)
 			}
+			if !session.Statement.UseCascade {
+				newSession.NoCascade()
+			}
+			has, err = newSession.Get(cacheBean)
 			if err != nil || !has {
 				return has, err
 			}
@@ -2129,7 +2142,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	}
 	// --
 
-	colNames, args, err := table.genCols(session, bean, false, false)
+	colNames, args, err := table.genCols(session, bean, true, false)
 	if err != nil {
 		return 0, err
 	}

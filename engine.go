@@ -15,10 +15,11 @@ import (
 )
 
 const (
-	POSTGRES = "postgres"
-	SQLITE   = "sqlite3"
-	MYSQL    = "mysql"
-	MYMYSQL  = "mymysql"
+	POSTGRES   = "postgres"
+	SQLITE     = "sqlite3"
+	MYSQL      = "mysql"
+	MYMYSQL    = "mymysql"
+	ORACLE_OCI = "oci8"
 )
 
 // a dialect is a driver's wrapper
@@ -138,6 +139,12 @@ func (engine *Engine) NoCache() *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
 	return session.NoCache()
+}
+
+func (engine *Engine) NoCascade() *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.NoCascade()
 }
 
 // Set a table use a special cacher
