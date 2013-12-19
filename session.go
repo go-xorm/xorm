@@ -1254,6 +1254,9 @@ func row2map(rows *sql.Rows, fields []string) (resultsMap map[string][]byte, err
 	if err := rows.Scan(scanResultContainers...); err != nil {
 		return nil, err
 	}
+
+	// !nashtsai! TODO optimization for query performance, where current process has gone from
+	// sql driver converted type back to []bytes then to ORM's fields
 	for ii, key := range fields {
 		rawValue := reflect.Indirect(reflect.ValueOf(scanResultContainers[ii]))
 
@@ -1288,7 +1291,7 @@ func row2map(rows *sql.Rows, fields []string) (resultsMap map[string][]byte, err
 			}
 		//时间类型
 		case reflect.Struct:
-			if aa.String() == "time.Time" {
+			if aa == reflect.TypeOf(c_TIME_DEFAULT) {
 				str = rawValue.Interface().(time.Time).Format(time.RFC3339Nano)
 				result[key] = []byte(str)
 			} else {
@@ -1585,6 +1588,46 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 	return session.innerInsertMulti(rowsSlicePtr)
 }
 
+func (session *Session) byte2Time(col *Column, data []byte) (outTime time.Time, outErr error) {
+	sdata := strings.TrimSpace(string(data))
+	var x time.Time
+	var err error
+
+	if sdata == "0000-00-00 00:00:00" ||
+		sdata == "0001-01-01 00:00:00" {
+	} else if !strings.ContainsAny(sdata, "- :") {
+		// time stamp
+		sd, err := strconv.ParseInt(sdata, 10, 64)
+		if err == nil {
+			x = time.Unix(0, sd)
+		}
+	} else if len(sdata) > 19 {
+		x, err = time.Parse(time.RFC3339Nano, sdata)
+		if err != nil {
+			x, err = time.Parse("2006-01-02 15:04:05.999999999", sdata)
+		}
+	} else if len(sdata) == 19 {
+		x, err = time.Parse("2006-01-02 15:04:05", sdata)
+	} else if len(sdata) == 10 && sdata[4] == '-' && sdata[7] == '-' {
+		x, err = time.Parse("2006-01-02", sdata)
+	} else if col.SQLType.Name == Time {
+		if len(sdata) > 8 {
+			sdata = sdata[len(sdata)-8:]
+		}
+		st := fmt.Sprintf("2006-01-02 %v", sdata)
+		x, err = time.Parse("2006-01-02 15:04:05", st)
+	} else {
+		outErr = errors.New(fmt.Sprintf("unsupported time format %v", sdata))
+		return
+	}
+	if err != nil {
+		outErr = errors.New(fmt.Sprintf("unsupported time format %v: %v", sdata, err))
+		return
+	}
+	outTime = x
+	return
+}
+
 // convert a db data([]byte) to a field value
 func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data []byte) error {
 	if structConvert, ok := fieldValue.Addr().Interface().(Conversion); ok {
@@ -1680,41 +1723,11 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 		fieldValue.SetUint(x)
 	//Now only support Time type
 	case reflect.Struct:
-		if fieldType.String() == "time.Time" {
-			sdata := strings.TrimSpace(string(data))
-			var x time.Time
-			var err error
-
-			if sdata == "0000-00-00 00:00:00" ||
-				sdata == "0001-01-01 00:00:00" {
-			} else if !strings.ContainsAny(sdata, "- :") {
-				// time stamp
-				sd, err := strconv.ParseInt(sdata, 10, 64)
-				if err == nil {
-					x = time.Unix(0, sd)
-				}
-			} else if len(sdata) > 19 {
-				x, err = time.Parse(time.RFC3339Nano, sdata)
-				if err != nil {
-					x, err = time.Parse("2006-01-02 15:04:05.999999999", sdata)
-				}
-			} else if len(sdata) == 19 {
-				x, err = time.Parse("2006-01-02 15:04:05", sdata)
-			} else if len(sdata) == 10 && sdata[4] == '-' && sdata[7] == '-' {
-				x, err = time.Parse("2006-01-02", sdata)
-			} else if col.SQLType.Name == Time {
-				if len(sdata) > 8 {
-					sdata = sdata[len(sdata)-8:]
-				}
-				st := fmt.Sprintf("2006-01-02 %v", sdata)
-				x, err = time.Parse("2006-01-02 15:04:05", st)
-			} else {
-				return errors.New(fmt.Sprintf("unsupported time format %v", string(data)))
-			}
+		if fieldType == reflect.TypeOf(c_TIME_DEFAULT) {
+			x, err := session.byte2Time(col, data)
 			if err != nil {
-				return errors.New(fmt.Sprintf("unsupported time format %v: %v", string(data), err))
+				return err
 			}
-
 			v = x
 			fieldValue.Set(reflect.ValueOf(v))
 		} else if session.Statement.UseCascade {
@@ -1795,40 +1808,10 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*time.Time":
 		case reflect.TypeOf(&c_TIME_DEFAULT):
-			sdata := strings.TrimSpace(string(data))
-			var x time.Time
-			var err error
-
-			if sdata == "0000-00-00 00:00:00" ||
-				sdata == "0001-01-01 00:00:00" {
-			} else if !strings.ContainsAny(sdata, "- :") {
-				// time stamp
-				sd, err := strconv.ParseInt(sdata, 10, 64)
-				if err == nil {
-					x = time.Unix(0, sd)
-				}
-			} else if len(sdata) > 19 {
-				x, err = time.Parse(time.RFC3339Nano, sdata)
-				if err != nil {
-					x, err = time.Parse("2006-01-02 15:04:05.999999999", sdata)
-				}
-			} else if len(sdata) == 19 {
-				x, err = time.Parse("2006-01-02 15:04:05", sdata)
-			} else if len(sdata) == 10 && sdata[4] == '-' && sdata[7] == '-' {
-				x, err = time.Parse("2006-01-02", sdata)
-			} else if col.SQLType.Name == Time {
-				if len(sdata) > 8 {
-					sdata = sdata[len(sdata)-8:]
-				}
-				st := fmt.Sprintf("2006-01-02 %v", sdata)
-				x, err = time.Parse("2006-01-02 15:04:05", st)
-			} else {
-				return errors.New(fmt.Sprintf("unsupported time format %v", string(data)))
-			}
+			x, err := session.byte2Time(col, data)
 			if err != nil {
-				return errors.New(fmt.Sprintf("unsupported time format %v: %v", string(data), err))
+				return err
 			}
-
 			v = x
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*uint64":
@@ -2064,7 +2047,7 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 	case reflect.String:
 		return fieldValue.String(), nil
 	case reflect.Struct:
-		if fieldType.String() == "time.Time" {
+		if fieldType == reflect.TypeOf(c_TIME_DEFAULT) {
 			if col.SQLType.Name == Time {
 				//s := fieldValue.Interface().(time.Time).Format("2006-01-02 15:04:05 -0700")
 				s := fieldValue.Interface().(time.Time).Format(time.RFC3339)

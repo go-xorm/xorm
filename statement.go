@@ -1,33 +1,13 @@
 package xorm
 
 import (
+	//"bytes"
 	"fmt"
 	"reflect"
 	//"strconv"
 	"encoding/json"
 	"strings"
 	"time"
-)
-
-// !nashtsai! treat following var as interal const values
-var (
-	c_EMPTY_STRING                 = ""
-	c_BOOL_DEFAULT                 = false
-	c_COMPLEX64_DEFAULT            = complex64(0)
-	c_COMPLEX128_DEFAULT           = complex128(0)
-	c_FLOAT32_DEFAULT              = float32(0)
-	c_FLOAT64_DEFAULT              = float64(0)
-	c_INT64_DEFAULT                = int64(0)
-	c_UINT64_DEFAULT               = uint64(0)
-	c_INT32_DEFAULT                = int32(0)
-	c_UINT32_DEFAULT               = uint32(0)
-	c_INT16_DEFAULT                = int16(0)
-	c_UINT16_DEFAULT               = uint16(0)
-	c_INT8_DEFAULT                 = int8(0)
-	c_UINT8_DEFAULT                = uint8(0)
-	c_INT_DEFAULT                  = int(0)
-	c_UINT_DEFAULT                 = uint(0)
-	c_TIME_DEFAULT       time.Time = time.Unix(0, 0)
 )
 
 // statement save all the sql info for executing SQL
@@ -706,7 +686,6 @@ func (s *Statement) genDropSQL() string {
 	return sql
 }
 
-// !nashtsai! REVIEW, Statement is a huge struct why is this method not passing *Statement?
 func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) {
 	table := statement.Engine.autoMap(bean)
 	statement.RefTable = table
