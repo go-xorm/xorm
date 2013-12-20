@@ -147,6 +147,8 @@ where a.object_id=object_id('` + tableName + `')`
 				switch ct {
 				case "DATETIMEOFFSET":
 					col.SQLType = SQLType{TimeStampz, 0, 0}
+				case "NVARCHAR":
+					col.SQLType = SQLType{Varchar, 0, 0}
 				default:
 					if _, ok := sqlTypes[ct]; ok {
 						col.SQLType = SQLType{ct, 0, 0}
