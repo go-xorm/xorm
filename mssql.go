@@ -229,7 +229,6 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 
 	indexes := make(map[string]*Index, 0)
 	for _, record := range res {
-		fmt.Println("-----", record, "-----")
 		var indexType int
 		var indexName, colName string
 		for name, content := range record {
@@ -239,8 +238,6 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 				if err != nil {
 					return nil, err
 				}
-
-				fmt.Println(name, string(content), i)
 
 				if i {
 					indexType = UniqueType
@@ -267,7 +264,6 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 			indexes[indexName] = index
 		}
 		index.AddColumn(colName)
-		fmt.Print("------end------")
 	}
 	return indexes, nil
 }
