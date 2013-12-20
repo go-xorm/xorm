@@ -1003,7 +1003,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 
 	if len(condiBean) > 0 {
 		colNames, args := buildConditions(session.Engine, table, condiBean[0], true, true,
-			false, session.Statement.allUseBool, session.Statement.boolColumnMap)
+			false, true, session.Statement.allUseBool, session.Statement.boolColumnMap)
 		session.Statement.ConditionStr = strings.Join(colNames, " AND ")
 		session.Statement.BeanArgs = args
 	}
@@ -1147,8 +1147,8 @@ func (session *Session) isIndexExist2(tableName string, cols []string, unique bo
 		return false, err
 	}
 
-	for _, index := range indexes {
-		//fmt.Println(i, "new:", cols, "-old:", index.Cols)
+	for i, index := range indexes {
+		fmt.Println(i, "new:", cols, "-old:", index.Cols, sliceEq(index.Cols, cols), unique, index.Type)
 		if sliceEq(index.Cols, cols) {
 			if unique {
 				return index.Type == UniqueType, nil
@@ -1352,6 +1352,7 @@ func query(db *sql.DB, sql string, params ...interface{}) (resultsSlice []map[st
 		return nil, err
 	}
 	defer rows.Close()
+	fmt.Println(rows)
 
 	return rows2maps(rows)
 }
@@ -1635,7 +1636,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 		var err error
 		// for mysql, when use bit, it returned \x01
 		if col.SQLType.Name == Bit &&
-			strings.Contains(session.Engine.DriverName, "mysql") {
+			session.Engine.dialect.DBType() == MYSQL {
 			if len(data) == 1 {
 				x = int64(data[0])
 			} else {
@@ -1646,6 +1647,10 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			x, err = strconv.ParseInt(sdata, 16, 64)
 		} else if strings.HasPrefix(sdata, "0") {
 			x, err = strconv.ParseInt(sdata, 8, 64)
+		} else if strings.ToLower(sdata) == "true" {
+			x = 1
+		} else if strings.ToLower(sdata) == "false" {
+			x = 0
 		} else {
 			x, err = strconv.ParseInt(sdata, 10, 64)
 		}
@@ -1685,14 +1690,21 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				if err != nil {
 					x, err = time.Parse("2006-01-02 15:04:05.999999999", sdata)
 				}
+				if err != nil {
+					x, err = time.Parse("2006-01-02 15:04:05.9999999 Z07:00", sdata)
+				}
 			} else if len(sdata) == 19 {
 				x, err = time.Parse("2006-01-02 15:04:05", sdata)
 			} else if len(sdata) == 10 && sdata[4] == '-' && sdata[7] == '-' {
 				x, err = time.Parse("2006-01-02", sdata)
 			} else if col.SQLType.Name == Time {
-				if len(sdata) > 8 {
-					sdata = sdata[len(sdata)-8:]
+				if strings.Contains(sdata, " ") {
+					ssd := strings.Split(sdata, " ")
+					sdata = ssd[1]
 				}
+				/*if len(sdata) > 8 {
+					sdata = sdata[len(sdata)-8:]
+				}*/
 				st := fmt.Sprintf("2006-01-02 %v", sdata)
 				x, err = time.Parse("2006-01-02 15:04:05", st)
 			} else {
@@ -2052,6 +2064,13 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 		return fieldValue.String(), nil
 	case reflect.Struct:
 		if fieldType.String() == "time.Time" {
+			t := fieldValue.Interface().(time.Time)
+
+			if session.Engine.dialect.DBType() == MSSQL {
+				if t.IsZero() {
+					return nil, nil
+				}
+			}
 			if col.SQLType.Name == Time {
 				//s := fieldValue.Interface().(time.Time).Format("2006-01-02 15:04:05 -0700")
 				s := fieldValue.Interface().(time.Time).Format(time.RFC3339)
@@ -2059,6 +2078,11 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 			} else if col.SQLType.Name == Date {
 				return fieldValue.Interface().(time.Time).Format("2006-01-02"), nil
 			} else if col.SQLType.Name == TimeStampz {
+				if session.Engine.dialect.DBType() == MSSQL {
+					tf := t.Format("2006-01-02T15:04:05.9999999Z07:00")
+					fmt.Println("====", tf)
+					return tf, nil
+				}
 				return fieldValue.Interface().(time.Time).Format(time.RFC3339Nano), nil
 			}
 			return fieldValue.Interface(), nil
@@ -2475,7 +2499,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 		if session.Statement.ColumnStr == "" {
 			colNames, args = buildConditions(session.Engine, table, bean, false, false,
-				false, session.Statement.allUseBool, session.Statement.boolColumnMap)
+				false, false, session.Statement.allUseBool, session.Statement.boolColumnMap)
 		} else {
 			colNames, args, err = table.genCols(session, bean, true, true)
 			if err != nil {
@@ -2509,7 +2533,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	if len(condiBean) > 0 {
 		condiColNames, condiArgs = buildConditions(session.Engine, session.Statement.RefTable, condiBean[0], true, true,
-			false, session.Statement.allUseBool, session.Statement.boolColumnMap)
+			false, true, session.Statement.allUseBool, session.Statement.boolColumnMap)
 	}
 
 	var condition = ""
@@ -2697,7 +2721,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	table := session.Engine.autoMap(bean)
 	session.Statement.RefTable = table
 	colNames, args := buildConditions(session.Engine, table, bean, true, true,
-		false, session.Statement.allUseBool, session.Statement.boolColumnMap)
+		false, true, session.Statement.allUseBool, session.Statement.boolColumnMap)
 
 	var condition = ""
 

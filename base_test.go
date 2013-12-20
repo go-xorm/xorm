@@ -231,7 +231,7 @@ func insertMulti(engine *Engine, t *testing.T) {
 }
 
 func insertTwoTable(engine *Engine, t *testing.T) {
-	userdetail := Userdetail{Id: 1, Intro: "I'm a very beautiful women.", Profile: "sfsaf"}
+	userdetail := Userdetail{ /*Id: 1, */ Intro: "I'm a very beautiful women.", Profile: "sfsaf"}
 	userinfo := Userinfo{Username: "xlw3", Departname: "dev", Alias: "lunny4", Created: time.Now(), Detail: userdetail}
 
 	cnt, err := engine.Insert(&userinfo, &userdetail)
@@ -1173,7 +1173,8 @@ func testColTypes(engine *Engine, t *testing.T) {
 
 		true,
 
-		21,
+		0,
+		//21,
 	}
 
 	cnt, err := engine.Insert(ac)
@@ -1202,6 +1203,10 @@ func testColTypes(engine *Engine, t *testing.T) {
 	newAc.Real = 0
 	newAc.Float = 0
 	newAc.Double = 0
+	newAc.LongText = ""
+	newAc.TinyText = ""
+	newAc.MediumText = ""
+	newAc.Text = ""
 	cnt, err = engine.Delete(newAc)
 	if err != nil {
 		t.Error(err)
@@ -1286,6 +1291,9 @@ func testCustomType(engine *Engine, t *testing.T) {
 	}
 
 	fmt.Println(i)
+	i.NameArray = []string{}
+	i.MSS = map[string]string{}
+	i.F = 0
 	has, err := engine.Get(&i)
 	if err != nil {
 		t.Error(err)
@@ -1312,6 +1320,8 @@ func testCustomType(engine *Engine, t *testing.T) {
 	fmt.Println(sss)
 
 	if has {
+		sss.NameArray = []string{}
+		sss.MSS = map[string]string{}
 		cnt, err := engine.Delete(&sss)
 		if err != nil {
 			t.Error(err)

@@ -19,11 +19,14 @@ const (
 	SQLITE   = "sqlite3"
 	MYSQL    = "mysql"
 	MYMYSQL  = "mymysql"
+
+	MSSQL = "mssql"
 )
 
 // a dialect is a driver's wrapper
 type dialect interface {
 	Init(DriverName, DataSourceName string) error
+	DBType() string
 	SqlType(t *Column) string
 	SupportInsertMany() bool
 	QuoteStr() string
@@ -248,7 +251,7 @@ func (engine *Engine) DBMetas() ([]*Table, error) {
 				if col, ok := table.Columns[name]; ok {
 					col.Indexes[index.Name] = true
 				} else {
-					return nil, errors.New("Unkonwn col " + name + " in indexes")
+					return nil, fmt.Errorf("Unknown col "+name+" in indexes %v", table.Columns)
 				}
 			}
 		}
@@ -746,6 +749,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 					if err != nil {
 						return err
 					}
+					fmt.Println("-----", isExist)
 					if !isExist {
 						session := engine.NewSession()
 						session.Statement.RefTable = table

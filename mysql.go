@@ -68,6 +68,10 @@ func (b *base) init(parser parser, drivername, dataSourceName string) (err error
 	return
 }
 
+func (b *base) DBType() string {
+	return b.uri.dbType
+}
+
 type mysql struct {
 	base
 	net               string

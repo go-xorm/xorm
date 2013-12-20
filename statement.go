@@ -258,7 +258,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 
 // Auto generating conditions according a struct
 func buildConditions(engine *Engine, table *Table, bean interface{},
-	includeVersion bool, includeUpdated bool, includeNil bool, allUseBool bool,
+	includeVersion bool, includeUpdated bool, includeNil bool, includeAutoIncr bool, allUseBool bool,
 	boolColumnMap map[string]bool) ([]string, []interface{}) {
 
 	colNames := make([]string, 0)
@@ -268,6 +268,14 @@ func buildConditions(engine *Engine, table *Table, bean interface{},
 			continue
 		}
 		if !includeUpdated && col.IsUpdated {
+			continue
+		}
+		if !includeAutoIncr && col.IsAutoIncrement {
+			continue
+		}
+		//
+		fmt.Println(engine.dialect.DBType(), Text)
+		if engine.dialect.DBType() == MSSQL && col.SQLType.Name == Text {
 			continue
 		}
 		fieldValue := col.ValueOf(bean)
@@ -361,7 +369,7 @@ func buildConditions(engine *Engine, table *Table, bean interface{},
 			if fieldValue == reflect.Zero(fieldType) {
 				continue
 			}
-			if fieldValue.IsNil() || !fieldValue.IsValid() {
+			if fieldValue.IsNil() || !fieldValue.IsValid() || fieldValue.Len() == 0 {
 				continue
 			}
 
@@ -607,7 +615,13 @@ func (statement *Statement) genColumnStr() string {
 }
 
 func (statement *Statement) genCreateTableSQL() string {
-	sql := "CREATE TABLE IF NOT EXISTS " + statement.Engine.Quote(statement.TableName()) + " ("
+	var sql string
+	if statement.Engine.dialect.DBType() == MSSQL {
+		sql = "IF NOT EXISTS (SELECT [name] FROM sys.tables WHERE [name] = '" + statement.TableName() + "' ) CREATE TABLE"
+	} else {
+		sql = "CREATE TABLE IF NOT EXISTS "
+	}
+	sql += statement.Engine.Quote(statement.TableName()) + " ("
 
 	pkList := []string{}
 
@@ -702,8 +716,13 @@ func (s *Statement) genDelIndexSQL() []string {
 }
 
 func (s *Statement) genDropSQL() string {
-	sql := "DROP TABLE IF EXISTS " + s.Engine.Quote(s.TableName()) + ";"
-	return sql
+	if s.Engine.dialect.DBType() == MSSQL {
+		return "IF EXISTS (SELECT * FROM sysobjects WHERE id = object_id(N'" +
+			s.TableName() + "') and OBJECTPROPERTY(id, N'IsUserTable') = 1) " +
+			"DROP TABLE " + s.Engine.Quote(s.TableName()) + ";"
+	} else {
+		return "DROP TABLE IF EXISTS " + s.Engine.Quote(s.TableName()) + ";"
+	}
 }
 
 // !nashtsai! REVIEW, Statement is a huge struct why is this method not passing *Statement?
@@ -712,7 +731,7 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 	statement.RefTable = table
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true, true,
-		false, statement.allUseBool, statement.boolColumnMap)
+		false, true, statement.allUseBool, statement.boolColumnMap)
 
 	statement.ConditionStr = strings.Join(colNames, " AND ")
 	statement.BeanArgs = args
@@ -751,7 +770,7 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 	statement.RefTable = table
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true, true, false,
-		statement.allUseBool, statement.boolColumnMap)
+		true, statement.allUseBool, statement.boolColumnMap)
 
 	statement.ConditionStr = strings.Join(colNames, " AND ")
 	statement.BeanArgs = args
@@ -797,11 +816,18 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 	if statement.OrderStr != "" {
 		a = fmt.Sprintf("%v ORDER BY %v", a, statement.OrderStr)
 	}
-	if statement.Start > 0 {
-		a = fmt.Sprintf("%v LIMIT %v OFFSET %v", a, statement.LimitN, statement.Start)
-	} else if statement.LimitN > 0 {
-		a = fmt.Sprintf("%v LIMIT %v", a, statement.LimitN)
+	if statement.Engine.dialect.DBType() != MSSQL {
+		if statement.Start > 0 {
+			a = fmt.Sprintf("%v LIMIT %v OFFSET %v", a, statement.LimitN, statement.Start)
+		} else if statement.LimitN > 0 {
+			a = fmt.Sprintf("%v LIMIT %v", a, statement.LimitN)
+		}
+	} else {
+		/*SELECT * FROM (
+		  SELECT *, ROW_NUMBER() OVER (ORDER BY id desc) as row FROM "userinfo"
+		 ) a WHERE row > [start] and row <= [start+limit] order by id desc*/
 	}
+
 	return
 }
 

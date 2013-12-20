@@ -34,6 +34,9 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		engine.Filters = append(engine.Filters, &QuoteFilter{})
 	} else if driverName == MYMYSQL {
 		engine.dialect = &mymysql{}
+	} else if driverName == "odbc" {
+		engine.dialect = &mssql{quoteFilter: &QuoteFilter{}}
+		engine.Filters = append(engine.Filters, &QuoteFilter{})
 	} else {
 		return nil, errors.New(fmt.Sprintf("Unsupported driver name: %v", driverName))
 	}
