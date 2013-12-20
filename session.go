@@ -1618,9 +1618,10 @@ func (session *Session) byte2Time(col *Column, data []byte) (outTime time.Time, 
 			ssd := strings.Split(sdata, " ")
 			sdata = ssd[1]
 		}
-		/*if len(sdata) > 8 {
+		if len(sdata) > 8 {
 			sdata = sdata[len(sdata)-8:]
-		}*/
+		}
+		fmt.Println(sdata)
 		st := fmt.Sprintf("2006-01-02 %v", sdata)
 		x, err = time.Parse("2006-01-02 15:04:05", st)
 	} else {

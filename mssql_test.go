@@ -1,9 +1,12 @@
 package xorm
 
+//
+// +build windows
+
 import (
-	_ "code.google.com/p/odbc"
-	_ "github.com/mattn/go-adodb"
 	"testing"
+
+	_ "github.com/lunny/godbc"
 )
 
 /*
@@ -12,7 +15,7 @@ utf8 COLLATE utf8_general_ci;
 */
 
 func newMssqlEngine() (*Engine, error) {
-	return NewEngine("odbc", "driver={SQL Server};Server=127.0.0.1;Database=xorm_test; uid=sa; pwd=1234;")
+	return NewEngine("odbc", "driver={SQL Server};Server=192.168.20.135;Database=xorm_test; uid=sa; pwd=1234;")
 }
 
 func TestMssql(t *testing.T) {
