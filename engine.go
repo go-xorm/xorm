@@ -21,6 +21,8 @@ const (
 	MYMYSQL  = "mymysql"
 
 	MSSQL = "mssql"
+
+	ORACLE_OCI = "oci8"
 )
 
 // a dialect is a driver's wrapper
@@ -141,6 +143,12 @@ func (engine *Engine) NoCache() *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
 	return session.NoCache()
+}
+
+func (engine *Engine) NoCascade() *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.NoCascade()
 }
 
 // Set a table use a special cacher
@@ -749,7 +757,6 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 					if err != nil {
 						return err
 					}
-					fmt.Println("-----", isExist)
 					if !isExist {
 						session := engine.NewSession()
 						session.Statement.RefTable = table

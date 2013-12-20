@@ -129,6 +129,16 @@ func (session *Session) Cols(columns ...string) *Session {
 	return session
 }
 
+func (session *Session) NoCascade() *Session {
+	session.Statement.UseCascade = false
+	return session
+}
+
+/*
+func (session *Session) MustCols(columns ...string) *Session {
+	session.Statement.Must()
+}*/
+
 // Xorm automatically retrieve condition according struct, but
 // if struct has bool field, it will ignore them. So use UseBool
 // to tell system to do not ignore them.
@@ -635,11 +645,14 @@ func (session *Session) cacheGet(bean interface{}, sql string, args ...interface
 			newSession := session.Engine.NewSession()
 			defer newSession.Close()
 			cacheBean = reflect.New(structValue.Type()).Interface()
+			newSession.Id(id).NoCache()
 			if session.Statement.AltTableName != "" {
-				has, err = newSession.Id(id).NoCache().Table(session.Statement.AltTableName).Get(cacheBean)
-			} else {
-				has, err = newSession.Id(id).NoCache().Get(cacheBean)
+				newSession.Table(session.Statement.AltTableName)
 			}
+			if !session.Statement.UseCascade {
+				newSession.NoCascade()
+			}
+			has, err = newSession.Get(cacheBean)
 			if err != nil || !has {
 				return has, err
 			}
@@ -1147,8 +1160,7 @@ func (session *Session) isIndexExist2(tableName string, cols []string, unique bo
 		return false, err
 	}
 
-	for i, index := range indexes {
-		fmt.Println(i, "new:", cols, "-old:", index.Cols, sliceEq(index.Cols, cols), unique, index.Type)
+	for _, index := range indexes {
 		if sliceEq(index.Cols, cols) {
 			if unique {
 				return index.Type == UniqueType, nil
@@ -1241,6 +1253,9 @@ func row2map(rows *sql.Rows, fields []string) (resultsMap map[string][]byte, err
 	if err := rows.Scan(scanResultContainers...); err != nil {
 		return nil, err
 	}
+
+	// !nashtsai! TODO optimization for query performance, where current process has gone from
+	// sql driver converted type back to []bytes then to ORM's fields
 	for ii, key := range fields {
 		rawValue := reflect.Indirect(reflect.ValueOf(scanResultContainers[ii]))
 
@@ -1275,7 +1290,7 @@ func row2map(rows *sql.Rows, fields []string) (resultsMap map[string][]byte, err
 			}
 		//时间类型
 		case reflect.Struct:
-			if aa.String() == "time.Time" {
+			if aa == reflect.TypeOf(c_TIME_DEFAULT) {
 				str = rawValue.Interface().(time.Time).Format(time.RFC3339Nano)
 				result[key] = []byte(str)
 			} else {
@@ -1352,7 +1367,7 @@ func query(db *sql.DB, sql string, params ...interface{}) (resultsSlice []map[st
 		return nil, err
 	}
 	defer rows.Close()
-	fmt.Println(rows)
+	//fmt.Println(rows)
 
 	return rows2maps(rows)
 }
@@ -1573,6 +1588,53 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 	return session.innerInsertMulti(rowsSlicePtr)
 }
 
+func (session *Session) byte2Time(col *Column, data []byte) (outTime time.Time, outErr error) {
+	sdata := strings.TrimSpace(string(data))
+	var x time.Time
+	var err error
+
+	if sdata == "0000-00-00 00:00:00" ||
+		sdata == "0001-01-01 00:00:00" {
+	} else if !strings.ContainsAny(sdata, "- :") {
+		// time stamp
+		sd, err := strconv.ParseInt(sdata, 10, 64)
+		if err == nil {
+			x = time.Unix(0, sd)
+		}
+	} else if len(sdata) > 19 {
+		x, err = time.Parse(time.RFC3339Nano, sdata)
+		if err != nil {
+			x, err = time.Parse("2006-01-02 15:04:05.999999999", sdata)
+		}
+		if err != nil {
+			x, err = time.Parse("2006-01-02 15:04:05.9999999 Z07:00", sdata)
+		}
+	} else if len(sdata) == 19 {
+		x, err = time.Parse("2006-01-02 15:04:05", sdata)
+	} else if len(sdata) == 10 && sdata[4] == '-' && sdata[7] == '-' {
+		x, err = time.Parse("2006-01-02", sdata)
+	} else if col.SQLType.Name == Time {
+		if strings.Contains(sdata, " ") {
+			ssd := strings.Split(sdata, " ")
+			sdata = ssd[1]
+		}
+		/*if len(sdata) > 8 {
+			sdata = sdata[len(sdata)-8:]
+		}*/
+		st := fmt.Sprintf("2006-01-02 %v", sdata)
+		x, err = time.Parse("2006-01-02 15:04:05", st)
+	} else {
+		outErr = errors.New(fmt.Sprintf("unsupported time format %v", sdata))
+		return
+	}
+	if err != nil {
+		outErr = errors.New(fmt.Sprintf("unsupported time format %v: %v", sdata, err))
+		return
+	}
+	outTime = x
+	return
+}
+
 // convert a db data([]byte) to a field value
 func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data []byte) error {
 	if structConvert, ok := fieldValue.Addr().Interface().(Conversion); ok {
@@ -1670,50 +1732,13 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			return errors.New("arg " + key + " as int: " + err.Error())
 		}
 		fieldValue.SetUint(x)
-	//Now only support Time type
+	//Currently only support Time type
 	case reflect.Struct:
-		if fieldType.String() == "time.Time" {
-			sdata := strings.TrimSpace(string(data))
-			var x time.Time
-			var err error
-
-			if sdata == "0000-00-00 00:00:00" ||
-				sdata == "0001-01-01 00:00:00" {
-			} else if !strings.ContainsAny(sdata, "- :") {
-				// time stamp
-				sd, err := strconv.ParseInt(sdata, 10, 64)
-				if err == nil {
-					x = time.Unix(0, sd)
-				}
-			} else if len(sdata) > 19 {
-				x, err = time.Parse(time.RFC3339Nano, sdata)
-				if err != nil {
-					x, err = time.Parse("2006-01-02 15:04:05.999999999", sdata)
-				}
-				if err != nil {
-					x, err = time.Parse("2006-01-02 15:04:05.9999999 Z07:00", sdata)
-				}
-			} else if len(sdata) == 19 {
-				x, err = time.Parse("2006-01-02 15:04:05", sdata)
-			} else if len(sdata) == 10 && sdata[4] == '-' && sdata[7] == '-' {
-				x, err = time.Parse("2006-01-02", sdata)
-			} else if col.SQLType.Name == Time {
-				if strings.Contains(sdata, " ") {
-					ssd := strings.Split(sdata, " ")
-					sdata = ssd[1]
-				}
-				/*if len(sdata) > 8 {
-					sdata = sdata[len(sdata)-8:]
-				}*/
-				st := fmt.Sprintf("2006-01-02 %v", sdata)
-				x, err = time.Parse("2006-01-02 15:04:05", st)
-			} else {
-				return errors.New(fmt.Sprintf("unsupported time format %v", string(data)))
-			}
+		if fieldType == reflect.TypeOf(c_TIME_DEFAULT) {
+			x, err := session.byte2Time(col, data)
 			if err != nil {
-				return errors.New(fmt.Sprintf("unsupported time format %v: %v", string(data), err))
+				return err
 			}
-
 			v = x
 			fieldValue.Set(reflect.ValueOf(v))
 		} else if session.Statement.UseCascade {
@@ -1794,40 +1819,10 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*time.Time":
 		case reflect.TypeOf(&c_TIME_DEFAULT):
-			sdata := strings.TrimSpace(string(data))
-			var x time.Time
-			var err error
-
-			if sdata == "0000-00-00 00:00:00" ||
-				sdata == "0001-01-01 00:00:00" {
-			} else if !strings.ContainsAny(sdata, "- :") {
-				// time stamp
-				sd, err := strconv.ParseInt(sdata, 10, 64)
-				if err == nil {
-					x = time.Unix(0, sd)
-				}
-			} else if len(sdata) > 19 {
-				x, err = time.Parse(time.RFC3339Nano, sdata)
-				if err != nil {
-					x, err = time.Parse("2006-01-02 15:04:05.999999999", sdata)
-				}
-			} else if len(sdata) == 19 {
-				x, err = time.Parse("2006-01-02 15:04:05", sdata)
-			} else if len(sdata) == 10 && sdata[4] == '-' && sdata[7] == '-' {
-				x, err = time.Parse("2006-01-02", sdata)
-			} else if col.SQLType.Name == Time {
-				if len(sdata) > 8 {
-					sdata = sdata[len(sdata)-8:]
-				}
-				st := fmt.Sprintf("2006-01-02 %v", sdata)
-				x, err = time.Parse("2006-01-02 15:04:05", st)
-			} else {
-				return errors.New(fmt.Sprintf("unsupported time format %v", string(data)))
-			}
+			x, err := session.byte2Time(col, data)
 			if err != nil {
-				return errors.New(fmt.Sprintf("unsupported time format %v: %v", string(data), err))
+				return err
 			}
-
 			v = x
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*uint64":
@@ -2063,9 +2058,8 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 	case reflect.String:
 		return fieldValue.String(), nil
 	case reflect.Struct:
-		if fieldType.String() == "time.Time" {
+		if fieldType == reflect.TypeOf(c_TIME_DEFAULT) {
 			t := fieldValue.Interface().(time.Time)
-
 			if session.Engine.dialect.DBType() == MSSQL {
 				if t.IsZero() {
 					return nil, nil
@@ -2080,7 +2074,6 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 			} else if col.SQLType.Name == TimeStampz {
 				if session.Engine.dialect.DBType() == MSSQL {
 					tf := t.Format("2006-01-02T15:04:05.9999999Z07:00")
-					fmt.Println("====", tf)
 					return tf, nil
 				}
 				return fieldValue.Interface().(time.Time).Format(time.RFC3339Nano), nil
@@ -2441,10 +2434,8 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 					session.Engine.LogDebug("[xorm:cacheUpdate] set bean field", bean, colName, fieldValue.Interface())
 					if col.IsVersion && session.Statement.checkVersion {
 						fieldValue.SetInt(fieldValue.Int() + 1)
-						fmt.Println("-----", fieldValue)
 					} else {
 						fieldValue.Set(reflect.ValueOf(args[idx]))
-						fmt.Println("xxxxxx", fieldValue)
 					}
 				} else {
 					session.Engine.LogError("[xorm:cacheUpdate] ERROR: column %v is not table %v's",
