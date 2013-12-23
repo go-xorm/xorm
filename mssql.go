@@ -22,6 +22,7 @@ type odbcParser struct {
 func (p *odbcParser) parse(driverName, dataSourceName string) (*uri, error) {
 	kv := strings.Split(dataSourceName, ";")
 	var dbName string
+
 	for _, c := range kv {
 		vv := strings.Split(strings.TrimSpace(c), "=")
 		if len(vv) == 2 {
@@ -155,6 +156,7 @@ where a.object_id=object_id('` + tableName + `')`
 		for name, content := range record {
 			switch name {
 			case "name":
+
 				col.Name = strings.Trim(string(content), "` ")
 			case "ctype":
 				ct := strings.ToUpper(string(content))
