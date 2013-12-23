@@ -143,7 +143,7 @@ type User struct {
         <td>name</td><td>当前field对应的字段的名称，可选，如不写，则自动根据field名字和转换规则命名</td>
     </tr>
     <tr>
-        <td>pk</td><td>是否是Primary Key，当前仅支持int64类型</td>
+        <td>pk</td><td>是否是Primary Key，如果在一个struct中有两个字段都使用了此标记，则这两个字段构成了复合主键</td>
     </tr>
     <tr>
         <td>当前支持30多种字段类型，详情参见 [字段类型](https://github.com/lunny/xorm/blob/master/docs/COLUMNTYPE.md)</td><td>字段类型</td>
@@ -333,8 +333,10 @@ affected, err := engine.Insert(user, &questions)
 
 查询和统计主要使用`Get`, `Find`, `Count`三个方法。在进行查询时可以使用多个方法来形成查询条件，条件函数如下：
 
-* Id(int64)
-传入一个PK字段的值，作为查询条件
+* Id(interface{})
+传入一个PK字段的值，作为查询条件，如果是复合主键，则
+`Id(xorm.PK{1, 2})`
+传入的两个参数按照struct中定义的顺序赋值。
 
 * Where(string, …interface{})
 和Where语句中的条件基本相同，作为条件
@@ -416,7 +418,7 @@ Having的参数字符串
 * UseBool(...string)
 当从一个struct来生成查询条件或更新字段时，xorm会判断struct的field是否为0,"",nil，如果为以上则不当做查询条件或者更新内容。因为bool类型只有true和false两种值，因此默认所有bool类型不会作为查询条件或者更新字段。如果可以使用此方法，如果默认不传参数，则所有的bool字段都将会被使用，如果参数不为空，则参数中指定的为字段名，则这些字段对应的bool值将被使用。
 
-* Cascade(bool)
+* NoCascade()
 是否自动关联查询field中的数据，如果struct的field也是一个struct并且映射为某个Id，则可以在查询时自动调用Get方法查询出对应的数据。
 
 <a name="63" id="63"></a>
@@ -711,6 +713,11 @@ money float64 `xorm:"Numeric"`
 * xorm有几种命名映射规则？
 
 答：目前支持SnakeMapper和SameMapper两种。SnakeMapper支持结构体和成员以驼峰式命名而数据库表和字段以下划线连接命名；SameMapper支持结构体和数据库的命名保持一致的映射。
+
+* xorm支持复合主键吗？
+
+答：支持。在定义时，如果有多个字段标记了pk，则这些字段自动成为复合主键，顺序为在struct中出现的顺序。在使用Id方法时，可以用`Id(xorm.PK{1, 2})`的方式来用。
+
 
 <a name="170" id="170"></a>
 ## 16.讨论
