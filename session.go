@@ -24,9 +24,6 @@ type Session struct {
 	IsAutoClose            bool
 
 	// !nashtsai! storing these beans due to yet committed tx
-	// afterInsertBeans []interface{}
-	// afterUpdateBeans []interface{}
-	// afterDeleteBeans []interface{}
 	afterInsertBeans map[interface{}]*[]func(interface{})
 	afterUpdateBeans map[interface{}]*[]func(interface{})
 	afterDeleteBeans map[interface{}]*[]func(interface{})
