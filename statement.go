@@ -335,11 +335,15 @@ func buildConditions(engine *Engine, table *Table, bean interface{},
 			} else {
 				engine.autoMapType(fieldValue.Type())
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
-					pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumn().FieldName)
-					if pkField.Int() != 0 {
-						val = pkField.Interface()
+					if len(table.PrimaryKeys) == 1 {
+						pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)
+						if pkField.Int() != 0 {
+							val = pkField.Interface()
+						} else {
+							continue
+						}
 					} else {
-						continue
+						//TODO: how to handler?
 					}
 				} else {
 					val = fieldValue.Interface()
@@ -753,9 +757,10 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 
 	statement.ConditionStr = strings.Join(colNames, " AND ")
 	statement.BeanArgs = args
-	var id string = "*"
-	if table.PrimaryKey != "" {
-		id = statement.Engine.Quote(table.PrimaryKey)
+	// count(index fieldname) > count(0) > count(*)
+	var id string = "0"
+	if len(table.PrimaryKeys) == 1 {
+		id = statement.Engine.Quote(table.PrimaryKeys[0])
 	}
 	return statement.genSelectSql(fmt.Sprintf("COUNT(%v) AS %v", id, statement.Engine.Quote("total"))), append(statement.Params, statement.BeanArgs...)
 }

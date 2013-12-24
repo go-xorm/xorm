@@ -1448,12 +1448,32 @@ func testIndexAndUnique(engine *Engine, t *testing.T) {
 }
 
 type IntId struct {
-	Id   int
+	Id   int `xorm:"pk autoincr"`
 	Name string
 }
 
 type Int32Id struct {
-	Id   int32
+	Id   int32 `xorm:"pk autoincr"`
+	Name string
+}
+
+type UintId struct {
+	Id   uint `xorm:"pk autoincr"`
+	Name string
+}
+
+type Uint32Id struct {
+	Id   uint32 `xorm:"pk autoincr"`
+	Name string
+}
+
+type Uint64Id struct {
+	Id   uint64 `xorm:"pk autoincr"`
+	Name string
+}
+
+type StringPK struct {
+	Id   string `xorm:"pk notnull"`
 	Name string
 }
 
@@ -1470,8 +1490,48 @@ func testIntId(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 
-	_, err = engine.Insert(&IntId{Name: "test"})
+	cnt, err := engine.Insert(&IntId{Name: "test"})
 	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	bean := new(IntId)
+	has, err := engine.Get(bean)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if !has {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	beans := make([]IntId, 0)
+	err = engine.Find(&beans)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if len(beans) != 1 {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Id(bean.Id).Delete(&IntId{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
 		t.Error(err)
 		panic(err)
 	}
@@ -1490,8 +1550,292 @@ func testInt32Id(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 
-	_, err = engine.Insert(&Int32Id{Name: "test"})
+	cnt, err := engine.Insert(&Int32Id{Name: "test"})
 	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	bean := new(Int32Id)
+	has, err := engine.Get(bean)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if !has {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	beans := make([]Int32Id, 0)
+	err = engine.Find(&beans)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if len(beans) != 1 {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Id(bean.Id).Delete(&Int32Id{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+}
+
+func testUintId(engine *Engine, t *testing.T) {
+	err := engine.DropTables(&UintId{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(&UintId{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err := engine.Insert(&UintId{Name: "test"})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	bean := new(UintId)
+	has, err := engine.Get(bean)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if !has {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	beans := make([]UintId, 0)
+	err = engine.Find(&beans)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if len(beans) != 1 {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Id(bean.Id).Delete(&UintId{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+}
+
+func testUint32Id(engine *Engine, t *testing.T) {
+	err := engine.DropTables(&Uint32Id{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(&Uint32Id{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err := engine.Insert(&Uint32Id{Name: "test"})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	bean := new(Uint32Id)
+	has, err := engine.Get(bean)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if !has {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	beans := make([]Uint32Id, 0)
+	err = engine.Find(&beans)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if len(beans) != 1 {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Id(bean.Id).Delete(&Uint32Id{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+}
+
+func testUint64Id(engine *Engine, t *testing.T) {
+	err := engine.DropTables(&Uint64Id{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(&Uint64Id{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err := engine.Insert(&Uint64Id{Name: "test"})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	bean := new(Uint64Id)
+	has, err := engine.Get(bean)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if !has {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	beans := make([]Uint64Id, 0)
+	err = engine.Find(&beans)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if len(beans) != 1 {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Id(bean.Id).Delete(&Uint64Id{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+}
+
+func testStringPK(engine *Engine, t *testing.T) {
+	err := engine.DropTables(&StringPK{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(&StringPK{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err := engine.Insert(&StringPK{Name: "test"})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	bean := new(StringPK)
+	has, err := engine.Get(bean)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if !has {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	beans := make([]StringPK, 0)
+	err = engine.Find(&beans)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if len(beans) != 1 {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Id(bean.Id).Delete(&StringPK{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
 		t.Error(err)
 		panic(err)
 	}
@@ -3407,9 +3751,15 @@ func testAll2(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- testIndexAndUnique --------------")
 	testIndexAndUnique(engine, t)
 	fmt.Println("-------------- testIntId --------------")
-	//testIntId(engine, t)
+	testIntId(engine, t)
 	fmt.Println("-------------- testInt32Id --------------")
-	//testInt32Id(engine, t)
+	testInt32Id(engine, t)
+	fmt.Println("-------------- testUintId --------------")
+	testUintId(engine, t)
+	fmt.Println("-------------- testUint32Id --------------")
+	testUint32Id(engine, t)
+	fmt.Println("-------------- testUint64Id --------------")
+	testUint64Id(engine, t)
 	fmt.Println("-------------- testMetaInfo --------------")
 	testMetaInfo(engine, t)
 	fmt.Println("-------------- testIterate --------------")
@@ -3446,4 +3796,6 @@ func testAll3(engine *Engine, t *testing.T) {
 	testNullValue(engine, t)
 	fmt.Println("-------------- testCompositeKey --------------")
 	testCompositeKey(engine, t)
+	fmt.Println("-------------- testStringPK --------------")
+	testStringPK(engine, t)
 }
