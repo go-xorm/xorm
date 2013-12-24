@@ -165,11 +165,14 @@ where a.object_id=object_id('` + tableName + `')`
 					col.SQLType = SQLType{TimeStampz, 0, 0}
 				case "NVARCHAR":
 					col.SQLType = SQLType{Varchar, 0, 0}
+				case "IMAGE":
+					col.SQLType = SQLType{VarBinary, 0, 0}
 				default:
 					if _, ok := sqlTypes[ct]; ok {
 						col.SQLType = SQLType{ct, 0, 0}
 					} else {
-						return nil, nil, errors.New(fmt.Sprintf("unknow colType %v for %v", ct, col))
+						return nil, nil, errors.New(fmt.Sprintf("unknow colType %v for %v - %v",
+							ct, tableName, col.Name))
 					}
 				}
 
