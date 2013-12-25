@@ -5,6 +5,14 @@ import (
 	"reflect"
 )
 
+type Iterator struct {
+	session  *Session
+	stmt     *sql.Stmt
+	rows     *sql.Rows
+	fields   []string
+	beanType reflect.Type
+}
+
 func newIterator(session *Session, bean interface{}) (*Iterator, error) {
 	iterator := new(Iterator)
 	iterator.session = session
@@ -55,6 +63,7 @@ func newIterator(session *Session, bean interface{}) (*Iterator, error) {
 	return iterator, nil
 }
 
+// iterate to next record and reuse passed bean obj
 func (iterator *Iterator) NextReuse(bean interface{}) (interface{}, error) {
 	if iterator.rows != nil && iterator.rows.Next() {
 		result, err := row2map(iterator.rows, iterator.fields) // !nashtsai! TODO remove row2map then scanMapIntoStruct conversation for better performance
@@ -70,11 +79,13 @@ func (iterator *Iterator) NextReuse(bean interface{}) (interface{}, error) {
 	return nil, sql.ErrNoRows
 }
 
+// iterate to next record
 func (iterator *Iterator) Next() (interface{}, error) {
 	b := reflect.New(iterator.beanType).Interface()
 	return iterator.NextReuse(b)
 }
 
+// close session if session.IsAutoClose is true, and claimed any opened resources
 func (iterator *Iterator) Close() {
 	if iterator.session.IsAutoClose {
 		defer iterator.session.Close()

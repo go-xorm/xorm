@@ -45,14 +45,6 @@ type dialect interface {
 	GetIndexes(tableName string) (map[string]*Index, error)
 }
 
-type Iterator struct {
-	session  *Session
-	stmt     *sql.Stmt
-	rows     *sql.Rows
-	fields   []string
-	beanType reflect.Type
-}
-
 type PK []interface{}
 
 // Engine is the major struct of xorm, it means a database manager.
