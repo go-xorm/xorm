@@ -818,69 +818,34 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 // IterFunc only use by Iterate
 type IterFunc func(idx int, bean interface{}) error
 
+// Similar to Iterate(), return a forward Iterator object for iterating record by record, bean's non-empty fields
+// are conditions.
+func (session *Session) Scroll(bean interface{}) (*Iterator, error) {
+	return newIterator(session, bean)
+}
+
 // Iterate record by record handle records from table, condiBeans's non-empty fields
 // are conditions. beans could be []Struct, []*Struct, map[int64]Struct
 // map[int64]*Struct
 func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
-	err := session.newDb()
+
+	iterator, err := session.Scroll(bean)
 	if err != nil {
 		return err
-	}
-
-	defer session.Statement.Init()
-	if session.IsAutoClose {
-		defer session.Close()
-	}
-
-	var sql string
-	var args []interface{}
-	session.Statement.RefTable = session.Engine.autoMap(bean)
-	if session.Statement.RawSQL == "" {
-		sql, args = session.Statement.genGetSql(bean)
 	} else {
-		sql = session.Statement.RawSQL
-		args = session.Statement.RawParams
-	}
-
-	for _, filter := range session.Engine.Filters {
-		sql = filter.Do(sql, session)
-	}
-
-	session.Engine.LogSQL(sql)
-	session.Engine.LogSQL(args)
-
-	s, err := session.Db.Prepare(sql)
-	if err != nil {
-		return err
-	}
-	defer s.Close()
-	rows, err := s.Query(args...)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	fields, err := rows.Columns()
-	if err != nil {
-		return err
-	}
-	t := reflect.Indirect(reflect.ValueOf(bean)).Type()
-	b := reflect.New(t).Interface()
-	i := 0
-	for rows.Next() {
-		result, err := row2map(rows, fields)
-		if err == nil {
-			err = session.scanMapIntoStruct(b, result)
-		}
-		if err == nil {
+		defer iterator.Close()
+		//b := reflect.New(iterator.beanType).Interface()
+		i := 0
+		for b, err := iterator.Next(); err != nil; b, err = iterator.Next() {
 			err = fun(i, b)
-			i = i + 1
+			if err != nil {
+				return err
+			}
+			i++
+			b, err = iterator.Next()
 		}
-		if err != nil {
-			return err
-		}
+		return err
 	}
-
 	return nil
 }
 

@@ -45,6 +45,14 @@ type dialect interface {
 	GetIndexes(tableName string) (map[string]*Index, error)
 }
 
+type Iterator struct {
+	session  *Session
+	stmt     *sql.Stmt
+	rows     *sql.Rows
+	fields   []string
+	beanType reflect.Type
+}
+
 type PK []interface{}
 
 // Engine is the major struct of xorm, it means a database manager.
@@ -931,6 +939,13 @@ func (engine *Engine) Iterate(bean interface{}, fun IterFunc) error {
 	session := engine.NewSession()
 	defer session.Close()
 	return session.Iterate(bean, fun)
+}
+
+// Similar to Iterate(), return a forward Iterator object for iterating record by record, bean's non-empty fields
+// are conditions.
+func (engine *Engine) Scroll(bean interface{}) (*Iterator, error) {
+	session := engine.NewSession()
+	return session.Scroll(bean)
 }
 
 // Count counts the records. bean's non-empty fields
