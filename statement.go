@@ -610,7 +610,7 @@ func (statement *Statement) genCreateTableSQL() string {
 	pkList := []string{}
 
 	for _, colName := range statement.RefTable.ColumnsSeq {
-		col := statement.RefTable.Columns[colName]
+		col := statement.RefTable.Columns[strings.ToLower(colName)]
 		if col.IsPrimaryKey {
 			pkList = append(pkList, col.Name)
 		}
@@ -618,7 +618,7 @@ func (statement *Statement) genCreateTableSQL() string {
 
 	statement.Engine.LogDebug("len:", len(pkList))
 	for _, colName := range statement.RefTable.ColumnsSeq {
-		col := statement.RefTable.Columns[colName]
+		col := statement.RefTable.Columns[strings.ToLower(colName)]
 		if col.IsPrimaryKey && len(pkList) == 1 {
 			sql += col.String(statement.Engine.dialect)
 		} else {
@@ -823,7 +823,7 @@ func (statement *Statement) processIdParam() {
 		for _, elem := range *(statement.IdParam) {
 			for ; i < colCnt; i++ {
 				colName := statement.RefTable.ColumnsSeq[i]
-				col := statement.RefTable.Columns[colName]
+				col := statement.RefTable.Columns[strings.ToLower(colName)]
 				if col.IsPrimaryKey {
 					statement.And(fmt.Sprintf("%v=?", col.Name), elem)
 					i++
@@ -837,7 +837,7 @@ func (statement *Statement) processIdParam() {
 		// false update/delete
 		for ; i < colCnt; i++ {
 			colName := statement.RefTable.ColumnsSeq[i]
-			col := statement.RefTable.Columns[colName]
+			col := statement.RefTable.Columns[strings.ToLower(colName)]
 			if col.IsPrimaryKey {
 				statement.And(fmt.Sprintf("%v=?", col.Name), "")
 			}

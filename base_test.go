@@ -3678,6 +3678,71 @@ func testCompositeKey(engine *Engine, t *testing.T) {
 	}
 }
 
+type User struct {
+	UserId   string `xorm:"varchar(19) not null pk"`
+	NickName string `xorm:"varchar(19) not null"`
+	GameId   uint32 `xorm:"integer pk"`
+	Score    int32  `xorm:"integer"`
+}
+
+func testCompositeKey2(engine *Engine, t *testing.T) {
+
+	err := engine.DropTables(&User{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(&User{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err := engine.Insert(&User{"11", "nick", 22, 5})
+	if err != nil {
+		t.Error(err)
+	} else if cnt != 1 {
+		t.Error(errors.New("failed to insert User{11, 22}"))
+	}
+
+	cnt, err = engine.Insert(&User{"11", "nick", 22, 6})
+	if err == nil || cnt == 1 {
+		t.Error(errors.New("inserted User{11, 22}"))
+	}
+
+	var user User
+	has, err := engine.Id(PK{"11", 22}).Get(&user)
+	if err != nil {
+		t.Error(err)
+	} else if !has {
+		t.Error(errors.New("can't get User{11, 22}"))
+	}
+
+	// test passing PK ptr, this test seem failed withCache
+	has, err = engine.Id(&PK{"11", 22}).Get(&user)
+	if err != nil {
+		t.Error(err)
+	} else if !has {
+		t.Error(errors.New("can't get User{11, 22}"))
+	}
+
+	user = User{NickName: "test1"}
+	cnt, err = engine.Id(PK{"11", 22}).Update(&user)
+	if err != nil {
+		t.Error(err)
+	} else if cnt != 1 {
+		t.Error(errors.New("can't update User{11, 22}"))
+	}
+
+	cnt, err = engine.Id(PK{"11", 22}).Delete(&User{})
+	if err != nil {
+		t.Error(err)
+	} else if cnt != 1 {
+		t.Error(errors.New("can't delete CompositeKey{11, 22}"))
+	}
+}
+
 func testAll(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
@@ -3796,6 +3861,8 @@ func testAll3(engine *Engine, t *testing.T) {
 	testNullValue(engine, t)
 	fmt.Println("-------------- testCompositeKey --------------")
 	testCompositeKey(engine, t)
+	fmt.Println("-------------- testCompositeKey2 --------------")
+	testCompositeKey2(engine, t)
 	fmt.Println("-------------- testStringPK --------------")
 	testStringPK(engine, t)
 }

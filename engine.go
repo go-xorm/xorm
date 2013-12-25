@@ -472,7 +472,7 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 					parentTable := engine.mapType(fieldType)
 					for name, col := range parentTable.Columns {
 						col.FieldName = fmt.Sprintf("%v.%v", fieldType.Name(), col.FieldName)
-						table.Columns[name] = col
+						table.Columns[strings.ToLower(name)] = col
 						table.ColumnsSeq = append(table.ColumnsSeq, name)
 					}
 
@@ -603,7 +603,7 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 	}
 
 	if idFieldColName != "" && len(table.PrimaryKeys) == 0 {
-		col := table.Columns[idFieldColName]
+		col := table.Columns[strings.ToLower(idFieldColName)]
 		col.IsPrimaryKey = true
 		col.IsAutoIncrement = true
 		col.Nullable = false

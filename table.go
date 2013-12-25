@@ -366,23 +366,23 @@ func NewTable(name string, t reflect.Type) *Table {
 func (table *Table) PKColumns() []*Column {
 	columns := make([]*Column, 0)
 	for _, name := range table.PrimaryKeys {
-		columns = append(columns, table.Columns[name])
+		columns = append(columns, table.Columns[strings.ToLower(name)])
 	}
 	return columns
 }
 
 func (table *Table) AutoIncrColumn() *Column {
-	return table.Columns[table.AutoIncrement]
+	return table.Columns[strings.ToLower(table.AutoIncrement)]
 }
 
 func (table *Table) VersionColumn() *Column {
-	return table.Columns[table.Version]
+	return table.Columns[strings.ToLower(table.Version)]
 }
 
 // add a column to table
 func (table *Table) AddColumn(col *Column) {
 	table.ColumnsSeq = append(table.ColumnsSeq, col.Name)
-	table.Columns[col.Name] = col
+	table.Columns[strings.ToLower(col.Name)] = col
 	if col.IsPrimaryKey {
 		table.PrimaryKeys = append(table.PrimaryKeys, col.Name)
 	}

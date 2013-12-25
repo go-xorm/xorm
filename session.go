@@ -360,11 +360,13 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 
 	for key, data := range objMap {
 		key = strings.ToLower(key)
-		if _, ok := table.Columns[key]; !ok {
+		var col *Column
+		var ok bool
+		if col, ok = table.Columns[key]; !ok {
 			session.Engine.LogWarn(fmt.Sprintf("table %v's has not column %v. %v", table.Name, key, table.ColumnsSeq))
 			continue
 		}
-		col := table.Columns[key]
+
 		fieldName := col.FieldName
 		fieldPath := strings.Split(fieldName, ".")
 		var fieldValue reflect.Value
@@ -1197,7 +1199,7 @@ func (session *Session) addColumn(colName string) error {
 		defer session.Close()
 	}
 	//fmt.Println(session.Statement.RefTable)
-	col := session.Statement.RefTable.Columns[colName]
+	col := session.Statement.RefTable.Columns[strings.ToLower(colName)]
 	sql, args := session.Statement.genAddColumnStr(col)
 	_, err = session.exec(sql, args...)
 	return err
@@ -2470,7 +2472,7 @@ func (session *Session) cacheUpdate(sql string, args ...interface{}) error {
 					return ErrCacheFailed
 				}
 
-				if col, ok := table.Columns[colName]; ok {
+				if col, ok := table.Columns[strings.ToLower(colName)]; ok {
 					fieldValue := col.ValueOf(bean)
 					session.Engine.LogDebug("[xorm:cacheUpdate] set bean field", bean, colName, fieldValue.Interface())
 					if col.IsVersion && session.Statement.checkVersion {
