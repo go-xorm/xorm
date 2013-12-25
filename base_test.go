@@ -3160,7 +3160,7 @@ func testNullValue(engine *Engine, t *testing.T) {
 	// skipped postgres test due to postgres driver doesn't read time.Time's timzezone info when stored in the db
 	// mysql and sqlite3 seem have done this correctly by storing datatime in UTC timezone, I think postgres driver
 	// prefer using timestamp with timezone to sovle the issue
-	if engine.DriverName != POSTGRES || engine.DriverName != MYMYSQL {
+	if engine.DriverName != POSTGRES && engine.DriverName != MYMYSQL {
 		if (*nullDataGet.TimePtr).Unix() != (*nullDataUpdate.TimePtr).Unix() {
 			t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]:[%v]", *nullDataGet.TimePtr, *nullDataUpdate.TimePtr)))
 		} else {
