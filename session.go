@@ -842,7 +842,6 @@ func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
 				return err
 			}
 			i++
-			b, err = iterator.Next()
 		}
 		return err
 	}

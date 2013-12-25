@@ -1529,6 +1529,22 @@ func testIterate(engine *Engine, t *testing.T) {
 	}
 }
 
+func testScroll(engine *Engine, t *testing.T) {
+	iterator, err := engine.Omit("is_man").Scroll(new(Userinfo))
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	defer iterator.Close()
+
+	idx := 0
+	for bean, err := iterator.Next(); err != nil; bean, err = iterator.NextReuse(bean) {
+		user := bean.(*Userinfo)
+		fmt.Println(idx, "--", user)
+		idx++
+	}
+}
+
 type StrangeName struct {
 	Id_t int64 `xorm:"pk autoincr"`
 	Name string
@@ -3420,6 +3436,8 @@ func testAll2(engine *Engine, t *testing.T) {
 	testMetaInfo(engine, t)
 	fmt.Println("-------------- testIterate --------------")
 	testIterate(engine, t)
+	fmt.Println("-------------- testScroll --------------")
+	testScroll(engine, t)
 	fmt.Println("-------------- testStrangeName --------------")
 	testStrangeName(engine, t)
 	fmt.Println("-------------- testVersion --------------")
