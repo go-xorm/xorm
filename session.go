@@ -1711,6 +1711,9 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 					return errors.New("arg " + key + " as int: " + err.Error())
 				}
 				if x != 0 {
+					// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
+					// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
+					// property to be fetched lazily
 					structInter := reflect.New(fieldValue.Type())
 					newsession := session.Engine.NewSession()
 					defer newsession.Close()
