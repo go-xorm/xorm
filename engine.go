@@ -67,6 +67,7 @@ type Engine struct {
 	Logger         io.Writer
 	Cacher         Cacher
 	UseCache       bool
+	charset        string
 }
 
 func (engine *Engine) SetMapper(mapper IMapper) {

@@ -6,6 +6,7 @@ import (
 	"os"
 	"reflect"
 	"runtime"
+	"strings"
 	"sync"
 )
 
@@ -28,6 +29,11 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		engine.dialect = &sqlite3{}
 	} else if driverName == MYSQL {
 		engine.dialect = &mysql{}
+		index := strings.Index(strings.ToLower(dataSourceName), "charset=")
+		tempstr := dataSourceName[index+8:]
+		index = strings.Index(strings.ToLower(tempstr), "&")
+		tempstr = tempstr[:index]
+		engine.charset = tempstr
 	} else if driverName == POSTGRES {
 		engine.dialect = &postgres{}
 		engine.Filters = append(engine.Filters, &PgSeqFilter{})
