@@ -76,6 +76,10 @@ Or
 
 * [Very Hour](http://veryhour.com/)
 
+# Todo
+
+[Todo List](https://trello.com/b/IHsuAnhk/xorm)
+
 # Discuss
 
 Please visit [Xorm on Google Groups](https://groups.google.com/forum/#!forum/xorm)

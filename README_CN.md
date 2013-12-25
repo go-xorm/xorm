@@ -77,6 +77,10 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * [Very Hour](http://veryhour.com/)
 
+## Todo
+
+[开发计划](https://trello.com/b/IHsuAnhk/xorm)
+
 ## 讨论
 
 请加入QQ群：280360085 进行讨论。
