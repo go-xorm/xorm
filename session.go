@@ -836,7 +836,7 @@ func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
 		defer rows.Close()
 		//b := reflect.New(iterator.beanType).Interface()
 		i := 0
-		for hasNext := rows.Next(); hasNext; hasNext = rows.Next() {
+		for rows.Next() {
 			b := reflect.New(rows.beanType).Interface()
 			err = rows.Scan(b)
 			if err != nil {

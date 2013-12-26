@@ -1539,7 +1539,7 @@ func testRows(engine *Engine, t *testing.T) {
 
 	idx := 0
 	user := new(Userinfo)
-	for hasNext := rows.Next(); hasNext; hasNext = rows.Next() {
+	for rows.Next() {
 		err = rows.Scan(user)
 		if err != nil {
 			t.Error(err)
