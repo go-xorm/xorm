@@ -934,6 +934,13 @@ func (engine *Engine) Iterate(bean interface{}, fun IterFunc) error {
 	return session.Iterate(bean, fun)
 }
 
+// Return sql.Rows compatible Rows obj, as a forward Iterator object for iterating record by record, bean's non-empty fields
+// are conditions.
+func (engine *Engine) Rows(bean interface{}) (*Rows, error) {
+	session := engine.NewSession()
+	return session.Rows(bean)
+}
+
 // Count counts the records. bean's non-empty fields
 // are conditions.
 func (engine *Engine) Count(bean interface{}) (int64, error) {

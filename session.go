@@ -24,9 +24,6 @@ type Session struct {
 	IsAutoClose            bool
 
 	// !nashtsai! storing these beans due to yet committed tx
-	// afterInsertBeans []interface{}
-	// afterUpdateBeans []interface{}
-	// afterDeleteBeans []interface{}
 	afterInsertBeans map[interface{}]*[]func(interface{})
 	afterUpdateBeans map[interface{}]*[]func(interface{})
 	afterDeleteBeans map[interface{}]*[]func(interface{})
@@ -835,69 +832,38 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 // IterFunc only use by Iterate
 type IterFunc func(idx int, bean interface{}) error
 
+// Return sql.Rows compatible Rows obj, as a forward Iterator object for iterating record by record, bean's non-empty fields
+// are conditions.
+func (session *Session) Rows(bean interface{}) (*Rows, error) {
+	return newRows(session, bean)
+}
+
 // Iterate record by record handle records from table, condiBeans's non-empty fields
 // are conditions. beans could be []Struct, []*Struct, map[int64]Struct
 // map[int64]*Struct
 func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
-	err := session.newDb()
+
+	rows, err := session.Rows(bean)
 	if err != nil {
 		return err
-	}
-
-	defer session.Statement.Init()
-	if session.IsAutoClose {
-		defer session.Close()
-	}
-
-	var sql string
-	var args []interface{}
-	session.Statement.RefTable = session.Engine.autoMap(bean)
-	if session.Statement.RawSQL == "" {
-		sql, args = session.Statement.genGetSql(bean)
 	} else {
-		sql = session.Statement.RawSQL
-		args = session.Statement.RawParams
-	}
-
-	for _, filter := range session.Engine.Filters {
-		sql = filter.Do(sql, session)
-	}
-
-	session.Engine.LogSQL(sql)
-	session.Engine.LogSQL(args)
-
-	s, err := session.Db.Prepare(sql)
-	if err != nil {
-		return err
-	}
-	defer s.Close()
-	rows, err := s.Query(args...)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	fields, err := rows.Columns()
-	if err != nil {
-		return err
-	}
-	t := reflect.Indirect(reflect.ValueOf(bean)).Type()
-	b := reflect.New(t).Interface()
-	i := 0
-	for rows.Next() {
-		result, err := row2map(rows, fields)
-		if err == nil {
-			err = session.scanMapIntoStruct(b, result)
-		}
-		if err == nil {
+		defer rows.Close()
+		//b := reflect.New(iterator.beanType).Interface()
+		i := 0
+		for rows.Next() {
+			b := reflect.New(rows.beanType).Interface()
+			err = rows.Scan(b)
+			if err != nil {
+				return err
+			}
 			err = fun(i, b)
-			i = i + 1
+			if err != nil {
+				return err
+			}
+			i++
 		}
-		if err != nil {
-			return err
-		}
+		return err
 	}
-
 	return nil
 }
 
@@ -1770,6 +1736,9 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 					return errors.New("arg " + key + " as int: " + err.Error())
 				}
 				if x != 0 {
+					// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
+					// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
+					// property to be fetched lazily
 					structInter := reflect.New(fieldValue.Type())
 					newsession := session.Engine.NewSession()
 					defer newsession.Close()

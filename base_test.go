@@ -1873,6 +1873,27 @@ func testIterate(engine *Engine, t *testing.T) {
 	}
 }
 
+func testRows(engine *Engine, t *testing.T) {
+	rows, err := engine.Omit("is_man").Rows(new(Userinfo))
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	defer rows.Close()
+
+	idx := 0
+	user := new(Userinfo)
+	for rows.Next() {
+		err = rows.Scan(user)
+		if err != nil {
+			t.Error(err)
+			panic(err)
+		}
+		fmt.Println(idx, "--", user)
+		idx++
+	}
+}
+
 type StrangeName struct {
 	Id_t int64 `xorm:"pk autoincr"`
 	Name string
@@ -3500,45 +3521,51 @@ func testNullValue(engine *Engine, t *testing.T) {
 	//  t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Complex128Ptr)))
 	// }
 
-	/*if (*nullDataGet.TimePtr).Unix() != (*nullDataUpdate.TimePtr).Unix() {
-	      t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]:[%v]", *nullDataGet.TimePtr, *nullDataUpdate.TimePtr)))
-	  } else {
-	      // !nashtsai! mymysql driver will failed this test case, due the time is roundup to nearest second, I would considered this is a bug in mymysql driver
-	      fmt.Printf("time value: [%v]:[%v]", *nullDataGet.TimePtr, *nullDataUpdate.TimePtr)
-	      fmt.Println()
-	  }*/
-	// --
+	// !nashtsai! skipped mymysql test due to driver will round up time caused inaccuracy comparison
+	// skipped postgres test due to postgres driver doesn't read time.Time's timzezone info when stored in the db
+	// mysql and sqlite3 seem have done this correctly by storing datatime in UTC timezone, I think postgres driver
+	// prefer using timestamp with timezone to sovle the issue
+	if engine.DriverName != POSTGRES && engine.DriverName != MYMYSQL {
+		if (*nullDataGet.TimePtr).Unix() != (*nullDataUpdate.TimePtr).Unix() {
+			t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]:[%v]", *nullDataGet.TimePtr, *nullDataUpdate.TimePtr)))
+		} else {
+			// !nashtsai! mymysql driver will failed this test case, due the time is roundup to nearest second, I would considered this is a bug in mymysql driver
+			//  inserted value unmatch: [2013-12-25 12:12:45 +0800 CST]:[2013-12-25 12:12:44.878903653 +0800 CST]
+			fmt.Printf("time value: [%v]:[%v]", *nullDataGet.TimePtr, *nullDataUpdate.TimePtr)
+			fmt.Println()
+		}
+	}
 
 	// update to null values
-	/*nullDataUpdate = NullData{}
+	nullDataUpdate = NullData{}
 
-	  cnt, err = engine.Id(nullData.Id).Update(&nullDataUpdate)
-	  if err != nil {
-	      t.Error(err)
-	      panic(err)
-	  } else if cnt != 1 {
-	      t.Error(errors.New("update count == 0, how can this happen!?"))
-	      return
-	  }*/
+	cnt, err = engine.Id(nullData.Id).Cols("string_ptr").Update(&nullDataUpdate)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	} else if cnt != 1 {
+		t.Error(errors.New("update count == 0, how can this happen!?"))
+		return
+	}
 
 	// verify get values
-	/*nullDataGet = NullData{}
-	  has, err = engine.Id(nullData.Id).Get(&nullDataGet)
-	  if err != nil {
-	      t.Error(err)
-	      return
-	  } else if !has {
-	      t.Error(errors.New("ID not found"))
-	      return
-	  }
+	nullDataGet = NullData{}
+	has, err = engine.Id(nullData.Id).Get(&nullDataGet)
+	if err != nil {
+		t.Error(err)
+		return
+	} else if !has {
+		t.Error(errors.New("ID not found"))
+		return
+	}
 
-	  fmt.Printf("%+v", nullDataGet)
-	  fmt.Println()
+	fmt.Printf("%+v", nullDataGet)
+	fmt.Println()
 
-	  if nullDataGet.StringPtr != nil {
-	      t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.StringPtr)))
-	  }
-
+	if nullDataGet.StringPtr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.StringPtr)))
+	}
+	/*
 	  if nullDataGet.StringPtr2 != nil {
 	      t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.StringPtr2)))
 	  }
@@ -3829,6 +3856,8 @@ func testAll2(engine *Engine, t *testing.T) {
 	testMetaInfo(engine, t)
 	fmt.Println("-------------- testIterate --------------")
 	testIterate(engine, t)
+	fmt.Println("-------------- testRows --------------")
+	testRows(engine, t)
 	fmt.Println("-------------- testStrangeName --------------")
 	testStrangeName(engine, t)
 	fmt.Println("-------------- testVersion --------------")
