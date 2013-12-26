@@ -935,9 +935,9 @@ func (engine *Engine) Iterate(bean interface{}, fun IterFunc) error {
 
 // Similar to Iterate(), return a forward Iterator object for iterating record by record, bean's non-empty fields
 // are conditions.
-func (engine *Engine) Scroll(bean interface{}) (*Iterator, error) {
+func (engine *Engine) Rows(bean interface{}) (*Rows, error) {
 	session := engine.NewSession()
-	return session.Scroll(bean)
+	return session.Rows(bean)
 }
 
 // Count counts the records. bean's non-empty fields

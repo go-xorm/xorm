@@ -820,8 +820,8 @@ type IterFunc func(idx int, bean interface{}) error
 
 // Similar to Iterate(), return a forward Iterator object for iterating record by record, bean's non-empty fields
 // are conditions.
-func (session *Session) Scroll(bean interface{}) (*Iterator, error) {
-	return newIterator(session, bean)
+func (session *Session) Rows(bean interface{}) (*Rows, error) {
+	return newRows(session, bean)
 }
 
 // Iterate record by record handle records from table, condiBeans's non-empty fields
@@ -829,14 +829,19 @@ func (session *Session) Scroll(bean interface{}) (*Iterator, error) {
 // map[int64]*Struct
 func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
 
-	iterator, err := session.Scroll(bean)
+	rows, err := session.Rows(bean)
 	if err != nil {
 		return err
 	} else {
-		defer iterator.Close()
+		defer rows.Close()
 		//b := reflect.New(iterator.beanType).Interface()
 		i := 0
-		for b, err := iterator.Next(); err != nil; b, err = iterator.Next() {
+		for hasNext := rows.Next(); hasNext; hasNext = rows.Next() {
+			b := reflect.New(rows.beanType).Interface()
+			err = rows.Scan(b)
+			if err != nil {
+				return err
+			}
 			err = fun(i, b)
 			if err != nil {
 				return err

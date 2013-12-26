@@ -1529,17 +1529,22 @@ func testIterate(engine *Engine, t *testing.T) {
 	}
 }
 
-func testScroll(engine *Engine, t *testing.T) {
-	iterator, err := engine.Omit("is_man").Scroll(new(Userinfo))
+func testRows(engine *Engine, t *testing.T) {
+	rows, err := engine.Omit("is_man").Rows(new(Userinfo))
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
-	defer iterator.Close()
+	defer rows.Close()
 
 	idx := 0
-	for bean, err := iterator.Next(); err != nil; bean, err = iterator.NextReuse(bean) {
-		user := bean.(*Userinfo)
+	user := new(Userinfo)
+	for hasNext := rows.Next(); hasNext; hasNext = rows.Next() {
+		err = rows.Scan(user)
+		if err != nil {
+			t.Error(err)
+			panic(err)
+		}
 		fmt.Println(idx, "--", user)
 		idx++
 	}
@@ -3436,8 +3441,8 @@ func testAll2(engine *Engine, t *testing.T) {
 	testMetaInfo(engine, t)
 	fmt.Println("-------------- testIterate --------------")
 	testIterate(engine, t)
-	fmt.Println("-------------- testScroll --------------")
-	testScroll(engine, t)
+	fmt.Println("-------------- testRows --------------")
+	testRows(engine, t)
 	fmt.Println("-------------- testStrangeName --------------")
 	testStrangeName(engine, t)
 	fmt.Println("-------------- testVersion --------------")
