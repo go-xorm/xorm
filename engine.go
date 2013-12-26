@@ -933,7 +933,7 @@ func (engine *Engine) Iterate(bean interface{}, fun IterFunc) error {
 	return session.Iterate(bean, fun)
 }
 
-// Similar to Iterate(), return a forward Iterator object for iterating record by record, bean's non-empty fields
+// Return sql.Rows compatible Rows obj, as a forward Iterator object for iterating record by record, bean's non-empty fields
 // are conditions.
 func (engine *Engine) Rows(bean interface{}) (*Rows, error) {
 	session := engine.NewSession()

@@ -818,7 +818,7 @@ func (session *Session) cacheFind(t reflect.Type, sql string, rowsSlicePtr inter
 // IterFunc only use by Iterate
 type IterFunc func(idx int, bean interface{}) error
 
-// Similar to Iterate(), return a forward Iterator object for iterating record by record, bean's non-empty fields
+// Return sql.Rows compatible Rows obj, as a forward Iterator object for iterating record by record, bean's non-empty fields
 // are conditions.
 func (session *Session) Rows(bean interface{}) (*Rows, error) {
 	return newRows(session, bean)
