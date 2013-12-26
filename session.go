@@ -1220,8 +1220,6 @@ func row2map(rows *sql.Rows, fields []string) (resultsMap map[string][]byte, err
 		return nil, err
 	}
 
-	// !nashtsai! TODO optimization for query performance, where current process has gone from
-	// sql driver converted type back to []bytes then to ORM's fields
 	for ii, key := range fields {
 		rawValue := reflect.Indirect(reflect.ValueOf(scanResultContainers[ii]))
 
@@ -1230,72 +1228,261 @@ func row2map(rows *sql.Rows, fields []string) (resultsMap map[string][]byte, err
 			//fmt.Println("ignore ...", key, rawValue)
 			continue
 		}
-		aa := reflect.TypeOf(rawValue.Interface())
-		vv := reflect.ValueOf(rawValue.Interface())
-		var str string
-		switch aa.Kind() {
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			str = strconv.FormatInt(vv.Int(), 10)
-			result[key] = []byte(str)
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			str = strconv.FormatUint(vv.Uint(), 10)
-			result[key] = []byte(str)
-		case reflect.Float32, reflect.Float64:
-			str = strconv.FormatFloat(vv.Float(), 'f', -1, 64)
-			result[key] = []byte(str)
-		case reflect.String:
-			str = vv.String()
-			result[key] = []byte(str)
-		case reflect.Array, reflect.Slice:
-			switch aa.Elem().Kind() {
-			case reflect.Uint8:
-				result[key] = rawValue.Interface().([]byte)
-				str = string(result[key])
-			default:
-				return nil, errors.New(fmt.Sprintf("Unsupported struct type %v", vv.Type().Name()))
-			}
-		//时间类型
-		case reflect.Struct:
-			if aa == reflect.TypeOf(c_TIME_DEFAULT) {
-				str = rawValue.Interface().(time.Time).Format(time.RFC3339Nano)
-				result[key] = []byte(str)
-			} else {
-				return nil, errors.New(fmt.Sprintf("Unsupported struct type %v", vv.Type().Name()))
-			}
-		case reflect.Bool:
-			str = strconv.FormatBool(vv.Bool())
-			result[key] = []byte(str)
-		case reflect.Complex128, reflect.Complex64:
-			str = fmt.Sprintf("%v", vv.Complex())
-			result[key] = []byte(str)
-		/* TODO: unsupported types below
-		   case reflect.Map:
-		   case reflect.Ptr:
-		   case reflect.Uintptr:
-		   case reflect.UnsafePointer:
-		   case reflect.Chan, reflect.Func, reflect.Interface:
-		*/
-		default:
-			return nil, errors.New(fmt.Sprintf("Unsupported struct type %v", vv.Type().Name()))
+
+		if data, err := value2Bytes(&rawValue); err == nil {
+			result[key] = data
+		} else {
+			return nil, err // !nashtsai! REVIEW, should return err or just error log?
 		}
 	}
 	return result, nil
 }
 
-func rows2maps(rows *sql.Rows) (resultsSlice []map[string][]byte, err error) {
-	fields, err := rows.Columns()
-	if err != nil {
-		return nil, err
+func (session *Session) getField(dataStruct *reflect.Value, key string, table *Table) *reflect.Value {
+
+	key = strings.ToLower(key)
+	if _, ok := table.Columns[key]; !ok {
+		session.Engine.LogWarn(fmt.Sprintf("table %v's has not column %v. %v", table.Name, key, table.ColumnsSeq))
+		return nil
 	}
-	for rows.Next() {
-		result, err := row2map(rows, fields)
-		if err != nil {
-			return nil, err
+	col := table.Columns[key]
+	fieldName := col.FieldName
+	fieldPath := strings.Split(fieldName, ".")
+	var fieldValue reflect.Value
+	if len(fieldPath) > 2 {
+		session.Engine.LogError("Unsupported mutliderive", fieldName)
+		return nil
+	} else if len(fieldPath) == 2 {
+		parentField := dataStruct.FieldByName(fieldPath[0])
+		if parentField.IsValid() {
+			fieldValue = parentField.FieldByName(fieldPath[1])
 		}
-		resultsSlice = append(resultsSlice, result)
+	} else {
+		fieldValue = dataStruct.FieldByName(fieldName)
+	}
+	if !fieldValue.IsValid() || !fieldValue.CanSet() {
+		session.Engine.LogWarn("table %v's column %v is not valid or cannot set",
+			table.Name, key)
+		return nil
+	}
+	return &fieldValue
+}
+
+func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount int, bean interface{}) error {
+
+	dataStruct := reflect.Indirect(reflect.ValueOf(bean))
+	if dataStruct.Kind() != reflect.Struct {
+		return errors.New("Expected a pointer to a struct")
 	}
 
-	return resultsSlice, nil
+	table := session.Engine.autoMapType(rType(bean))
+
+	var scanResultContainers []interface{}
+	for i := 0; i < fieldsCount; i++ {
+		var scanResultContainer interface{}
+		scanResultContainers = append(scanResultContainers, &scanResultContainer)
+	}
+	if err := rows.Scan(scanResultContainers...); err != nil {
+		return err
+	}
+
+	for ii, key := range fields {
+		if fieldValue := session.getField(&dataStruct, key, table); fieldValue != nil {
+
+			rawValue := reflect.Indirect(reflect.ValueOf(scanResultContainers[ii]))
+
+			//if row is null then ignore
+			if rawValue.Interface() == nil {
+				//fmt.Println("ignore ...", key, rawValue)
+				continue
+			}
+
+			if structConvert, ok := fieldValue.Addr().Interface().(Conversion); ok {
+				if data, err := value2Bytes(&rawValue); err == nil {
+					structConvert.FromDB(data)
+				} else {
+					session.Engine.LogError(err)
+				}
+				continue
+			}
+
+			aa := reflect.TypeOf(rawValue.Interface())
+			vv := reflect.ValueOf(rawValue.Interface())
+
+			fieldType := fieldValue.Type()
+
+			//fmt.Println("column name:", key, ", fieldType:", fieldType.String())
+
+			hasAssigned := false
+
+			switch fieldType.Kind() {
+
+			case reflect.Complex64, reflect.Complex128:
+				if aa.Kind() == reflect.String {
+					hasAssigned = true
+					x := reflect.New(fieldType)
+					err := json.Unmarshal([]byte(vv.String()), x.Interface())
+					if err != nil {
+						session.Engine.LogSQL(err)
+						return err
+					}
+					fieldValue.Set(x.Elem())
+				}
+			case reflect.Slice, reflect.Array:
+				switch aa.Kind() {
+				case reflect.Slice, reflect.Array:
+					switch aa.Elem().Kind() {
+					case reflect.Uint8:
+						hasAssigned = true
+						fieldValue.Set(rawValue)
+					}
+				}
+			case reflect.String:
+				if aa.Kind() == reflect.String {
+					hasAssigned = true
+					fieldValue.SetString(vv.String())
+				}
+			case reflect.Bool:
+				if aa.Kind() == reflect.Bool {
+					hasAssigned = true
+					fieldValue.SetBool(vv.Bool())
+				}
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				switch aa.Kind() {
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					hasAssigned = true
+					fieldValue.SetInt(vv.Int())
+				}
+			case reflect.Float32, reflect.Float64:
+				switch aa.Kind() {
+				case reflect.Float32, reflect.Float64:
+					hasAssigned = true
+					fieldValue.SetFloat(vv.Float())
+				}
+			case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+				switch aa.Kind() {
+				case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+					hasAssigned = true
+					fieldValue.SetUint(vv.Uint())
+				}
+			//Currently only support Time type
+			case reflect.Struct:
+				if fieldType == reflect.TypeOf(c_TIME_DEFAULT) {
+					if aa == reflect.TypeOf(c_TIME_DEFAULT) {
+						hasAssigned = true
+						fieldValue.Set(rawValue)
+					}
+				}
+				// else if session.Statement.UseCascade { // TODO
+				// 	table := session.Engine.autoMapType(fieldValue.Type())
+				// 	if table != nil {
+				// 		x, err := strconv.ParseInt(string(data), 10, 64)
+				// 		if err != nil {
+				// 			return errors.New("arg " + key + " as int: " + er1r.Error())
+				// 		}
+				// 		if x != 0 {
+				// 			// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
+				// 			// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
+				// 			// property to be fetched lazily
+				// 			structInter := reflect.New(fieldValue.Type())
+				// 			newsession := session.Engine.NewSession()
+				// 			defer newsession.Close()
+				// 			has, err := newsession.Id(x).Get(structInter.Interface())
+				// 			if err != nil {
+				// 				return err
+				// 			}
+				// 			if has {
+				// 				v = structInter.Elem().Interface()
+				// 				fieldValue.Set(reflect.ValueOf(v))
+				// 			} else {
+				// 				return errors.New("cascade obj is not exist!")
+				// 			}
+				// 		}
+				// 	} else {
+				// 		session.Engine.LogError("unsupported struct type in Scan: ", fieldValue.Type().String())
+				// 	}
+				// }
+			case reflect.Ptr:
+				// !nashtsai! TODO merge duplicated codes above
+				//typeStr := fieldType.String()
+				switch fieldType {
+				// following types case matching ptr's native type, therefore assign ptr directly
+				case reflect.TypeOf(&c_EMPTY_STRING), reflect.TypeOf(&c_BOOL_DEFAULT), reflect.TypeOf(&c_TIME_DEFAULT),
+					reflect.TypeOf(&c_FLOAT64_DEFAULT), reflect.TypeOf(&c_UINT64_DEFAULT), reflect.TypeOf(&c_INT64_DEFAULT):
+					hasAssigned = true
+					fieldValue.Set(reflect.ValueOf(&rawValue))
+				case reflect.TypeOf(&c_FLOAT32_DEFAULT):
+					var x float32 = float32(vv.Float())
+					hasAssigned = true
+					fieldValue.Set(reflect.ValueOf(&x))
+				case reflect.TypeOf(&c_INT_DEFAULT):
+					var x int = int(vv.Int())
+					hasAssigned = true
+					fieldValue.Set(reflect.ValueOf(&x))
+				case reflect.TypeOf(&c_INT32_DEFAULT):
+					var x int32 = int32(vv.Int())
+					hasAssigned = true
+					fieldValue.Set(reflect.ValueOf(&x))
+				case reflect.TypeOf(&c_INT8_DEFAULT):
+					var x int8 = int8(vv.Int())
+					hasAssigned = true
+					fieldValue.Set(reflect.ValueOf(&x))
+				case reflect.TypeOf(&c_INT16_DEFAULT):
+					var x int16 = int16(vv.Int())
+					hasAssigned = true
+					fieldValue.Set(reflect.ValueOf(&x))
+				case reflect.TypeOf(&c_UINT_DEFAULT):
+					var x uint = uint(vv.Uint())
+					hasAssigned = true
+					fieldValue.Set(reflect.ValueOf(&x))
+				case reflect.TypeOf(&c_UINT32_DEFAULT):
+					var x uint32 = uint32(vv.Uint())
+					hasAssigned = true
+					fieldValue.Set(reflect.ValueOf(&x))
+				case reflect.TypeOf(&c_UINT8_DEFAULT):
+					var x uint8 = uint8(vv.Uint())
+					hasAssigned = true
+					fieldValue.Set(reflect.ValueOf(&x))
+				case reflect.TypeOf(&c_UINT16_DEFAULT):
+					var x uint16 = uint16(vv.Uint())
+					hasAssigned = true
+					fieldValue.Set(reflect.ValueOf(&x))
+				case reflect.TypeOf(&c_COMPLEX64_DEFAULT):
+					var x complex64
+					err := json.Unmarshal([]byte(vv.String()), &x)
+					if err != nil {
+						session.Engine.LogError(err)
+					} else {
+						fieldValue.Set(reflect.ValueOf(&x))
+					}
+					hasAssigned = true
+				case reflect.TypeOf(&c_COMPLEX128_DEFAULT):
+					var x complex128
+					err := json.Unmarshal([]byte(vv.String()), &x)
+					if err != nil {
+						session.Engine.LogError(err)
+					} else {
+						fieldValue.Set(reflect.ValueOf(&x))
+					}
+					hasAssigned = true
+				} // switch fieldType
+				// default:
+				// 	session.Engine.LogError("unsupported type in Scan: ", reflect.TypeOf(v).String())
+			} // switch fieldType.Kind()
+
+			// !nashtsai! for value can't be assigned directly fallback to convert to []byte then back to value
+			if !hasAssigned {
+				data, err := value2Bytes(&rawValue)
+				if err == nil {
+					session.bytes2Value(table.Columns[key], fieldValue, data)
+				} else {
+					session.Engine.LogError(err.Error())
+				}
+			}
+		}
+	}
+	return nil
+
 }
 
 func (session *Session) query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
@@ -1334,7 +1521,6 @@ func query(db *sql.DB, sql string, params ...interface{}) (resultsSlice []map[st
 	}
 	defer rows.Close()
 	//fmt.Println(rows)
-
 	return rows2maps(rows)
 }
 
@@ -1619,7 +1805,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 
 		err := json.Unmarshal(data, x.Interface())
 		if err != nil {
-			session.Engine.LogSQL(err)
+			session.Engine.LogError(err)
 			return err
 		}
 		fieldValue.Set(x.Elem())
@@ -1631,7 +1817,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			x := reflect.New(fieldType)
 			err := json.Unmarshal(data, x.Interface())
 			if err != nil {
-				session.Engine.LogSQL(err)
+				session.Engine.LogError(err)
 				return err
 			}
 			fieldValue.Set(x.Elem())
@@ -1642,7 +1828,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				x := reflect.New(fieldType)
 				err := json.Unmarshal(data, x.Interface())
 				if err != nil {
-					session.Engine.LogSQL(err)
+					session.Engine.LogError(err)
 					return err
 				}
 				fieldValue.Set(x.Elem())
@@ -1656,7 +1842,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 		d := string(data)
 		v, err := strconv.ParseBool(d)
 		if err != nil {
-			return errors.New("arg " + key + " as bool: " + err.Error())
+			return fmt.Errorf("arg %v as bool: %s", key, err.Error())
 		}
 		fieldValue.Set(reflect.ValueOf(v))
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -1684,19 +1870,19 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			x, err = strconv.ParseInt(sdata, 10, 64)
 		}
 		if err != nil {
-			return errors.New("arg " + key + " as int: " + err.Error())
+			return fmt.Errorf("arg %v as int: %s", key, err.Error())
 		}
 		fieldValue.SetInt(x)
 	case reflect.Float32, reflect.Float64:
 		x, err := strconv.ParseFloat(string(data), 64)
 		if err != nil {
-			return errors.New("arg " + key + " as float64: " + err.Error())
+			return fmt.Errorf("arg %v as float64: %s", key, err.Error())
 		}
 		fieldValue.SetFloat(x)
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 		x, err := strconv.ParseUint(string(data), 10, 64)
 		if err != nil {
-			return errors.New("arg " + key + " as int: " + err.Error())
+			return fmt.Errorf("arg %v as int: %s", key, err.Error())
 		}
 		fieldValue.SetUint(x)
 	//Currently only support Time type
@@ -1713,7 +1899,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			if table != nil {
 				x, err := strconv.ParseInt(string(data), 10, 64)
 				if err != nil {
-					return errors.New("arg " + key + " as int: " + err.Error())
+					return fmt.Errorf("arg %v as int: %s", key, err.Error())
 				}
 				if x != 0 {
 					// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
@@ -1734,7 +1920,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 					}
 				}
 			} else {
-				return errors.New("unsupported struct type in Scan: " + fieldValue.Type().String())
+				return fmt.Errorf("unsupported struct type in Scan: %s", fieldValue.Type().String())
 			}
 		}
 	case reflect.Ptr:
@@ -1750,7 +1936,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			d := string(data)
 			v, err := strconv.ParseBool(d)
 			if err != nil {
-				return errors.New("arg " + key + " as bool: " + err.Error())
+				return fmt.Errorf("arg %v as bool: %s", key, err.Error())
 			}
 			fieldValue.Set(reflect.ValueOf(&v))
 		// case "*complex64":
@@ -1758,7 +1944,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			var x complex64
 			err := json.Unmarshal(data, &x)
 			if err != nil {
-				session.Engine.LogSQL(err)
+				session.Engine.LogError(err)
 				return err
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
@@ -1767,7 +1953,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			var x complex128
 			err := json.Unmarshal(data, &x)
 			if err != nil {
-				session.Engine.LogSQL(err)
+				session.Engine.LogError(err)
 				return err
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
@@ -1775,7 +1961,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 		case reflect.TypeOf(&c_FLOAT64_DEFAULT):
 			x, err := strconv.ParseFloat(string(data), 64)
 			if err != nil {
-				return errors.New("arg " + key + " as float64: " + err.Error())
+				return fmt.Errorf("arg %v as float64: %s", key, err.Error())
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*float32":
@@ -1783,7 +1969,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			var x float32
 			x1, err := strconv.ParseFloat(string(data), 32)
 			if err != nil {
-				return errors.New("arg " + key + " as float32: " + err.Error())
+				return fmt.Errorf("arg %v as float32: %s", key, err.Error())
 			}
 			x = float32(x1)
 			fieldValue.Set(reflect.ValueOf(&x))
@@ -1800,7 +1986,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			var x uint64
 			x, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
-				return errors.New("arg " + key + " as int: " + err.Error())
+				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*uint":
@@ -1808,7 +1994,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			var x uint
 			x1, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
-				return errors.New("arg " + key + " as int: " + err.Error())
+				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
 			x = uint(x1)
 			fieldValue.Set(reflect.ValueOf(&x))
@@ -1817,7 +2003,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			var x uint32
 			x1, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
-				return errors.New("arg " + key + " as int: " + err.Error())
+				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
 			x = uint32(x1)
 			fieldValue.Set(reflect.ValueOf(&x))
@@ -1826,7 +2012,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			var x uint8
 			x1, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
-				return errors.New("arg " + key + " as int: " + err.Error())
+				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
 			x = uint8(x1)
 			fieldValue.Set(reflect.ValueOf(&x))
@@ -1835,7 +2021,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			var x uint16
 			x1, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
-				return errors.New("arg " + key + " as int: " + err.Error())
+				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
 			x = uint16(x1)
 			fieldValue.Set(reflect.ValueOf(&x))
@@ -1861,7 +2047,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				x, err = strconv.ParseInt(sdata, 10, 64)
 			}
 			if err != nil {
-				return errors.New("arg " + key + " as int: " + err.Error())
+				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*int":
@@ -1890,7 +2076,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				x = int(x1)
 			}
 			if err != nil {
-				return errors.New("arg " + key + " as int: " + err.Error())
+				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*int32":
@@ -1919,7 +2105,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				x = int32(x1)
 			}
 			if err != nil {
-				return errors.New("arg " + key + " as int: " + err.Error())
+				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*int8":
@@ -1948,7 +2134,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				x = int8(x1)
 			}
 			if err != nil {
-				return errors.New("arg " + key + " as int: " + err.Error())
+				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*int16":
@@ -1977,14 +2163,14 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 				x = int16(x1)
 			}
 			if err != nil {
-				return errors.New("arg " + key + " as int: " + err.Error())
+				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
 		default:
-			return errors.New("unsupported type in Scan: " + reflect.TypeOf(v).String())
+			return fmt.Errorf("unsupported type in Scan: %s", reflect.TypeOf(v).String())
 		}
 	default:
-		return errors.New("unsupported type in Scan: " + reflect.TypeOf(v).String())
+		return fmt.Errorf("unsupported type in Scan: %s", reflect.TypeOf(v).String())
 	}
 
 	return nil

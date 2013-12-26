@@ -163,6 +163,7 @@ func Type2SQLType(t reflect.Type) (st SQLType) {
 		if t == reflect.TypeOf(c_TIME_DEFAULT) {
 			st = SQLType{DateTime, 0, 0}
 		} else {
+			// TODO need to handle association struct
 			st = SQLType{Text, 0, 0}
 		}
 	case reflect.Ptr:

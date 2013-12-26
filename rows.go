@@ -9,12 +9,13 @@ import (
 type Rows struct {
 	NoTypeCheck bool
 
-	session   *Session
-	stmt      *sql.Stmt
-	rows      *sql.Rows
-	fields    []string
-	beanType  reflect.Type
-	lastError error
+	session     *Session
+	stmt        *sql.Stmt
+	rows        *sql.Rows
+	fields      []string
+	fieldsCount int
+	beanType    reflect.Type
+	lastError   error
 }
 
 func newRows(session *Session, bean interface{}) (*Rows, error) {
@@ -66,6 +67,7 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 		defer rows.Close()
 		return nil, err
 	}
+	rows.fieldsCount = len(rows.fields)
 
 	return rows, nil
 }
@@ -97,11 +99,13 @@ func (rows *Rows) Scan(bean interface{}) error {
 		return fmt.Errorf("scan arg is incompatible type to [%v]", rows.beanType)
 	}
 
-	result, err := row2map(rows.rows, rows.fields) // !nashtsai! TODO remove row2map then scanMapIntoStruct conversation for better performance
-	if err == nil {
-		err = rows.session.scanMapIntoStruct(bean, result)
-	}
-	return err
+	return rows.session.row2Bean(rows.rows, rows.fields, rows.fieldsCount, bean)
+
+	// result, err := row2map(rows.rows, rows.fields) // !nashtsai! TODO remove row2map then scanMapIntoStruct conversation for better performance
+	// if err == nil {
+	// 	err = rows.session.scanMapIntoStruct(bean, result)
+	// }
+	// return err
 }
 
 // // Columns returns the column names. Columns returns an error if the rows are closed, or if the rows are from QueryRow and there was a deferred error.
