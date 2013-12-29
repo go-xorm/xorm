@@ -886,16 +886,7 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	}
 
 	var rawRows *sql.Rows
-	// !nashtsai! TODO calling session.queryPreprocess with cause error
-	// session.queryPreprocess(sqlStr, args...)
-
-	for _, filter := range session.Engine.Filters {
-		sqlStr = filter.Do(sqlStr, session)
-	}
-
-	session.Engine.LogSQL(sqlStr)
-	session.Engine.LogSQL(args)
-
+	session.queryPreprocess(&sqlStr, args...)
 	if session.IsAutoCommit {
 		stmt, err := session.Db.Prepare(sqlStr)
 		if err != nil {
@@ -1052,15 +1043,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	if sliceValue.Kind() != reflect.Map {
 		var rawRows *sql.Rows
 
-		// !nashtsai! TODO calling session.queryPreprocess with cause error
-		// session.queryPreprocess(sqlStr, args...)
-		for _, filter := range session.Engine.Filters {
-			sqlStr = filter.Do(sqlStr, session)
-		}
-
-		session.Engine.LogSQL(sqlStr)
-		session.Engine.LogSQL(args)
-
+		session.queryPreprocess(&sqlStr, args...)
 		// err = session.queryRows(&stmt, &rawRows, sqlStr, args...)
 		// if err != nil {
 		// 	return err
@@ -1641,24 +1624,17 @@ func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount in
 
 }
 
-func (session *Session) queryPreprocess(sqlStr string, paramStr ...interface{}) {
+func (session *Session) queryPreprocess(sqlStr *string, paramStr ...interface{}) {
 	for _, filter := range session.Engine.Filters {
-		sqlStr = filter.Do(sqlStr, session)
+		*sqlStr = filter.Do(*sqlStr, session)
 	}
 
-	session.Engine.LogSQL(sqlStr)
+	session.Engine.LogSQL(*sqlStr)
 	session.Engine.LogSQL(paramStr)
 }
 
 func (session *Session) query(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
-	// !nashtsai! TODO calling session.queryPreprocess with cause error
-	// session.queryPreprocess(sqlStr, paramStr...)
-	for _, filter := range session.Engine.Filters {
-		sqlStr = filter.Do(sqlStr, session)
-	}
-
-	session.Engine.LogSQL(sqlStr)
-	session.Engine.LogSQL(paramStr)
+	session.queryPreprocess(&sqlStr, paramStr...)
 
 	if session.IsAutoCommit {
 		return query(session.Db, sqlStr, paramStr...)
