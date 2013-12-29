@@ -886,7 +886,16 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	}
 
 	var rawRows *sql.Rows
-	session.queryPreprocess(sqlStr, args...)
+	// !nashtsai! TODO calling session.queryPreprocess with cause error
+	// session.queryPreprocess(sqlStr, args...)
+
+	for _, filter := range session.Engine.Filters {
+		sqlStr = filter.Do(sqlStr, session)
+	}
+
+	session.Engine.LogSQL(sqlStr)
+	session.Engine.LogSQL(args)
+
 	if session.IsAutoCommit {
 		stmt, err := session.Db.Prepare(sqlStr)
 		if err != nil {
@@ -1043,7 +1052,15 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	if sliceValue.Kind() != reflect.Map {
 		var rawRows *sql.Rows
 
-		session.queryPreprocess(sqlStr, args...)
+		// !nashtsai! TODO calling session.queryPreprocess with cause error
+		// session.queryPreprocess(sqlStr, args...)
+		for _, filter := range session.Engine.Filters {
+			sqlStr = filter.Do(sqlStr, session)
+		}
+
+		session.Engine.LogSQL(sqlStr)
+		session.Engine.LogSQL(args)
+
 		// err = session.queryRows(&stmt, &rawRows, sqlStr, args...)
 		// if err != nil {
 		// 	return err
