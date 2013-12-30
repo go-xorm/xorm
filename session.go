@@ -1037,11 +1037,13 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		if err != ErrCacheFailed {
 			return err
 		}
+		err = nil // !nashtsai! reset err to nil for ErrCacheFailed
 		session.Engine.LogWarn("Cache Find Failed")
 	}
 
 	if sliceValue.Kind() != reflect.Map {
 		var rawRows *sql.Rows
+		var stmt *sql.Stmt
 
 		session.queryPreprocess(&sqlStr, args...)
 		// err = session.queryRows(&stmt, &rawRows, sqlStr, args...)
@@ -1054,7 +1056,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		// defer rawRows.Close()
 
 		if session.IsAutoCommit {
-			stmt, err := session.Db.Prepare(sqlStr)
+			stmt, err = session.Db.Prepare(sqlStr)
 			if err != nil {
 				return err
 			}
