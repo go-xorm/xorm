@@ -28,6 +28,7 @@ const (
 // a dialect is a driver's wrapper
 type dialect interface {
 	Init(DriverName, DataSourceName string) error
+	URI() *uri
 	DBType() string
 	SqlType(t *Column) string
 	SupportInsertMany() bool
@@ -980,18 +981,22 @@ func (engine *Engine) Import(ddlPath string) ([]sql.Result, error) {
 	scanner.Split(semiColSpliter)
 
 	session := engine.NewSession()
-	session.IsAutoClose = false
+	defer session.Close()
+	err = session.newDb()
+	if err != nil {
+		return results, err
+	}
+
 	for scanner.Scan() {
 		query := scanner.Text()
 		query = strings.Trim(query, " \t")
 		if len(query) > 0 {
-			result, err := session.Exec(query)
+			result, err := session.Db.Exec(query)
 			results = append(results, result)
 			if err != nil {
 				lastError = err
 			}
 		}
 	}
-	session.Close()
 	return results, lastError
 }

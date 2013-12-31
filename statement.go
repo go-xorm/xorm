@@ -638,8 +638,12 @@ func (statement *Statement) genCreateTableSQL() string {
 	if statement.Engine.dialect.SupportEngine() && statement.StoreEngine != "" {
 		sql += " ENGINE=" + statement.StoreEngine
 	}
-	if statement.Engine.dialect.SupportCharset() && statement.Charset != "" {
-		sql += " DEFAULT CHARSET " + statement.Charset
+	if statement.Engine.dialect.SupportCharset() {
+		if statement.Charset != "" {
+			sql += " DEFAULT CHARSET " + statement.Charset
+		} else if statement.Engine.dialect.URI().charset != "" {
+			sql += " DEFAULT CHARSET " + statement.Engine.dialect.URI().charset
+		}
 	}
 	sql += ";"
 	return sql
