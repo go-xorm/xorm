@@ -28,6 +28,7 @@ const (
 // a dialect is a driver's wrapper
 type dialect interface {
 	Init(DriverName, DataSourceName string) error
+	URI() *uri
 	DBType() string
 	SqlType(t *Column) string
 	SupportInsertMany() bool
