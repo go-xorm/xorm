@@ -60,7 +60,14 @@ There are 7 major ORM methods and many helpful methods to use to operate databas
     err := engine.Find(...)
     // SELECT * FROM user
 
-4. Query multiple records and record by record handle
+4. Query multiple records and record by record handle, there two methods, one is Iterate,
+another is Raws
+
+    raws, err := engine.Raws(...)
+    // SELECT * FROM user
+    for raws.Next() {
+        raws.Scan(bean)
+    }
 
     err := engine.Iterate(...)
     // SELECT * FROM user
