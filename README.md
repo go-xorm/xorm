@@ -37,6 +37,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * Postgres: [github.com/lib/pq](https://github.com/lib/pq)
 
+* MsSql: [github.com/lunny/godbc](https://github.com/lunny/godbc)
 
 # Changelog
 
@@ -85,6 +86,8 @@ Or
 Please visit [Xorm on Google Groups](https://groups.google.com/forum/#!forum/xorm)
 
 # Contributors
+
+If you want to pull request, please see [CONTRIBUTING](https://github.com/lunny/xorm/blob/master/CONTRIBUTING.md)
 
 * [Lunny](https://github.com/lunny)
 * [Nashtsai](https://github.com/nashtsai)

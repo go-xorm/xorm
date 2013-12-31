@@ -28,7 +28,7 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 ## 驱动支持
 
-目前支持的Go数据库驱动如下：
+目前支持的Go数据库驱动和对应的数据库如下：
 
 * Mysql: [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
 
@@ -38,7 +38,7 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * Postgres: [github.com/lib/pq](https://github.com/lib/pq)
 
-* Postgres: [github.com/bylevel/pq](https://github.com/bylevel/pq)
+* MsSql: [github.com/lunny/godbc](https://github.com/lunny/godbc)
 
 ## 更新日志
 * **v0.2.3** : 改善了文档；提供了乐观锁支持；添加了带时区时间字段支持；Mapper现在分成表名Mapper和字段名Mapper，同时实现了表或字段的自定义前缀后缀；Insert方法的返回值含义从id, err更改为 affected, err，请大家注意；添加了UseBool 和 Distinct函数。
@@ -86,6 +86,8 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 请加入QQ群：280360085 进行讨论。
 
 # 贡献者
+
+如果您也想为Xorm贡献您的力量，请查看 [CONTRIBUTING](https://github.com/lunny/xorm/blob/master/CONTRIBUTING.md)
 
 * [Lunny](https://github.com/lunny)
 * [Nashtsai](https://github.com/nashtsai)
