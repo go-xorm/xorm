@@ -1,5 +1,18 @@
 ## 更新日志
 
+* **v0.3.1**
+
+	新特性:
+	* 支持 MSSQL DB 通过 ODBC 驱动 ([github.com/lunny/godbc](https://github.com/lunny/godbc));
+	* 通过多个pk标记支持联合主键; 
+	* 新增 Rows() API 用来遍历查询结果，该函数提供了类似sql.Rows的相似用法，可作为 Iterate() API 的可选替代；
+	* ORM 结构体现在允许内建类型的指针作为成员，使得数据库为null成为可能；
+	* Before 和 After 支持
+
+	改进:
+	* 允许 int/int32/int64/uint/uint32/uint64/string 作为主键类型
+	* 查询函数 Get()/Find()/Iterate() 在性能上的改进
+
 * **v0.2.3** : 改善了文档；提供了乐观锁支持；添加了带时区时间字段支持；Mapper现在分成表名Mapper和字段名Mapper，同时实现了表或字段的自定义前缀后缀；Insert方法的返回值含义从id, err更改为 affected, err，请大家注意；添加了UseBool 和 Distinct函数。
 * **v0.2.2** : Postgres驱动新增了对lib/pq的支持；新增了逐条遍历方法Iterate；新增了SetMaxConns(go1.2+)支持，修复了bug若干；
 * **v0.2.1** : 新增数据库反转工具，当前支持go和c++代码的生成，详见 [Xorm Tool README](https://github.com/lunny/xorm/blob/master/xorm/README.md); 修复了一些bug.
