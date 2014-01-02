@@ -1473,44 +1473,45 @@ func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount in
 				case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 					hasAssigned = true
 					fieldValue.SetUint(vv.Uint())
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					hasAssigned = true
+					fieldValue.SetUint(uint64(vv.Int()))
 				}
-			//Currently only support Time type
 			case reflect.Struct:
 				if fieldType == reflect.TypeOf(c_TIME_DEFAULT) {
 					if rawValueType == reflect.TypeOf(c_TIME_DEFAULT) {
 						hasAssigned = true
-						fieldValue.Set(rawValue)
+						fieldValue.Set(vv)
+					}
+				} else if session.Statement.UseCascade {
+					table := session.Engine.autoMapType(fieldValue.Type())
+					if table != nil {
+						var x int64
+						if rawValueType.Kind() == reflect.Int64 {
+							x = vv.Int()
+						}
+						if x != 0 {
+							// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
+							// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
+							// property to be fetched lazily
+							structInter := reflect.New(fieldValue.Type())
+							newsession := session.Engine.NewSession()
+							defer newsession.Close()
+							has, err := newsession.Id(x).Get(structInter.Interface())
+							if err != nil {
+								return err
+							}
+							if has {
+								v := structInter.Elem().Interface()
+								fieldValue.Set(reflect.ValueOf(v))
+							} else {
+								return errors.New("cascade obj is not exist!")
+							}
+						}
+					} else {
+						session.Engine.LogError("unsupported struct type in Scan: ", fieldValue.Type().String())
 					}
 				}
-				// else if session.Statement.UseCascade { // TODO
-				// 	table := session.Engine.autoMapType(fieldValue.Type())
-				// 	if table != nil {
-				// 		x, err := strconv.ParseInt(string(data), 10, 64)
-				// 		if err != nil {
-				// 			return errors.New("arg " + key + " as int: " + er1r.Error())
-				// 		}
-				// 		if x != 0 {
-				// 			// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
-				// 			// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
-				// 			// property to be fetched lazily
-				// 			structInter := reflect.New(fieldValue.Type())
-				// 			newsession := session.Engine.NewSession()
-				// 			defer newsession.Close()
-				// 			has, err := newsession.Id(x).Get(structInter.Interface())
-				// 			if err != nil {
-				// 				return err
-				// 			}
-				// 			if has {
-				// 				v = structInter.Elem().Interface()
-				// 				fieldValue.Set(reflect.ValueOf(v))
-				// 			} else {
-				// 				return errors.New("cascade obj is not exist!")
-				// 			}
-				// 		}
-				// 	} else {
-				// 		session.Engine.LogError("unsupported struct type in Scan: ", fieldValue.Type().String())
-				// 	}
-				// }
 			case reflect.Ptr:
 				// !nashtsai! TODO merge duplicated codes above
 				//typeStr := fieldType.String()
@@ -1531,7 +1532,8 @@ func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount in
 				case reflect.TypeOf(&c_TIME_DEFAULT):
 					if rawValueType == reflect.TypeOf(c_TIME_DEFAULT) {
 						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&rawValue))
+						var x time.Time = rawValue.Interface().(time.Time)
+						fieldValue.Set(reflect.ValueOf(&x))
 					}
 				case reflect.TypeOf(&c_FLOAT64_DEFAULT):
 					if rawValueType.Kind() == reflect.Float64 {
