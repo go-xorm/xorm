@@ -1481,7 +1481,6 @@ func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount in
 				if fieldType == reflect.TypeOf(c_TIME_DEFAULT) {
 					if rawValueType == reflect.TypeOf(c_TIME_DEFAULT) {
 						hasAssigned = true
-						session.Engine.LogDebug("fieldValue:", fieldValue, "|rawValue:", rawValue, "|vv:", vv)
 						fieldValue.Set(vv)
 					}
 				} else if session.Statement.UseCascade {
