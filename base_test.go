@@ -359,7 +359,7 @@ func updateSameMapper(engine *Engine, t *testing.T) {
 	}
 }
 
-func testdelete(engine *Engine, t *testing.T) {
+func testDelete(engine *Engine, t *testing.T) {
 	user := Userinfo{Uid: 1}
 	cnt, err := engine.Delete(&user)
 	if err != nil {
@@ -3788,8 +3788,8 @@ func testAll(engine *Engine, t *testing.T) {
 	insertTwoTable(engine, t)
 	fmt.Println("-------------- update --------------")
 	update(engine, t)
-	fmt.Println("-------------- testdelete --------------")
-	testdelete(engine, t)
+	fmt.Println("-------------- testDelete --------------")
+	testDelete(engine, t)
 	fmt.Println("-------------- get --------------")
 	get(engine, t)
 	fmt.Println("-------------- cascadeGet --------------")
