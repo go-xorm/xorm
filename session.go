@@ -1477,12 +1477,12 @@ func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount in
 					hasAssigned = true
 					fieldValue.SetUint(uint64(vv.Int()))
 				}
-			//Currently only support Time type
 			case reflect.Struct:
 				if fieldType == reflect.TypeOf(c_TIME_DEFAULT) {
 					if rawValueType == reflect.TypeOf(c_TIME_DEFAULT) {
 						hasAssigned = true
-						fieldValue.Set(rawValue)
+						session.Engine.LogDebug("fieldValue:", fieldValue, "|rawValue:", rawValue, "|vv:", vv)
+						fieldValue.Set(vv)
 					}
 				} else if session.Statement.UseCascade {
 					table := session.Engine.autoMapType(fieldValue.Type())
@@ -1533,7 +1533,8 @@ func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount in
 				case reflect.TypeOf(&c_TIME_DEFAULT):
 					if rawValueType == reflect.TypeOf(c_TIME_DEFAULT) {
 						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&rawValue))
+						var x time.Time = rawValue.Interface().(time.Time)
+						fieldValue.Set(reflect.ValueOf(&x))
 					}
 				case reflect.TypeOf(&c_FLOAT64_DEFAULT):
 					if rawValueType.Kind() == reflect.Float64 {
