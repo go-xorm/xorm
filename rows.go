@@ -41,7 +41,7 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 	}
 
 	for _, filter := range rows.session.Engine.Filters {
-		sql = filter.Do(sql, session)
+		sql = filter.Do(sql, session.Engine.dialect, rows.session.Statement.RefTable)
 	}
 
 	rows.session.Engine.LogSQL(sql)

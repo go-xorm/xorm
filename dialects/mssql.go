@@ -1,46 +1,28 @@
-package xorm
+package dialects
 
 import (
 	//"crypto/tls"
-	"database/sql"
+
 	"errors"
 	"fmt"
 	//"regexp"
 	"strconv"
 	"strings"
 	//"time"
+
+	. "github.com/lunny/xorm/core"
 )
 
+func init() {
+	RegisterDialect("mssql", &mssql{})
+}
+
 type mssql struct {
-	base
-	quoteFilter Filter
+	Base
 }
 
-type odbcParser struct {
-}
-
-func (p *odbcParser) parse(driverName, dataSourceName string) (*uri, error) {
-	kv := strings.Split(dataSourceName, ";")
-	var dbName string
-
-	for _, c := range kv {
-		vv := strings.Split(strings.TrimSpace(c), "=")
-		if len(vv) == 2 {
-			switch strings.ToLower(vv[0]) {
-			case "database":
-				dbName = vv[1]
-			}
-		}
-	}
-	if dbName == "" {
-		return nil, errors.New("no db name provided")
-	}
-	return &uri{dbName: dbName, dbType: MSSQL}, nil
-}
-
-func (db *mssql) Init(drivername, uri string) error {
-	db.quoteFilter = &QuoteFilter{}
-	return db.base.init(&odbcParser{}, drivername, uri)
+func (db *mssql) Init(uri *Uri, drivername, dataSourceName string) error {
+	return db.Base.Init(db, uri, drivername, dataSourceName)
 }
 
 func (db *mssql) SqlType(c *Column) string {
@@ -139,51 +121,48 @@ func (db *mssql) GetColumns(tableName string) ([]string, map[string]*Column, err
 	s := `select a.name as name, b.name as ctype,a.max_length,a.precision,a.scale 
 from sys.columns a left join sys.types b on a.user_type_id=b.user_type_id 
 where a.object_id=object_id('` + tableName + `')`
-	cnn, err := sql.Open(db.driverName, db.dataSourceName)
+	cnn, err := Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, nil, err
 	}
 	defer cnn.Close()
-	res, err := query(cnn, s, args...)
+
+	rows, err := cnn.Query(s, args...)
 	if err != nil {
 		return nil, nil, err
 	}
 	cols := make(map[string]*Column)
 	colSeq := make([]string, 0)
-	for _, record := range res {
+	for rows.Next() {
+		var name, ctype, precision, scale string
+		var maxLen int
+		err = rows.Scan(&name, &ctype, &maxLen, &precision, &scale)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		col := new(Column)
 		col.Indexes = make(map[string]bool)
-		for name, content := range record {
-			switch name {
-			case "name":
+		col.Length = maxLen
+		col.Name = strings.Trim(name, "` ")
 
-				col.Name = strings.Trim(string(content), "` ")
-			case "ctype":
-				ct := strings.ToUpper(string(content))
-				switch ct {
-				case "DATETIMEOFFSET":
-					col.SQLType = SQLType{TimeStampz, 0, 0}
-				case "NVARCHAR":
-					col.SQLType = SQLType{Varchar, 0, 0}
-				case "IMAGE":
-					col.SQLType = SQLType{VarBinary, 0, 0}
-				default:
-					if _, ok := sqlTypes[ct]; ok {
-						col.SQLType = SQLType{ct, 0, 0}
-					} else {
-						return nil, nil, errors.New(fmt.Sprintf("unknow colType %v for %v - %v",
-							ct, tableName, col.Name))
-					}
-				}
-
-			case "max_length":
-				len1, err := strconv.Atoi(strings.TrimSpace(string(content)))
-				if err != nil {
-					return nil, nil, err
-				}
-				col.Length = len1
+		ct := strings.ToUpper(ctype)
+		switch ct {
+		case "DATETIMEOFFSET":
+			col.SQLType = SQLType{TimeStampz, 0, 0}
+		case "NVARCHAR":
+			col.SQLType = SQLType{Varchar, 0, 0}
+		case "IMAGE":
+			col.SQLType = SQLType{VarBinary, 0, 0}
+		default:
+			if _, ok := SqlTypes[ct]; ok {
+				col.SQLType = SQLType{ct, 0, 0}
+			} else {
+				return nil, nil, errors.New(fmt.Sprintf("unknow colType %v for %v - %v",
+					ct, tableName, col.Name))
 			}
 		}
+
 		if col.SQLType.IsText() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
@@ -198,25 +177,25 @@ where a.object_id=object_id('` + tableName + `')`
 func (db *mssql) GetTables() ([]*Table, error) {
 	args := []interface{}{}
 	s := `select name from sysobjects where xtype ='U'`
-	cnn, err := sql.Open(db.driverName, db.dataSourceName)
+	cnn, err := Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
 	defer cnn.Close()
-	res, err := query(cnn, s, args...)
+	rows, err := cnn.Query(s, args...)
 	if err != nil {
 		return nil, err
 	}
 
 	tables := make([]*Table, 0)
-	for _, record := range res {
-		table := new(Table)
-		for name, content := range record {
-			switch name {
-			case "name":
-				table.Name = strings.Trim(string(content), "` ")
-			}
+	for rows.Next() {
+		table := NewEmptyTable()
+		var name string
+		err = rows.Scan(&name)
+		if err != nil {
+			return nil, err
 		}
+		table.Name = strings.Trim(name, "` ")
 		tables = append(tables, table)
 	}
 	return tables, nil
@@ -238,39 +217,38 @@ INNER   JOIN SYS.COLUMNS C  ON IXS.OBJECT_ID=C.OBJECT_ID
 AND IXCS.COLUMN_ID=C.COLUMN_ID  
 WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 `
-	cnn, err := sql.Open(db.driverName, db.dataSourceName)
+	cnn, err := Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
 	defer cnn.Close()
-	res, err := query(cnn, s, args...)
+	rows, err := cnn.Query(s, args...)
 	if err != nil {
 		return nil, err
 	}
 
 	indexes := make(map[string]*Index, 0)
-	for _, record := range res {
+	for rows.Next() {
 		var indexType int
-		var indexName, colName string
-		for name, content := range record {
-			switch name {
-			case "IS_UNIQUE":
-				i, err := strconv.ParseBool(string(content))
-				if err != nil {
-					return nil, err
-				}
+		var indexName, colName, isUnique string
 
-				if i {
-					indexType = UniqueType
-				} else {
-					indexType = IndexType
-				}
-			case "INDEX_NAME":
-				indexName = string(content)
-			case "COLUMN_NAME":
-				colName = strings.Trim(string(content), "` ")
-			}
+		err = rows.Scan(&indexName, &colName, &isUnique, nil)
+		if err != nil {
+			return nil, err
 		}
+
+		i, err := strconv.ParseBool(isUnique)
+		if err != nil {
+			return nil, err
+		}
+
+		if i {
+			indexType = UniqueType
+		} else {
+			indexType = IndexType
+		}
+
+		colName = strings.Trim(colName, "` ")
 
 		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
 			indexName = indexName[5+len(tableName) : len(indexName)]
@@ -287,4 +265,42 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 		index.AddColumn(colName)
 	}
 	return indexes, nil
+}
+
+func (db *mssql) CreateTablSql(table *Table, tableName, storeEngine, charset string) string {
+	var sql string
+	if tableName == "" {
+		tableName = table.Name
+	}
+
+	sql = "IF NOT EXISTS (SELECT [name] FROM sys.tables WHERE [name] = '" + tableName + "' ) CREATE TABLE"
+
+	sql += db.QuoteStr() + tableName + db.QuoteStr() + " ("
+
+	pkList := table.PrimaryKeys
+
+	for _, colName := range table.ColumnsSeq() {
+		col := table.GetColumn(colName)
+		if col.IsPrimaryKey && len(pkList) == 1 {
+			sql += col.String(db)
+		} else {
+			sql += col.StringNoPk(db)
+		}
+		sql = strings.TrimSpace(sql)
+		sql += ", "
+	}
+
+	if len(pkList) > 1 {
+		sql += "PRIMARY KEY ( "
+		sql += strings.Join(pkList, ",")
+		sql += " ), "
+	}
+
+	sql = sql[:len(sql)-2] + ")"
+	sql += ";"
+	return sql
+}
+
+func (db *mssql) Filters() []Filter {
+	return []Filter{&IdFilter{}, &QuoteFilter{}}
 }

@@ -12,9 +12,11 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/lunny/xorm/core"
 )
 
-const (
+/*const (
 	POSTGRES = "postgres"
 	SQLITE   = "sqlite3"
 	MYSQL    = "mysql"
@@ -23,28 +25,7 @@ const (
 	MSSQL = "mssql"
 
 	ORACLE_OCI = "oci8"
-)
-
-// a dialect is a driver's wrapper
-type dialect interface {
-	Init(DriverName, DataSourceName string) error
-	URI() *uri
-	DBType() string
-	SqlType(t *Column) string
-	SupportInsertMany() bool
-	QuoteStr() string
-	AutoIncrStr() string
-	SupportEngine() bool
-	SupportCharset() bool
-	IndexOnTable() bool
-	IndexCheckSql(tableName, idxName string) (string, []interface{})
-	TableCheckSql(tableName string) (string, []interface{})
-	ColumnCheckSql(tableName, colName string) (string, []interface{})
-
-	GetColumns(tableName string) ([]string, map[string]*Column, error)
-	GetTables() ([]*Table, error)
-	GetIndexes(tableName string) (map[string]*Index, error)
-}
+)*/
 
 type PK []interface{}
 
@@ -56,18 +37,19 @@ type Engine struct {
 	TagIdentifier  string
 	DriverName     string
 	DataSourceName string
-	dialect        dialect
-	Tables         map[reflect.Type]*Table
-	mutex          *sync.Mutex
-	ShowSQL        bool
-	ShowErr        bool
-	ShowDebug      bool
-	ShowWarn       bool
-	Pool           IConnectPool
-	Filters        []Filter
-	Logger         io.Writer
-	Cacher         Cacher
-	UseCache       bool
+	dialect        core.Dialect
+	Tables         map[reflect.Type]*core.Table
+
+	mutex        *sync.Mutex
+	ShowSQL      bool
+	ShowErr      bool
+	ShowDebug    bool
+	ShowWarn     bool
+	Pool         IConnectPool
+	Filters      []core.Filter
+	Logger       io.Writer
+	Cacher       Cacher
+	tableCachers map[reflect.Type]Cacher
 }
 
 func (engine *Engine) SetMapper(mapper IMapper) {
@@ -102,8 +84,8 @@ func (engine *Engine) Quote(sql string) string {
 	return engine.dialect.QuoteStr() + sql + engine.dialect.QuoteStr()
 }
 
-// A simple wrapper to dialect's SqlType method
-func (engine *Engine) SqlType(c *Column) string {
+// A simple wrapper to dialect's core.SqlType method
+func (engine *Engine) SqlType(c *core.Column) string {
 	return engine.dialect.SqlType(c)
 }
 
@@ -130,12 +112,7 @@ func (engine *Engine) SetMaxIdleConns(conns int) {
 
 // SetDefaltCacher set the default cacher. Xorm's default not enable cacher.
 func (engine *Engine) SetDefaultCacher(cacher Cacher) {
-	if cacher == nil {
-		engine.UseCache = false
-	} else {
-		engine.UseCache = true
-		engine.Cacher = cacher
-	}
+	engine.Cacher = cacher
 }
 
 // If you has set default cacher, and you want temporilly stop use cache,
@@ -156,7 +133,7 @@ func (engine *Engine) NoCascade() *Session {
 func (engine *Engine) MapCacher(bean interface{}, cacher Cacher) {
 	t := rType(bean)
 	engine.autoMapType(t)
-	engine.Tables[t].Cacher = cacher
+	engine.tableCachers[t] = cacher
 }
 
 // OpenDB provides a interface to operate database directly.
@@ -235,7 +212,7 @@ func (engine *Engine) NoAutoTime() *Session {
 }
 
 // Retrieve all tables, columns, indexes' informations from database.
-func (engine *Engine) DBMetas() ([]*Table, error) {
+func (engine *Engine) DBMetas() ([]*core.Table, error) {
 	tables, err := engine.dialect.GetTables()
 	if err != nil {
 		return nil, err
@@ -246,8 +223,11 @@ func (engine *Engine) DBMetas() ([]*Table, error) {
 		if err != nil {
 			return nil, err
 		}
-		table.Columns = cols
-		table.ColumnsSeq = colSeq
+		for _, name := range colSeq {
+			table.AddColumn(cols[name])
+		}
+		//table.Columns = cols
+		//table.ColumnsSeq = colSeq
 
 		indexes, err := engine.dialect.GetIndexes(table.Name)
 		if err != nil {
@@ -257,10 +237,10 @@ func (engine *Engine) DBMetas() ([]*Table, error) {
 
 		for _, index := range indexes {
 			for _, name := range index.Cols {
-				if col, ok := table.Columns[name]; ok {
+				if col := table.GetColumn(name); col != nil {
 					col.Indexes[index.Name] = true
 				} else {
-					return nil, fmt.Errorf("Unknown col "+name+" in indexes %v", table.Columns)
+					return nil, fmt.Errorf("Unknown col "+name+" in indexes %v", index)
 				}
 			}
 		}
@@ -420,7 +400,7 @@ func (engine *Engine) Having(conditions string) *Session {
 	return session.Having(conditions)
 }
 
-func (engine *Engine) autoMapType(t reflect.Type) *Table {
+func (engine *Engine) autoMapType(t reflect.Type) *core.Table {
 	engine.mutex.Lock()
 	defer engine.mutex.Unlock()
 	table, ok := engine.Tables[t]
@@ -431,36 +411,30 @@ func (engine *Engine) autoMapType(t reflect.Type) *Table {
 	return table
 }
 
-func (engine *Engine) autoMap(bean interface{}) *Table {
+func (engine *Engine) autoMap(bean interface{}) *core.Table {
 	t := rType(bean)
 	return engine.autoMapType(t)
 }
 
-func (engine *Engine) newTable() *Table {
-	table := &Table{}
-	table.Indexes = make(map[string]*Index)
-	table.Columns = make(map[string]*Column)
-	table.ColumnsSeq = make([]string, 0)
-	table.Created = make(map[string]bool)
-	table.Cacher = engine.Cacher
-	return table
+func (engine *Engine) mapType(t reflect.Type) *core.Table {
+	return mappingTable(t, engine.tableMapper, engine.columnMapper, engine.dialect, engine.TagIdentifier)
 }
 
-func (engine *Engine) mapType(t reflect.Type) *Table {
-	table := engine.newTable()
-	table.Name = engine.tableMapper.Obj2Table(t.Name())
+func mappingTable(t reflect.Type, tableMapper IMapper, colMapper IMapper, dialect core.Dialect, tagId string) *core.Table {
+	table := core.NewEmptyTable()
+	table.Name = tableMapper.Obj2Table(t.Name())
 	table.Type = t
 
 	var idFieldColName string
 
 	for i := 0; i < t.NumField(); i++ {
 		tag := t.Field(i).Tag
-		ormTagStr := tag.Get(engine.TagIdentifier)
-		var col *Column
+		ormTagStr := tag.Get(tagId)
+		var col *core.Column
 		fieldType := t.Field(i).Type
 
 		if ormTagStr != "" {
-			col = &Column{FieldName: t.Field(i).Name, Nullable: true, IsPrimaryKey: false,
+			col = &core.Column{FieldName: t.Field(i).Name, Nullable: true, IsPrimaryKey: false,
 				IsAutoIncrement: false, MapType: TWOSIDES, Indexes: make(map[string]bool)}
 			tags := strings.Split(ormTagStr, " ")
 
@@ -470,16 +444,16 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 				}
 				if (strings.ToUpper(tags[0]) == "EXTENDS") &&
 					(fieldType.Kind() == reflect.Struct) {
-					parentTable := engine.mapType(fieldType)
-					for name, col := range parentTable.Columns {
+					parentTable := mappingTable(fieldType, tableMapper, colMapper, dialect, tagId)
+					for _, col := range parentTable.Columns() {
 						col.FieldName = fmt.Sprintf("%v.%v", fieldType.Name(), col.FieldName)
-						table.Columns[strings.ToLower(name)] = col
-						table.ColumnsSeq = append(table.ColumnsSeq, name)
+						table.AddColumn(col)
 					}
 
-					table.PrimaryKeys = parentTable.PrimaryKeys
+					//table.PrimaryKeys = parentTable.PrimaryKeys
 					continue
 				}
+
 				var indexType int
 				var indexName string
 				for j, key := range tags {
@@ -506,15 +480,15 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 					case k == "UPDATED":
 						col.IsUpdated = true
 					case strings.HasPrefix(k, "INDEX(") && strings.HasSuffix(k, ")"):
-						indexType = IndexType
+						indexType = core.IndexType
 						indexName = k[len("INDEX")+1 : len(k)-1]
 					case k == "INDEX":
-						indexType = IndexType
+						indexType = core.IndexType
 					case strings.HasPrefix(k, "UNIQUE(") && strings.HasSuffix(k, ")"):
 						indexName = k[len("UNIQUE")+1 : len(k)-1]
-						indexType = UniqueType
+						indexType = core.UniqueType
 					case k == "UNIQUE":
-						indexType = UniqueType
+						indexType = core.UniqueType
 					case k == "NOTNULL":
 						col.Nullable = false
 					case k == "NOT":
@@ -525,10 +499,10 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 							}
 						} else if strings.Contains(k, "(") && strings.HasSuffix(k, ")") {
 							fs := strings.Split(k, "(")
-							if _, ok := sqlTypes[fs[0]]; !ok {
+							if _, ok := core.SqlTypes[fs[0]]; !ok {
 								continue
 							}
-							col.SQLType = SQLType{fs[0], 0, 0}
+							col.SQLType = core.SQLType{fs[0], 0, 0}
 							fs2 := strings.Split(fs[1][0:len(fs[1])-1], ",")
 							if len(fs2) == 2 {
 								col.Length, _ = strconv.Atoi(fs2[0])
@@ -537,17 +511,17 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 								col.Length, _ = strconv.Atoi(fs2[0])
 							}
 						} else {
-							if _, ok := sqlTypes[k]; ok {
-								col.SQLType = SQLType{k, 0, 0}
+							if _, ok := core.SqlTypes[k]; ok {
+								col.SQLType = core.SQLType{k, 0, 0}
 							} else if key != col.Default {
 								col.Name = key
 							}
 						}
-						engine.SqlType(col)
+						dialect.SqlType(col)
 					}
 				}
 				if col.SQLType.Name == "" {
-					col.SQLType = Type2SQLType(fieldType)
+					col.SQLType = core.Type2SQLType(fieldType)
 				}
 				if col.Length == 0 {
 					col.Length = col.SQLType.DefaultLength
@@ -556,9 +530,9 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 					col.Length2 = col.SQLType.DefaultLength2
 				}
 				if col.Name == "" {
-					col.Name = engine.columnMapper.Obj2Table(t.Field(i).Name)
+					col.Name = colMapper.Obj2Table(t.Field(i).Name)
 				}
-				if indexType == IndexType {
+				if indexType == core.IndexType {
 					if indexName == "" {
 						indexName = col.Name
 					}
@@ -566,12 +540,12 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 						index.AddColumn(col.Name)
 						col.Indexes[index.Name] = true
 					} else {
-						index := NewIndex(indexName, IndexType)
+						index := core.NewIndex(indexName, core.IndexType)
 						index.AddColumn(col.Name)
 						table.AddIndex(index)
 						col.Indexes[index.Name] = true
 					}
-				} else if indexType == UniqueType {
+				} else if indexType == core.UniqueType {
 					if indexName == "" {
 						indexName = col.Name
 					}
@@ -579,7 +553,7 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 						index.AddColumn(col.Name)
 						col.Indexes[index.Name] = true
 					} else {
-						index := NewIndex(indexName, UniqueType)
+						index := core.NewIndex(indexName, core.UniqueType)
 						index.AddColumn(col.Name)
 						table.AddIndex(index)
 						col.Indexes[index.Name] = true
@@ -587,8 +561,8 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 				}
 			}
 		} else {
-			sqlType := Type2SQLType(fieldType)
-			col = &Column{engine.columnMapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
+			sqlType := core.Type2SQLType(fieldType)
+			col = &core.Column{colMapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
 				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", make(map[string]bool), false, false,
 				TWOSIDES, false, false, false, false}
 		}
@@ -604,7 +578,7 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 	}
 
 	if idFieldColName != "" && len(table.PrimaryKeys) == 0 {
-		col := table.Columns[strings.ToLower(idFieldColName)]
+		col := table.GetColumn(idFieldColName)
 		col.IsPrimaryKey = true
 		col.IsAutoIncrement = true
 		col.Nullable = false
@@ -666,6 +640,13 @@ func (engine *Engine) CreateUniques(bean interface{}) error {
 	return session.CreateUniques(bean)
 }
 
+func (engine *Engine) getCacher(t reflect.Type) Cacher {
+	if cacher, ok := engine.tableCachers[t]; ok {
+		return cacher
+	}
+	return engine.Cacher
+}
+
 // If enabled cache, clear the cache bean
 func (engine *Engine) ClearCacheBean(bean interface{}, id int64) error {
 	t := rType(bean)
@@ -673,9 +654,10 @@ func (engine *Engine) ClearCacheBean(bean interface{}, id int64) error {
 		return errors.New("error params")
 	}
 	table := engine.autoMap(bean)
-	if table.Cacher != nil {
-		table.Cacher.ClearIds(table.Name)
-		table.Cacher.DelBean(table.Name, id)
+	cacher := engine.getCacher(t)
+	if cacher != nil {
+		cacher.ClearIds(table.Name)
+		cacher.DelBean(table.Name, id)
 	}
 	return nil
 }
@@ -688,9 +670,10 @@ func (engine *Engine) ClearCache(beans ...interface{}) error {
 			return errors.New("error params")
 		}
 		table := engine.autoMap(bean)
-		if table.Cacher != nil {
-			table.Cacher.ClearIds(table.Name)
-			table.Cacher.ClearBeans(table.Name)
+		cacher := engine.getCacher(t)
+		if cacher != nil {
+			cacher.ClearIds(table.Name)
+			cacher.ClearBeans(table.Name)
 		}
 	}
 	return nil
@@ -730,7 +713,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 				return err
 			}
 		} else {
-			for _, col := range table.Columns {
+			for _, col := range table.Columns() {
 				session := engine.NewSession()
 				session.Statement.RefTable = table
 				defer session.Close()
@@ -753,7 +736,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 				session := engine.NewSession()
 				session.Statement.RefTable = table
 				defer session.Close()
-				if index.Type == UniqueType {
+				if index.Type == core.UniqueType {
 					//isExist, err := session.isIndexExist(table.Name, name, true)
 					isExist, err := session.isIndexExist2(table.Name, index.Cols, true)
 					if err != nil {
@@ -768,7 +751,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 							return err
 						}
 					}
-				} else if index.Type == IndexType {
+				} else if index.Type == core.IndexType {
 					isExist, err := session.isIndexExist2(table.Name, index.Cols, false)
 					if err != nil {
 						return err
