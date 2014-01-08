@@ -590,7 +590,7 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 			sqlType := Type2SQLType(fieldType)
 			col = &Column{engine.columnMapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
 				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", make(map[string]bool), false, false,
-				TWOSIDES, false, false, false, false}
+				TWOSIDES, false, false, false, false, nil}
 		}
 		if col.IsAutoIncrement {
 			col.Nullable = false

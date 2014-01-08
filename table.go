@@ -275,6 +275,7 @@ type Column struct {
 	IsUpdated       bool
 	IsCascade       bool
 	IsVersion       bool
+	fieldPath       []string
 }
 
 // generate column description string according dialect
