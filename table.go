@@ -411,8 +411,9 @@ func (table *Table) genCols(session *Session, bean interface{}, useCol bool, inc
 	args := make([]interface{}, 0)
 
 	for _, col := range table.Columns {
+		lColName := strings.ToLower(col.Name)
 		if useCol && !col.IsVersion && !col.IsCreated && !col.IsUpdated {
-			if _, ok := session.Statement.columnMap[col.Name]; !ok {
+			if _, ok := session.Statement.columnMap[lColName]; !ok {
 				continue
 			}
 		}
@@ -439,12 +440,12 @@ func (table *Table) genCols(session *Session, bean interface{}, useCol bool, inc
 		}
 
 		if session.Statement.ColumnStr != "" {
-			if _, ok := session.Statement.columnMap[col.Name]; !ok {
+			if _, ok := session.Statement.columnMap[lColName]; !ok {
 				continue
 			}
 		}
 		if session.Statement.OmitStr != "" {
-			if _, ok := session.Statement.columnMap[col.Name]; ok {
+			if _, ok := session.Statement.columnMap[lColName]; ok {
 				continue
 			}
 		}

@@ -3175,7 +3175,9 @@ func testPointerData(engine *Engine, t *testing.T) {
 	// using instance type should just work too
 	nullData2Get := NullData2{}
 
-	has, err = engine.Table("null_data").Id(nullData.Id).Get(&nullData2Get)
+	tableName := engine.tableMapper.Obj2Table("NullData")
+
+	has, err = engine.Table(tableName).Id(nullData.Id).Get(&nullData2Get)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -3540,7 +3542,9 @@ func testNullValue(engine *Engine, t *testing.T) {
 	// update to null values
 	nullDataUpdate = NullData{}
 
-	cnt, err = engine.Id(nullData.Id).Cols("string_ptr").Update(&nullDataUpdate)
+	string_ptr := engine.columnMapper.Obj2Table("StringPtr")
+
+	cnt, err = engine.Id(nullData.Id).Cols(string_ptr).Update(&nullDataUpdate)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -3895,4 +3899,12 @@ func testAll3(engine *Engine, t *testing.T) {
 	testCompositeKey2(engine, t)
 	fmt.Println("-------------- testStringPK --------------")
 	testStringPK(engine, t)
+}
+
+func testAllSnakeMapper(engine *Engine, t *testing.T) {
+
+}
+
+func testAllSameMapper(engine *Engine, t *testing.T) {
+
 }
