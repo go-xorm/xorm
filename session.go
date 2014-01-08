@@ -1346,7 +1346,6 @@ func row2map(rows *sql.Rows, fields []string) (resultsMap map[string][]byte, err
 }
 
 func (session *Session) getField(dataStruct *reflect.Value, key string, table *Table) *reflect.Value {
-
 	key = strings.ToLower(key)
 	if _, ok := table.Columns[key]; !ok {
 		session.Engine.LogWarn(fmt.Sprintf("table %v's has not column %v. %v", table.Name, key, table.ColumnsSeq))
@@ -1634,7 +1633,7 @@ func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount in
 			if !hasAssigned {
 				data, err := value2Bytes(&rawValue)
 				if err == nil {
-					session.bytes2Value(table.Columns[key], fieldValue, data)
+					session.bytes2Value(table.Columns[strings.ToLower(key)], fieldValue, data)
 				} else {
 					session.Engine.LogError(err.Error())
 				}
