@@ -1119,11 +1119,6 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 
 		for rawRows.Next() {
 			var newValue reflect.Value = newElemFunc()
-			// if sliceElementType.Kind() == reflect.Ptr {
-			// 	newValue = reflect.New(sliceElementType.Elem())
-			// } else {
-			// 	newValue = reflect.New(sliceElementType)
-			// }
 			if sliceValueSetFunc != nil {
 				err := session.row2Bean(rawRows, fields, fieldsCount, newValue.Interface())
 				if err != nil {
@@ -1131,13 +1126,6 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 				}
 				sliceValueSetFunc(&newValue)
 			}
-			// // if sliceValue.Kind() == reflect.Slice {
-			// // 	if sliceElementType.Kind() == reflect.Ptr {
-			// // 		sliceValue.Set(reflect.Append(sliceValue, reflect.ValueOf(newValue.Interface())))
-			// // 	} else {
-			// // 		sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(newValue.Interface()))))
-			// // 	}
-			// // }
 		}
 	} else {
 		resultsSlice, err := session.query(sqlStr, args...)
