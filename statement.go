@@ -8,11 +8,13 @@ import (
 	"encoding/json"
 	"strings"
 	"time"
+
+	"github.com/lunny/xorm/core"
 )
 
 // statement save all the sql info for executing SQL
 type Statement struct {
-	RefTable      *Table
+	RefTable      *core.Table
 	Engine        *Engine
 	Start         int
 	LimitN        int
@@ -64,7 +66,7 @@ func (statement *Statement) Init() {
 	statement.RawSQL = ""
 	statement.RawParams = make([]interface{}, 0)
 	statement.BeanArgs = make([]interface{}, 0)
-	statement.UseCache = statement.Engine.UseCache
+	statement.UseCache = true
 	statement.UseAutoTime = true
 	statement.IsDistinct = false
 	statement.allUseBool = false
@@ -237,13 +239,13 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 }*/
 
 // Auto generating conditions according a struct
-func buildConditions(engine *Engine, table *Table, bean interface{},
+func buildConditions(engine *Engine, table *core.Table, bean interface{},
 	includeVersion bool, includeUpdated bool, includeNil bool, includeAutoIncr bool, allUseBool bool,
 	boolColumnMap map[string]bool) ([]string, []interface{}) {
 
 	colNames := make([]string, 0)
 	var args = make([]interface{}, 0)
-	for _, col := range table.Columns {
+	for _, col := range table.Columns() {
 		if !includeVersion && col.IsVersion {
 			continue
 		}
@@ -255,10 +257,16 @@ func buildConditions(engine *Engine, table *Table, bean interface{},
 		}
 		//
 		//fmt.Println(engine.dialect.DBType(), Text)
-		if engine.dialect.DBType() == MSSQL && col.SQLType.Name == Text {
+		if engine.dialect.DBType() == core.MSSQL && col.SQLType.Name == core.Text {
 			continue
 		}
-		fieldValue := col.ValueOf(bean)
+		fieldValuePtr, err := col.ValueOf(bean)
+		if err != nil {
+			engine.LogError(err)
+			continue
+		}
+
+		fieldValue := *fieldValuePtr
 		fieldType := reflect.TypeOf(fieldValue.Interface())
 
 		requiredField := false
@@ -323,10 +331,10 @@ func buildConditions(engine *Engine, table *Table, bean interface{},
 					continue
 				}
 				var str string
-				if col.SQLType.Name == Time {
+				if col.SQLType.Name == core.Time {
 					s := t.UTC().Format("2006-01-02 15:04:05")
 					val = s[11:19]
-				} else if col.SQLType.Name == Date {
+				} else if col.SQLType.Name == core.Date {
 					str = t.Format("2006-01-02")
 					val = str
 				} else {
@@ -510,7 +518,7 @@ func (statement *Statement) Distinct(columns ...string) *Statement {
 func (statement *Statement) Cols(columns ...string) *Statement {
 	newColumns := col2NewCols(columns...)
 	for _, nc := range newColumns {
-		statement.columnMap[nc] = true
+		statement.columnMap[strings.ToLower(nc)] = true
 	}
 	statement.ColumnStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
 	return statement
@@ -521,7 +529,7 @@ func (statement *Statement) UseBool(columns ...string) *Statement {
 	if len(columns) > 0 {
 		newColumns := col2NewCols(columns...)
 		for _, nc := range newColumns {
-			statement.boolColumnMap[nc] = true
+			statement.boolColumnMap[strings.ToLower(nc)] = true
 		}
 	} else {
 		statement.allUseBool = true
@@ -533,7 +541,7 @@ func (statement *Statement) UseBool(columns ...string) *Statement {
 func (statement *Statement) Omit(columns ...string) {
 	newColumns := col2NewCols(columns...)
 	for _, nc := range newColumns {
-		statement.columnMap[nc] = false
+		statement.columnMap[strings.ToLower(nc)] = false
 	}
 	statement.OmitStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
 }
@@ -584,13 +592,13 @@ func (statement *Statement) Having(conditions string) *Statement {
 func (statement *Statement) genColumnStr() string {
 	table := statement.RefTable
 	colNames := make([]string, 0)
-	for _, col := range table.Columns {
+	for _, col := range table.Columns() {
 		if statement.OmitStr != "" {
-			if _, ok := statement.columnMap[col.Name]; ok {
+			if _, ok := statement.columnMap[strings.ToLower(col.Name)]; ok {
 				continue
 			}
 		}
-		if col.MapType == ONLYTODB {
+		if col.MapType == core.ONLYTODB {
 			continue
 		}
 		colNames = append(colNames, statement.Engine.Quote(statement.TableName())+"."+statement.Engine.Quote(col.Name))
@@ -599,54 +607,8 @@ func (statement *Statement) genColumnStr() string {
 }
 
 func (statement *Statement) genCreateTableSQL() string {
-	var sql string
-	if statement.Engine.dialect.DBType() == MSSQL {
-		sql = "IF NOT EXISTS (SELECT [name] FROM sys.tables WHERE [name] = '" + statement.TableName() + "' ) CREATE TABLE"
-	} else {
-		sql = "CREATE TABLE IF NOT EXISTS "
-	}
-	sql += statement.Engine.Quote(statement.TableName()) + " ("
-
-	pkList := []string{}
-
-	for _, colName := range statement.RefTable.ColumnsSeq {
-		col := statement.RefTable.Columns[strings.ToLower(colName)]
-		if col.IsPrimaryKey {
-			pkList = append(pkList, col.Name)
-		}
-	}
-
-	statement.Engine.LogDebug("len:", len(pkList))
-	for _, colName := range statement.RefTable.ColumnsSeq {
-		col := statement.RefTable.Columns[strings.ToLower(colName)]
-		if col.IsPrimaryKey && len(pkList) == 1 {
-			sql += col.String(statement.Engine.dialect)
-		} else {
-			sql += col.stringNoPk(statement.Engine.dialect)
-		}
-		sql = strings.TrimSpace(sql)
-		sql += ", "
-	}
-
-	if len(pkList) > 1 {
-		sql += "PRIMARY KEY ( "
-		sql += strings.Join(pkList, ",")
-		sql += " ), "
-	}
-
-	sql = sql[:len(sql)-2] + ")"
-	if statement.Engine.dialect.SupportEngine() && statement.StoreEngine != "" {
-		sql += " ENGINE=" + statement.StoreEngine
-	}
-	if statement.Engine.dialect.SupportCharset() {
-		if statement.Charset != "" {
-			sql += " DEFAULT CHARSET " + statement.Charset
-		} else if statement.Engine.dialect.URI().charset != "" {
-			sql += " DEFAULT CHARSET " + statement.Engine.dialect.URI().charset
-		}
-	}
-	sql += ";"
-	return sql
+	return statement.Engine.dialect.CreateTableSql(statement.RefTable, statement.AltTableName,
+		statement.StoreEngine, statement.Charset)
 }
 
 func indexName(tableName, idxName string) string {
@@ -658,7 +620,7 @@ func (s *Statement) genIndexSQL() []string {
 	tbName := s.TableName()
 	quote := s.Engine.Quote
 	for idxName, index := range s.RefTable.Indexes {
-		if index.Type == IndexType {
+		if index.Type == core.IndexType {
 			sql := fmt.Sprintf("CREATE INDEX %v ON %v (%v);", quote(indexName(tbName, idxName)),
 				quote(tbName), quote(strings.Join(index.Cols, quote(","))))
 			sqls = append(sqls, sql)
@@ -676,7 +638,7 @@ func (s *Statement) genUniqueSQL() []string {
 	tbName := s.TableName()
 	quote := s.Engine.Quote
 	for idxName, unique := range s.RefTable.Indexes {
-		if unique.Type == UniqueType {
+		if unique.Type == core.UniqueType {
 			sql := fmt.Sprintf("CREATE UNIQUE INDEX %v ON %v (%v);", quote(uniqueName(tbName, idxName)),
 				quote(tbName), quote(strings.Join(unique.Cols, quote(","))))
 			sqls = append(sqls, sql)
@@ -689,9 +651,9 @@ func (s *Statement) genDelIndexSQL() []string {
 	var sqls []string = make([]string, 0)
 	for idxName, index := range s.RefTable.Indexes {
 		var rIdxName string
-		if index.Type == UniqueType {
+		if index.Type == core.UniqueType {
 			rIdxName = uniqueName(s.TableName(), idxName)
-		} else if index.Type == IndexType {
+		} else if index.Type == core.IndexType {
 			rIdxName = indexName(s.TableName(), idxName)
 		}
 		sql := fmt.Sprintf("DROP INDEX %v", s.Engine.Quote(rIdxName))
@@ -704,7 +666,7 @@ func (s *Statement) genDelIndexSQL() []string {
 }
 
 func (s *Statement) genDropSQL() string {
-	if s.Engine.dialect.DBType() == MSSQL {
+	if s.Engine.dialect.DBType() == core.MSSQL {
 		return "IF EXISTS (SELECT * FROM sysobjects WHERE id = object_id(N'" +
 			s.TableName() + "') and OBJECTPROPERTY(id, N'IsUserTable') = 1) " +
 			"DROP TABLE " + s.Engine.Quote(s.TableName()) + ";"
@@ -731,7 +693,7 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 	return statement.genSelectSql(columnStr), append(statement.Params, statement.BeanArgs...)
 }
 
-func (s *Statement) genAddColumnStr(col *Column) (string, []interface{}) {
+func (s *Statement) genAddColumnStr(col *core.Column) (string, []interface{}) {
 	quote := s.Engine.Quote
 	sql := fmt.Sprintf("ALTER TABLE %v ADD COLUMN %v;", quote(s.TableName()),
 		col.String(s.Engine.dialect))
@@ -804,13 +766,14 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 	if statement.OrderStr != "" {
 		a = fmt.Sprintf("%v ORDER BY %v", a, statement.OrderStr)
 	}
-	if statement.Engine.dialect.DBType() != MSSQL {
+	if statement.Engine.dialect.DBType() != core.MSSQL {
 		if statement.Start > 0 {
 			a = fmt.Sprintf("%v LIMIT %v OFFSET %v", a, statement.LimitN, statement.Start)
 		} else if statement.LimitN > 0 {
 			a = fmt.Sprintf("%v LIMIT %v", a, statement.LimitN)
 		}
 	} else {
+		//TODO: for mssql, should handler limit.
 		/*SELECT * FROM (
 		  SELECT *, ROW_NUMBER() OVER (ORDER BY id desc) as row FROM "userinfo"
 		 ) a WHERE row > [start] and row <= [start+limit] order by id desc*/
@@ -823,11 +786,12 @@ func (statement *Statement) processIdParam() {
 
 	if statement.IdParam != nil {
 		i := 0
-		colCnt := len(statement.RefTable.ColumnsSeq)
+		columns := statement.RefTable.ColumnsSeq()
+		colCnt := len(columns)
 		for _, elem := range *(statement.IdParam) {
 			for ; i < colCnt; i++ {
-				colName := statement.RefTable.ColumnsSeq[i]
-				col := statement.RefTable.Columns[strings.ToLower(colName)]
+				colName := columns[i]
+				col := statement.RefTable.GetColumn(colName)
 				if col.IsPrimaryKey {
 					statement.And(fmt.Sprintf("%v=?", col.Name), elem)
 					i++
@@ -840,8 +804,8 @@ func (statement *Statement) processIdParam() {
 		// as empty string for now, so this will result sql exec failed instead of unexpected
 		// false update/delete
 		for ; i < colCnt; i++ {
-			colName := statement.RefTable.ColumnsSeq[i]
-			col := statement.RefTable.Columns[strings.ToLower(colName)]
+			colName := columns[i]
+			col := statement.RefTable.GetColumn(colName)
 			if col.IsPrimaryKey {
 				statement.And(fmt.Sprintf("%v=?", col.Name), "")
 			}

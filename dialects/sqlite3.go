@@ -1,23 +1,21 @@
-package xorm
+package dialects
 
 import (
-	"database/sql"
 	"strings"
+
+	. "github.com/lunny/xorm/core"
 )
 
+func init() {
+	RegisterDialect("sqlite3", &sqlite3{})
+}
+
 type sqlite3 struct {
-	base
+	Base
 }
 
-type sqlite3Parser struct {
-}
-
-func (p *sqlite3Parser) parse(driverName, dataSourceName string) (*uri, error) {
-	return &uri{dbType: SQLITE, dbName: dataSourceName}, nil
-}
-
-func (db *sqlite3) Init(drivername, dataSourceName string) error {
-	return db.base.init(&sqlite3Parser{}, drivername, dataSourceName)
+func (db *sqlite3) Init(uri *Uri, drivername, dataSourceName string) error {
+	return db.Base.Init(db, uri, drivername, dataSourceName)
 }
 
 func (db *sqlite3) SqlType(c *Column) string {
@@ -89,28 +87,29 @@ func (db *sqlite3) ColumnCheckSql(tableName, colName string) (string, []interfac
 func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*Column, error) {
 	args := []interface{}{tableName}
 	s := "SELECT sql FROM sqlite_master WHERE type='table' and name = ?"
-	cnn, err := sql.Open(db.driverName, db.dataSourceName)
+	cnn, err := Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, nil, err
 	}
 	defer cnn.Close()
-	res, err := query(cnn, s, args...)
+
+	rows, err := cnn.Query(s, args...)
 	if err != nil {
 		return nil, nil, err
 	}
+	defer rows.Close()
 
-	var sql string
-	for _, record := range res {
-		for name, content := range record {
-			if name == "sql" {
-				sql = string(content)
-			}
+	var name string
+	for rows.Next() {
+		err = rows.Scan(&name)
+		if err != nil {
+			return nil, nil, err
 		}
 	}
 
-	nStart := strings.Index(sql, "(")
-	nEnd := strings.Index(sql, ")")
-	colCreates := strings.Split(sql[nStart+1:nEnd], ",")
+	nStart := strings.Index(name, "(")
+	nEnd := strings.Index(name, ")")
+	colCreates := strings.Split(name[nStart+1:nEnd], ",")
 	cols := make(map[string]*Column)
 	colSeq := make([]string, 0)
 	for _, colStr := range colCreates {
@@ -148,24 +147,23 @@ func (db *sqlite3) GetTables() ([]*Table, error) {
 	args := []interface{}{}
 	s := "SELECT name FROM sqlite_master WHERE type='table'"
 
-	cnn, err := sql.Open(db.driverName, db.dataSourceName)
+	cnn, err := Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
 	defer cnn.Close()
-	res, err := query(cnn, s, args...)
+	rows, err := cnn.Query(s, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	tables := make([]*Table, 0)
-	for _, record := range res {
-		table := new(Table)
-		for name, content := range record {
-			switch name {
-			case "name":
-				table.Name = string(content)
-			}
+	for rows.Next() {
+		table := NewEmptyTable()
+		err = rows.Scan(&table.Name)
+		if err != nil {
+			return nil, err
 		}
 		if table.Name == "sqlite_sequence" {
 			continue
@@ -178,25 +176,30 @@ func (db *sqlite3) GetTables() ([]*Table, error) {
 func (db *sqlite3) GetIndexes(tableName string) (map[string]*Index, error) {
 	args := []interface{}{tableName}
 	s := "SELECT sql FROM sqlite_master WHERE type='index' and tbl_name = ?"
-	cnn, err := sql.Open(db.driverName, db.dataSourceName)
+	cnn, err := Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
 	defer cnn.Close()
-	res, err := query(cnn, s, args...)
+	rows, err := cnn.Query(s, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	indexes := make(map[string]*Index, 0)
-	for _, record := range res {
-		index := new(Index)
-		sql := string(record["sql"])
+	for rows.Next() {
+		var sql string
+		err = rows.Scan(&sql)
+		if err != nil {
+			return nil, err
+		}
 
 		if sql == "" {
 			continue
 		}
 
+		index := new(Index)
 		nNStart := strings.Index(sql, "INDEX")
 		nNEnd := strings.Index(sql, "ON")
 		if nNStart == -1 || nNEnd == -1 {
@@ -229,4 +232,8 @@ func (db *sqlite3) GetIndexes(tableName string) (map[string]*Index, error) {
 	}
 
 	return indexes, nil
+}
+
+func (db *sqlite3) Filters() []Filter {
+	return []Filter{&IdFilter{}}
 }

@@ -1,65 +1,24 @@
-package xorm
+package dialects
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
+
+	. "github.com/lunny/xorm/core"
 )
 
+func init() {
+	RegisterDialect("postgres", &postgres{})
+}
+
 type postgres struct {
-	base
+	Base
 }
 
-type values map[string]string
-
-func (vs values) Set(k, v string) {
-	vs[k] = v
-}
-
-func (vs values) Get(k string) (v string) {
-	return vs[k]
-}
-
-func errorf(s string, args ...interface{}) {
-	panic(fmt.Errorf("pq: %s", fmt.Sprintf(s, args...)))
-}
-
-func parseOpts(name string, o values) {
-	if len(name) == 0 {
-		return
-	}
-
-	name = strings.TrimSpace(name)
-
-	ps := strings.Split(name, " ")
-	for _, p := range ps {
-		kv := strings.Split(p, "=")
-		if len(kv) < 2 {
-			errorf("invalid option: %q", p)
-		}
-		o.Set(kv[0], kv[1])
-	}
-}
-
-type postgresParser struct {
-}
-
-func (p *postgresParser) parse(driverName, dataSourceName string) (*uri, error) {
-	db := &uri{dbType: POSTGRES}
-	o := make(values)
-	parseOpts(dataSourceName, o)
-
-	db.dbName = o.Get("dbname")
-	if db.dbName == "" {
-		return nil, errors.New("dbname is empty")
-	}
-	return db, nil
-}
-
-func (db *postgres) Init(drivername, uri string) error {
-	return db.base.init(&postgresParser{}, drivername, uri)
+func (db *postgres) Init(uri *Uri, drivername, dataSourceName string) error {
+	return db.Base.Init(db, uri, drivername, dataSourceName)
 }
 
 func (db *postgres) SqlType(c *Column) string {
@@ -153,68 +112,74 @@ func (db *postgres) GetColumns(tableName string) ([]string, map[string]*Column, 
 	args := []interface{}{tableName}
 	s := "SELECT column_name, column_default, is_nullable, data_type, character_maximum_length" +
 		", numeric_precision, numeric_precision_radix FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = $1"
-
-	cnn, err := sql.Open(db.driverName, db.dataSourceName)
+	cnn, err := Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, nil, err
 	}
 	defer cnn.Close()
-	res, err := query(cnn, s, args...)
+	rows, err := cnn.Query(s, args...)
 	if err != nil {
 		return nil, nil, err
 	}
 	cols := make(map[string]*Column)
 	colSeq := make([]string, 0)
-	for _, record := range res {
+
+	for rows.Next() {
 		col := new(Column)
 		col.Indexes = make(map[string]bool)
-		for name, content := range record {
-			switch name {
-			case "column_name":
-				col.Name = strings.Trim(string(content), `" `)
-			case "column_default":
-				if strings.HasPrefix(string(content), "nextval") {
-					col.IsPrimaryKey = true
-				} else {
-					col.Default = string(content)
-				}
-			case "is_nullable":
-				if string(content) == "YES" {
-					col.Nullable = true
-				} else {
-					col.Nullable = false
-				}
-			case "data_type":
-				ct := string(content)
-				switch ct {
-				case "character varying", "character":
-					col.SQLType = SQLType{Varchar, 0, 0}
-				case "timestamp without time zone":
-					col.SQLType = SQLType{DateTime, 0, 0}
-				case "timestamp with time zone":
-					col.SQLType = SQLType{TimeStampz, 0, 0}
-				case "double precision":
-					col.SQLType = SQLType{Double, 0, 0}
-				case "boolean":
-					col.SQLType = SQLType{Bool, 0, 0}
-				case "time without time zone":
-					col.SQLType = SQLType{Time, 0, 0}
-				default:
-					col.SQLType = SQLType{strings.ToUpper(ct), 0, 0}
-				}
-				if _, ok := sqlTypes[col.SQLType.Name]; !ok {
-					return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v", ct))
-				}
-			case "character_maximum_length":
-				i, err := strconv.Atoi(string(content))
-				if err != nil {
-					return nil, nil, errors.New("retrieve length error")
-				}
-				col.Length = i
-			case "numeric_precision":
-			case "numeric_precision_radix":
+		var colName, isNullable, dataType string
+		var maxLenStr, colDefault, numPrecision, numRadix *string
+		err = rows.Scan(&colName, &colDefault, &isNullable, &dataType, &maxLenStr, &numPrecision, &numRadix)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		var maxLen int
+		if maxLenStr != nil {
+			maxLen, err = strconv.Atoi(*maxLenStr)
+			if err != nil {
+				return nil, nil, err
 			}
 		}
+
+		col.Name = strings.Trim(colName, `" `)
+
+		if colDefault != nil {
+			if strings.HasPrefix(*colDefault, "nextval") {
+				col.IsPrimaryKey = true
+			} else {
+				col.Default = *colDefault
+			}
+		}
+
+		if isNullable == "YES" {
+			col.Nullable = true
+		} else {
+			col.Nullable = false
+		}
+
+		switch dataType {
+		case "character varying", "character":
+			col.SQLType = SQLType{Varchar, 0, 0}
+		case "timestamp without time zone":
+			col.SQLType = SQLType{DateTime, 0, 0}
+		case "timestamp with time zone":
+			col.SQLType = SQLType{TimeStampz, 0, 0}
+		case "double precision":
+			col.SQLType = SQLType{Double, 0, 0}
+		case "boolean":
+			col.SQLType = SQLType{Bool, 0, 0}
+		case "time without time zone":
+			col.SQLType = SQLType{Time, 0, 0}
+		default:
+			col.SQLType = SQLType{strings.ToUpper(dataType), 0, 0}
+		}
+		if _, ok := SqlTypes[col.SQLType.Name]; !ok {
+			return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v", dataType))
+		}
+
+		col.Length = maxLen
+
 		if col.SQLType.IsText() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
@@ -230,25 +195,25 @@ func (db *postgres) GetColumns(tableName string) ([]string, map[string]*Column, 
 func (db *postgres) GetTables() ([]*Table, error) {
 	args := []interface{}{}
 	s := "SELECT tablename FROM pg_tables where schemaname = 'public'"
-	cnn, err := sql.Open(db.driverName, db.dataSourceName)
+	cnn, err := Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
 	defer cnn.Close()
-	res, err := query(cnn, s, args...)
+	rows, err := cnn.Query(s, args...)
 	if err != nil {
 		return nil, err
 	}
 
 	tables := make([]*Table, 0)
-	for _, record := range res {
-		table := new(Table)
-		for name, content := range record {
-			switch name {
-			case "tablename":
-				table.Name = string(content)
-			}
+	for rows.Next() {
+		table := NewEmptyTable()
+		var name string
+		err = rows.Scan(&name)
+		if err != nil {
+			return nil, err
 		}
+		table.Name = name
 		tables = append(tables, table)
 	}
 	return tables, nil
@@ -256,39 +221,37 @@ func (db *postgres) GetTables() ([]*Table, error) {
 
 func (db *postgres) GetIndexes(tableName string) (map[string]*Index, error) {
 	args := []interface{}{tableName}
-	s := "SELECT tablename, indexname, indexdef FROM pg_indexes WHERE schemaname = 'public' and tablename = $1"
+	s := "SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = 'public' and tablename = $1"
 
-	cnn, err := sql.Open(db.driverName, db.dataSourceName)
+	cnn, err := Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
 	defer cnn.Close()
-	res, err := query(cnn, s, args...)
+	rows, err := cnn.Query(s, args...)
 	if err != nil {
 		return nil, err
 	}
 
 	indexes := make(map[string]*Index, 0)
-	for _, record := range res {
+	for rows.Next() {
 		var indexType int
-		var indexName string
+		var indexName, indexdef string
 		var colNames []string
-
-		for name, content := range record {
-			switch name {
-			case "indexname":
-				indexName = strings.Trim(string(content), `" `)
-			case "indexdef":
-				c := string(content)
-				if strings.HasPrefix(c, "CREATE UNIQUE INDEX") {
-					indexType = UniqueType
-				} else {
-					indexType = IndexType
-				}
-				cs := strings.Split(c, "(")
-				colNames = strings.Split(cs[1][0:len(cs[1])-1], ",")
-			}
+		err = rows.Scan(&indexName, &indexdef)
+		if err != nil {
+			return nil, err
 		}
+		indexName = strings.Trim(indexName, `" `)
+
+		if strings.HasPrefix(indexdef, "CREATE UNIQUE INDEX") {
+			indexType = UniqueType
+		} else {
+			indexType = IndexType
+		}
+		cs := strings.Split(indexdef, "(")
+		colNames = strings.Split(cs[1][0:len(cs[1])-1], ",")
+
 		if strings.HasSuffix(indexName, "_pkey") {
 			continue
 		}
@@ -306,4 +269,25 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*Index, error) {
 		indexes[index.Name] = index
 	}
 	return indexes, nil
+}
+
+// PgSeqFilter filter SQL replace ?, ? ... to $1, $2 ...
+type PgSeqFilter struct {
+}
+
+func (s *PgSeqFilter) Do(sql string, dialect Dialect, table *Table) string {
+	segs := strings.Split(sql, "?")
+	size := len(segs)
+	res := ""
+	for i, c := range segs {
+		if i < size-1 {
+			res += c + fmt.Sprintf("$%v", i+1)
+		}
+	}
+	res += segs[size-1]
+	return res
+}
+
+func (db *postgres) Filters() []Filter {
+	return []Filter{&IdFilter{}, &QuoteFilter{}, &PgSeqFilter{}}
 }

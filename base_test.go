@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/lunny/xorm/core"
 )
 
 /*
@@ -1850,7 +1852,7 @@ func testMetaInfo(engine *Engine, t *testing.T) {
 
 	for _, table := range tables {
 		fmt.Println(table.Name)
-		for _, col := range table.Columns {
+		for _, col := range table.Columns() {
 			fmt.Println(col.String(engine.dialect))
 		}
 
@@ -3175,7 +3177,9 @@ func testPointerData(engine *Engine, t *testing.T) {
 	// using instance type should just work too
 	nullData2Get := NullData2{}
 
-	has, err = engine.Table("null_data").Id(nullData.Id).Get(&nullData2Get)
+	tableName := engine.tableMapper.Obj2Table("NullData")
+
+	has, err = engine.Table(tableName).Id(nullData.Id).Get(&nullData2Get)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -3525,8 +3529,8 @@ func testNullValue(engine *Engine, t *testing.T) {
 	// skipped postgres test due to postgres driver doesn't read time.Time's timzezone info when stored in the db
 	// mysql and sqlite3 seem have done this correctly by storing datatime in UTC timezone, I think postgres driver
 	// prefer using timestamp with timezone to sovle the issue
-	if engine.DriverName != POSTGRES && engine.DriverName != MYMYSQL &&
-		engine.DriverName != MYSQL {
+	if engine.DriverName != core.POSTGRES && engine.DriverName != "mymysql" &&
+		engine.DriverName != core.MYSQL {
 		if (*nullDataGet.TimePtr).Unix() != (*nullDataUpdate.TimePtr).Unix() {
 			t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]:[%v]", *nullDataGet.TimePtr, *nullDataUpdate.TimePtr)))
 		} else {
@@ -3540,7 +3544,9 @@ func testNullValue(engine *Engine, t *testing.T) {
 	// update to null values
 	nullDataUpdate = NullData{}
 
-	cnt, err = engine.Id(nullData.Id).Cols("string_ptr").Update(&nullDataUpdate)
+	string_ptr := engine.columnMapper.Obj2Table("StringPtr")
+
+	cnt, err = engine.Id(nullData.Id).Cols(string_ptr).Update(&nullDataUpdate)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -3895,4 +3901,12 @@ func testAll3(engine *Engine, t *testing.T) {
 	testCompositeKey2(engine, t)
 	fmt.Println("-------------- testStringPK --------------")
 	testStringPK(engine, t)
+}
+
+func testAllSnakeMapper(engine *Engine, t *testing.T) {
+
+}
+
+func testAllSameMapper(engine *Engine, t *testing.T) {
+
 }
