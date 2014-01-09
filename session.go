@@ -1092,23 +1092,39 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 
 		fieldsCount := len(fields)
 
-		for rawRows.Next() {
-			var newValue reflect.Value
+		var newElemFunc func() reflect.Value
+		if sliceElementType.Kind() == reflect.Ptr {
+			newElemFunc = func() reflect.Value {
+				return reflect.New(sliceElementType.Elem())
+			}
+		} else {
+			newElemFunc = func() reflect.Value {
+				return reflect.New(sliceElementType)
+			}
+		}
+
+		var sliceValueSetFunc func(*reflect.Value)
+
+		if sliceValue.Kind() == reflect.Slice {
 			if sliceElementType.Kind() == reflect.Ptr {
-				newValue = reflect.New(sliceElementType.Elem())
-			} else {
-				newValue = reflect.New(sliceElementType)
-			}
-			err := session.row2Bean(rawRows, fields, fieldsCount, newValue.Interface())
-			if err != nil {
-				return err
-			}
-			if sliceValue.Kind() == reflect.Slice {
-				if sliceElementType.Kind() == reflect.Ptr {
+				sliceValueSetFunc = func(newValue *reflect.Value) {
 					sliceValue.Set(reflect.Append(sliceValue, reflect.ValueOf(newValue.Interface())))
-				} else {
+				}
+			} else {
+				sliceValueSetFunc = func(newValue *reflect.Value) {
 					sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(newValue.Interface()))))
 				}
+			}
+		}
+
+		for rawRows.Next() {
+			var newValue reflect.Value = newElemFunc()
+			if sliceValueSetFunc != nil {
+				err := session.row2Bean(rawRows, fields, fieldsCount, newValue.Interface())
+				if err != nil {
+					return err
+				}
+				sliceValueSetFunc(&newValue)
 			}
 		}
 	} else {
@@ -1346,32 +1362,34 @@ func row2map(rows *sql.Rows, fields []string) (resultsMap map[string][]byte, err
 }
 
 func (session *Session) getField(dataStruct *reflect.Value, key string, table *Table) *reflect.Value {
-	key = strings.ToLower(key)
-	if _, ok := table.Columns[key]; !ok {
+	if col, ok := table.Columns[strings.ToLower(key)]; !ok {
 		session.Engine.LogWarn(fmt.Sprintf("table %v's has not column %v. %v", table.Name, key, table.ColumnsSeq))
 		return nil
-	}
-	col := table.Columns[key]
-	fieldName := col.FieldName
-	fieldPath := strings.Split(fieldName, ".")
-	var fieldValue reflect.Value
-	if len(fieldPath) > 2 {
-		session.Engine.LogError("Unsupported mutliderive", fieldName)
-		return nil
-	} else if len(fieldPath) == 2 {
-		parentField := dataStruct.FieldByName(fieldPath[0])
-		if parentField.IsValid() {
-			fieldValue = parentField.FieldByName(fieldPath[1])
-		}
 	} else {
-		fieldValue = dataStruct.FieldByName(fieldName)
+		fieldName := col.FieldName
+		if col.fieldPath == nil {
+			col.fieldPath = strings.Split(fieldName, ".")
+		}
+		var fieldValue reflect.Value
+		fieldPathLen := len(col.fieldPath)
+		if fieldPathLen > 2 {
+			session.Engine.LogError("Unsupported mutliderive", fieldName)
+			return nil
+		} else if fieldPathLen == 2 {
+			parentField := dataStruct.FieldByName(col.fieldPath[0])
+			if parentField.IsValid() {
+				fieldValue = parentField.FieldByName(col.fieldPath[1])
+			}
+		} else {
+			fieldValue = dataStruct.FieldByName(fieldName)
+		}
+		if !fieldValue.IsValid() || !fieldValue.CanSet() {
+			session.Engine.LogWarn("table %v's column %v is not valid or cannot set",
+				table.Name, key)
+			return nil
+		}
+		return &fieldValue
 	}
-	if !fieldValue.IsValid() || !fieldValue.CanSet() {
-		session.Engine.LogWarn("table %v's column %v is not valid or cannot set",
-			table.Name, key)
-		return nil
-	}
-	return &fieldValue
 }
 
 func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount int, bean interface{}) error {
@@ -1394,7 +1412,6 @@ func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount in
 
 	for ii, key := range fields {
 		if fieldValue := session.getField(&dataStruct, key, table); fieldValue != nil {
-
 			rawValue := reflect.Indirect(reflect.ValueOf(scanResultContainers[ii]))
 
 			//if row is null then ignore
