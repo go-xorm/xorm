@@ -52,6 +52,42 @@ func TestSqlite3WithCache(t *testing.T) {
 	testAll2(engine, t)
 }
 
+func TestSqlite3SameMapper(t *testing.T) {
+	engine, err := newSqlite3Engine()
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.SetMapper(SameMapper{})
+	engine.ShowSQL = showTestSql
+	engine.ShowErr = showTestSql
+	engine.ShowWarn = showTestSql
+	engine.ShowDebug = showTestSql
+
+	testAll(engine, t)
+	testAll2(engine, t)
+	testAll3(engine, t)
+}
+
+func TestSqlite3WithCacheSameMapper(t *testing.T) {
+	engine, err := newSqlite3Engine()
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.SetMapper(SameMapper{})
+	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.ShowSQL = showTestSql
+	engine.ShowErr = showTestSql
+	engine.ShowWarn = showTestSql
+	engine.ShowDebug = showTestSql
+
+	testAll(engine, t)
+	testAll2(engine, t)
+}
+
 const (
 	createTableSqlite3 = "CREATE TABLE IF NOT EXISTS `big_struct` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NULL, `title` TEXT NULL, `age` TEXT NULL, `alias` TEXT NULL, `nick_name` TEXT NULL);"
 	dropTableSqlite3   = "DROP TABLE IF EXISTS `big_struct`;"

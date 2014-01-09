@@ -150,7 +150,7 @@ func exec(engine *Engine, t *testing.T) {
 	fmt.Println(res)
 }
 
-func querySameMapper(engine *Engine, t *testing.T) {
+func testQuerySameMapper(engine *Engine, t *testing.T) {
 	sql := "select * from `Userinfo`"
 	results, err := engine.Query(sql)
 	if err != nil {
@@ -274,7 +274,7 @@ type Condi map[string]interface{}
 func update(engine *Engine, t *testing.T) {
 	// update by id
 	user := Userinfo{Username: "xxx", Height: 1.2}
-	cnt, err := engine.Id(1).Update(&user)
+	cnt, err := engine.Id(4).Update(&user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -286,8 +286,8 @@ func update(engine *Engine, t *testing.T) {
 		return
 	}
 
-	condi := Condi{"username": "zzz", "height": 0.0, "departname": ""}
-	cnt, err = engine.Table(&user).Id(1).Update(&condi)
+	condi := Condi{"username": "zzz", "departname": ""}
+	cnt, err = engine.Table(&user).Id(4).Update(&condi)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -321,7 +321,7 @@ func update(engine *Engine, t *testing.T) {
 func updateSameMapper(engine *Engine, t *testing.T) {
 	// update by id
 	user := Userinfo{Username: "xxx", Height: 1.2}
-	cnt, err := engine.Id(1).Update(&user)
+	cnt, err := engine.Id(4).Update(&user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -333,15 +333,15 @@ func updateSameMapper(engine *Engine, t *testing.T) {
 		return
 	}
 
-	condi := Condi{"Username": "zzz", "Height": 0.0, "Departname": ""}
-	cnt, err = engine.Table(&user).Id(1).Update(&condi)
+	condi := Condi{"Username": "zzz", "Departname": ""}
+	cnt, err = engine.Table(&user).Id(4).Update(&condi)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	if cnt != 1 {
-		err = errors.New("insert not returned 1")
+		err = errors.New("update not returned 1")
 		t.Error(err)
 		panic(err)
 		return
@@ -354,7 +354,7 @@ func updateSameMapper(engine *Engine, t *testing.T) {
 	}
 
 	if cnt != 1 {
-		err = errors.New("insert not returned 1")
+		err = errors.New("update not returned 1")
 		t.Error(err)
 		panic(err)
 		return
@@ -376,6 +376,7 @@ func testDelete(engine *Engine, t *testing.T) {
 	}
 
 	user.Uid = 0
+	user.IsMan = true
 	has, err := engine.Id(3).Get(&user)
 	if err != nil {
 		t.Error(err)
@@ -423,7 +424,9 @@ func get(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 
-	_, err = engine.Where("`user` = ?", "xlw").Delete(&NoIdUser{})
+	userCol := engine.columnMapper.Obj2Table("User")
+
+	_, err = engine.Where("`"+userCol+"` = ?", "xlw").Delete(&NoIdUser{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -442,7 +445,7 @@ func get(engine *Engine, t *testing.T) {
 	}
 
 	noIdUser := new(NoIdUser)
-	has, err = engine.Where("`user` = ?", "xlw").Get(noIdUser)
+	has, err = engine.Where("`"+userCol+"` = ?", "xlw").Get(noIdUser)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -484,7 +487,8 @@ func find(engine *Engine, t *testing.T) {
 	}
 
 	users2 := make([]Userinfo, 0)
-	err = engine.Sql("select * from userinfo").Find(&users2)
+	userinfo := engine.tableMapper.Obj2Table("Userinfo")
+	err = engine.Sql("select * from " + engine.Quote(userinfo)).Find(&users2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -574,7 +578,10 @@ func in(engine *Engine, t *testing.T) {
 	}
 	fmt.Println(users)
 
-	err = engine.In("(id)", 1).In("(id)", 2).In("departname", "dev").Find(&users)
+	department := engine.columnMapper.Obj2Table("Departname")
+	dev := engine.columnMapper.Obj2Table("Dev")
+
+	err = engine.In("(id)", 1).In("(id)", 2).In(department, dev).Find(&users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -3782,18 +3789,12 @@ func testAll(engine *Engine, t *testing.T) {
 	directCreateTable(engine, t)
 	fmt.Println("-------------- insert --------------")
 	insert(engine, t)
-	fmt.Println("-------------- query --------------")
-	testQuery(engine, t)
-	fmt.Println("-------------- exec --------------")
-	exec(engine, t)
 	fmt.Println("-------------- insertAutoIncr --------------")
 	insertAutoIncr(engine, t)
 	fmt.Println("-------------- insertMulti --------------")
 	insertMulti(engine, t)
 	fmt.Println("-------------- insertTwoTable --------------")
 	insertTwoTable(engine, t)
-	fmt.Println("-------------- update --------------")
-	update(engine, t)
 	fmt.Println("-------------- testDelete --------------")
 	testDelete(engine, t)
 	fmt.Println("-------------- get --------------")
@@ -3816,12 +3817,6 @@ func testAll(engine *Engine, t *testing.T) {
 	in(engine, t)
 	fmt.Println("-------------- limit --------------")
 	limit(engine, t)
-	fmt.Println("-------------- order --------------")
-	order(engine, t)
-	fmt.Println("-------------- join --------------")
-	join(engine, t)
-	fmt.Println("-------------- having --------------")
-	having(engine, t)
 }
 
 func testAll2(engine *Engine, t *testing.T) {
@@ -3904,9 +3899,31 @@ func testAll3(engine *Engine, t *testing.T) {
 }
 
 func testAllSnakeMapper(engine *Engine, t *testing.T) {
-
+	fmt.Println("-------------- query --------------")
+	testQuery(engine, t)
+	fmt.Println("-------------- exec --------------")
+	exec(engine, t)
+	fmt.Println("-------------- update --------------")
+	update(engine, t)
+	fmt.Println("-------------- order --------------")
+	order(engine, t)
+	fmt.Println("-------------- join --------------")
+	join(engine, t)
+	fmt.Println("-------------- having --------------")
+	having(engine, t)
 }
 
 func testAllSameMapper(engine *Engine, t *testing.T) {
-
+	fmt.Println("-------------- query --------------")
+	testQuerySameMapper(engine, t)
+	fmt.Println("-------------- exec --------------")
+	execSameMapper(engine, t)
+	fmt.Println("-------------- update --------------")
+	updateSameMapper(engine, t)
+	fmt.Println("-------------- order --------------")
+	orderSameMapper(engine, t)
+	fmt.Println("-------------- join --------------")
+	joinSameMapper(engine, t)
+	fmt.Println("-------------- having --------------")
+	havingSameMapper(engine, t)
 }

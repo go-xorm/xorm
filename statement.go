@@ -12,6 +12,11 @@ import (
 	"github.com/lunny/xorm/core"
 )
 
+type inParam struct {
+	colName string
+	args    []interface{}
+}
+
 // statement save all the sql info for executing SQL
 type Statement struct {
 	RefTable      *core.Table
@@ -43,7 +48,7 @@ type Statement struct {
 	allUseBool    bool
 	checkVersion  bool
 	boolColumnMap map[string]bool
-	inColumns     map[string][]interface{}
+	inColumns     map[string]*inParam
 }
 
 // init
@@ -72,7 +77,7 @@ func (statement *Statement) Init() {
 	statement.allUseBool = false
 	statement.boolColumnMap = make(map[string]bool)
 	statement.checkVersion = true
-	statement.inColumns = make(map[string][]interface{})
+	statement.inColumns = make(map[string]*inParam)
 }
 
 // add the raw sql statement
@@ -456,10 +461,10 @@ func (statement *Statement) Id(id interface{}) *Statement {
 // Generate "Where column IN (?) " statment
 func (statement *Statement) In(column string, args ...interface{}) *Statement {
 	k := strings.ToLower(column)
-	if params, ok := statement.inColumns[k]; ok {
-		statement.inColumns[k] = append(params, args...)
+	if _, ok := statement.inColumns[k]; ok {
+		statement.inColumns[k].args = append(statement.inColumns[k].args, args...)
 	} else {
-		statement.inColumns[k] = args
+		statement.inColumns[k] = &inParam{column, args}
 	}
 	return statement
 }
@@ -471,10 +476,11 @@ func (statement *Statement) genInSql() (string, []interface{}) {
 
 	inStrs := make([]string, 0, len(statement.inColumns))
 	args := make([]interface{}, 0)
-	for column, params := range statement.inColumns {
-		inStrs = append(inStrs, fmt.Sprintf("(%v IN (%v))", statement.Engine.Quote(column),
-			strings.Join(makeArray("?", len(params)), ",")))
-		args = append(args, params...)
+	for _, params := range statement.inColumns {
+		inStrs = append(inStrs, fmt.Sprintf("(%v IN (%v))",
+			statement.Engine.Quote(params.colName),
+			strings.Join(makeArray("?", len(params.args)), ",")))
+		args = append(args, params.args...)
 	}
 
 	if len(statement.inColumns) == 1 {
