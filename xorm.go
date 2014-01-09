@@ -7,6 +7,10 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
+
+	"github.com/lunny/xorm/core"
+	_ "github.com/lunny/xorm/dialects"
+	_ "github.com/lunny/xorm/drivers"
 )
 
 const (
@@ -20,39 +24,38 @@ func close(engine *Engine) {
 // new a db manager according to the parameter. Currently support four
 // drivers
 func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
-	engine := &Engine{DriverName: driverName,
-		DataSourceName: dataSourceName, Filters: make([]Filter, 0)}
-	engine.SetMapper(SnakeMapper{})
-
-	if driverName == SQLITE {
-		engine.dialect = &sqlite3{}
-	} else if driverName == MYSQL {
-		engine.dialect = &mysql{}
-	} else if driverName == POSTGRES {
-		engine.dialect = &postgres{}
-		engine.Filters = append(engine.Filters, &PgSeqFilter{})
-		engine.Filters = append(engine.Filters, &QuoteFilter{})
-	} else if driverName == MYMYSQL {
-		engine.dialect = &mymysql{}
-	} else if driverName == "odbc" {
-		engine.dialect = &mssql{quoteFilter: &QuoteFilter{}}
-		engine.Filters = append(engine.Filters, &QuoteFilter{})
-	} else if driverName == ORACLE_OCI {
-		engine.dialect = &oracle{}
-		engine.Filters = append(engine.Filters, &QuoteFilter{})
-	} else {
+	driver := core.QueryDriver(driverName)
+	if driver == nil {
 		return nil, errors.New(fmt.Sprintf("Unsupported driver name: %v", driverName))
 	}
-	err := engine.dialect.Init(driverName, dataSourceName)
+
+	uri, err := driver.Parse(driverName, dataSourceName)
 	if err != nil {
 		return nil, err
 	}
 
-	engine.Tables = make(map[reflect.Type]*Table)
+	dialect := core.QueryDialect(uri.DbType)
+	if dialect == nil {
+		return nil, errors.New(fmt.Sprintf("Unsupported dialect type: %v", uri.DbType))
+	}
+
+	err = dialect.Init(uri, driverName, dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+
+	engine := &Engine{DriverName: driverName,
+		DataSourceName: dataSourceName, dialect: dialect,
+		tableCachers: make(map[reflect.Type]Cacher)}
+
+	engine.SetMapper(SnakeMapper{})
+
+	engine.Filters = dialect.Filters()
+
+	engine.Tables = make(map[reflect.Type]*core.Table)
 	engine.mutex = &sync.Mutex{}
 	engine.TagIdentifier = "xorm"
 
-	engine.Filters = append(engine.Filters, &IdFilter{})
 	engine.Logger = os.Stdout
 
 	//engine.Pool = NewSimpleConnectPool()

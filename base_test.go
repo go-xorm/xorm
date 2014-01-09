@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/lunny/xorm/core"
 )
 
 /*
@@ -1850,7 +1852,7 @@ func testMetaInfo(engine *Engine, t *testing.T) {
 
 	for _, table := range tables {
 		fmt.Println(table.Name)
-		for _, col := range table.Columns {
+		for _, col := range table.Columns() {
 			fmt.Println(col.String(engine.dialect))
 		}
 
@@ -3527,8 +3529,8 @@ func testNullValue(engine *Engine, t *testing.T) {
 	// skipped postgres test due to postgres driver doesn't read time.Time's timzezone info when stored in the db
 	// mysql and sqlite3 seem have done this correctly by storing datatime in UTC timezone, I think postgres driver
 	// prefer using timestamp with timezone to sovle the issue
-	if engine.DriverName != POSTGRES && engine.DriverName != MYMYSQL &&
-		engine.DriverName != MYSQL {
+	if engine.DriverName != core.POSTGRES && engine.DriverName != "mymysql" &&
+		engine.DriverName != core.MYSQL {
 		if (*nullDataGet.TimePtr).Unix() != (*nullDataUpdate.TimePtr).Unix() {
 			t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]:[%v]", *nullDataGet.TimePtr, *nullDataUpdate.TimePtr)))
 		} else {
