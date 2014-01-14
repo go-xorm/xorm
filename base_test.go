@@ -557,20 +557,48 @@ func where(engine *Engine, t *testing.T) {
 
 func in(engine *Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
-	err := engine.In("(id)", 1, 2, 3).Find(&users)
+	err := engine.In("(id)", 7, 8, 9).Find(&users)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println(users)
+	if len(users) != 3 {
+		err = errors.New("in uses should be 7,8,9 total 3")
+		t.Error(err)
+		panic(err)
+	}
+
+	for _, user := range users {
+		if user.Uid != 7 && user.Uid != 8 && user.Uid != 9 {
+			err = errors.New("in uses should be 7,8,9 total 3")
+			t.Error(err)
+			panic(err)
+		}
+	}
+
+	users = make([]Userinfo, 0)
+	ids := []interface{}{7, 8, 9}
+	err = engine.Where("departname = ?", "dev").In("(id)", ids...).Find(&users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 	fmt.Println(users)
 
-	ids := []interface{}{1, 2, 3}
-	err = engine.Where("(id) > ?", 2).In("(id)", ids...).Find(&users)
-	if err != nil {
+	if len(users) != 3 {
+		err = errors.New("in uses should be 7,8,9 total 3")
 		t.Error(err)
 		panic(err)
 	}
-	fmt.Println(users)
+
+	for _, user := range users {
+		if user.Uid != 7 && user.Uid != 8 && user.Uid != 9 {
+			err = errors.New("in uses should be 7,8,9 total 3")
+			t.Error(err)
+			panic(err)
+		}
+	}
 
 	err = engine.In("(id)", 1).In("(id)", 2).In("departname", "dev").Find(&users)
 	if err != nil {
