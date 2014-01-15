@@ -298,6 +298,8 @@ func (col *Column) String(d dialect) string {
 
 	if col.Default != "" {
 		sql += "DEFAULT " + col.Default + " "
+	} else if col.IsVersion {
+		sql += "DEFAULT 1 "
 	}
 
 	return sql
@@ -316,6 +318,8 @@ func (col *Column) stringNoPk(d dialect) string {
 
 	if col.Default != "" {
 		sql += "DEFAULT " + col.Default + " "
+	} else if col.IsVersion {
+		sql += "DEFAULT 1 "
 	}
 
 	return sql
