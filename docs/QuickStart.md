@@ -63,7 +63,7 @@ defer engine.Close()
 
 一般如果只针对一个数据库进行操作，只需要创建一个Engine即可。Engine支持在多GoRutine下使用。
 
-xorm当前支持四种驱动如下：
+xorm当前支持五种驱动四个数据库如下：
 
 * Mysql: [github.com/Go-SQL-Driver/MySQL](https://github.com/Go-SQL-Driver/MySQL)
 
@@ -110,7 +110,7 @@ xorm支持将一个struct映射为数据库中对应的一张表。映射规则�
 <a name="21" id="21"></a>
 ### 2.1.名称映射规则
 
-名称映射规则主要负责结构体名称到表名和结构体field到表字段的名称映射。由xorm.IMapper接口的实现者来管理，xorm内置了两种IMapper实现：`SnakeMapper` 和 `SameMapper`。SnakeMapper支持struct为驼峰式命名，表结构为下划线命名之间的转换；SameMapper支持相同的命名。
+名称映射规则主要负责结构体名称到表名和结构体field到表字段的名称映射。由xorm.IMapper接口的实现者来管理，xorm内置了两种IMapper实现：`SnakeMapper` 和 `SameMapper`。SnakeMapper支持struct为驼峰式命名，表结构为下划线命名之间的转换；SameMapper支持结构体名称和对应的表名称以及结构体field名称与对应的表字段名称相同的命名。
 
 当前SnakeMapper为默认值，如果需要改变时，在engine创建完成后使用
 
@@ -122,6 +122,7 @@ engine.SetMapper(SameMapper{})
 
 * 如果你使用了别的命名规则映射方案，也可以自己实现一个IMapper。
 * 表名称和字段名称的映射规则默认是相同的，当然也可以设置为不同，如：
+
 ```Go
 engine.SetTableMapper(SameMapper{})
 engine.SetColumnMapper(SnakeMapper{})
@@ -130,8 +131,9 @@ engine.SetColumnMapper(SnakeMapper{})
 <a name="22" id="22"></a>
 ### 2.2.前缀映射规则和后缀映射规则
 
-* 通过`engine.NewPrefixMapper(SnakeMapper{}, "prefix")`可以在SnakeMapper的基础上在命名中添加统一的前缀；
-* 通过`engine.NewSufffixMapper(SnakeMapper{}, "prefix")`可以在SnakeMapper的基础上在命名中添加统一的后缀。
+* 通过`engine.NewPrefixMapper(SnakeMapper{}, "prefix")`可以在SnakeMapper的基础上在命名中添加统一的前缀，当然也可以把SnakeMapper{}换成SameMapper或者你自定义的Mapper。
+* 通过`engine.NewSufffixMapper(SnakeMapper{}, "suffix")`可以在SnakeMapper的基础上在命名中添加统一的后缀，当然也可以把SnakeMapper{}换成SameMapper或者你自定义的Mapper。
+* 
 
 <a name="23" id="23"></a>
 ### 2.3.使用Table和Tag改变名称映射
@@ -160,7 +162,7 @@ type User struct {
         <td>name</td><td>当前field对应的字段的名称，可选，如不写，则自动根据field名字和转换规则命名，如与其它关键字冲突，请使用单引号括起来。</td>
     </tr>
     <tr>
-        <td>pk</td><td>是否是Primary Key，如果在一个struct中有两个字段都使用了此标记，则这两个字段构成了复合主键，单主键当前支持int32,int,int64,uint32,uint,uint64,string这7中Go的数据类型。</td>
+        <td>pk</td><td>是否是Primary Key，如果在一个struct中有多个字段都使用了此标记，则这多个字段构成了复合主键，单主键当前支持int32,int,int64,uint32,uint,uint64,string这7种Go的数据类型，复合主键支持这7种Go的数据类型的组合。</td>
     </tr>
     <tr>
         <td>当前支持30多种字段类型，详情参见 [字段类型](https://github.com/lunny/xorm/blob/master/docs/COLUMNTYPE.md)</td><td>字段类型</td>
@@ -205,7 +207,7 @@ type User struct {
 
 另外有如下几条自动映射的规则：
 
-- 1.如果field名称为`Id`而且类型为`int64`的话，会被xorm视为主键，并且拥有自增属性。如果想用`Id`以外的名字或非int64类型做为主键名，必须在对应的Tag上加上`xorm:"pk"`来定义主键，加上`xorm:"autoincr"`作为自增。这里需要注意的是，有些数据库并不允许非主键的自增属性。
+- 1.如果field名称为`Id`而且类型为`int64`并且没有定义tag，则会被xorm视为主键，并且拥有自增属性。如果想用`Id`以外的名字或非int64类型做为主键名，必须在对应的Tag上加上`xorm:"pk"`来定义主键，加上`xorm:"autoincr"`作为自增。这里需要注意的是，有些数据库并不允许非主键的自增属性。
 
 - 2.string类型默认映射为varchar(255)，如果需要不同的定义，可以在tag中自定义
 
@@ -235,41 +237,50 @@ xorm提供了一些动态获取和修改表结构的方法。对于一般的应�
 ## 3.1 获取数据库信息
 
 * DBMetas()
+
 xorm支持获取表结构信息，通过调用`engine.DBMetas()`可以获取到所有的表，字段，索引的信息。
 
 <a name="31" id="31"></a>
 ## 3.2.表操作
 
 * CreateTables()
+
 创建表使用`engine.CreateTables()`，参数为一个或多个空的对应Struct的指针。同时可用的方法有Charset()和StoreEngine()，如果对应的数据库支持，这两个方法可以在创建表时指定表的字符编码和使用的引擎。当前仅支持Mysql数据库。
 
 * IsTableEmpty()
+
 判断表是否为空，参数和CreateTables相同
 
 * IsTableExist()
+
 判断表是否存在
 
 * DropTables()
+
 删除表使用`engine.DropTables()`，参数为一个或多个空的对应Struct的指针或者表的名字。如果为string传入，则只删除对应的表，如果传入的为Struct，则删除表的同时还会删除对应的索引。
 
 <a name="32" id="32"></a>
 ## 3.3.创建索引和唯一索引
 
 * CreateIndexes
+
 根据struct中的tag来创建索引
 
 * CreateUniques
+
 根据struct中的tag来创建唯一索引
 
 <a name="34" id="34"></a>
 ## 3.4.同步数据库结构
 
 同步能够部分智能的根据结构体的变动检测表结构的变动，并自动同步。目前能够实现：
-1) 自动检测和创建表，这个检测是根据表的名字
-2）自动检测和新增表中的字段，这个检测是根据字段名
-3）自动检测和创建索引和唯一索引，这个检测是根据一个或多个字段名，而不根据索引名称
+
+* 1) 自动检测和创建表，这个检测是根据表的名字
+* 2）自动检测和新增表中的字段，这个检测是根据字段名
+* 3）自动检测和创建索引和唯一索引，这个检测是根据一个或多个字段名，而不根据索引名称
 
 调用方法如下：
+
 ```Go
 err := engine.Sync(new(User))
 ```
@@ -281,6 +292,7 @@ err := engine.Sync(new(User))
 如果传入的是Slice并且当数据库支持批量插入时，Insert会使用批量插入的方式进行插入。
 
 * 插入一条数据
+
 ```Go
 user := new(User)
 user.Name = "myname"
@@ -288,11 +300,13 @@ affected, err := engine.Insert(user)
 ```
 
 在插入单条数据成功后，如果该结构体有自增字段，则自增字段会被自动赋值为数据库中的id
+
 ```Go
 fmt.Println(user.Id)
 ```
 
 * 插入同一个表的多条数据
+
 ```Go
 users := make([]User, 0)
 users[0].Name = "name0"
@@ -301,6 +315,7 @@ affected, err := engine.Insert(&users)
 ```
 
 * 使用指针Slice插入多条记录
+
 ```Go
 users := make([]*User, 0)
 users[0] = new(User)
@@ -310,6 +325,7 @@ affected, err := engine.Insert(&users)
 ```
 
 * 插入不同表的一条记录
+
 ```Go
 user := new(User)
 user.Name = "myname"
@@ -319,6 +335,7 @@ affected, err := engine.Insert(user, question)
 ```
 
 * 插入不同表的多条记录
+
 ```Go
 users := make([]User, 0)
 users[0].Name = "name0"
@@ -355,10 +372,10 @@ affected, err := engine.Insert(user, &questions)
 * Id(interface{})
 传入一个PK字段的值，作为查询条件，如果是复合主键，则
 `Id(xorm.PK{1, 2})`
-传入的两个参数按照struct中字段出现的顺序赋值。
+传入的两个参数按照struct中pk标记字段出现的顺序赋值。
 
 * Where(string, …interface{})
-和Where语句中的条件基本相同，作为条件
+和SQL中Where语句中的条件基本相同，作为条件
 
 * And(string, …interface{})
 和Where函数中的条件基本相同，作为条件
@@ -379,7 +396,7 @@ affected, err := engine.Insert(user, &questions)
 按照指定的顺序进行排序
 
 * In(string, …interface{})
-某字段在一些值中
+某字段在一些值中，这里需要注意必须是[]interface{}才可以展开，由于Go语言的限制，[]int64等均不可以展开。
 
 * Cols(…string)
 只查询或更新某些指定的字段，默认是查询所有映射的字段或者根据Update的第一个参数来判断更新的字段。例如：
@@ -448,20 +465,28 @@ Having的参数字符串
 如：
 
 1) 根据Id来获得单条数据:
+
 ```Go
 user := new(User)
 has, err := engine.Id(id).Get(user)
+// 复合主键的获取方法
+// has, errr := engine.Id(xorm.PK{1,2}).Get(user)
 ```
+
 2) 根据Where来获得单条数据：
+
 ```Go
 user := new(User)
 has, err := engine.Where("name=?", "xlw").Get(user)
 ```
+
 3) 根据user结构体中已有的非空数据来获得单条数据：
+
 ```Go
 user := &User{Id:1}
 has, err := engine.Get(user)
 ```
+
 或者其它条件
 
 ```Go
@@ -477,6 +502,7 @@ has, err := engine.Get(user)
 查询多条数据使用`Find`方法，Find方法的第一个参数为`slice`的指针或`Map`指针，即为查询后返回的结果，第二个参数可选，为查询的条件struct的指针。
 
 1) 传入Slice用于返回数据
+
 ```Go
 everyone := make([]Userinfo, 0)
 err := engine.Find(&everyone)
@@ -485,7 +511,8 @@ pEveryOne := make([]*Userinfo, 0)
 err := engine.Find(&pEveryOne)
 ```
 
-2) 传入Map用户返回数据，map必须为`map[int64]Userinfo`的形式，map的key为id
+2) 传入Map用户返回数据，map必须为`map[int64]Userinfo`的形式，map的key为id，因此对于复合主键无法使用这种方式。
+
 ```Go
 users := make(map[int64]Userinfo)
 err := engine.Find(&users)
@@ -495,6 +522,7 @@ err := engine.Find(&pUsers)
 ```
 
 3) 也可以加入各种条件
+
 ```Go
 users := make([]Userinfo, 0)
 err := engine.Where("age > ? or name = ?", 30, "xlw").Limit(20, 10).Find(&users)
@@ -504,6 +532,7 @@ err := engine.Where("age > ? or name = ?", 30, "xlw").Limit(20, 10).Find(&users)
 ### 5.5.Iterate方法
 
 Iterate方法提供逐条执行查询到的记录的方法，他所能使用的条件和Find方法完全相同
+
 ```Go
 err := engine.Where("age > ? or name=?)", 30, "xlw").Iterate(new(Userinfo), func(i int, bean interface{})error{
 	user := bean.(*Userinfo)
@@ -550,11 +579,13 @@ affected, err := engine.Id(id).Update(user)
 这里需要注意，Update会自动从user结构体中提取非0和非nil得值作为需要更新的内容，因此，如果需要更新一个值为0，则此种方法将无法实现，因此有两种选择：
 
 1. 通过添加Cols函数指定需要更新结构体中的哪些值，未指定的将不更新，指定了的即使为0也会更新。
+
 ```Go
 affected, err := engine.Id(id).Cols("age").Update(&user)
 ```
 
 2. 通过传入map[string]interface{}来进行更新，但这时需要额外指定更新到哪个表，因为通过map是无法自动检测更新哪个表的。
+
 ```Go
 affected, err := engine.Table(new(User)).Id(id).Update(map[string]interface{}{"age":0})
 ```
@@ -583,6 +614,7 @@ engine.Id(1).Update(&user)
 ## 7.删除数据
 
 删除数据`Delete`方法，参数为struct的指针并且成为查询条件。
+
 ```Go
 user := new(User)
 affected, err := engine.Id(id).Delete(user)
@@ -659,14 +691,17 @@ xorm内置了一致性缓存支持，不过默认并没有开启。要开启缓�
 cacher := xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
 engine.SetDefaultCacher(cacher)
 ```
+
 上述代码采用了LRU算法的一个缓存，缓存方式是存放到内存中，缓存struct的记录数为1000条，缓存针对的范围是所有具有主键的表，没有主键的表中的数据将不会被缓存。
 如果只想针对部分表，则：
+
 ```Go
 cacher := xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
 engine.MapCacher(&user, cacher)
 ```
 
 如果要禁用某个表的缓存，则：
+
 ```Go
 engine.MapCacher(&user, nil)
 ```
@@ -682,6 +717,7 @@ engine.MapCacher(&user, nil)
 2. 在`Get`或者`Find`时使用了`Cols`,`Omit`方法，则在开启缓存后此方法无效，系统仍旧会取出这个表中的所有字段。
 
 3. 在使用Exec方法执行了方法之后，可能会导致缓存与数据库不一致的地方。因此如果启用缓存，尽量避免使用Exec。如果必须使用，则需要在使用了Exec之后调用ClearCache手动做缓存清除的工作。比如：
+
 ```Go
 engine.Exec("update user set name = ? where id = ?", "xlw", 1)
 engine.ClearCache(new(User))
