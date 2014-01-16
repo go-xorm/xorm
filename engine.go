@@ -482,6 +482,7 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 				}
 				var indexType int
 				var indexName string
+				var preKey string
 				for j, key := range tags {
 					k := strings.ToUpper(key)
 					switch {
@@ -520,12 +521,13 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 					case k == "NOT":
 					default:
 						if strings.HasPrefix(k, "'") && strings.HasSuffix(k, "'") {
-							if key != col.Default {
+							if preKey != "DEFAULT" {
 								col.Name = key[1 : len(key)-1]
 							}
 						} else if strings.Contains(k, "(") && strings.HasSuffix(k, ")") {
 							fs := strings.Split(k, "(")
 							if _, ok := sqlTypes[fs[0]]; !ok {
+								preKey = k
 								continue
 							}
 							col.SQLType = SQLType{fs[0], 0, 0}
@@ -539,12 +541,13 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 						} else {
 							if _, ok := sqlTypes[k]; ok {
 								col.SQLType = SQLType{k, 0, 0}
-							} else if key != col.Default {
+							} else if preKey != "DEFAULT" {
 								col.Name = key
 							}
 						}
 						engine.SqlType(col)
 					}
+					preKey = k
 				}
 				if col.SQLType.Name == "" {
 					col.SQLType = Type2SQLType(fieldType)

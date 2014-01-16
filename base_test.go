@@ -267,6 +267,16 @@ func insertTwoTable(engine *Engine, t *testing.T) {
 	}
 }
 
+type Article struct {
+	Id      int32  `xorm:"pk INT autoincr"`
+	Name    string `xorm:"VARCHAR(45)"`
+	Img     string `xorm:"VARCHAR(100)"`
+	Aside   string `xorm:"VARCHAR(200)"`
+	Desc    string `xorm:"VARCHAR(200)"`
+	Content string `xorm:"TEXT"`
+	Status  int8   `xorm:"TINYINT(4)"`
+}
+
 type Condi map[string]interface{}
 
 func update(engine *Engine, t *testing.T) {
@@ -313,6 +323,44 @@ func update(engine *Engine, t *testing.T) {
 		t.Error(err)
 		panic(err)
 		return
+	}
+
+	err = engine.Sync(&Article{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Insert(&Article{0, "1", "2", "3", "4", "5", 2})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if cnt != 1 {
+		err = errors.New("insert not returned 1")
+		t.Error(err)
+		panic(err)
+		return
+	}
+
+	cnt, err = engine.Id(1).Update(&Article{Name: "6"})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if cnt != 1 {
+		err = errors.New("update not returned 1")
+		t.Error(err)
+		panic(err)
+		return
+	}
+
+	err = engine.DropTables(&Article{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
 	}
 }
 
