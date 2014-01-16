@@ -31,6 +31,7 @@ func TestSqlite3(t *testing.T) {
 	engine.ShowDebug = showTestSql
 
 	testAll(engine, t)
+	testAllSnakeMapper(engine, t)
 	testAll2(engine, t)
 	testAll3(engine, t)
 }
@@ -49,6 +50,7 @@ func TestSqlite3WithCache(t *testing.T) {
 	engine.ShowDebug = showTestSql
 
 	testAll(engine, t)
+	testAllSnakeMapper(engine, t)
 	testAll2(engine, t)
 }
 
@@ -66,6 +68,7 @@ func TestSqlite3SameMapper(t *testing.T) {
 	engine.ShowDebug = showTestSql
 
 	testAll(engine, t)
+	testAllSameMapper(engine, t)
 	testAll2(engine, t)
 	testAll3(engine, t)
 }
@@ -85,6 +88,7 @@ func TestSqlite3WithCacheSameMapper(t *testing.T) {
 	engine.ShowDebug = showTestSql
 
 	testAll(engine, t)
+	testAllSameMapper(engine, t)
 	testAll2(engine, t)
 }
 

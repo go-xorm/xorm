@@ -31,6 +31,7 @@ func TestMysql(t *testing.T) {
 	engine.ShowDebug = showTestSql
 
 	testAll(engine, t)
+	testAllSnakeMapper(engine, t)
 	testAll2(engine, t)
 	testAll3(engine, t)
 }
@@ -55,6 +56,7 @@ func TestMysqlSameMapper(t *testing.T) {
 	engine.SetMapper(SameMapper{})
 
 	testAll(engine, t)
+	testAllSameMapper(engine, t)
 	testAll2(engine, t)
 	testAll3(engine, t)
 }
@@ -79,6 +81,7 @@ func TestMysqlWithCache(t *testing.T) {
 	engine.ShowDebug = showTestSql
 
 	testAll(engine, t)
+	testAllSnakeMapper(engine, t)
 	testAll2(engine, t)
 }
 
@@ -103,6 +106,7 @@ func TestMysqlWithCacheSameMapper(t *testing.T) {
 	engine.ShowDebug = showTestSql
 
 	testAll(engine, t)
+	testAllSameMapper(engine, t)
 	testAll2(engine, t)
 }
 

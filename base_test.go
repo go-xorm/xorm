@@ -269,6 +269,16 @@ func insertTwoTable(engine *Engine, t *testing.T) {
 	}
 }
 
+type Article struct {
+	Id      int32  `xorm:"pk INT autoincr`
+	Name    string `xorm:"VARCHAR(45)"`
+	Img     string `xorm:"VARCHAR(100)"`
+	Aside   string `xorm:"VARCHAR(200)"`
+	Desc    string `xorm:"VARCHAR(200)"`
+	Content string `xorm:"TEXT"`
+	Status  int8   `xorm:"TINYINT(4)"`
+}
+
 type Condi map[string]interface{}
 
 func update(engine *Engine, t *testing.T) {
@@ -316,6 +326,38 @@ func update(engine *Engine, t *testing.T) {
 		panic(err)
 		return
 	}
+
+	err = engine.Sync(&Article{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Insert(&Article{0, "1", "2", "3", "4", "5", 2})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if cnt != 1 {
+		err = errors.New("insert not returned 1")
+		t.Error(err)
+		panic(err)
+		return
+	}
+
+	cnt, err = engine.Id(1).Update(&Article{Name: "6"})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if cnt != 1 {
+		err = errors.New("update not returned 1")
+		t.Error(err)
+		panic(err)
+		return
+	}
 }
 
 func updateSameMapper(engine *Engine, t *testing.T) {
@@ -353,8 +395,14 @@ func updateSameMapper(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 
-	if cnt != 1 {
-		err = errors.New("update not returned 1")
+	total, err := engine.Count(&user)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if cnt != total {
+		err = errors.New("insert not returned 1")
 		t.Error(err)
 		panic(err)
 		return
@@ -706,7 +754,7 @@ func orderSameMapper(engine *Engine, t *testing.T) {
 
 func joinSameMapper(engine *Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
-	err := engine.Join("LEFT", `"Userdetail"`, `"Userinfo"."id"="Userdetail"."Id"`).Find(&users)
+	err := engine.Join("LEFT", "`Userdetail`", "`Userinfo`.`(id)`=`Userdetail`.`(id)`").Find(&users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
