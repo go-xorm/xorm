@@ -335,11 +335,15 @@ func buildConditions(engine *Engine, table *Table, bean interface{},
 			} else {
 				engine.autoMapType(fieldValue.Type())
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
-					pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumn().FieldName)
-					if pkField.Int() != 0 {
-						val = pkField.Interface()
+					if len(table.PrimaryKeys) == 1 {
+						pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)
+						if pkField.Int() != 0 {
+							val = pkField.Interface()
+						} else {
+							continue
+						}
 					} else {
-						continue
+						//TODO: how to handler?
 					}
 				} else {
 					val = fieldValue.Interface()
@@ -506,7 +510,7 @@ func (statement *Statement) Distinct(columns ...string) *Statement {
 func (statement *Statement) Cols(columns ...string) *Statement {
 	newColumns := col2NewCols(columns...)
 	for _, nc := range newColumns {
-		statement.columnMap[nc] = true
+		statement.columnMap[strings.ToLower(nc)] = true
 	}
 	statement.ColumnStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
 	return statement
@@ -517,7 +521,7 @@ func (statement *Statement) UseBool(columns ...string) *Statement {
 	if len(columns) > 0 {
 		newColumns := col2NewCols(columns...)
 		for _, nc := range newColumns {
-			statement.boolColumnMap[nc] = true
+			statement.boolColumnMap[strings.ToLower(nc)] = true
 		}
 	} else {
 		statement.allUseBool = true
@@ -529,7 +533,7 @@ func (statement *Statement) UseBool(columns ...string) *Statement {
 func (statement *Statement) Omit(columns ...string) {
 	newColumns := col2NewCols(columns...)
 	for _, nc := range newColumns {
-		statement.columnMap[nc] = false
+		statement.columnMap[strings.ToLower(nc)] = false
 	}
 	statement.OmitStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
 }
@@ -582,7 +586,7 @@ func (statement *Statement) genColumnStr() string {
 	colNames := make([]string, 0)
 	for _, col := range table.Columns {
 		if statement.OmitStr != "" {
-			if _, ok := statement.columnMap[col.Name]; ok {
+			if _, ok := statement.columnMap[strings.ToLower(col.Name)]; ok {
 				continue
 			}
 		}
@@ -606,7 +610,7 @@ func (statement *Statement) genCreateTableSQL() string {
 	pkList := []string{}
 
 	for _, colName := range statement.RefTable.ColumnsSeq {
-		col := statement.RefTable.Columns[colName]
+		col := statement.RefTable.Columns[strings.ToLower(colName)]
 		if col.IsPrimaryKey {
 			pkList = append(pkList, col.Name)
 		}
@@ -614,7 +618,7 @@ func (statement *Statement) genCreateTableSQL() string {
 
 	statement.Engine.LogDebug("len:", len(pkList))
 	for _, colName := range statement.RefTable.ColumnsSeq {
-		col := statement.RefTable.Columns[colName]
+		col := statement.RefTable.Columns[strings.ToLower(colName)]
 		if col.IsPrimaryKey && len(pkList) == 1 {
 			sql += col.String(statement.Engine.dialect)
 		} else {
@@ -634,8 +638,12 @@ func (statement *Statement) genCreateTableSQL() string {
 	if statement.Engine.dialect.SupportEngine() && statement.StoreEngine != "" {
 		sql += " ENGINE=" + statement.StoreEngine
 	}
-	if statement.Engine.dialect.SupportCharset() && statement.Charset != "" {
-		sql += " DEFAULT CHARSET " + statement.Charset
+	if statement.Engine.dialect.SupportCharset() {
+		if statement.Charset != "" {
+			sql += " DEFAULT CHARSET " + statement.Charset
+		} else if statement.Engine.dialect.URI().charset != "" {
+			sql += " DEFAULT CHARSET " + statement.Engine.dialect.URI().charset
+		}
 	}
 	sql += ";"
 	return sql
@@ -753,9 +761,10 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 
 	statement.ConditionStr = strings.Join(colNames, " AND ")
 	statement.BeanArgs = args
-	var id string = "*"
-	if table.PrimaryKey != "" {
-		id = statement.Engine.Quote(table.PrimaryKey)
+	// count(index fieldname) > count(0) > count(*)
+	var id string = "0"
+	if len(table.PrimaryKeys) == 1 {
+		id = statement.Engine.Quote(table.PrimaryKeys[0])
 	}
 	return statement.genSelectSql(fmt.Sprintf("COUNT(%v) AS %v", id, statement.Engine.Quote("total"))), append(statement.Params, statement.BeanArgs...)
 }
@@ -818,7 +827,7 @@ func (statement *Statement) processIdParam() {
 		for _, elem := range *(statement.IdParam) {
 			for ; i < colCnt; i++ {
 				colName := statement.RefTable.ColumnsSeq[i]
-				col := statement.RefTable.Columns[colName]
+				col := statement.RefTable.Columns[strings.ToLower(colName)]
 				if col.IsPrimaryKey {
 					statement.And(fmt.Sprintf("%v=?", col.Name), elem)
 					i++
@@ -832,7 +841,7 @@ func (statement *Statement) processIdParam() {
 		// false update/delete
 		for ; i < colCnt; i++ {
 			colName := statement.RefTable.ColumnsSeq[i]
-			col := statement.RefTable.Columns[colName]
+			col := statement.RefTable.Columns[strings.ToLower(colName)]
 			if col.IsPrimaryKey {
 				statement.And(fmt.Sprintf("%v=?", col.Name), "")
 			}

@@ -33,7 +33,6 @@ type mysqlParser struct {
 }
 
 func (p *mysqlParser) parse(driverName, dataSourceName string) (*uri, error) {
-	//cfg.params = make(map[string]string)
 	dsnPattern := regexp.MustCompile(
 		`^(?:(?P<user>.*?)(?::(?P<passwd>.*))?@)?` + // [user[:password]@]
 			`(?:(?P<net>[^\(]*)(?:\((?P<addr>[^\)]*)\))?)?` + // [net[(addr)]]
@@ -49,6 +48,20 @@ func (p *mysqlParser) parse(driverName, dataSourceName string) (*uri, error) {
 		switch names[i] {
 		case "dbname":
 			uri.dbName = match
+		case "params":
+			if len(match) > 0 {
+				kvs := strings.Split(match, "&")
+				for _, kv := range kvs {
+					splits := strings.Split(kv, "=")
+					if len(splits) == 2 {
+						switch splits[0] {
+						case "charset":
+							uri.charset = splits[1]
+						}
+					}
+				}
+			}
+
 		}
 	}
 	return uri, nil
@@ -66,6 +79,10 @@ func (b *base) init(parser parser, drivername, dataSourceName string) (err error
 	b.driverName, b.dataSourceName = drivername, dataSourceName
 	b.uri, err = b.parser.parse(b.driverName, b.dataSourceName)
 	return
+}
+
+func (b *base) URI() *uri {
+	return b.uri
 }
 
 func (b *base) DBType() string {

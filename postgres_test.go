@@ -7,12 +7,16 @@ import (
 	_ "github.com/lib/pq"
 )
 
+//var connStr string = "dbname=xorm_test user=lunny password=1234 sslmode=disable"
+
+var connStr string = "dbname=xorm_test sslmode=disable"
+
 func newPostgresEngine() (*Engine, error) {
-	return NewEngine("postgres", "dbname=xorm_test sslmode=disable")
+	return NewEngine("postgres", connStr)
 }
 
 func newPostgresDriverDB() (*sql.DB, error) {
-	return sql.Open("postgres", "dbname=xorm_test sslmode=disable")
+	return sql.Open("postgres", connStr)
 }
 
 func TestPostgres(t *testing.T) {

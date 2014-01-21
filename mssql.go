@@ -22,6 +22,7 @@ type odbcParser struct {
 func (p *odbcParser) parse(driverName, dataSourceName string) (*uri, error) {
 	kv := strings.Split(dataSourceName, ";")
 	var dbName string
+
 	for _, c := range kv {
 		vv := strings.Split(strings.TrimSpace(c), "=")
 		if len(vv) == 2 {
@@ -155,6 +156,7 @@ where a.object_id=object_id('` + tableName + `')`
 		for name, content := range record {
 			switch name {
 			case "name":
+
 				col.Name = strings.Trim(string(content), "` ")
 			case "ctype":
 				ct := strings.ToUpper(string(content))
@@ -163,11 +165,14 @@ where a.object_id=object_id('` + tableName + `')`
 					col.SQLType = SQLType{TimeStampz, 0, 0}
 				case "NVARCHAR":
 					col.SQLType = SQLType{Varchar, 0, 0}
+				case "IMAGE":
+					col.SQLType = SQLType{VarBinary, 0, 0}
 				default:
 					if _, ok := sqlTypes[ct]; ok {
 						col.SQLType = SQLType{ct, 0, 0}
 					} else {
-						return nil, nil, errors.New(fmt.Sprintf("unknow colType %v for %v", ct, col))
+						return nil, nil, errors.New(fmt.Sprintf("unknow colType %v for %v - %v",
+							ct, tableName, col.Name))
 					}
 				}
 

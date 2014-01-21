@@ -1,5 +1,19 @@
 ## Changelog
 
+* **v0.3.1** 
+
+	Features:
+	* Support MSSQL DB via ODBC driver ([github.com/lunny/godbc](https://github.com/lunny/godbc));
+	* Composite Key, using multiple pk xorm tag 
+	* Added Row() API as alternative to Iterate() API for traversing result set, provide similar usages to sql.Rows type
+	* ORM struct allowed declaration of pointer builtin type as members to allow null DB fields 
+	* Before and After Event processors
+
+	Improvements:
+	* Allowed int/int32/int64/uint/uint32/uint64/string as Primary Key type
+	* Performance improvement for Get()/Find()/Iterate()
+
+
 * **v0.2.3** : Improved documents; Optimistic Locking support; Timestamp with time zone support; Mapper change to tableMapper and columnMapper & added PrefixMapper & SuffixMapper support custom table or column name's prefix and suffix;Insert now return affected, err instead of id, err; Added UseBool & Distinct;
 * **v0.2.2** : Postgres drivers now support lib/pq; Added method Iterate for record by record to handler；Added SetMaxConns(go1.2+) support; some bugs fixed.
 * **v0.2.1** : Added database reverse tool, now support generate go & c++ codes, see [Xorm Tool README](https://github.com/lunny/xorm/blob/master/xorm/README.md); some bug fixed.

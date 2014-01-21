@@ -163,6 +163,7 @@ func Type2SQLType(t reflect.Type) (st SQLType) {
 		if t == reflect.TypeOf(c_TIME_DEFAULT) {
 			st = SQLType{DateTime, 0, 0}
 		} else {
+			// TODO need to handle association struct
 			st = SQLType{Text, 0, 0}
 		}
 	case reflect.Ptr:
@@ -297,6 +298,8 @@ func (col *Column) String(d dialect) string {
 
 	if col.Default != "" {
 		sql += "DEFAULT " + col.Default + " "
+	} else if col.IsVersion {
+		sql += "DEFAULT 1 "
 	}
 
 	return sql
@@ -315,6 +318,8 @@ func (col *Column) stringNoPk(d dialect) string {
 
 	if col.Default != "" {
 		sql += "DEFAULT " + col.Default + " "
+	} else if col.IsVersion {
+		sql += "DEFAULT 1 "
 	}
 
 	return sql
@@ -339,16 +344,17 @@ func (col *Column) ValueOf(bean interface{}) reflect.Value {
 
 // database table
 type Table struct {
-	Name       string
-	Type       reflect.Type
-	ColumnsSeq []string
-	Columns    map[string]*Column
-	Indexes    map[string]*Index
-	PrimaryKey string
-	Created    map[string]bool
-	Updated    string
-	Version    string
-	Cacher     Cacher
+	Name          string
+	Type          reflect.Type
+	ColumnsSeq    []string
+	Columns       map[string]*Column
+	Indexes       map[string]*Index
+	PrimaryKeys   []string
+	AutoIncrement string
+	Created       map[string]bool
+	Updated       string
+	Version       string
+	Cacher        Cacher
 }
 
 /*
@@ -362,20 +368,31 @@ func NewTable(name string, t reflect.Type) *Table {
 }*/
 
 // if has primary key, return column
-func (table *Table) PKColumn() *Column {
-	return table.Columns[table.PrimaryKey]
+func (table *Table) PKColumns() []*Column {
+	columns := make([]*Column, 0)
+	for _, name := range table.PrimaryKeys {
+		columns = append(columns, table.Columns[strings.ToLower(name)])
+	}
+	return columns
+}
+
+func (table *Table) AutoIncrColumn() *Column {
+	return table.Columns[strings.ToLower(table.AutoIncrement)]
 }
 
 func (table *Table) VersionColumn() *Column {
-	return table.Columns[table.Version]
+	return table.Columns[strings.ToLower(table.Version)]
 }
 
 // add a column to table
 func (table *Table) AddColumn(col *Column) {
 	table.ColumnsSeq = append(table.ColumnsSeq, col.Name)
-	table.Columns[col.Name] = col
+	table.Columns[strings.ToLower(col.Name)] = col
 	if col.IsPrimaryKey {
-		table.PrimaryKey = col.Name
+		table.PrimaryKeys = append(table.PrimaryKeys, col.Name)
+	}
+	if col.IsAutoIncrement {
+		table.AutoIncrement = col.Name
 	}
 	if col.IsCreated {
 		table.Created[col.Name] = true
@@ -398,8 +415,9 @@ func (table *Table) genCols(session *Session, bean interface{}, useCol bool, inc
 	args := make([]interface{}, 0)
 
 	for _, col := range table.Columns {
+		lColName := strings.ToLower(col.Name)
 		if useCol && !col.IsVersion && !col.IsCreated && !col.IsUpdated {
-			if _, ok := session.Statement.columnMap[col.Name]; !ok {
+			if _, ok := session.Statement.columnMap[lColName]; !ok {
 				continue
 			}
 		}
@@ -408,17 +426,30 @@ func (table *Table) genCols(session *Session, bean interface{}, useCol bool, inc
 		}
 
 		fieldValue := col.ValueOf(bean)
-		if col.IsAutoIncrement && fieldValue.Int() == 0 {
-			continue
+		if col.IsAutoIncrement {
+			switch fieldValue.Type().Kind() {
+			case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int, reflect.Int64:
+				if fieldValue.Int() == 0 {
+					continue
+				}
+			case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint, reflect.Uint64:
+				if fieldValue.Uint() == 0 {
+					continue
+				}
+			case reflect.String:
+				if len(fieldValue.String()) == 0 {
+					continue
+				}
+			}
 		}
 
 		if session.Statement.ColumnStr != "" {
-			if _, ok := session.Statement.columnMap[col.Name]; !ok {
+			if _, ok := session.Statement.columnMap[lColName]; !ok {
 				continue
 			}
 		}
 		if session.Statement.OmitStr != "" {
-			if _, ok := session.Statement.columnMap[col.Name]; ok {
+			if _, ok := session.Statement.columnMap[lColName]; ok {
 				continue
 			}
 		}

@@ -12,8 +12,6 @@ CREATE DATABASE IF NOT EXISTS xorm_test CHARACTER SET
 utf8 COLLATE utf8_general_ci;
 */
 
-var mysqlShowTestSql bool = true
-
 func TestMysql(t *testing.T) {
 	err := mysqlDdlImport()
 	if err != nil {
@@ -27,10 +25,34 @@ func TestMysql(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	engine.ShowSQL = mysqlShowTestSql
-	engine.ShowErr = mysqlShowTestSql
-	engine.ShowWarn = mysqlShowTestSql
-	engine.ShowDebug = mysqlShowTestSql
+	engine.ShowSQL = showTestSql
+	engine.ShowErr = showTestSql
+	engine.ShowWarn = showTestSql
+	engine.ShowDebug = showTestSql
+
+	testAll(engine, t)
+	testAll2(engine, t)
+	testAll3(engine, t)
+}
+
+func TestMysqlSameMapper(t *testing.T) {
+	err := mysqlDdlImport()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	engine, err := NewEngine("mysql", "root:@/xorm_test3?charset=utf8")
+	defer engine.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	engine.ShowSQL = showTestSql
+	engine.ShowErr = showTestSql
+	engine.ShowWarn = showTestSql
+	engine.ShowDebug = showTestSql
+	engine.SetMapper(SameMapper{})
 
 	testAll(engine, t)
 	testAll2(engine, t)
@@ -51,10 +73,10 @@ func TestMysqlWithCache(t *testing.T) {
 		return
 	}
 	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
-	engine.ShowSQL = mysqlShowTestSql
-	engine.ShowErr = mysqlShowTestSql
-	engine.ShowWarn = mysqlShowTestSql
-	engine.ShowDebug = mysqlShowTestSql
+	engine.ShowSQL = showTestSql
+	engine.ShowErr = showTestSql
+	engine.ShowWarn = showTestSql
+	engine.ShowDebug = showTestSql
 
 	testAll(engine, t)
 	testAll2(engine, t)
@@ -69,10 +91,10 @@ func mysqlDdlImport() error {
 	if err != nil {
 		return err
 	}
-	engine.ShowSQL = mysqlShowTestSql
-	engine.ShowErr = mysqlShowTestSql
-	engine.ShowWarn = mysqlShowTestSql
-	engine.ShowDebug = mysqlShowTestSql
+	engine.ShowSQL = showTestSql
+	engine.ShowErr = showTestSql
+	engine.ShowWarn = showTestSql
+	engine.ShowDebug = showTestSql
 
 	sqlResults, _ := engine.Import("tests/mysql_ddl.sql")
 	engine.LogDebug("sql results: %v", sqlResults)

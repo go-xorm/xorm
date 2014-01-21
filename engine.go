@@ -28,6 +28,7 @@ const (
 // a dialect is a driver's wrapper
 type dialect interface {
 	Init(DriverName, DataSourceName string) error
+	URI() *uri
 	DBType() string
 	SqlType(t *Column) string
 	SupportInsertMany() bool
@@ -472,15 +473,16 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 					parentTable := engine.mapType(fieldType)
 					for name, col := range parentTable.Columns {
 						col.FieldName = fmt.Sprintf("%v.%v", fieldType.Name(), col.FieldName)
-						table.Columns[name] = col
+						table.Columns[strings.ToLower(name)] = col
 						table.ColumnsSeq = append(table.ColumnsSeq, name)
 					}
 
-					table.PrimaryKey = parentTable.PrimaryKey
+					table.PrimaryKeys = parentTable.PrimaryKeys
 					continue
 				}
 				var indexType int
 				var indexName string
+				var preKey string
 				for j, key := range tags {
 					k := strings.ToUpper(key)
 					switch {
@@ -519,12 +521,13 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 					case k == "NOT":
 					default:
 						if strings.HasPrefix(k, "'") && strings.HasSuffix(k, "'") {
-							if key != col.Default {
+							if preKey != "DEFAULT" {
 								col.Name = key[1 : len(key)-1]
 							}
 						} else if strings.Contains(k, "(") && strings.HasSuffix(k, ")") {
 							fs := strings.Split(k, "(")
 							if _, ok := sqlTypes[fs[0]]; !ok {
+								preKey = k
 								continue
 							}
 							col.SQLType = SQLType{fs[0], 0, 0}
@@ -538,12 +541,13 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 						} else {
 							if _, ok := sqlTypes[k]; ok {
 								col.SQLType = SQLType{k, 0, 0}
-							} else if key != col.Default {
+							} else if preKey != "DEFAULT" {
 								col.Name = key
 							}
 						}
 						engine.SqlType(col)
 					}
+					preKey = k
 				}
 				if col.SQLType.Name == "" {
 					col.SQLType = Type2SQLType(fieldType)
@@ -602,12 +606,13 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 		}
 	}
 
-	if idFieldColName != "" && table.PrimaryKey == "" {
-		col := table.Columns[idFieldColName]
+	if idFieldColName != "" && len(table.PrimaryKeys) == 0 {
+		col := table.Columns[strings.ToLower(idFieldColName)]
 		col.IsPrimaryKey = true
 		col.IsAutoIncrement = true
 		col.Nullable = false
-		table.PrimaryKey = col.Name
+		table.PrimaryKeys = append(table.PrimaryKeys, col.Name)
+		table.AutoIncrement = col.Name
 	}
 
 	return table
@@ -933,6 +938,13 @@ func (engine *Engine) Iterate(bean interface{}, fun IterFunc) error {
 	return session.Iterate(bean, fun)
 }
 
+// Return sql.Rows compatible Rows obj, as a forward Iterator object for iterating record by record, bean's non-empty fields
+// are conditions.
+func (engine *Engine) Rows(bean interface{}) (*Rows, error) {
+	session := engine.NewSession()
+	return session.Rows(bean)
+}
+
 // Count counts the records. bean's non-empty fields
 // are conditions.
 func (engine *Engine) Count(bean interface{}) (int64, error) {
@@ -972,18 +984,22 @@ func (engine *Engine) Import(ddlPath string) ([]sql.Result, error) {
 	scanner.Split(semiColSpliter)
 
 	session := engine.NewSession()
-	session.IsAutoClose = false
+	defer session.Close()
+	err = session.newDb()
+	if err != nil {
+		return results, err
+	}
+
 	for scanner.Scan() {
 		query := scanner.Text()
 		query = strings.Trim(query, " \t")
 		if len(query) > 0 {
-			result, err := session.Exec(query)
+			result, err := session.Db.Exec(query)
 			results = append(results, result)
 			if err != nil {
 				lastError = err
 			}
 		}
 	}
-	session.Close()
 	return results, lastError
 }

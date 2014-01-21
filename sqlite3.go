@@ -190,16 +190,19 @@ func (db *sqlite3) GetIndexes(tableName string) (map[string]*Index, error) {
 
 	indexes := make(map[string]*Index, 0)
 	for _, record := range res {
-		var sql string
 		index := new(Index)
-		for name, content := range record {
-			if name == "sql" {
-				sql = string(content)
-			}
+		sql := string(record["sql"])
+
+		if sql == "" {
+			continue
 		}
 
 		nNStart := strings.Index(sql, "INDEX")
 		nNEnd := strings.Index(sql, "ON")
+		if nNStart == -1 || nNEnd == -1 {
+			continue
+		}
+
 		indexName := strings.Trim(sql[nNStart+6:nNEnd], "` []")
 		//fmt.Println(indexName)
 		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {

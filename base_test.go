@@ -267,6 +267,16 @@ func insertTwoTable(engine *Engine, t *testing.T) {
 	}
 }
 
+type Article struct {
+	Id      int32  `xorm:"pk INT autoincr"`
+	Name    string `xorm:"VARCHAR(45)"`
+	Img     string `xorm:"VARCHAR(100)"`
+	Aside   string `xorm:"VARCHAR(200)"`
+	Desc    string `xorm:"VARCHAR(200)"`
+	Content string `xorm:"TEXT"`
+	Status  int8   `xorm:"TINYINT(4)"`
+}
+
 type Condi map[string]interface{}
 
 func update(engine *Engine, t *testing.T) {
@@ -314,6 +324,44 @@ func update(engine *Engine, t *testing.T) {
 		panic(err)
 		return
 	}
+
+	err = engine.Sync(&Article{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Insert(&Article{0, "1", "2", "3", "4", "5", 2})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if cnt != 1 {
+		err = errors.New("insert not returned 1")
+		t.Error(err)
+		panic(err)
+		return
+	}
+
+	cnt, err = engine.Id(1).Update(&Article{Name: "6"})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if cnt != 1 {
+		err = errors.New("update not returned 1")
+		t.Error(err)
+		panic(err)
+		return
+	}
+
+	err = engine.DropTables(&Article{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
 }
 
 func updateSameMapper(engine *Engine, t *testing.T) {
@@ -359,7 +407,7 @@ func updateSameMapper(engine *Engine, t *testing.T) {
 	}
 }
 
-func testdelete(engine *Engine, t *testing.T) {
+func testDelete(engine *Engine, t *testing.T) {
 	user := Userinfo{Uid: 1}
 	cnt, err := engine.Delete(&user)
 	if err != nil {
@@ -557,20 +605,48 @@ func where(engine *Engine, t *testing.T) {
 
 func in(engine *Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
-	err := engine.In("(id)", 1, 2, 3).Find(&users)
+	err := engine.In("(id)", 7, 8, 9).Find(&users)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println(users)
+	if len(users) != 3 {
+		err = errors.New("in uses should be 7,8,9 total 3")
+		t.Error(err)
+		panic(err)
+	}
+
+	for _, user := range users {
+		if user.Uid != 7 && user.Uid != 8 && user.Uid != 9 {
+			err = errors.New("in uses should be 7,8,9 total 3")
+			t.Error(err)
+			panic(err)
+		}
+	}
+
+	users = make([]Userinfo, 0)
+	ids := []interface{}{7, 8, 9}
+	err = engine.Where("departname = ?", "dev").In("(id)", ids...).Find(&users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 	fmt.Println(users)
 
-	ids := []interface{}{1, 2, 3}
-	err = engine.Where("(id) > ?", 2).In("(id)", ids...).Find(&users)
-	if err != nil {
+	if len(users) != 3 {
+		err = errors.New("in uses should be 7,8,9 total 3")
 		t.Error(err)
 		panic(err)
 	}
-	fmt.Println(users)
+
+	for _, user := range users {
+		if user.Uid != 7 && user.Uid != 8 && user.Uid != 9 {
+			err = errors.New("in uses should be 7,8,9 total 3")
+			t.Error(err)
+			panic(err)
+		}
+	}
 
 	err = engine.In("(id)", 1).In("(id)", 2).In("departname", "dev").Find(&users)
 	if err != nil {
@@ -1448,12 +1524,32 @@ func testIndexAndUnique(engine *Engine, t *testing.T) {
 }
 
 type IntId struct {
-	Id   int
+	Id   int `xorm:"pk autoincr"`
 	Name string
 }
 
 type Int32Id struct {
-	Id   int32
+	Id   int32 `xorm:"pk autoincr"`
+	Name string
+}
+
+type UintId struct {
+	Id   uint `xorm:"pk autoincr"`
+	Name string
+}
+
+type Uint32Id struct {
+	Id   uint32 `xorm:"pk autoincr"`
+	Name string
+}
+
+type Uint64Id struct {
+	Id   uint64 `xorm:"pk autoincr"`
+	Name string
+}
+
+type StringPK struct {
+	Id   string `xorm:"pk notnull"`
 	Name string
 }
 
@@ -1470,8 +1566,48 @@ func testIntId(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 
-	_, err = engine.Insert(&IntId{Name: "test"})
+	cnt, err := engine.Insert(&IntId{Name: "test"})
 	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	bean := new(IntId)
+	has, err := engine.Get(bean)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if !has {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	beans := make([]IntId, 0)
+	err = engine.Find(&beans)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if len(beans) != 1 {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Id(bean.Id).Delete(&IntId{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
 		t.Error(err)
 		panic(err)
 	}
@@ -1490,8 +1626,292 @@ func testInt32Id(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 
-	_, err = engine.Insert(&Int32Id{Name: "test"})
+	cnt, err := engine.Insert(&Int32Id{Name: "test"})
 	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	bean := new(Int32Id)
+	has, err := engine.Get(bean)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if !has {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	beans := make([]Int32Id, 0)
+	err = engine.Find(&beans)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if len(beans) != 1 {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Id(bean.Id).Delete(&Int32Id{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+}
+
+func testUintId(engine *Engine, t *testing.T) {
+	err := engine.DropTables(&UintId{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(&UintId{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err := engine.Insert(&UintId{Name: "test"})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	bean := new(UintId)
+	has, err := engine.Get(bean)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if !has {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	beans := make([]UintId, 0)
+	err = engine.Find(&beans)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if len(beans) != 1 {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Id(bean.Id).Delete(&UintId{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+}
+
+func testUint32Id(engine *Engine, t *testing.T) {
+	err := engine.DropTables(&Uint32Id{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(&Uint32Id{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err := engine.Insert(&Uint32Id{Name: "test"})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	bean := new(Uint32Id)
+	has, err := engine.Get(bean)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if !has {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	beans := make([]Uint32Id, 0)
+	err = engine.Find(&beans)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if len(beans) != 1 {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Id(bean.Id).Delete(&Uint32Id{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+}
+
+func testUint64Id(engine *Engine, t *testing.T) {
+	err := engine.DropTables(&Uint64Id{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(&Uint64Id{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err := engine.Insert(&Uint64Id{Name: "test"})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	bean := new(Uint64Id)
+	has, err := engine.Get(bean)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if !has {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	beans := make([]Uint64Id, 0)
+	err = engine.Find(&beans)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if len(beans) != 1 {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Id(bean.Id).Delete(&Uint64Id{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+}
+
+func testStringPK(engine *Engine, t *testing.T) {
+	err := engine.DropTables(&StringPK{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(&StringPK{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err := engine.Insert(&StringPK{Name: "test"})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	bean := new(StringPK)
+	has, err := engine.Get(bean)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if !has {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	beans := make([]StringPK, 0)
+	err = engine.Find(&beans)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if len(beans) != 1 {
+		err = errors.New("get count should be one")
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Id(bean.Id).Delete(&StringPK{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	if cnt != 1 {
+		err = errors.New("insert count should be one")
 		t.Error(err)
 		panic(err)
 	}
@@ -1526,6 +1946,27 @@ func testIterate(engine *Engine, t *testing.T) {
 	if err != nil {
 		t.Error(err)
 		panic(err)
+	}
+}
+
+func testRows(engine *Engine, t *testing.T) {
+	rows, err := engine.Omit("is_man").Rows(new(Userinfo))
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	defer rows.Close()
+
+	idx := 0
+	user := new(Userinfo)
+	for rows.Next() {
+		err = rows.Scan(user)
+		if err != nil {
+			t.Error(err)
+			panic(err)
+		}
+		fmt.Println(idx, "--", user)
+		idx++
 	}
 }
 
@@ -2810,7 +3251,9 @@ func testPointerData(engine *Engine, t *testing.T) {
 	// using instance type should just work too
 	nullData2Get := NullData2{}
 
-	has, err = engine.Table("null_data").Id(nullData.Id).Get(&nullData2Get)
+	tableName := engine.tableMapper.Obj2Table("NullData")
+
+	has, err = engine.Table(tableName).Id(nullData.Id).Get(&nullData2Get)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -3156,45 +3599,54 @@ func testNullValue(engine *Engine, t *testing.T) {
 	//  t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]", *nullDataGet.Complex128Ptr)))
 	// }
 
-	/*if (*nullDataGet.TimePtr).Unix() != (*nullDataUpdate.TimePtr).Unix() {
-	      t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]:[%v]", *nullDataGet.TimePtr, *nullDataUpdate.TimePtr)))
-	  } else {
-	      // !nashtsai! mymysql driver will failed this test case, due the time is roundup to nearest second, I would considered this is a bug in mymysql driver
-	      fmt.Printf("time value: [%v]:[%v]", *nullDataGet.TimePtr, *nullDataUpdate.TimePtr)
-	      fmt.Println()
-	  }*/
-	// --
+	// !nashtsai! skipped mymysql test due to driver will round up time caused inaccuracy comparison
+	// skipped postgres test due to postgres driver doesn't read time.Time's timzezone info when stored in the db
+	// mysql and sqlite3 seem have done this correctly by storing datatime in UTC timezone, I think postgres driver
+	// prefer using timestamp with timezone to sovle the issue
+	if engine.DriverName != POSTGRES && engine.DriverName != MYMYSQL &&
+		engine.DriverName != MYSQL {
+		if (*nullDataGet.TimePtr).Unix() != (*nullDataUpdate.TimePtr).Unix() {
+			t.Error(errors.New(fmt.Sprintf("inserted value unmatch: [%v]:[%v]", *nullDataGet.TimePtr, *nullDataUpdate.TimePtr)))
+		} else {
+			// !nashtsai! mymysql driver will failed this test case, due the time is roundup to nearest second, I would considered this is a bug in mymysql driver
+			//  inserted value unmatch: [2013-12-25 12:12:45 +0800 CST]:[2013-12-25 12:12:44.878903653 +0800 CST]
+			fmt.Printf("time value: [%v]:[%v]", *nullDataGet.TimePtr, *nullDataUpdate.TimePtr)
+			fmt.Println()
+		}
+	}
 
 	// update to null values
-	/*nullDataUpdate = NullData{}
+	nullDataUpdate = NullData{}
 
-	  cnt, err = engine.Id(nullData.Id).Update(&nullDataUpdate)
-	  if err != nil {
-	      t.Error(err)
-	      panic(err)
-	  } else if cnt != 1 {
-	      t.Error(errors.New("update count == 0, how can this happen!?"))
-	      return
-	  }*/
+	string_ptr := engine.columnMapper.Obj2Table("StringPtr")
+
+	cnt, err = engine.Id(nullData.Id).Cols(string_ptr).Update(&nullDataUpdate)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	} else if cnt != 1 {
+		t.Error(errors.New("update count == 0, how can this happen!?"))
+		return
+	}
 
 	// verify get values
-	/*nullDataGet = NullData{}
-	  has, err = engine.Id(nullData.Id).Get(&nullDataGet)
-	  if err != nil {
-	      t.Error(err)
-	      return
-	  } else if !has {
-	      t.Error(errors.New("ID not found"))
-	      return
-	  }
+	nullDataGet = NullData{}
+	has, err = engine.Id(nullData.Id).Get(&nullDataGet)
+	if err != nil {
+		t.Error(err)
+		return
+	} else if !has {
+		t.Error(errors.New("ID not found"))
+		return
+	}
 
-	  fmt.Printf("%+v", nullDataGet)
-	  fmt.Println()
+	fmt.Printf("%+v", nullDataGet)
+	fmt.Println()
 
-	  if nullDataGet.StringPtr != nil {
-	      t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.StringPtr)))
-	  }
-
+	if nullDataGet.StringPtr != nil {
+		t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.StringPtr)))
+	}
+	/*
 	  if nullDataGet.StringPtr2 != nil {
 	      t.Error(errors.New(fmt.Sprintf("not null value: [%v]", *nullDataGet.StringPtr2)))
 	  }
@@ -3342,17 +3794,11 @@ type Lowercase struct {
 
 func testLowerCase(engine *Engine, t *testing.T) {
 	err := engine.Sync(&Lowercase{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-
 	_, err = engine.Where("id > 0").Delete(&Lowercase{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
-
 	_, err = engine.Insert(&Lowercase{ended: 1})
 	if err != nil {
 		t.Error(err)
@@ -3373,6 +3819,71 @@ func testLowerCase(engine *Engine, t *testing.T) {
 	}
 }
 
+type User struct {
+	UserId   string `xorm:"varchar(19) not null pk"`
+	NickName string `xorm:"varchar(19) not null"`
+	GameId   uint32 `xorm:"integer pk"`
+	Score    int32  `xorm:"integer"`
+}
+
+func testCompositeKey2(engine *Engine, t *testing.T) {
+	err := engine.DropTables(&User{})
+
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = engine.CreateTables(&User{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err := engine.Insert(&User{"11", "nick", 22, 5})
+	if err != nil {
+		t.Error(err)
+	} else if cnt != 1 {
+		t.Error(errors.New("failed to insert User{11, 22}"))
+	}
+
+	cnt, err = engine.Insert(&User{"11", "nick", 22, 6})
+	if err == nil || cnt == 1 {
+		t.Error(errors.New("inserted User{11, 22}"))
+	}
+
+	var user User
+	has, err := engine.Id(PK{"11", 22}).Get(&user)
+	if err != nil {
+		t.Error(err)
+	} else if !has {
+		t.Error(errors.New("can't get User{11, 22}"))
+	}
+
+	// test passing PK ptr, this test seem failed withCache
+	has, err = engine.Id(&PK{"11", 22}).Get(&user)
+	if err != nil {
+		t.Error(err)
+	} else if !has {
+		t.Error(errors.New("can't get User{11, 22}"))
+	}
+
+	user = User{NickName: "test1"}
+	cnt, err = engine.Id(PK{"11", 22}).Update(&user)
+	if err != nil {
+		t.Error(err)
+	} else if cnt != 1 {
+		t.Error(errors.New("can't update User{11, 22}"))
+	}
+
+	cnt, err = engine.Id(PK{"11", 22}).Delete(&User{})
+	if err != nil {
+		t.Error(err)
+	} else if cnt != 1 {
+		t.Error(errors.New("can't delete CompositeKey{11, 22}"))
+	}
+}
+
 func testAll(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
@@ -3390,8 +3901,8 @@ func testAll(engine *Engine, t *testing.T) {
 	insertTwoTable(engine, t)
 	fmt.Println("-------------- update --------------")
 	update(engine, t)
-	fmt.Println("-------------- testdelete --------------")
-	testdelete(engine, t)
+	fmt.Println("-------------- testDelete --------------")
+	testDelete(engine, t)
 	fmt.Println("-------------- get --------------")
 	get(engine, t)
 	fmt.Println("-------------- cascadeGet --------------")
@@ -3446,13 +3957,21 @@ func testAll2(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- testIndexAndUnique --------------")
 	testIndexAndUnique(engine, t)
 	fmt.Println("-------------- testIntId --------------")
-	//testIntId(engine, t)
+	testIntId(engine, t)
 	fmt.Println("-------------- testInt32Id --------------")
-	//testInt32Id(engine, t)
+	testInt32Id(engine, t)
+	fmt.Println("-------------- testUintId --------------")
+	testUintId(engine, t)
+	fmt.Println("-------------- testUint32Id --------------")
+	testUint32Id(engine, t)
+	fmt.Println("-------------- testUint64Id --------------")
+	testUint64Id(engine, t)
 	fmt.Println("-------------- testMetaInfo --------------")
 	testMetaInfo(engine, t)
 	fmt.Println("-------------- testIterate --------------")
 	testIterate(engine, t)
+	fmt.Println("-------------- testRows --------------")
+	testRows(engine, t)
 	fmt.Println("-------------- testStrangeName --------------")
 	testStrangeName(engine, t)
 	fmt.Println("-------------- testVersion --------------")
@@ -3487,5 +4006,16 @@ func testAll3(engine *Engine, t *testing.T) {
 	testNullValue(engine, t)
 	fmt.Println("-------------- testCompositeKey --------------")
 	testCompositeKey(engine, t)
+	fmt.Println("-------------- testCompositeKey2 --------------")
+	testCompositeKey2(engine, t)
+	fmt.Println("-------------- testStringPK --------------")
+	testStringPK(engine, t)
+}
+
+func testAllSnakeMapper(engine *Engine, t *testing.T) {
+
+}
+
+func testAllSameMapper(engine *Engine, t *testing.T) {
 
 }

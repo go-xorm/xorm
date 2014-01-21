@@ -67,7 +67,11 @@ func (db *postgres) SqlType(c *Column) string {
 	switch t := c.SQLType.Name; t {
 	case TinyInt:
 		res = SmallInt
+		return res
 	case MediumInt, Int, Integer:
+		if c.IsAutoIncrement {
+			return Serial
+		}
 		return Integer
 	case Serial, BigSerial:
 		c.IsAutoIncrement = true
