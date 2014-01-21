@@ -3334,6 +3334,45 @@ func testCompositeKey(engine *Engine, t *testing.T) {
 	}
 }
 
+type Lowercase struct {
+	Id    int64
+	Name  string
+	ended int64 `xorm:"-"`
+}
+
+func testLowerCase(engine *Engine, t *testing.T) {
+	err := engine.Sync(&Lowercase{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	_, err = engine.Where("id > 0").Delete(&Lowercase{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	_, err = engine.Insert(&Lowercase{ended: 1})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	ls := make([]Lowercase, 0)
+	err = engine.Find(&ls)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if len(ls) != 1 {
+		err = errors.New("should be 1")
+		t.Error(err)
+		panic(err)
+	}
+}
+
 func testAll(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
@@ -3430,6 +3469,8 @@ func testAll2(engine *Engine, t *testing.T) {
 	testPrefixTableName(engine, t)
 	fmt.Println("-------------- testCreatedUpdated --------------")
 	testCreatedUpdated(engine, t)
+	fmt.Println("-------------- testLowercase ---------------")
+	testLowerCase(engine, t)
 	fmt.Println("-------------- processors --------------")
 	testProcessors(engine, t)
 	fmt.Println("-------------- transaction --------------")
@@ -3446,4 +3487,5 @@ func testAll3(engine *Engine, t *testing.T) {
 	testNullValue(engine, t)
 	fmt.Println("-------------- testCompositeKey --------------")
 	testCompositeKey(engine, t)
+
 }

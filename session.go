@@ -2153,6 +2153,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	}
 
 	colPlaces := strings.Repeat("?, ", len(colNames))
+	fmt.Println(colNames, args)
 	colPlaces = colPlaces[0 : len(colPlaces)-2]
 
 	sql := fmt.Sprintf("INSERT INTO %v%v%v (%v%v%v) VALUES (%v)",
