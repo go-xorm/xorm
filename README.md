@@ -84,6 +84,8 @@ Or
 
 * [Very Hour](http://veryhour.com/)
 
+* [GoCMS](https://github.com/zzdboy/GoCMS)
+
 # Todo
 
 [Todo List](https://trello.com/b/IHsuAnhk/xorm)
