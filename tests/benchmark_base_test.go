@@ -3,6 +3,8 @@ package xorm
 import (
 	"database/sql"
 	"testing"
+
+	"github.com/lunny/xorm"
 )
 
 type BigStruct struct {
@@ -77,7 +79,7 @@ func doBenchDriver(newdriver func() (*sql.DB, error), createTableSql,
 	}
 }
 
-func doBenchInsert(engine *Engine, b *testing.B) {
+func doBenchInsert(engine *xorm.Engine, b *testing.B) {
 	b.StopTimer()
 	bs := &BigStruct{0, "fafdasf", "fadfa", "afadfsaf", "fadfafdsafd", "fadfafdsaf"}
 	err := engine.CreateTables(bs)
@@ -103,7 +105,7 @@ func doBenchInsert(engine *Engine, b *testing.B) {
 	}
 }
 
-func doBenchFind(engine *Engine, b *testing.B) {
+func doBenchFind(engine *xorm.Engine, b *testing.B) {
 	b.StopTimer()
 	bs := &BigStruct{0, "fafdasf", "fadfa", "afadfsaf", "fadfafdsafd", "fadfafdsaf"}
 	err := engine.CreateTables(bs)
@@ -138,7 +140,7 @@ func doBenchFind(engine *Engine, b *testing.B) {
 	}
 }
 
-func doBenchFindPtr(engine *Engine, b *testing.B) {
+func doBenchFindPtr(engine *xorm.Engine, b *testing.B) {
 	b.StopTimer()
 	bs := &BigStruct{0, "fafdasf", "fadfa", "afadfsaf", "fadfafdsafd", "fadfafdsaf"}
 	err := engine.CreateTables(bs)

@@ -8,12 +8,13 @@ import (
 	"testing"
 
 	_ "github.com/lunny/godbc"
+	"github.com/lunny/xorm"
 )
 
 const mssqlConnStr = "driver={SQL Server};Server=192.168.20.135;Database=xorm_test; uid=sa; pwd=1234;"
 
-func newMssqlEngine() (*Engine, error) {
-	return NewEngine("odbc", mssqlConnStr)
+func newMssqlEngine() (*xorm.Engine, error) {
+	return xorm.NewEngine("odbc", mssqlConnStr)
 }
 
 func TestMssql(t *testing.T) {
@@ -39,7 +40,7 @@ func TestMssqlWithCache(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 	engine.ShowSQL = showTestSql
 	engine.ShowErr = showTestSql
 	engine.ShowWarn = showTestSql
@@ -112,7 +113,7 @@ func BenchmarkMssqlCacheInsert(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 
 	doBenchInsert(engine, t)
 }
@@ -124,7 +125,7 @@ func BenchmarkMssqlCacheFind(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 
 	doBenchFind(engine, t)
 }
@@ -136,7 +137,7 @@ func BenchmarkMssqlCacheFindPtr(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 
 	doBenchFindPtr(engine, t)
 }

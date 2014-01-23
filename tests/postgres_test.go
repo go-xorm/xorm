@@ -5,14 +5,15 @@ import (
 	"testing"
 
 	_ "github.com/lib/pq"
+	"github.com/lunny/xorm"
 )
 
 //var connStr string = "dbname=xorm_test user=lunny password=1234 sslmode=disable"
 
 var connStr string = "dbname=xorm_test sslmode=disable"
 
-func newPostgresEngine() (*Engine, error) {
-	orm, err := NewEngine("postgres", connStr)
+func newPostgresEngine() (*xorm.Engine, error) {
+	orm, err := xorm.NewEngine("postgres", connStr)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +59,7 @@ func TestPostgresWithCache(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 	defer engine.Close()
 	engine.ShowSQL = showTestSql
 	engine.ShowErr = showTestSql
@@ -77,7 +78,7 @@ func TestPostgresSameMapper(t *testing.T) {
 		return
 	}
 	defer engine.Close()
-	engine.SetMapper(SameMapper{})
+	engine.SetMapper(xorm.SameMapper{})
 	engine.ShowSQL = showTestSql
 	engine.ShowErr = showTestSql
 	engine.ShowWarn = showTestSql
@@ -95,9 +96,9 @@ func TestPostgresWithCacheSameMapper(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 	defer engine.Close()
-	engine.SetMapper(SameMapper{})
+	engine.SetMapper(xorm.SameMapper{})
 	engine.ShowSQL = showTestSql
 	engine.ShowErr = showTestSql
 	engine.ShowWarn = showTestSql
@@ -167,7 +168,7 @@ func BenchmarkPostgresCacheInsert(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 
 	doBenchInsert(engine, t)
 }
@@ -180,7 +181,7 @@ func BenchmarkPostgresCacheFind(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 
 	doBenchFind(engine, t)
 }
@@ -193,7 +194,7 @@ func BenchmarkPostgresCacheFindPtr(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 
 	doBenchFindPtr(engine, t)
 }

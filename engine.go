@@ -21,8 +21,8 @@ type PK []interface{}
 // Engine is the major struct of xorm, it means a database manager.
 // Commonly, an application only need one engine
 type Engine struct {
-	columnMapper   IMapper
-	tableMapper    IMapper
+	ColumnMapper   IMapper
+	TableMapper    IMapper
 	TagIdentifier  string
 	DriverName     string
 	DataSourceName string
@@ -47,11 +47,11 @@ func (engine *Engine) SetMapper(mapper IMapper) {
 }
 
 func (engine *Engine) SetTableMapper(mapper IMapper) {
-	engine.tableMapper = mapper
+	engine.TableMapper = mapper
 }
 
 func (engine *Engine) SetColumnMapper(mapper IMapper) {
-	engine.columnMapper = mapper
+	engine.ColumnMapper = mapper
 }
 
 // If engine's database support batch insert records like
@@ -406,7 +406,7 @@ func (engine *Engine) autoMap(bean interface{}) *core.Table {
 }
 
 func (engine *Engine) mapType(t reflect.Type) *core.Table {
-	return mappingTable(t, engine.tableMapper, engine.columnMapper, engine.dialect, engine.TagIdentifier)
+	return mappingTable(t, engine.TableMapper, engine.ColumnMapper, engine.dialect, engine.TagIdentifier)
 }
 
 func mappingTable(t reflect.Type, tableMapper IMapper, colMapper IMapper, dialect core.Dialect, tagId string) *core.Table {

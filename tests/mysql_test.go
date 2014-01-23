@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/lunny/xorm"
 )
 
 /*
@@ -19,7 +20,7 @@ func TestMysql(t *testing.T) {
 		return
 	}
 
-	engine, err := NewEngine("mysql", "root:@/xorm_test?charset=utf8")
+	engine, err := xorm.NewEngine("mysql", "root:@/xorm_test?charset=utf8")
 	defer engine.Close()
 	if err != nil {
 		t.Error(err)
@@ -43,7 +44,7 @@ func TestMysqlSameMapper(t *testing.T) {
 		return
 	}
 
-	engine, err := NewEngine("mysql", "root:@/xorm_test1?charset=utf8")
+	engine, err := xorm.NewEngine("mysql", "root:@/xorm_test1?charset=utf8")
 	defer engine.Close()
 	if err != nil {
 		t.Error(err)
@@ -53,7 +54,7 @@ func TestMysqlSameMapper(t *testing.T) {
 	engine.ShowErr = showTestSql
 	engine.ShowWarn = showTestSql
 	engine.ShowDebug = showTestSql
-	engine.SetMapper(SameMapper{})
+	engine.SetMapper(xorm.SameMapper{})
 
 	testAll(engine, t)
 	testAllSameMapper(engine, t)
@@ -68,13 +69,13 @@ func TestMysqlWithCache(t *testing.T) {
 		return
 	}
 
-	engine, err := NewEngine("mysql", "root:@/xorm_test2?charset=utf8")
+	engine, err := xorm.NewEngine("mysql", "root:@/xorm_test2?charset=utf8")
 	defer engine.Close()
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 	engine.ShowSQL = showTestSql
 	engine.ShowErr = showTestSql
 	engine.ShowWarn = showTestSql
@@ -92,14 +93,14 @@ func TestMysqlWithCacheSameMapper(t *testing.T) {
 		return
 	}
 
-	engine, err := NewEngine("mysql", "root:@/xorm_test3?charset=utf8")
+	engine, err := xorm.NewEngine("mysql", "root:@/xorm_test3?charset=utf8")
 	defer engine.Close()
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	engine.SetMapper(SameMapper{})
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetMapper(xorm.SameMapper{})
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 	engine.ShowSQL = showTestSql
 	engine.ShowErr = showTestSql
 	engine.ShowWarn = showTestSql
@@ -110,12 +111,12 @@ func TestMysqlWithCacheSameMapper(t *testing.T) {
 	testAll2(engine, t)
 }
 
-func newMysqlEngine() (*Engine, error) {
-	return NewEngine("mysql", "root:@/xorm_test?charset=utf8")
+func newMysqlEngine() (*xorm.Engine, error) {
+	return xorm.NewEngine("mysql", "root:@/xorm_test?charset=utf8")
 }
 
 func mysqlDdlImport() error {
-	engine, err := NewEngine("mysql", "root:@/?charset=utf8")
+	engine, err := xorm.NewEngine("mysql", "root:@/?charset=utf8")
 	if err != nil {
 		return err
 	}
@@ -124,7 +125,7 @@ func mysqlDdlImport() error {
 	engine.ShowWarn = showTestSql
 	engine.ShowDebug = showTestSql
 
-	sqlResults, _ := engine.Import("tests/mysql_ddl.sql")
+	sqlResults, _ := engine.Import("testdata/mysql_ddl.sql")
 	engine.LogDebug("sql results: %v", sqlResults)
 	engine.Close()
 	return nil
@@ -189,7 +190,7 @@ func BenchmarkMysqlCacheInsert(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 
 	doBenchInsert(engine, t)
 }
@@ -201,7 +202,7 @@ func BenchmarkMysqlCacheFind(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 
 	doBenchFind(engine, t)
 }
@@ -213,7 +214,7 @@ func BenchmarkMysqlCacheFindPtr(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 
 	doBenchFindPtr(engine, t)
 }

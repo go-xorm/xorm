@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/lunny/xorm"
 	_ "github.com/ziutek/mymysql/godrv"
 )
 
@@ -20,7 +21,7 @@ func TestMyMysql(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	engine, err := NewEngine("mymysql", "xorm_test/root/")
+	engine, err := xorm.NewEngine("mymysql", "xorm_test/root/")
 	defer engine.Close()
 	if err != nil {
 		t.Error(err)
@@ -42,13 +43,13 @@ func TestMyMysqlWithCache(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	engine, err := NewEngine("mymysql", "xorm_test2/root/")
+	engine, err := xorm.NewEngine("mymysql", "xorm_test2/root/")
 	defer engine.Close()
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 	engine.ShowSQL = showTestSql
 	engine.ShowErr = showTestSql
 	engine.ShowWarn = showTestSql
@@ -58,8 +59,8 @@ func TestMyMysqlWithCache(t *testing.T) {
 	testAll2(engine, t)
 }
 
-func newMyMysqlEngine() (*Engine, error) {
-	return NewEngine("mymysql", "xorm_test2/root/")
+func newMyMysqlEngine() (*xorm.Engine, error) {
+	return xorm.NewEngine("mymysql", "xorm_test2/root/")
 }
 
 func newMyMysqlDriverDB() (*sql.DB, error) {
@@ -77,7 +78,7 @@ func BenchmarkMyMysqlDriverFind(t *testing.B) {
 }
 
 func mymysqlDdlImport() error {
-	engine, err := NewEngine("mymysql", "/root/")
+	engine, err := xorm.NewEngine("mymysql", "/root/")
 	if err != nil {
 		return err
 	}
@@ -86,7 +87,7 @@ func mymysqlDdlImport() error {
 	engine.ShowWarn = showTestSql
 	engine.ShowDebug = showTestSql
 
-	sqlResults, _ := engine.Import("tests/mysql_ddl.sql")
+	sqlResults, _ := engine.Import("testdata/mysql_ddl.sql")
 	engine.LogDebug("sql results: %v", sqlResults)
 	engine.Close()
 	return nil
@@ -135,7 +136,7 @@ func BenchmarkMyMysqlCacheInsert(t *testing.B) {
 	}
 
 	defer engine.Close()
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 
 	doBenchInsert(engine, t)
 }
@@ -148,7 +149,7 @@ func BenchmarkMyMysqlCacheFind(t *testing.B) {
 	}
 
 	defer engine.Close()
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 
 	doBenchFind(engine, t)
 }
@@ -161,7 +162,7 @@ func BenchmarkMyMysqlCacheFindPtr(t *testing.B) {
 	}
 
 	defer engine.Close()
-	engine.SetDefaultCacher(NewLRUCacher(NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
 
 	doBenchFindPtr(engine, t)
 }

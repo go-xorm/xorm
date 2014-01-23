@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lunny/xorm"
 	"github.com/lunny/xorm/core"
 )
 
@@ -44,7 +45,7 @@ type Userdetail struct {
 	Profile string `xorm:"varchar(2000)"`
 }
 
-func directCreateTable(engine *Engine, t *testing.T) {
+func directCreateTable(engine *xorm.Engine, t *testing.T) {
 	err := engine.DropTables(&Userinfo{}, &Userdetail{})
 	if err != nil {
 		t.Error(err)
@@ -94,7 +95,7 @@ func directCreateTable(engine *Engine, t *testing.T) {
 	}
 }
 
-func insert(engine *Engine, t *testing.T) {
+func insert(engine *xorm.Engine, t *testing.T) {
 	user := Userinfo{0, "xiaolunwen", "dev", "lunny", time.Now(),
 		Userdetail{Id: 1}, 1.78, []byte{1, 2, 3}, true}
 	cnt, err := engine.Insert(&user)
@@ -130,7 +131,7 @@ func insert(engine *Engine, t *testing.T) {
 	}
 }
 
-func testQuery(engine *Engine, t *testing.T) {
+func testQuery(engine *xorm.Engine, t *testing.T) {
 	sql := "select * from userinfo"
 	results, err := engine.Query(sql)
 	if err != nil {
@@ -140,7 +141,7 @@ func testQuery(engine *Engine, t *testing.T) {
 	fmt.Println(results)
 }
 
-func exec(engine *Engine, t *testing.T) {
+func exec(engine *xorm.Engine, t *testing.T) {
 	sql := "update userinfo set username=? where id=?"
 	res, err := engine.Exec(sql, "xiaolun", 1)
 	if err != nil {
@@ -150,7 +151,7 @@ func exec(engine *Engine, t *testing.T) {
 	fmt.Println(res)
 }
 
-func testQuerySameMapper(engine *Engine, t *testing.T) {
+func testQuerySameMapper(engine *xorm.Engine, t *testing.T) {
 	sql := "select * from `Userinfo`"
 	results, err := engine.Query(sql)
 	if err != nil {
@@ -160,7 +161,7 @@ func testQuerySameMapper(engine *Engine, t *testing.T) {
 	fmt.Println(results)
 }
 
-func execSameMapper(engine *Engine, t *testing.T) {
+func execSameMapper(engine *xorm.Engine, t *testing.T) {
 	sql := "update `Userinfo` set `Username`=? where (id)=?"
 	res, err := engine.Exec(sql, "xiaolun", 1)
 	if err != nil {
@@ -170,7 +171,7 @@ func execSameMapper(engine *Engine, t *testing.T) {
 	fmt.Println(res)
 }
 
-func insertAutoIncr(engine *Engine, t *testing.T) {
+func insertAutoIncr(engine *xorm.Engine, t *testing.T) {
 	// auto increment insert
 	user := Userinfo{Username: "xiaolunwen2", Departname: "dev", Alias: "lunny", Created: time.Now(),
 		Detail: Userdetail{Id: 1}, Height: 1.78, Avatar: []byte{1, 2, 3}, IsMan: true}
@@ -194,11 +195,11 @@ func insertAutoIncr(engine *Engine, t *testing.T) {
 type BigInsert struct {
 }
 
-func insertDefault(engine *Engine, t *testing.T) {
+func insertDefault(engine *xorm.Engine, t *testing.T) {
 
 }
 
-func insertMulti(engine *Engine, t *testing.T) {
+func insertMulti(engine *xorm.Engine, t *testing.T) {
 	//engine.InsertMany = true
 	users := []Userinfo{
 		{Username: "xlw", Departname: "dev", Alias: "lunny2", Created: time.Now()},
@@ -239,7 +240,7 @@ func insertMulti(engine *Engine, t *testing.T) {
 	}
 }
 
-func insertTwoTable(engine *Engine, t *testing.T) {
+func insertTwoTable(engine *xorm.Engine, t *testing.T) {
 	userdetail := Userdetail{ /*Id: 1, */ Intro: "I'm a very beautiful women.", Profile: "sfsaf"}
 	userinfo := Userinfo{Username: "xlw3", Departname: "dev", Alias: "lunny4", Created: time.Now(), Detail: userdetail}
 
@@ -281,7 +282,7 @@ type Article struct {
 
 type Condi map[string]interface{}
 
-func update(engine *Engine, t *testing.T) {
+func update(engine *xorm.Engine, t *testing.T) {
 	// update by id
 	user := Userinfo{Username: "xxx", Height: 1.2}
 	cnt, err := engine.Id(4).Update(&user)
@@ -360,7 +361,7 @@ func update(engine *Engine, t *testing.T) {
 	}
 }
 
-func updateSameMapper(engine *Engine, t *testing.T) {
+func updateSameMapper(engine *xorm.Engine, t *testing.T) {
 	// update by id
 	user := Userinfo{Username: "xxx", Height: 1.2}
 	cnt, err := engine.Id(4).Update(&user)
@@ -409,7 +410,7 @@ func updateSameMapper(engine *Engine, t *testing.T) {
 	}
 }
 
-func testDelete(engine *Engine, t *testing.T) {
+func testDelete(engine *xorm.Engine, t *testing.T) {
 	user := Userinfo{Uid: 1}
 	cnt, err := engine.Delete(&user)
 	if err != nil {
@@ -452,7 +453,7 @@ type NoIdUser struct {
 	Total  int64
 }
 
-func get(engine *Engine, t *testing.T) {
+func get(engine *xorm.Engine, t *testing.T) {
 	user := Userinfo{Uid: 2}
 
 	has, err := engine.Get(&user)
@@ -472,7 +473,7 @@ func get(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 
-	userCol := engine.columnMapper.Obj2Table("User")
+	userCol := engine.ColumnMapper.Obj2Table("User")
 
 	_, err = engine.Where("`"+userCol+"` = ?", "xlw").Delete(&NoIdUser{})
 	if err != nil {
@@ -507,7 +508,7 @@ func get(engine *Engine, t *testing.T) {
 	fmt.Println(noIdUser)
 }
 
-func cascadeGet(engine *Engine, t *testing.T) {
+func cascadeGet(engine *xorm.Engine, t *testing.T) {
 	user := Userinfo{Uid: 11}
 
 	has, err := engine.Get(&user)
@@ -522,7 +523,7 @@ func cascadeGet(engine *Engine, t *testing.T) {
 	}
 }
 
-func find(engine *Engine, t *testing.T) {
+func find(engine *xorm.Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
 
 	err := engine.Find(&users)
@@ -535,7 +536,7 @@ func find(engine *Engine, t *testing.T) {
 	}
 
 	users2 := make([]Userinfo, 0)
-	userinfo := engine.tableMapper.Obj2Table("Userinfo")
+	userinfo := engine.TableMapper.Obj2Table("Userinfo")
 	err = engine.Sql("select * from " + engine.Quote(userinfo)).Find(&users2)
 	if err != nil {
 		t.Error(err)
@@ -543,7 +544,7 @@ func find(engine *Engine, t *testing.T) {
 	}
 }
 
-func find2(engine *Engine, t *testing.T) {
+func find2(engine *xorm.Engine, t *testing.T) {
 	users := make([]*Userinfo, 0)
 
 	err := engine.Find(&users)
@@ -556,7 +557,7 @@ func find2(engine *Engine, t *testing.T) {
 	}
 }
 
-func findMap(engine *Engine, t *testing.T) {
+func findMap(engine *xorm.Engine, t *testing.T) {
 	users := make(map[int64]Userinfo)
 
 	err := engine.Find(&users)
@@ -569,7 +570,7 @@ func findMap(engine *Engine, t *testing.T) {
 	}
 }
 
-func findMap2(engine *Engine, t *testing.T) {
+func findMap2(engine *xorm.Engine, t *testing.T) {
 	users := make(map[int64]*Userinfo)
 
 	err := engine.Find(&users)
@@ -582,7 +583,7 @@ func findMap2(engine *Engine, t *testing.T) {
 	}
 }
 
-func count(engine *Engine, t *testing.T) {
+func count(engine *xorm.Engine, t *testing.T) {
 	user := Userinfo{Departname: "dev"}
 	total, err := engine.Count(&user)
 	if err != nil {
@@ -592,7 +593,7 @@ func count(engine *Engine, t *testing.T) {
 	fmt.Printf("Total %d records!!!\n", total)
 }
 
-func where(engine *Engine, t *testing.T) {
+func where(engine *xorm.Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
 	err := engine.Where("(id) > ?", 2).Find(&users)
 	if err != nil {
@@ -609,7 +610,7 @@ func where(engine *Engine, t *testing.T) {
 	fmt.Println(users)
 }
 
-func in(engine *Engine, t *testing.T) {
+func in(engine *xorm.Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
 	err := engine.In("(id)", 1, 2, 3).Find(&users)
 	if err != nil {
@@ -626,8 +627,8 @@ func in(engine *Engine, t *testing.T) {
 	}
 	fmt.Println(users)
 
-	department := engine.columnMapper.Obj2Table("Departname")
-	dev := engine.columnMapper.Obj2Table("Dev")
+	department := engine.ColumnMapper.Obj2Table("Departname")
+	dev := engine.ColumnMapper.Obj2Table("Dev")
 
 	err = engine.In("(id)", 1).In("(id)", 2).In(department, dev).Find(&users)
 	if err != nil {
@@ -687,7 +688,7 @@ func in(engine *Engine, t *testing.T) {
 	}
 }
 
-func limit(engine *Engine, t *testing.T) {
+func limit(engine *xorm.Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
 	err := engine.Limit(2, 1).Find(&users)
 	if err != nil {
@@ -697,7 +698,7 @@ func limit(engine *Engine, t *testing.T) {
 	fmt.Println(users)
 }
 
-func order(engine *Engine, t *testing.T) {
+func order(engine *xorm.Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
 	err := engine.OrderBy("id desc").Find(&users)
 	if err != nil {
@@ -715,7 +716,7 @@ func order(engine *Engine, t *testing.T) {
 	fmt.Println(users2)
 }
 
-func join(engine *Engine, t *testing.T) {
+func join(engine *xorm.Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
 	err := engine.Join("LEFT", "userdetail", "userinfo.id=userdetail.id").Find(&users)
 	if err != nil {
@@ -724,7 +725,7 @@ func join(engine *Engine, t *testing.T) {
 	}
 }
 
-func having(engine *Engine, t *testing.T) {
+func having(engine *xorm.Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
 	err := engine.GroupBy("username").Having("username='xlw'").Find(&users)
 	if err != nil {
@@ -734,7 +735,7 @@ func having(engine *Engine, t *testing.T) {
 	fmt.Println(users)
 }
 
-func orderSameMapper(engine *Engine, t *testing.T) {
+func orderSameMapper(engine *xorm.Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
 	err := engine.OrderBy("(id) desc").Find(&users)
 	if err != nil {
@@ -752,7 +753,7 @@ func orderSameMapper(engine *Engine, t *testing.T) {
 	fmt.Println(users2)
 }
 
-func joinSameMapper(engine *Engine, t *testing.T) {
+func joinSameMapper(engine *xorm.Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
 	err := engine.Join("LEFT", "`Userdetail`", "`Userinfo`.`(id)`=`Userdetail`.`(id)`").Find(&users)
 	if err != nil {
@@ -761,7 +762,7 @@ func joinSameMapper(engine *Engine, t *testing.T) {
 	}
 }
 
-func havingSameMapper(engine *Engine, t *testing.T) {
+func havingSameMapper(engine *xorm.Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
 	err := engine.GroupBy("Username").Having(`"Username"='xlw'`).Find(&users)
 	if err != nil {
@@ -771,7 +772,7 @@ func havingSameMapper(engine *Engine, t *testing.T) {
 	fmt.Println(users)
 }
 
-func transaction(engine *Engine, t *testing.T) {
+func transaction(engine *xorm.Engine, t *testing.T) {
 	counter := func() {
 		total, err := engine.Count(&Userinfo{})
 		if err != nil {
@@ -823,7 +824,7 @@ func transaction(engine *Engine, t *testing.T) {
 	// panic(err) !nashtsai! should remove this
 }
 
-func combineTransaction(engine *Engine, t *testing.T) {
+func combineTransaction(engine *xorm.Engine, t *testing.T) {
 	counter := func() {
 		total, err := engine.Count(&Userinfo{})
 		if err != nil {
@@ -872,7 +873,7 @@ func combineTransaction(engine *Engine, t *testing.T) {
 	}
 }
 
-func combineTransactionSameMapper(engine *Engine, t *testing.T) {
+func combineTransactionSameMapper(engine *xorm.Engine, t *testing.T) {
 	counter := func() {
 		total, err := engine.Count(&Userinfo{})
 		if err != nil {
@@ -921,7 +922,7 @@ func combineTransactionSameMapper(engine *Engine, t *testing.T) {
 	}
 }
 
-func table(engine *Engine, t *testing.T) {
+func table(engine *xorm.Engine, t *testing.T) {
 	err := engine.DropTables("user_user")
 	if err != nil {
 		t.Error(err)
@@ -935,7 +936,7 @@ func table(engine *Engine, t *testing.T) {
 	}
 }
 
-func createMultiTables(engine *Engine, t *testing.T) {
+func createMultiTables(engine *xorm.Engine, t *testing.T) {
 	session := engine.NewSession()
 	defer session.Close()
 
@@ -969,7 +970,7 @@ func createMultiTables(engine *Engine, t *testing.T) {
 	}
 }
 
-func tableOp(engine *Engine, t *testing.T) {
+func tableOp(engine *xorm.Engine, t *testing.T) {
 	user := Userinfo{Username: "tablexiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
 	tableName := fmt.Sprintf("user_%v", len(user.Username))
 	cnt, err := engine.Table(tableName).Insert(&user)
@@ -1017,7 +1018,7 @@ func tableOp(engine *Engine, t *testing.T) {
 	}
 }
 
-func testCharst(engine *Engine, t *testing.T) {
+func testCharst(engine *xorm.Engine, t *testing.T) {
 	err := engine.DropTables("user_charset")
 	if err != nil {
 		t.Error(err)
@@ -1031,7 +1032,7 @@ func testCharst(engine *Engine, t *testing.T) {
 	}
 }
 
-func testStoreEngine(engine *Engine, t *testing.T) {
+func testStoreEngine(engine *xorm.Engine, t *testing.T) {
 	err := engine.DropTables("user_store_engine")
 	if err != nil {
 		t.Error(err)
@@ -1050,7 +1051,7 @@ type tempUser struct {
 	Username string
 }
 
-func testCols(engine *Engine, t *testing.T) {
+func testCols(engine *xorm.Engine, t *testing.T) {
 	users := []Userinfo{}
 	err := engine.Cols("id, username").Find(&users)
 	if err != nil {
@@ -1077,7 +1078,7 @@ func testCols(engine *Engine, t *testing.T) {
 	fmt.Println("===================", user, affected)
 }
 
-func testColsSameMapper(engine *Engine, t *testing.T) {
+func testColsSameMapper(engine *xorm.Engine, t *testing.T) {
 	users := []Userinfo{}
 	err := engine.Cols("(id), Username").Find(&users)
 	if err != nil {
@@ -1109,7 +1110,7 @@ type tempUser2 struct {
 	Departname string
 }
 
-func testExtends(engine *Engine, t *testing.T) {
+func testExtends(engine *xorm.Engine, t *testing.T) {
 	err := engine.DropTables(&tempUser2{})
 	if err != nil {
 		t.Error(err)
@@ -1186,7 +1187,7 @@ type allCols struct {
 	//BigSerial int64 `xorm:"BIGSERIAL"`
 }
 
-func testColTypes(engine *Engine, t *testing.T) {
+func testColTypes(engine *xorm.Engine, t *testing.T) {
 	err := engine.DropTables(&allCols{})
 	if err != nil {
 		t.Error(err)
@@ -1319,7 +1320,7 @@ type MyStruct struct {
 	MSS map[string]string
 }
 
-func testCustomType(engine *Engine, t *testing.T) {
+func testCustomType(engine *xorm.Engine, t *testing.T) {
 	err := engine.DropTables(&MyStruct{})
 	if err != nil {
 		t.Error(err)
@@ -1405,7 +1406,7 @@ type UserCU struct {
 	Updated time.Time `xorm:"updated"`
 }
 
-func testCreatedAndUpdated(engine *Engine, t *testing.T) {
+func testCreatedAndUpdated(engine *xorm.Engine, t *testing.T) {
 	u := new(UserCU)
 	err := engine.DropTables(u)
 	if err != nil {
@@ -1472,7 +1473,7 @@ type IndexOrUnique struct {
 	UniGroup2 int `xorm:"unique(lll)"`
 }
 
-func testIndexAndUnique(engine *Engine, t *testing.T) {
+func testIndexAndUnique(engine *xorm.Engine, t *testing.T) {
 	err := engine.CreateTables(&IndexOrUnique{})
 	if err != nil {
 		t.Error(err)
@@ -1534,7 +1535,7 @@ type StringPK struct {
 	Name string
 }
 
-func testIntId(engine *Engine, t *testing.T) {
+func testIntId(engine *xorm.Engine, t *testing.T) {
 	err := engine.DropTables(&IntId{})
 	if err != nil {
 		t.Error(err)
@@ -1594,7 +1595,7 @@ func testIntId(engine *Engine, t *testing.T) {
 	}
 }
 
-func testInt32Id(engine *Engine, t *testing.T) {
+func testInt32Id(engine *xorm.Engine, t *testing.T) {
 	err := engine.DropTables(&Int32Id{})
 	if err != nil {
 		t.Error(err)
@@ -1655,7 +1656,7 @@ func testInt32Id(engine *Engine, t *testing.T) {
 	}
 }
 
-func testUintId(engine *Engine, t *testing.T) {
+func testUintId(engine *xorm.Engine, t *testing.T) {
 	err := engine.DropTables(&UintId{})
 	if err != nil {
 		t.Error(err)
@@ -1715,7 +1716,7 @@ func testUintId(engine *Engine, t *testing.T) {
 	}
 }
 
-func testUint32Id(engine *Engine, t *testing.T) {
+func testUint32Id(engine *xorm.Engine, t *testing.T) {
 	err := engine.DropTables(&Uint32Id{})
 	if err != nil {
 		t.Error(err)
@@ -1776,7 +1777,7 @@ func testUint32Id(engine *Engine, t *testing.T) {
 	}
 }
 
-func testUint64Id(engine *Engine, t *testing.T) {
+func testUint64Id(engine *xorm.Engine, t *testing.T) {
 	err := engine.DropTables(&Uint64Id{})
 	if err != nil {
 		t.Error(err)
@@ -1837,7 +1838,7 @@ func testUint64Id(engine *Engine, t *testing.T) {
 	}
 }
 
-func testStringPK(engine *Engine, t *testing.T) {
+func testStringPK(engine *xorm.Engine, t *testing.T) {
 	err := engine.DropTables(&StringPK{})
 	if err != nil {
 		t.Error(err)
@@ -1898,7 +1899,7 @@ func testStringPK(engine *Engine, t *testing.T) {
 	}
 }
 
-func testMetaInfo(engine *Engine, t *testing.T) {
+func testMetaInfo(engine *xorm.Engine, t *testing.T) {
 	tables, err := engine.DBMetas()
 	if err != nil {
 		t.Error(err)
@@ -1907,9 +1908,10 @@ func testMetaInfo(engine *Engine, t *testing.T) {
 
 	for _, table := range tables {
 		fmt.Println(table.Name)
-		for _, col := range table.Columns() {
-			fmt.Println(col.String(engine.dialect))
-		}
+		//for _, col := range table.Columns() {
+		//TODO: engine.dialect show exported
+		//fmt.Println(col.String(engine.dia))
+		//}
 
 		for _, index := range table.Indexes {
 			fmt.Println(index.Name, index.Type, strings.Join(index.Cols, ","))
@@ -1917,7 +1919,7 @@ func testMetaInfo(engine *Engine, t *testing.T) {
 	}
 }
 
-func testIterate(engine *Engine, t *testing.T) {
+func testIterate(engine *xorm.Engine, t *testing.T) {
 	err := engine.Omit("is_man").Iterate(new(Userinfo), func(idx int, bean interface{}) error {
 		user := bean.(*Userinfo)
 		fmt.Println(idx, "--", user)
@@ -1930,7 +1932,7 @@ func testIterate(engine *Engine, t *testing.T) {
 	}
 }
 
-func testRows(engine *Engine, t *testing.T) {
+func testRows(engine *xorm.Engine, t *testing.T) {
 	rows, err := engine.Omit("is_man").Rows(new(Userinfo))
 	if err != nil {
 		t.Error(err)
@@ -1956,7 +1958,7 @@ type StrangeName struct {
 	Name string
 }
 
-func testStrangeName(engine *Engine, t *testing.T) {
+func testStrangeName(engine *xorm.Engine, t *testing.T) {
 	err := engine.DropTables(new(StrangeName))
 	if err != nil {
 		t.Error(err)
@@ -1985,7 +1987,7 @@ type VersionS struct {
 	Ver  int `xorm:"version"`
 }
 
-func testVersion(engine *Engine, t *testing.T) {
+func testVersion(engine *xorm.Engine, t *testing.T) {
 	err := engine.DropTables(new(VersionS))
 	if err != nil {
 		t.Error(err)
@@ -2058,7 +2060,7 @@ func testVersion(engine *Engine, t *testing.T) {
 	   }*/
 }
 
-func testDistinct(engine *Engine, t *testing.T) {
+func testDistinct(engine *xorm.Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
 	err := engine.Distinct("departname").Find(&users)
 	if err != nil {
@@ -2089,7 +2091,7 @@ func testDistinct(engine *Engine, t *testing.T) {
 	fmt.Println(users2)
 }
 
-func testUseBool(engine *Engine, t *testing.T) {
+func testUseBool(engine *xorm.Engine, t *testing.T) {
 	cnt1, err := engine.Count(&Userinfo{})
 	if err != nil {
 		t.Error(err)
@@ -2129,7 +2131,7 @@ func testUseBool(engine *Engine, t *testing.T) {
 	}
 }
 
-func testBool(engine *Engine, t *testing.T) {
+func testBool(engine *xorm.Engine, t *testing.T) {
 	_, err := engine.UseBool().Update(&Userinfo{IsMan: true})
 	if err != nil {
 		t.Error(err)
@@ -2175,7 +2177,7 @@ type TTime struct {
 	Tz time.Time `xorm:"timestampz"`
 }
 
-func testTime(engine *Engine, t *testing.T) {
+func testTime(engine *xorm.Engine, t *testing.T) {
 	err := engine.Sync(&TTime{})
 	if err != nil {
 		t.Error(err)
@@ -2217,14 +2219,14 @@ func testTime(engine *Engine, t *testing.T) {
 	fmt.Println("=======\n", tt4s, "=======\n")
 }
 
-func testPrefixTableName(engine *Engine, t *testing.T) {
-	tempEngine, err := NewEngine(engine.DriverName, engine.DataSourceName)
+func testPrefixTableName(engine *xorm.Engine, t *testing.T) {
+	tempEngine, err := xorm.NewEngine(engine.DriverName, engine.DataSourceName)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 	tempEngine.ShowSQL = true
-	mapper := NewPrefixMapper(SnakeMapper{}, "xlw_")
+	mapper := xorm.NewPrefixMapper(xorm.SnakeMapper{}, "xlw_")
 	//tempEngine.SetMapper(mapper)
 	tempEngine.SetTableMapper(mapper)
 	exist, err := tempEngine.IsTableExist(&Userinfo{})
@@ -2255,7 +2257,7 @@ type CreatedUpdated struct {
 	Updated  time.Time `xorm:"updated"`
 }
 
-func testCreatedUpdated(engine *Engine, t *testing.T) {
+func testCreatedUpdated(engine *xorm.Engine, t *testing.T) {
 	err := engine.Sync(&CreatedUpdated{})
 	if err != nil {
 		t.Error(err)
@@ -2330,7 +2332,7 @@ func (p *ProcessorsStruct) AfterDelete() {
 	p.AfterDeletedFlag = 1
 }
 
-func testProcessors(engine *Engine, t *testing.T) {
+func testProcessors(engine *xorm.Engine, t *testing.T) {
 	// tempEngine, err := NewEngine(engine.DriverName, engine.DataSourceName)
 	// if err != nil {
 	//     t.Error(err)
@@ -2556,7 +2558,7 @@ func testProcessors(engine *Engine, t *testing.T) {
 	// --
 }
 
-func testProcessorsTx(engine *Engine, t *testing.T) {
+func testProcessorsTx(engine *xorm.Engine, t *testing.T) {
 	// tempEngine, err := NewEngine(engine.DriverName, engine.DataSourceName)
 	// if err != nil {
 	//     t.Error(err)
@@ -3062,7 +3064,7 @@ type NullData3 struct {
 	StringPtr *string
 }
 
-func testPointerData(engine *Engine, t *testing.T) {
+func testPointerData(engine *xorm.Engine, t *testing.T) {
 
 	err := engine.DropTables(&NullData{})
 	if err != nil {
@@ -3232,7 +3234,7 @@ func testPointerData(engine *Engine, t *testing.T) {
 	// using instance type should just work too
 	nullData2Get := NullData2{}
 
-	tableName := engine.tableMapper.Obj2Table("NullData")
+	tableName := engine.TableMapper.Obj2Table("NullData")
 
 	has, err = engine.Table(tableName).Id(nullData.Id).Get(&nullData2Get)
 	if err != nil {
@@ -3324,7 +3326,7 @@ func testPointerData(engine *Engine, t *testing.T) {
 	// --
 }
 
-func testNullValue(engine *Engine, t *testing.T) {
+func testNullValue(engine *xorm.Engine, t *testing.T) {
 
 	err := engine.DropTables(&NullData{})
 	if err != nil {
@@ -3599,7 +3601,7 @@ func testNullValue(engine *Engine, t *testing.T) {
 	// update to null values
 	nullDataUpdate = NullData{}
 
-	string_ptr := engine.columnMapper.Obj2Table("StringPtr")
+	string_ptr := engine.ColumnMapper.Obj2Table("StringPtr")
 
 	cnt, err = engine.Id(nullData.Id).Cols(string_ptr).Update(&nullDataUpdate)
 	if err != nil {
@@ -3709,7 +3711,7 @@ type CompositeKey struct {
 	UpdateStr string
 }
 
-func testCompositeKey(engine *Engine, t *testing.T) {
+func testCompositeKey(engine *xorm.Engine, t *testing.T) {
 
 	err := engine.DropTables(&CompositeKey{})
 	if err != nil {
@@ -3736,7 +3738,7 @@ func testCompositeKey(engine *Engine, t *testing.T) {
 	}
 
 	var compositeKeyVal CompositeKey
-	has, err := engine.Id(PK{11, 22}).Get(&compositeKeyVal)
+	has, err := engine.Id(xorm.PK{11, 22}).Get(&compositeKeyVal)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -3744,7 +3746,7 @@ func testCompositeKey(engine *Engine, t *testing.T) {
 	}
 
 	// test passing PK ptr, this test seem failed withCache
-	has, err = engine.Id(&PK{11, 22}).Get(&compositeKeyVal)
+	has, err = engine.Id(&xorm.PK{11, 22}).Get(&compositeKeyVal)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -3752,14 +3754,14 @@ func testCompositeKey(engine *Engine, t *testing.T) {
 	}
 
 	compositeKeyVal = CompositeKey{UpdateStr: "test1"}
-	cnt, err = engine.Id(PK{11, 22}).Update(&compositeKeyVal)
+	cnt, err = engine.Id(xorm.PK{11, 22}).Update(&compositeKeyVal)
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
 		t.Error(errors.New("can't update CompositeKey{11, 22}"))
 	}
 
-	cnt, err = engine.Id(PK{11, 22}).Delete(&CompositeKey{})
+	cnt, err = engine.Id(xorm.PK{11, 22}).Delete(&CompositeKey{})
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
@@ -3774,7 +3776,7 @@ type User struct {
 	Score    int32  `xorm:"integer"`
 }
 
-func testCompositeKey2(engine *Engine, t *testing.T) {
+func testCompositeKey2(engine *xorm.Engine, t *testing.T) {
 
 	err := engine.DropTables(&User{})
 	if err != nil {
@@ -3801,7 +3803,7 @@ func testCompositeKey2(engine *Engine, t *testing.T) {
 	}
 
 	var user User
-	has, err := engine.Id(PK{"11", 22}).Get(&user)
+	has, err := engine.Id(xorm.PK{"11", 22}).Get(&user)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -3809,7 +3811,7 @@ func testCompositeKey2(engine *Engine, t *testing.T) {
 	}
 
 	// test passing PK ptr, this test seem failed withCache
-	has, err = engine.Id(&PK{"11", 22}).Get(&user)
+	has, err = engine.Id(&xorm.PK{"11", 22}).Get(&user)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -3817,14 +3819,14 @@ func testCompositeKey2(engine *Engine, t *testing.T) {
 	}
 
 	user = User{NickName: "test1"}
-	cnt, err = engine.Id(PK{"11", 22}).Update(&user)
+	cnt, err = engine.Id(xorm.PK{"11", 22}).Update(&user)
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
 		t.Error(errors.New("can't update User{11, 22}"))
 	}
 
-	cnt, err = engine.Id(PK{"11", 22}).Delete(&User{})
+	cnt, err = engine.Id(xorm.PK{"11", 22}).Delete(&User{})
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
@@ -3832,7 +3834,7 @@ func testCompositeKey2(engine *Engine, t *testing.T) {
 	}
 }
 
-func testAll(engine *Engine, t *testing.T) {
+func testAll(engine *xorm.Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
 	fmt.Println("-------------- insert --------------")
@@ -3867,7 +3869,7 @@ func testAll(engine *Engine, t *testing.T) {
 	limit(engine, t)
 }
 
-func testAll2(engine *Engine, t *testing.T) {
+func testAll2(engine *xorm.Engine, t *testing.T) {
 	fmt.Println("-------------- combineTransaction --------------")
 	combineTransaction(engine, t)
 	fmt.Println("-------------- table --------------")
@@ -3931,7 +3933,7 @@ func testAll2(engine *Engine, t *testing.T) {
 }
 
 // !nash! the 3rd set of the test is intended for non-cache enabled engine
-func testAll3(engine *Engine, t *testing.T) {
+func testAll3(engine *xorm.Engine, t *testing.T) {
 	fmt.Println("-------------- processors TX --------------")
 	testProcessorsTx(engine, t)
 	fmt.Println("-------------- insert pointer data --------------")
@@ -3946,7 +3948,7 @@ func testAll3(engine *Engine, t *testing.T) {
 	testStringPK(engine, t)
 }
 
-func testAllSnakeMapper(engine *Engine, t *testing.T) {
+func testAllSnakeMapper(engine *xorm.Engine, t *testing.T) {
 	fmt.Println("-------------- query --------------")
 	testQuery(engine, t)
 	fmt.Println("-------------- exec --------------")
@@ -3961,7 +3963,7 @@ func testAllSnakeMapper(engine *Engine, t *testing.T) {
 	having(engine, t)
 }
 
-func testAllSameMapper(engine *Engine, t *testing.T) {
+func testAllSameMapper(engine *xorm.Engine, t *testing.T) {
 	fmt.Println("-------------- query --------------")
 	testQuerySameMapper(engine, t)
 	fmt.Println("-------------- exec --------------")
