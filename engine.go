@@ -452,6 +452,7 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 	table.Type = t
 
 	var idFieldColName string
+	var err error
 
 	for i := 0; i < t.NumField(); i++ {
 		tag := t.Field(i).Tag
@@ -495,8 +496,18 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 						col.Nullable = false
 					case k == "NULL":
 						col.Nullable = (strings.ToUpper(tags[j-1]) != "NOT")
+					/*case strings.HasPrefix(k, "AUTOINCR(") && strings.HasSuffix(k, ")"):
+					col.IsAutoIncrement = true
+
+					autoStart := k[len("AUTOINCR")+1 : len(k)-1]
+					autoStartInt, err := strconv.Atoi(autoStart)
+					if err != nil {
+						engine.LogError(err)
+					}
+					col.AutoIncrStart = autoStartInt*/
 					case k == "AUTOINCR":
 						col.IsAutoIncrement = true
+						//col.AutoIncrStart = 1
 					case k == "DEFAULT":
 						col.Default = tags[j+1]
 					case k == "CREATED":
@@ -533,10 +544,19 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 							col.SQLType = SQLType{fs[0], 0, 0}
 							fs2 := strings.Split(fs[1][0:len(fs[1])-1], ",")
 							if len(fs2) == 2 {
-								col.Length, _ = strconv.Atoi(fs2[0])
-								col.Length2, _ = strconv.Atoi(fs2[1])
+								col.Length, err = strconv.Atoi(fs2[0])
+								if err != nil {
+									engine.LogError(err)
+								}
+								col.Length2, err = strconv.Atoi(fs2[1])
+								if err != nil {
+									engine.LogError(err)
+								}
 							} else if len(fs2) == 1 {
-								col.Length, _ = strconv.Atoi(fs2[0])
+								col.Length, err = strconv.Atoi(fs2[0])
+								if err != nil {
+									engine.LogError(err)
+								}
 							}
 						} else {
 							if _, ok := sqlTypes[k]; ok {
