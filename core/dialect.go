@@ -107,7 +107,7 @@ func (b *Base) CreateTableSql(table *Table, tableName, storeEngine, charset stri
 
 	if len(pkList) > 1 {
 		sql += "PRIMARY KEY ( "
-		sql += strings.Join(pkList, ",")
+		sql += b.Quote(strings.Join(pkList, b.Quote(",")))
 		sql += " ), "
 	}
 

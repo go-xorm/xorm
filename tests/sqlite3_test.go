@@ -1,4 +1,4 @@
-package xorm
+package tests
 
 import (
 	"database/sql"
@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/lunny/xorm"
+	"github.com/lunny/xorm/caches"
+	"github.com/lunny/xorm/core"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -44,7 +46,7 @@ func TestSqlite3WithCache(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 	engine.ShowSQL = showTestSql
 	engine.ShowErr = showTestSql
 	engine.ShowWarn = showTestSql
@@ -62,7 +64,7 @@ func TestSqlite3SameMapper(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	engine.SetMapper(xorm.SameMapper{})
+	engine.SetMapper(core.SameMapper{})
 	engine.ShowSQL = showTestSql
 	engine.ShowErr = showTestSql
 	engine.ShowWarn = showTestSql
@@ -81,8 +83,8 @@ func TestSqlite3WithCacheSameMapper(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	engine.SetMapper(xorm.SameMapper{})
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetMapper(core.SameMapper{})
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 	engine.ShowSQL = showTestSql
 	engine.ShowErr = showTestSql
 	engine.ShowWarn = showTestSql
@@ -152,7 +154,7 @@ func BenchmarkSqlite3CacheInsert(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 	doBenchInsert(engine, t)
 }
 
@@ -164,7 +166,7 @@ func BenchmarkSqlite3CacheFind(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 	doBenchFind(engine, t)
 }
 
@@ -176,6 +178,6 @@ func BenchmarkSqlite3CacheFindPtr(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 	doBenchFindPtr(engine, t)
 }

@@ -1,4 +1,4 @@
-package xorm
+package tests
 
 import (
 	"database/sql"
@@ -6,6 +6,8 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/lunny/xorm"
+	"github.com/lunny/xorm/caches"
+	"github.com/lunny/xorm/core"
 )
 
 /*
@@ -54,7 +56,7 @@ func TestMysqlSameMapper(t *testing.T) {
 	engine.ShowErr = showTestSql
 	engine.ShowWarn = showTestSql
 	engine.ShowDebug = showTestSql
-	engine.SetMapper(xorm.SameMapper{})
+	engine.SetMapper(core.SameMapper{})
 
 	testAll(engine, t)
 	testAllSameMapper(engine, t)
@@ -75,7 +77,7 @@ func TestMysqlWithCache(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 	engine.ShowSQL = showTestSql
 	engine.ShowErr = showTestSql
 	engine.ShowWarn = showTestSql
@@ -99,8 +101,8 @@ func TestMysqlWithCacheSameMapper(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	engine.SetMapper(xorm.SameMapper{})
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetMapper(core.SameMapper{})
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 	engine.ShowSQL = showTestSql
 	engine.ShowErr = showTestSql
 	engine.ShowWarn = showTestSql
@@ -190,7 +192,7 @@ func BenchmarkMysqlCacheInsert(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 
 	doBenchInsert(engine, t)
 }
@@ -202,7 +204,7 @@ func BenchmarkMysqlCacheFind(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 
 	doBenchFind(engine, t)
 }
@@ -214,7 +216,7 @@ func BenchmarkMysqlCacheFindPtr(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 
 	doBenchFindPtr(engine, t)
 }

@@ -24,7 +24,7 @@ type Statement struct {
 	Start         int
 	LimitN        int
 	WhereStr      string
-	IdParam       *PK
+	IdParam       *core.PK
 	Params        []interface{}
 	OrderStr      string
 	JoinStr       string
@@ -421,24 +421,28 @@ func (statement *Statement) TableName() string {
 	return ""
 }
 
+var (
+	ptrPkType = reflect.TypeOf(&core.PK{})
+	pkType    = reflect.TypeOf(core.PK{})
+)
+
 // Generate "where id = ? " statment or for composite key "where key1 = ? and key2 = ?"
 func (statement *Statement) Id(id interface{}) *Statement {
-
 	idValue := reflect.ValueOf(id)
 	idType := reflect.TypeOf(idValue.Interface())
 
 	switch idType {
-	case reflect.TypeOf(&PK{}):
-		if pkPtr, ok := (id).(*PK); ok {
+	case ptrPkType:
+		if pkPtr, ok := (id).(*core.PK); ok {
 			statement.IdParam = pkPtr
 		}
-	case reflect.TypeOf(PK{}):
-		if pk, ok := (id).(PK); ok {
+	case pkType:
+		if pk, ok := (id).(core.PK); ok {
 			statement.IdParam = &pk
 		}
 	default:
 		// TODO treat as int primitve for now, need to handle type check
-		statement.IdParam = &PK{id}
+		statement.IdParam = &core.PK{id}
 
 		// !nashtsai! REVIEW although it will be user's mistake if called Id() twice with
 		// different value and Id should be PK's field name, however, at this stage probably
@@ -789,31 +793,12 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 }
 
 func (statement *Statement) processIdParam() {
-
 	if statement.IdParam != nil {
-		i := 0
-		columns := statement.RefTable.ColumnsSeq()
-		colCnt := len(columns)
-		for _, elem := range *(statement.IdParam) {
-			for ; i < colCnt; i++ {
-				colName := columns[i]
-				col := statement.RefTable.GetColumn(colName)
-				if col.IsPrimaryKey {
-					statement.And(fmt.Sprintf("%v=?", col.Name), elem)
-					i++
-					break
-				}
-			}
-		}
-
-		// !nashtsai! REVIEW what if statement.IdParam has insufficient pk item? handle it
-		// as empty string for now, so this will result sql exec failed instead of unexpected
-		// false update/delete
-		for ; i < colCnt; i++ {
-			colName := columns[i]
-			col := statement.RefTable.GetColumn(colName)
-			if col.IsPrimaryKey {
-				statement.And(fmt.Sprintf("%v=?", col.Name), "")
+		for i, col := range statement.RefTable.PKColumns() {
+			if i < len(*(statement.IdParam)) {
+				statement.And(fmt.Sprintf("%v=?", statement.Engine.Quote(col.Name)), (*(statement.IdParam))[i])
+			} else {
+				statement.And(fmt.Sprintf("%v=?", statement.Engine.Quote(col.Name)), "")
 			}
 		}
 	}

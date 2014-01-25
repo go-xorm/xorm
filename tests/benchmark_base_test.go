@@ -1,4 +1,4 @@
-package xorm
+package tests
 
 import (
 	"database/sql"

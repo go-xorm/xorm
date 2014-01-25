@@ -1,10 +1,11 @@
-package xorm
+package tests
 
 import (
 	"database/sql"
 	"testing"
 
 	"github.com/lunny/xorm"
+	"github.com/lunny/xorm/caches"
 	_ "github.com/ziutek/mymysql/godrv"
 )
 
@@ -49,7 +50,7 @@ func TestMyMysqlWithCache(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 	engine.ShowSQL = showTestSql
 	engine.ShowErr = showTestSql
 	engine.ShowWarn = showTestSql
@@ -136,7 +137,7 @@ func BenchmarkMyMysqlCacheInsert(t *testing.B) {
 	}
 
 	defer engine.Close()
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 
 	doBenchInsert(engine, t)
 }
@@ -149,7 +150,7 @@ func BenchmarkMyMysqlCacheFind(t *testing.B) {
 	}
 
 	defer engine.Close()
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 
 	doBenchFind(engine, t)
 }
@@ -162,7 +163,7 @@ func BenchmarkMyMysqlCacheFindPtr(t *testing.B) {
 	}
 
 	defer engine.Close()
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 
 	doBenchFindPtr(engine, t)
 }

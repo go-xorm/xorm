@@ -1,4 +1,4 @@
-package xorm
+package tests
 
 import (
 	"errors"
@@ -755,7 +755,7 @@ func orderSameMapper(engine *xorm.Engine, t *testing.T) {
 
 func joinSameMapper(engine *xorm.Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
-	err := engine.Join("LEFT", "`Userdetail`", "`Userinfo`.`(id)`=`Userdetail`.`(id)`").Find(&users)
+	err := engine.Join("LEFT", "`Userdetail`", "`Userinfo`.`(id)`=`Userdetail`.`Id`").Find(&users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -1080,7 +1080,7 @@ func testCols(engine *xorm.Engine, t *testing.T) {
 
 func testColsSameMapper(engine *xorm.Engine, t *testing.T) {
 	users := []Userinfo{}
-	err := engine.Cols("(id), Username").Find(&users)
+	err := engine.Cols("id, Username").Find(&users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -1089,7 +1089,8 @@ func testColsSameMapper(engine *xorm.Engine, t *testing.T) {
 	fmt.Println(users)
 
 	tmpUsers := []tempUser{}
-	err = engine.Table("Userinfo").Cols("(id), Username").Find(&tmpUsers)
+	// TODO: should use cache
+	err = engine.NoCache().Table("Userinfo").Cols("id, Username").Find(&tmpUsers)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -2062,7 +2063,8 @@ func testVersion(engine *xorm.Engine, t *testing.T) {
 
 func testDistinct(engine *xorm.Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
-	err := engine.Distinct("departname").Find(&users)
+	departname := engine.TableMapper.Obj2Table("Departname")
+	err := engine.Distinct(departname).Find(&users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -2079,7 +2081,7 @@ func testDistinct(engine *xorm.Engine, t *testing.T) {
 	}
 
 	users2 := make([]Depart, 0)
-	err = engine.Distinct("departname").Table(new(Userinfo)).Find(&users2)
+	err = engine.Distinct(departname).Table(new(Userinfo)).Find(&users2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -2226,7 +2228,7 @@ func testPrefixTableName(engine *xorm.Engine, t *testing.T) {
 		panic(err)
 	}
 	tempEngine.ShowSQL = true
-	mapper := xorm.NewPrefixMapper(xorm.SnakeMapper{}, "xlw_")
+	mapper := core.NewPrefixMapper(core.SnakeMapper{}, "xlw_")
 	//tempEngine.SetMapper(mapper)
 	tempEngine.SetTableMapper(mapper)
 	exist, err := tempEngine.IsTableExist(&Userinfo{})
@@ -3738,7 +3740,7 @@ func testCompositeKey(engine *xorm.Engine, t *testing.T) {
 	}
 
 	var compositeKeyVal CompositeKey
-	has, err := engine.Id(xorm.PK{11, 22}).Get(&compositeKeyVal)
+	has, err := engine.Id(core.PK{11, 22}).Get(&compositeKeyVal)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -3746,7 +3748,7 @@ func testCompositeKey(engine *xorm.Engine, t *testing.T) {
 	}
 
 	// test passing PK ptr, this test seem failed withCache
-	has, err = engine.Id(&xorm.PK{11, 22}).Get(&compositeKeyVal)
+	has, err = engine.Id(&core.PK{11, 22}).Get(&compositeKeyVal)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -3754,14 +3756,14 @@ func testCompositeKey(engine *xorm.Engine, t *testing.T) {
 	}
 
 	compositeKeyVal = CompositeKey{UpdateStr: "test1"}
-	cnt, err = engine.Id(xorm.PK{11, 22}).Update(&compositeKeyVal)
+	cnt, err = engine.Id(core.PK{11, 22}).Update(&compositeKeyVal)
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
 		t.Error(errors.New("can't update CompositeKey{11, 22}"))
 	}
 
-	cnt, err = engine.Id(xorm.PK{11, 22}).Delete(&CompositeKey{})
+	cnt, err = engine.Id(core.PK{11, 22}).Delete(&CompositeKey{})
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
@@ -3803,7 +3805,7 @@ func testCompositeKey2(engine *xorm.Engine, t *testing.T) {
 	}
 
 	var user User
-	has, err := engine.Id(xorm.PK{"11", 22}).Get(&user)
+	has, err := engine.Id(core.PK{"11", 22}).Get(&user)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -3811,7 +3813,7 @@ func testCompositeKey2(engine *xorm.Engine, t *testing.T) {
 	}
 
 	// test passing PK ptr, this test seem failed withCache
-	has, err = engine.Id(&xorm.PK{"11", 22}).Get(&user)
+	has, err = engine.Id(&core.PK{"11", 22}).Get(&user)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -3819,14 +3821,14 @@ func testCompositeKey2(engine *xorm.Engine, t *testing.T) {
 	}
 
 	user = User{NickName: "test1"}
-	cnt, err = engine.Id(xorm.PK{"11", 22}).Update(&user)
+	cnt, err = engine.Id(core.PK{"11", 22}).Update(&user)
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
 		t.Error(errors.New("can't update User{11, 22}"))
 	}
 
-	cnt, err = engine.Id(xorm.PK{"11", 22}).Delete(&User{})
+	cnt, err = engine.Id(core.PK{"11", 22}).Delete(&User{})
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
@@ -3870,16 +3872,12 @@ func testAll(engine *xorm.Engine, t *testing.T) {
 }
 
 func testAll2(engine *xorm.Engine, t *testing.T) {
-	fmt.Println("-------------- combineTransaction --------------")
-	combineTransaction(engine, t)
 	fmt.Println("-------------- table --------------")
 	table(engine, t)
 	fmt.Println("-------------- createMultiTables --------------")
 	createMultiTables(engine, t)
 	fmt.Println("-------------- tableOp --------------")
 	tableOp(engine, t)
-	fmt.Println("-------------- testCols --------------")
-	testCols(engine, t)
 	fmt.Println("-------------- testCharst --------------")
 	testCharst(engine, t)
 	fmt.Println("-------------- testStoreEngine --------------")
@@ -3961,6 +3959,10 @@ func testAllSnakeMapper(engine *xorm.Engine, t *testing.T) {
 	join(engine, t)
 	fmt.Println("-------------- having --------------")
 	having(engine, t)
+	fmt.Println("-------------- combineTransaction --------------")
+	combineTransaction(engine, t)
+	fmt.Println("-------------- testCols --------------")
+	testCols(engine, t)
 }
 
 func testAllSameMapper(engine *xorm.Engine, t *testing.T) {
@@ -3976,4 +3978,8 @@ func testAllSameMapper(engine *xorm.Engine, t *testing.T) {
 	joinSameMapper(engine, t)
 	fmt.Println("-------------- having --------------")
 	havingSameMapper(engine, t)
+	fmt.Println("-------------- combineTransaction --------------")
+	combineTransactionSameMapper(engine, t)
+	fmt.Println("-------------- testCols --------------")
+	testColsSameMapper(engine, t)
 }

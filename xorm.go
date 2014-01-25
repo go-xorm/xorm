@@ -7,7 +7,9 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
+	"time"
 
+	"github.com/lunny/xorm/caches"
 	"github.com/lunny/xorm/core"
 	_ "github.com/lunny/xorm/dialects"
 	_ "github.com/lunny/xorm/drivers"
@@ -46,9 +48,9 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 
 	engine := &Engine{DriverName: driverName,
 		DataSourceName: dataSourceName, dialect: dialect,
-		tableCachers: make(map[reflect.Type]Cacher)}
+		tableCachers: make(map[reflect.Type]core.Cacher)}
 
-	engine.SetMapper(SnakeMapper{})
+	engine.SetMapper(core.SnakeMapper{})
 
 	engine.Filters = dialect.Filters()
 
@@ -64,4 +66,12 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 	err = engine.SetPool(NewSysConnectPool())
 	runtime.SetFinalizer(engine, close)
 	return engine, err
+}
+
+func NewLRUCacher(store core.CacheStore, max int) *caches.LRUCacher {
+	return caches.NewLRUCacher(store, core.CacheExpired, core.CacheMaxMemory, max)
+}
+
+func NewLRUCacher2(store core.CacheStore, expired time.Duration, max int) *caches.LRUCacher {
+	return caches.NewLRUCacher(store, expired, 0, max)
 }

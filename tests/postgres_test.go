@@ -1,4 +1,4 @@
-package xorm
+package tests
 
 import (
 	"database/sql"
@@ -6,6 +6,8 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/lunny/xorm"
+	"github.com/lunny/xorm/caches"
+	"github.com/lunny/xorm/core"
 )
 
 //var connStr string = "dbname=xorm_test user=lunny password=1234 sslmode=disable"
@@ -59,7 +61,7 @@ func TestPostgresWithCache(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 	defer engine.Close()
 	engine.ShowSQL = showTestSql
 	engine.ShowErr = showTestSql
@@ -78,7 +80,7 @@ func TestPostgresSameMapper(t *testing.T) {
 		return
 	}
 	defer engine.Close()
-	engine.SetMapper(xorm.SameMapper{})
+	engine.SetMapper(core.SameMapper{})
 	engine.ShowSQL = showTestSql
 	engine.ShowErr = showTestSql
 	engine.ShowWarn = showTestSql
@@ -96,9 +98,9 @@ func TestPostgresWithCacheSameMapper(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 	defer engine.Close()
-	engine.SetMapper(xorm.SameMapper{})
+	engine.SetMapper(core.SameMapper{})
 	engine.ShowSQL = showTestSql
 	engine.ShowErr = showTestSql
 	engine.ShowWarn = showTestSql
@@ -168,7 +170,7 @@ func BenchmarkPostgresCacheInsert(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 
 	doBenchInsert(engine, t)
 }
@@ -181,7 +183,7 @@ func BenchmarkPostgresCacheFind(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 
 	doBenchFind(engine, t)
 }
@@ -194,7 +196,7 @@ func BenchmarkPostgresCacheFindPtr(t *testing.B) {
 		t.Error(err)
 		return
 	}
-	engine.SetDefaultCacher(xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000))
+	engine.SetDefaultCacher(xorm.NewLRUCacher(caches.NewMemoryStore(), 1000))
 
 	doBenchFindPtr(engine, t)
 }

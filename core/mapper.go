@@ -1,4 +1,4 @@
-package xorm
+package core
 
 import (
 	"strings"
