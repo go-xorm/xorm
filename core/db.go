@@ -27,17 +27,33 @@ type Rows struct {
 }
 
 // scan data to a struct's pointer according field index
-func (rs *Rows) ScanStruct(dest interface{}) error {
-	vv := reflect.ValueOf(dest)
-	if vv.Kind() != reflect.Ptr || vv.Elem().Kind() != reflect.Struct {
-		return errors.New("dest should be a struct's pointer")
+func (rs *Rows) ScanStruct(dest ...interface{}) error {
+	if len(dest) == 0 {
+		return errors.New("at least one struct")
 	}
 
-	vvv := vv.Elem()
-	newDest := make([]interface{}, vvv.NumField())
+	vvvs := make([]reflect.Value, len(dest))
+	for i, s := range dest {
+		vv := reflect.ValueOf(s)
+		if vv.Kind() != reflect.Ptr || vv.Elem().Kind() != reflect.Struct {
+			return errors.New("dest should be a struct's pointer")
+		}
 
-	for j := 0; j < vvv.NumField(); j++ {
-		newDest[j] = vvv.Field(j).Addr().Interface()
+		vvvs[i] = vv.Elem()
+	}
+
+	cols, err := rs.Columns()
+	if err != nil {
+		return err
+	}
+	newDest := make([]interface{}, len(cols))
+
+	var i = 0
+	for _, vvv := range vvvs {
+		for j := 0; j < vvv.NumField(); j++ {
+			newDest[i] = vvv.Field(j).Addr().Interface()
+			i = i + 1
+		}
 	}
 
 	return rs.Rows.Scan(newDest...)

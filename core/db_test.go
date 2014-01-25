@@ -1,10 +1,8 @@
 package core
 
 import (
-	"fmt"
 	"os"
 	"testing"
-	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -22,209 +20,305 @@ type User struct {
 	NickName string
 }
 
-func TestOriQuery(t *testing.T) {
+func BenchmarkOriQuery(b *testing.B) {
+	b.StopTimer()
 	os.Remove("./test.db")
 	db, err := Open("sqlite3", "./test.db")
 	if err != nil {
-		t.Error(err)
+		b.Error(err)
 	}
 
 	_, err = db.Exec(createTableSqlite3)
 	if err != nil {
-		t.Error(err)
+		b.Error(err)
 	}
 
 	for i := 0; i < 50; i++ {
 		_, err = db.Exec("insert into user (name, title, age, alias, nick_name) values (?,?,?,?,?)",
 			"xlw", "tester", 1.2, "lunny", "lunny xiao")
 		if err != nil {
-			t.Error(err)
+			b.Error(err)
 		}
 	}
 
-	rows, err := db.Query("select * from user")
-	if err != nil {
-		t.Error(err)
-	}
-	defer rows.Close()
+	b.StartTimer()
 
-	start := time.Now()
-
-	for rows.Next() {
-		var Id int64
-		var Name, Title, Alias, NickName string
-		var Age float32
-		err = rows.Scan(&Id, &Name, &Title, &Age, &Alias, &NickName)
+	for i := 0; i < b.N; i++ {
+		rows, err := db.Query("select * from user")
 		if err != nil {
-			t.Error(err)
+			b.Error(err)
 		}
-		fmt.Println(Id, Name, Title, Age, Alias, NickName)
-	}
 
-	fmt.Println("ori ------", time.Now().Sub(start), "ns")
+		for rows.Next() {
+			var Id int64
+			var Name, Title, Alias, NickName string
+			var Age float32
+			err = rows.Scan(&Id, &Name, &Title, &Age, &Alias, &NickName)
+			if err != nil {
+				b.Error(err)
+			}
+			//fmt.Println(Id, Name, Title, Age, Alias, NickName)
+		}
+		rows.Close()
+	}
 }
 
-func TestStructQuery(t *testing.T) {
+func BenchmarkStructQuery(b *testing.B) {
+	b.StopTimer()
 	os.Remove("./test.db")
 	db, err := Open("sqlite3", "./test.db")
 	if err != nil {
-		t.Error(err)
+		b.Error(err)
 	}
 
 	_, err = db.Exec(createTableSqlite3)
 	if err != nil {
-		t.Error(err)
+		b.Error(err)
 	}
 
 	for i := 0; i < 50; i++ {
 		_, err = db.Exec("insert into user (name, title, age, alias, nick_name) values (?,?,?,?,?)",
 			"xlw", "tester", 1.2, "lunny", "lunny xiao")
 		if err != nil {
-			t.Error(err)
+			b.Error(err)
 		}
 	}
 
-	rows, err := db.Query("select * from user")
-	if err != nil {
-		t.Error(err)
-	}
-	defer rows.Close()
-	start := time.Now()
+	b.StartTimer()
 
-	for rows.Next() {
-		var user User
-		err = rows.ScanStruct(&user)
+	for i := 0; i < b.N; i++ {
+		rows, err := db.Query("select * from user")
 		if err != nil {
-			t.Error(err)
+			b.Error(err)
 		}
-		fmt.Println(user)
+
+		for rows.Next() {
+			var user User
+			err = rows.ScanStruct(&user)
+			if err != nil {
+				b.Error(err)
+			}
+			//fmt.Println(user)
+		}
+		rows.Close()
 	}
-	fmt.Println("struct ------", time.Now().Sub(start))
 }
 
-func TestStruct2Query(t *testing.T) {
+func BenchmarkStruct2Query(b *testing.B) {
+	b.StopTimer()
 	os.Remove("./test.db")
 	db, err := Open("sqlite3", "./test.db")
 	if err != nil {
-		t.Error(err)
+		b.Error(err)
 	}
 
 	_, err = db.Exec(createTableSqlite3)
 	if err != nil {
-		t.Error(err)
+		b.Error(err)
 	}
 
 	for i := 0; i < 50; i++ {
 		_, err = db.Exec("insert into user (name, title, age, alias, nick_name) values (?,?,?,?,?)",
 			"xlw", "tester", 1.2, "lunny", "lunny xiao")
 		if err != nil {
-			t.Error(err)
+			b.Error(err)
 		}
 	}
 
 	db.Mapper = &SnakeMapper{}
+	b.StartTimer()
 
-	rows, err := db.Query("select * from user")
-	if err != nil {
-		t.Error(err)
-	}
-	defer rows.Close()
-	start := time.Now()
-
-	for rows.Next() {
-		var user User
-		err = rows.ScanStruct2(&user)
+	for i := 0; i < b.N; i++ {
+		rows, err := db.Query("select * from user")
 		if err != nil {
-			t.Error(err)
+			b.Error(err)
 		}
-		fmt.Println(user)
+
+		for rows.Next() {
+			var user User
+			err = rows.ScanStruct2(&user)
+			if err != nil {
+				b.Error(err)
+			}
+			//fmt.Println(user)
+		}
+		rows.Close()
 	}
-	fmt.Println("struct2 ------", time.Now().Sub(start))
 }
 
-func TestSliceQuery(t *testing.T) {
+func BenchmarkSliceQuery(b *testing.B) {
+	b.StopTimer()
 	os.Remove("./test.db")
 	db, err := Open("sqlite3", "./test.db")
 	if err != nil {
-		t.Error(err)
+		b.Error(err)
 	}
 
 	_, err = db.Exec(createTableSqlite3)
 	if err != nil {
-		t.Error(err)
+		b.Error(err)
 	}
 
 	for i := 0; i < 50; i++ {
 		_, err = db.Exec("insert into user (name, title, age, alias, nick_name) values (?,?,?,?,?)",
 			"xlw", "tester", 1.2, "lunny", "lunny xiao")
 		if err != nil {
-			t.Error(err)
+			b.Error(err)
 		}
 	}
 
-	rows, err := db.Query("select * from user")
-	if err != nil {
-		t.Error(err)
-	}
+	b.StartTimer()
 
-	defer rows.Close()
-
-	cols, err := rows.Columns()
-	if err != nil {
-		t.Error(err)
-	}
-
-	start := time.Now()
-
-	for rows.Next() {
-		slice := make([]interface{}, len(cols))
-		err = rows.ScanSlice(&slice)
+	for i := 0; i < b.N; i++ {
+		rows, err := db.Query("select * from user")
 		if err != nil {
-			t.Error(err)
+			b.Error(err)
 		}
-		fmt.Println(slice)
-	}
 
-	fmt.Println("slice ------", time.Now().Sub(start))
+		cols, err := rows.Columns()
+		if err != nil {
+			b.Error(err)
+		}
+
+		for rows.Next() {
+			slice := make([]interface{}, len(cols))
+			err = rows.ScanSlice(&slice)
+			if err != nil {
+				b.Error(err)
+			}
+			//fmt.Println(slice)
+		}
+
+		rows.Close()
+	}
 }
 
-func TestMapQuery(t *testing.T) {
+func BenchmarkMapInterfaceQuery(b *testing.B) {
+	b.StopTimer()
 	os.Remove("./test.db")
 	db, err := Open("sqlite3", "./test.db")
 	if err != nil {
-		t.Error(err)
+		b.Error(err)
 	}
 
 	_, err = db.Exec(createTableSqlite3)
 	if err != nil {
-		t.Error(err)
+		b.Error(err)
 	}
 
 	for i := 0; i < 50; i++ {
 		_, err = db.Exec("insert into user (name, title, age, alias, nick_name) values (?,?,?,?,?)",
 			"xlw", "tester", 1.2, "lunny", "lunny xiao")
 		if err != nil {
-			t.Error(err)
+			b.Error(err)
 		}
 	}
 
-	rows, err := db.Query("select * from user")
-	if err != nil {
-		t.Error(err)
-	}
+	b.StartTimer()
 
-	defer rows.Close()
-
-	start := time.Now()
-
-	for rows.Next() {
-		m := make(map[string]interface{})
-		err = rows.ScanMap(&m)
+	for i := 0; i < b.N; i++ {
+		rows, err := db.Query("select * from user")
 		if err != nil {
-			t.Error(err)
+			b.Error(err)
 		}
-		fmt.Println(m)
+
+		for rows.Next() {
+			m := make(map[string]interface{})
+			err = rows.ScanMap(&m)
+			if err != nil {
+				b.Error(err)
+			}
+			//fmt.Println(m)
+		}
+
+		rows.Close()
+	}
+}
+
+func BenchmarkMapBytesQuery(b *testing.B) {
+	b.StopTimer()
+	os.Remove("./test.db")
+	db, err := Open("sqlite3", "./test.db")
+	if err != nil {
+		b.Error(err)
 	}
 
-	fmt.Println("map ------", time.Now().Sub(start))
+	_, err = db.Exec(createTableSqlite3)
+	if err != nil {
+		b.Error(err)
+	}
+
+	for i := 0; i < 50; i++ {
+		_, err = db.Exec("insert into user (name, title, age, alias, nick_name) values (?,?,?,?,?)",
+			"xlw", "tester", 1.2, "lunny", "lunny xiao")
+		if err != nil {
+			b.Error(err)
+		}
+	}
+
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		rows, err := db.Query("select * from user")
+		if err != nil {
+			b.Error(err)
+		}
+
+		for rows.Next() {
+			m := make(map[string][]byte)
+			err = rows.ScanMap(&m)
+			if err != nil {
+				b.Error(err)
+			}
+			/*for k, v := range m {
+				fmt.Printf("%v - %v\n", k, string(v))
+			}*/
+		}
+
+		rows.Close()
+	}
+}
+
+func BenchmarkMapStringQuery(b *testing.B) {
+	b.StopTimer()
+	os.Remove("./test.db")
+	db, err := Open("sqlite3", "./test.db")
+	if err != nil {
+		b.Error(err)
+	}
+
+	_, err = db.Exec(createTableSqlite3)
+	if err != nil {
+		b.Error(err)
+	}
+
+	for i := 0; i < 50; i++ {
+		_, err = db.Exec("insert into user (name, title, age, alias, nick_name) values (?,?,?,?,?)",
+			"xlw", "tester", 1.2, "lunny", "lunny xiao")
+		if err != nil {
+			b.Error(err)
+		}
+	}
+
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		rows, err := db.Query("select * from user")
+		if err != nil {
+			b.Error(err)
+		}
+
+		for rows.Next() {
+			m := make(map[string]string)
+			err = rows.ScanMap(&m)
+			if err != nil {
+				b.Error(err)
+			}
+			/*for k, v := range m {
+				fmt.Printf("%v - %v\n", k, v)
+			}*/
+		}
+
+		rows.Close()
+	}
 }
