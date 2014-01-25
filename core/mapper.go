@@ -2,12 +2,57 @@ package core
 
 import (
 	"strings"
+	"sync"
 )
 
 // name translation between struct, fields names and table, column names
 type IMapper interface {
 	Obj2Table(string) string
 	Table2Obj(string) string
+}
+
+type CacheMapper struct {
+	oriMapper      IMapper
+	obj2tableCache map[string]string
+	obj2tableMutex sync.RWMutex
+	table2objCache map[string]string
+	table2objMutex sync.RWMutex
+}
+
+func NewCacheMapper(mapper IMapper) *CacheMapper {
+	return &CacheMapper{oriMapper: mapper, obj2tableCache: make(map[string]string),
+		table2objCache: make(map[string]string),
+	}
+}
+
+func (m *CacheMapper) Obj2Table(o string) string {
+	m.obj2tableMutex.RLock()
+	t, ok := m.obj2tableCache[o]
+	m.obj2tableMutex.RUnlock()
+	if ok {
+		return t
+	}
+
+	t = m.oriMapper.Obj2Table(o)
+	m.obj2tableMutex.Lock()
+	m.obj2tableCache[o] = t
+	m.obj2tableMutex.Unlock()
+	return t
+}
+
+func (m *CacheMapper) Table2Obj(t string) string {
+	m.table2objMutex.RLock()
+	o, ok := m.table2objCache[t]
+	m.table2objMutex.RUnlock()
+	if ok {
+		return o
+	}
+
+	o = m.oriMapper.Table2Obj(t)
+	m.table2objMutex.Lock()
+	m.table2objCache[t] = o
+	m.table2objMutex.Unlock()
+	return o
 }
 
 // SameMapper implements IMapper and provides same name between struct and

@@ -125,7 +125,7 @@ func BenchmarkStruct2Query(b *testing.B) {
 		}
 	}
 
-	db.Mapper = &SnakeMapper{}
+	db.Mapper = NewCacheMapper(&SnakeMapper{})
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
