@@ -1,20 +1,20 @@
 package main
 
 import (
-	"github.com/lunny/xorm"
 	"io/ioutil"
 	"strings"
 	"text/template"
+	"github.com/lunny/xorm/core"
 )
 
 type LangTmpl struct {
 	Funcs      template.FuncMap
 	Formater   func(string) (string, error)
-	GenImports func([]*xorm.Table) map[string]string
+	GenImports func([]*core.Table) map[string]string
 }
 
 var (
-	mapper    = &xorm.SnakeMapper{}
+	mapper    = &core.SnakeMapper{}
 	langTmpls = map[string]LangTmpl{
 		"go":  GoLangTmpl,
 		"c++": CPlusTmpl,

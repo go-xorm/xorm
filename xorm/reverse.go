@@ -3,18 +3,20 @@ package main
 import (
 	"bytes"
 	"fmt"
-	_ "github.com/bylevel/pq"
-	"github.com/dvirsky/go-pylog/logging"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/lunny/xorm"
-	_ "github.com/mattn/go-sqlite3"
-	_ "github.com/ziutek/mymysql/godrv"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"strconv"
 	"text/template"
+
+	_ "github.com/bylevel/pq"
+	"github.com/dvirsky/go-pylog/logging"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/lunny/xorm"
+	"github.com/lunny/xorm/core"
+	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/ziutek/mymysql/godrv"
 )
 
 var CmdReverse = &Command{
@@ -48,7 +50,7 @@ func printReversePrompt(flag string) {
 }
 
 type Tmpl struct {
-	Tables  []*xorm.Table
+	Tables  []*core.Table
 	Imports map[string]string
 	Model   string
 }
@@ -188,7 +190,7 @@ func runReverse(cmd *Command, args []string) {
 
 			imports := langTmpl.GenImports(tables)
 
-			tbls := make([]*xorm.Table, 0)
+			tbls := make([]*core.Table, 0)
 			for _, table := range tables {
 				tbls = append(tbls, table)
 			}
@@ -223,7 +225,7 @@ func runReverse(cmd *Command, args []string) {
 		} else {
 			for _, table := range tables {
 				// imports
-				tbs := []*xorm.Table{table}
+				tbs := []*core.Table{table}
 				imports := langTmpl.GenImports(tbs)
 
 				w, err := os.OpenFile(path.Join(genDir, unTitle(mapper.Table2Obj(table.Name))+ext), os.O_RDWR|os.O_CREATE, 0600)

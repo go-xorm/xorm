@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/lunny/xorm"
 	_ "github.com/mattn/go-sqlite3"
-	"os"
 )
 
 type User struct {
@@ -26,7 +27,7 @@ func main() {
 	f := "singleMapping.db"
 	os.Remove(f)
 
-	Orm, err := NewEngine("sqlite3", f)
+	Orm, err := xorm.NewEngine("sqlite3", f)
 	if err != nil {
 		fmt.Println(err)
 		return

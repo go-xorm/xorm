@@ -3,11 +3,11 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/lunny/xorm"
 	"go/format"
 	"reflect"
 	"strings"
 	"text/template"
+	"github.com/lunny/xorm/core"
 )
 
 var (
@@ -157,7 +157,7 @@ func gt(arg1, arg2 interface{}) (bool, error) {
 	return !lessOrEqual, nil
 }
 
-func getCol(cols map[string]*xorm.Column, name string) *xorm.Column {
+func getCol(cols map[string]*core.Column, name string) *core.Column {
 	return cols[name]
 }
 
@@ -169,11 +169,11 @@ func formatGo(src string) (string, error) {
 	return string(source), nil
 }
 
-func genGoImports(tables []*xorm.Table) map[string]string {
+func genGoImports(tables []*core.Table) map[string]string {
 	imports := make(map[string]string)
 
 	for _, table := range tables {
-		for _, col := range table.Columns {
+		for _, col := range table.Columns() {
 			if typestring(col) == "time.Time" {
 				imports["time"] = "time"
 			}
@@ -182,12 +182,9 @@ func genGoImports(tables []*xorm.Table) map[string]string {
 	return imports
 }
 
-func typestring(col *xorm.Column) string {
+func typestring(col *core.Column) string {
 	st := col.SQLType
-	/*if col.IsPrimaryKey {
-	    return "int64"
-	}*/
-	t := xorm.SQLType2Type(st)
+	t := core.SQLType2Type(st)
 	s := t.String()
 	if s == "[]uint8" {
 		return "[]byte"
@@ -195,7 +192,7 @@ func typestring(col *xorm.Column) string {
 	return s
 }
 
-func tag(table *xorm.Table, col *xorm.Column) string {
+func tag(table *core.Table, col *core.Column) string {
 	isNameId := (mapper.Table2Obj(col.Name) == "Id")
 	isIdPk := isNameId && typestring(col) == "int64"
 
@@ -227,9 +224,9 @@ func tag(table *xorm.Table, col *xorm.Column) string {
 	for name, _ := range col.Indexes {
 		index := table.Indexes[name]
 		var uistr string
-		if index.Type == xorm.UniqueType {
+		if index.Type == core.UniqueType {
 			uistr = "unique"
-		} else if index.Type == xorm.IndexType {
+		} else if index.Type == core.IndexType {
 			uistr = "index"
 		}
 		if len(index.Cols) > 1 {

@@ -2,9 +2,10 @@ package main
 
 import (
 	//"fmt"
-	"github.com/lunny/xorm"
 	"strings"
 	"text/template"
+
+	"github.com/lunny/xorm/core"
 )
 
 var (
@@ -18,27 +19,27 @@ var (
 	}
 )
 
-func cPlusTypeStr(col *xorm.Column) string {
+func cPlusTypeStr(col *core.Column) string {
 	tp := col.SQLType
 	name := strings.ToUpper(tp.Name)
 	switch name {
-	case xorm.Bit, xorm.TinyInt, xorm.SmallInt, xorm.MediumInt, xorm.Int, xorm.Integer, xorm.Serial:
+	case core.Bit, core.TinyInt, core.SmallInt, core.MediumInt, core.Int, core.Integer, core.Serial:
 		return "int"
-	case xorm.BigInt, xorm.BigSerial:
+	case core.BigInt, core.BigSerial:
 		return "__int64"
-	case xorm.Char, xorm.Varchar, xorm.TinyText, xorm.Text, xorm.MediumText, xorm.LongText:
+	case core.Char, core.Varchar, core.TinyText, core.Text, core.MediumText, core.LongText:
 		return "tstring"
-	case xorm.Date, xorm.DateTime, xorm.Time, xorm.TimeStamp:
+	case core.Date, core.DateTime, core.Time, core.TimeStamp:
 		return "time_t"
-	case xorm.Decimal, xorm.Numeric:
+	case core.Decimal, core.Numeric:
 		return "tstring"
-	case xorm.Real, xorm.Float:
+	case core.Real, core.Float:
 		return "float"
-	case xorm.Double:
+	case core.Double:
 		return "double"
-	case xorm.TinyBlob, xorm.Blob, xorm.MediumBlob, xorm.LongBlob, xorm.Bytea:
+	case core.TinyBlob, core.Blob, core.MediumBlob, core.LongBlob, core.Bytea:
 		return "tstring"
-	case xorm.Bool:
+	case core.Bool:
 		return "bool"
 	default:
 		return "tstring"
@@ -46,11 +47,11 @@ func cPlusTypeStr(col *xorm.Column) string {
 	return ""
 }
 
-func genCPlusImports(tables []*xorm.Table) map[string]string {
+func genCPlusImports(tables []*core.Table) map[string]string {
 	imports := make(map[string]string)
 
 	for _, table := range tables {
-		for _, col := range table.Columns {
+		for _, col := range table.Columns() {
 			switch cPlusTypeStr(col) {
 			case "time_t":
 				imports[`<time.h>`] = `<time.h>`

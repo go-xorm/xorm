@@ -3,9 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
+
 	"github.com/lunny/xorm"
 	_ "github.com/mattn/go-sqlite3"
-	"os"
 )
 
 type Status struct {
@@ -47,7 +48,7 @@ func main() {
 	f := "conversion.db"
 	os.Remove(f)
 
-	Orm, err := NewEngine("sqlite3", f)
+	Orm, err := xorm.NewEngine("sqlite3", f)
 	if err != nil {
 		fmt.Println(err)
 		return

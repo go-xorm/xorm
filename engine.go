@@ -515,7 +515,7 @@ func mappingTable(t reflect.Type, tableMapper core.IMapper, colMapper core.IMapp
 				if col.Length2 == 0 {
 					col.Length2 = col.SQLType.DefaultLength2
 				}
-				fmt.Println("======", col)
+				//fmt.Println("======", col)
 				if col.Name == "" {
 					col.Name = colMapper.Obj2Table(t.Field(i).Name)
 				}

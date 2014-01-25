@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	Version string = "0.3.1"
+	Version string = "0.4"
 )
 
 func close(engine *Engine) {
@@ -74,4 +74,8 @@ func NewLRUCacher(store core.CacheStore, max int) *caches.LRUCacher {
 
 func NewLRUCacher2(store core.CacheStore, expired time.Duration, max int) *caches.LRUCacher {
 	return caches.NewLRUCacher(store, expired, 0, max)
+}
+
+func NewMemoryStore() *caches.MemoryStore {
+	return caches.NewMemoryStore()
 }

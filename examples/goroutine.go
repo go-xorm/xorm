@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"runtime"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/lunny/xorm"
 	_ "github.com/mattn/go-sqlite3"
-	"os"
-	"runtime"
 )
 
 type User struct {
@@ -38,35 +39,35 @@ func test(engine *xorm.Engine) {
 	for i := 0; i < size; i++ {
 		go func(x int) {
 			//x := i
-			err := engine.Test()
+			err := engine.Ping()
 			if err != nil {
 				fmt.Println(err)
 			} else {
-				err = engine.Map(u)
+				/*err = engine.(u)
 				if err != nil {
 					fmt.Println("Map user failed")
-				} else {
-					for j := 0; j < 10; j++ {
-						if x+j < 2 {
-							_, err = engine.Get(u)
-						} else if x+j < 4 {
-							users := make([]User, 0)
-							err = engine.Find(&users)
-						} else if x+j < 8 {
-							_, err = engine.Count(u)
-						} else if x+j < 16 {
-							_, err = engine.Insert(&User{Name: "xlw"})
-						} else if x+j < 32 {
-							_, err = engine.Id(1).Delete(u)
-						}
-						if err != nil {
-							fmt.Println(err)
-							queue <- x
-							return
-						}
+				} else {*/
+				for j := 0; j < 10; j++ {
+					if x+j < 2 {
+						_, err = engine.Get(u)
+					} else if x+j < 4 {
+						users := make([]User, 0)
+						err = engine.Find(&users)
+					} else if x+j < 8 {
+						_, err = engine.Count(u)
+					} else if x+j < 16 {
+						_, err = engine.Insert(&User{Name: "xlw"})
+					} else if x+j < 32 {
+						_, err = engine.Id(1).Delete(u)
 					}
-					fmt.Printf("%v success!\n", x)
+					if err != nil {
+						fmt.Println(err)
+						queue <- x
+						return
+					}
 				}
+				fmt.Printf("%v success!\n", x)
+				//}
 			}
 			queue <- x
 		}(i)
@@ -82,7 +83,7 @@ func test(engine *xorm.Engine) {
 }
 
 func main() {
-	runtime.GOMAXPROCS(2)
+	runtime.GOMAXPROCS(1)
 	fmt.Println("-----start sqlite go routines-----")
 	engine, err := sqliteEngine()
 	if err != nil {
