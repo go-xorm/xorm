@@ -93,7 +93,7 @@ func (rs *Rows) ScanStruct2(dest interface{}) error {
 	if !ok {
 		cache = make(map[string]int)
 		for i := 0; i < vvv.NumField(); i++ {
-			cache[vvv.Type().Field(i).Name] = i
+			cache[rs.Mapper.Obj2Table(vvv.Type().Field(i).Name)] = i
 		}
 		fieldCacheMutex.Lock()
 		fieldCache[t] = cache
@@ -103,7 +103,7 @@ func (rs *Rows) ScanStruct2(dest interface{}) error {
 	newDest := make([]interface{}, len(cols))
 	var v EmptyScanner
 	for j, name := range cols {
-		if i, ok := cache[rs.Mapper.Table2Obj(name)]; ok {
+		if i, ok := cache[name]; ok {
 			newDest[j] = vvv.Field(i).Addr().Interface()
 		} else {
 			newDest[j] = &v
@@ -141,7 +141,8 @@ func (rs *Rows) ScanSlice(dest interface{}) error {
 		return err
 	}
 
-	for i, _ := range cols {
+	srcLen := vvv.Len()
+	for i := srcLen; i < len(cols); i++ {
 		vvv = reflect.Append(vvv, reflect.ValueOf(newDest[i]).Elem())
 	}
 	return nil

@@ -1,6 +1,8 @@
 package core
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"testing"
 
@@ -98,7 +100,10 @@ func BenchmarkStructQuery(b *testing.B) {
 			if err != nil {
 				b.Error(err)
 			}
-			//fmt.Println(user)
+			if user.Name != "xlw" {
+				fmt.Println(user)
+				b.Error(errors.New("name should be xlw"))
+			}
 		}
 		rows.Close()
 	}
@@ -140,7 +145,10 @@ func BenchmarkStruct2Query(b *testing.B) {
 			if err != nil {
 				b.Error(err)
 			}
-			//fmt.Println(user)
+			if user.Name != "xlw" {
+				fmt.Println(user)
+				b.Error(errors.New("name should be xlw"))
+			}
 		}
 		rows.Close()
 	}
@@ -186,7 +194,10 @@ func BenchmarkSliceQuery(b *testing.B) {
 			if err != nil {
 				b.Error(err)
 			}
-			//fmt.Println(slice)
+			if slice[1].(string) != "xlw" {
+				fmt.Println(slice)
+				b.Error(errors.New("name should be xlw"))
+			}
 		}
 
 		rows.Close()
@@ -228,7 +239,10 @@ func BenchmarkMapInterfaceQuery(b *testing.B) {
 			if err != nil {
 				b.Error(err)
 			}
-			//fmt.Println(m)
+			if m["name"].(string) != "xlw" {
+				fmt.Println(m)
+				b.Error(errors.New("name should be xlw"))
+			}
 		}
 
 		rows.Close()
@@ -270,9 +284,10 @@ func BenchmarkMapBytesQuery(b *testing.B) {
 			if err != nil {
 				b.Error(err)
 			}
-			/*for k, v := range m {
-				fmt.Printf("%v - %v\n", k, string(v))
-			}*/
+			if string(m["name"]) != "xlw" {
+				fmt.Println(m)
+				b.Error(errors.New("name should be xlw"))
+			}
 		}
 
 		rows.Close()
@@ -314,9 +329,10 @@ func BenchmarkMapStringQuery(b *testing.B) {
 			if err != nil {
 				b.Error(err)
 			}
-			/*for k, v := range m {
-				fmt.Printf("%v - %v\n", k, v)
-			}*/
+			if m["name"] != "xlw" {
+				fmt.Println(m)
+				b.Error(errors.New("name should be xlw"))
+			}
 		}
 
 		rows.Close()
