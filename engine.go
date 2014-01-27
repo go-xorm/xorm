@@ -484,7 +484,8 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 				var indexType int
 				var indexName string
 				var preKey string
-				for j, key := range tags {
+				for j,ln := 0,len(tags); j < ln; j++ {
+					key := tags[j]
 					k := strings.ToUpper(key)
 					switch {
 					case k == "<-":
@@ -535,7 +536,18 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 							if preKey != "DEFAULT" {
 								col.Name = key[1 : len(key)-1]
 							}
-						} else if strings.Contains(k, "(") && strings.HasSuffix(k, ")") {
+						} else if strings.Contains(k, "(") && (strings.HasSuffix(k, ")") || strings.HasSuffix(k, ",")) {
+							//[SWH|+]
+							if strings.HasSuffix(k, ",") {
+								j++
+								for j < ln {
+									k += tags[j]
+									if strings.HasSuffix(tags[j], ")") {
+										break
+									}
+									j++
+								}
+							}
 							fs := strings.Split(k, "(")
 							if _, ok := sqlTypes[fs[0]]; !ok {
 								preKey = k
