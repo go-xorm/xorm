@@ -623,9 +623,24 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 			}
 		} else {
 			sqlType := Type2SQLType(fieldType)
-			col = &Column{engine.columnMapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
-				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", make(map[string]bool), false, false,
-				TWOSIDES, false, false, false, false}
+			col = &Column{
+				Name:			engine.columnMapper.Obj2Table(t.Field(i).Name),
+				FieldName:		t.Field(i).Name,
+				SQLType:		sqlType,
+				Length:			sqlType.DefaultLength,
+				Length2:		sqlType.DefaultLength2,
+				Nullable:		true,
+				Default:		"",
+				Indexes:		make(map[string]bool),
+				IsPrimaryKey:	false,
+				IsAutoIncrement:false,
+				MapType:		TWOSIDES,
+				IsCreated:		false,
+				IsUpdated:		false,
+				IsCascade:		false,
+				IsVersion:		false,
+				DefaultIsEmpty:	false,
+			}
 		}
 		if col.IsAutoIncrement {
 			col.Nullable = false

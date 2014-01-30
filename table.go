@@ -275,6 +275,7 @@ type Column struct {
 	IsUpdated       bool
 	IsCascade       bool
 	IsVersion       bool
+	DefaultIsEmpty  bool
 }
 
 // generate column description string according dialect
