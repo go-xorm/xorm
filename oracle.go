@@ -139,6 +139,9 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*Column, er
 				col.Name = strings.Trim(string(content), `" `)
 			case "data_default":
 				col.Default = string(content)
+				if col.Default == "" {
+					col.DefaultIsEmpty = true
+				}
 			case "nullable":
 				if string(content) == "Y" {
 					col.Nullable = true
@@ -171,6 +174,10 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*Column, er
 		if col.SQLType.IsText() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
+			}else{
+				if col.DefaultIsEmpty {
+					col.Default = "''"
+				}
 			}
 		}
 		cols[col.Name] = col
