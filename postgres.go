@@ -177,6 +177,9 @@ func (db *postgres) GetColumns(tableName string) ([]string, map[string]*Column, 
 					col.IsPrimaryKey = true
 				} else {
 					col.Default = string(content)
+					if col.Default == "" {
+						col.DefaultIsEmpty = true
+					}
 				}
 			case "is_nullable":
 				if string(content) == "YES" {
@@ -218,6 +221,10 @@ func (db *postgres) GetColumns(tableName string) ([]string, map[string]*Column, 
 		if col.SQLType.IsText() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
+			}else{
+				if col.DefaultIsEmpty {
+					col.Default = "''"
+				}
 			}
 		}
 		cols[col.Name] = col

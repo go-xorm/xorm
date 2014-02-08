@@ -136,8 +136,8 @@ func (db *mssql) TableCheckSql(tableName string) (string, []interface{}) {
 
 func (db *mssql) GetColumns(tableName string) ([]string, map[string]*Column, error) {
 	args := []interface{}{}
-	s := `select a.name as name, b.name as ctype,a.max_length,a.precision,a.scale 
-from sys.columns a left join sys.types b on a.user_type_id=b.user_type_id 
+	s := `select a.name as name, b.name as ctype,a.max_length,a.precision,a.scale
+from sys.columns a left join sys.types b on a.user_type_id=b.user_type_id
 where a.object_id=object_id('` + tableName + `')`
 	cnn, err := sql.Open(db.driverName, db.dataSourceName)
 	if err != nil {
@@ -187,6 +187,10 @@ where a.object_id=object_id('` + tableName + `')`
 		if col.SQLType.IsText() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
+			}else{
+				if col.DefaultIsEmpty {
+					col.Default = "''"
+				}
 			}
 		}
 		cols[col.Name] = col
@@ -224,18 +228,18 @@ func (db *mssql) GetTables() ([]*Table, error) {
 
 func (db *mssql) GetIndexes(tableName string) (map[string]*Index, error) {
 	args := []interface{}{tableName}
-	s := `SELECT  
-IXS.NAME                    AS  [INDEX_NAME],  
-C.NAME                      AS  [COLUMN_NAME], 
-IXS.is_unique AS [IS_UNIQUE], 
-CASE    IXCS.IS_INCLUDED_COLUMN   
-WHEN    0   THEN    'NONE' 
-ELSE    'INCLUDED'  END     AS  [IS_INCLUDED_COLUMN]  
-FROM SYS.INDEXES IXS  
-INNER JOIN SYS.INDEX_COLUMNS   IXCS  
-ON IXS.OBJECT_ID=IXCS.OBJECT_ID  AND IXS.INDEX_ID = IXCS.INDEX_ID  
-INNER   JOIN SYS.COLUMNS C  ON IXS.OBJECT_ID=C.OBJECT_ID  
-AND IXCS.COLUMN_ID=C.COLUMN_ID  
+	s := `SELECT
+IXS.NAME                    AS  [INDEX_NAME],
+C.NAME                      AS  [COLUMN_NAME],
+IXS.is_unique AS [IS_UNIQUE],
+CASE    IXCS.IS_INCLUDED_COLUMN
+WHEN    0   THEN    'NONE'
+ELSE    'INCLUDED'  END     AS  [IS_INCLUDED_COLUMN]
+FROM SYS.INDEXES IXS
+INNER JOIN SYS.INDEX_COLUMNS   IXCS
+ON IXS.OBJECT_ID=IXCS.OBJECT_ID  AND IXS.INDEX_ID = IXCS.INDEX_ID
+INNER   JOIN SYS.COLUMNS C  ON IXS.OBJECT_ID=C.OBJECT_ID
+AND IXCS.COLUMN_ID=C.COLUMN_ID
 WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 `
 	cnn, err := sql.Open(db.driverName, db.dataSourceName)

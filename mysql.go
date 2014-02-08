@@ -212,6 +212,9 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*Column, err
 			case "COLUMN_DEFAULT":
 				// add ''
 				col.Default = string(content)
+				if col.Default == "" {
+					col.DefaultIsEmpty = true
+				}
 			case "COLUMN_TYPE":
 				cts := strings.Split(string(content), "(")
 				var len1, len2 int
@@ -256,6 +259,10 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*Column, err
 		if col.SQLType.IsText() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
+			}else{
+				if col.DefaultIsEmpty {
+					col.Default = "''"
+				}
 			}
 		}
 		cols[col.Name] = col

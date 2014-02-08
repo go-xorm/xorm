@@ -484,7 +484,8 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 				var indexType int
 				var indexName string
 				var preKey string
-				for j, key := range tags {
+				for j,ln := 0,len(tags); j < ln; j++ {
+					key := tags[j]
 					k := strings.ToUpper(key)
 					switch {
 					case k == "<-":
@@ -535,7 +536,18 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 							if preKey != "DEFAULT" {
 								col.Name = key[1 : len(key)-1]
 							}
-						} else if strings.Contains(k, "(") && strings.HasSuffix(k, ")") {
+						} else if strings.Contains(k, "(") && (strings.HasSuffix(k, ")") || strings.HasSuffix(k, ",")) {
+							//[SWH|+]
+							if strings.HasSuffix(k, ",") {
+								j++
+								for j < ln {
+									k += tags[j]
+									if strings.HasSuffix(tags[j], ")") {
+										break
+									}
+									j++
+								}
+							}
 							fs := strings.Split(k, "(")
 							if _, ok := sqlTypes[fs[0]]; !ok {
 								preKey = k
@@ -611,9 +623,24 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 			}
 		} else {
 			sqlType := Type2SQLType(fieldType)
-			col = &Column{engine.columnMapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
-				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", make(map[string]bool), false, false,
-				TWOSIDES, false, false, false, false}
+			col = &Column{
+				Name:			engine.columnMapper.Obj2Table(t.Field(i).Name),
+				FieldName:		t.Field(i).Name,
+				SQLType:		sqlType,
+				Length:			sqlType.DefaultLength,
+				Length2:		sqlType.DefaultLength2,
+				Nullable:		true,
+				Default:		"",
+				Indexes:		make(map[string]bool),
+				IsPrimaryKey:	false,
+				IsAutoIncrement:false,
+				MapType:		TWOSIDES,
+				IsCreated:		false,
+				IsUpdated:		false,
+				IsCascade:		false,
+				IsVersion:		false,
+				DefaultIsEmpty:	false,
+			}
 		}
 		if col.IsAutoIncrement {
 			col.Nullable = false
