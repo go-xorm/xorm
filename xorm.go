@@ -49,7 +49,7 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 	}
 
 	engine.Tables = make(map[reflect.Type]*Table)
-	engine.mutex = &sync.Mutex{}
+	engine.mutex = &sync.RWMutex{}
 	engine.TagIdentifier = "xorm"
 
 	engine.Filters = append(engine.Filters, &IdFilter{})

@@ -58,7 +58,7 @@ type Engine struct {
 	DataSourceName string
 	dialect        dialect
 	Tables         map[reflect.Type]*Table
-	mutex          *sync.Mutex
+	mutex          *sync.RWMutex
 	ShowSQL        bool
 	ShowErr        bool
 	ShowDebug      bool
@@ -421,12 +421,14 @@ func (engine *Engine) Having(conditions string) *Session {
 }
 
 func (engine *Engine) autoMapType(t reflect.Type) *Table {
-	engine.mutex.Lock()
-	defer engine.mutex.Unlock()
+	engine.mutex.RLock()
 	table, ok := engine.Tables[t]
+	engine.mutex.RUnlock()
 	if !ok {
 		table = engine.mapType(t)
+		engine.mutex.Lock()
 		engine.Tables[t] = table
+		engine.mutex.Unlock()
 	}
 	return table
 }
@@ -484,7 +486,7 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 				var indexType int
 				var indexName string
 				var preKey string
-				for j,ln := 0,len(tags); j < ln; j++ {
+				for j, ln := 0, len(tags); j < ln; j++ {
 					key := tags[j]
 					k := strings.ToUpper(key)
 					switch {
@@ -624,22 +626,22 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 		} else {
 			sqlType := Type2SQLType(fieldType)
 			col = &Column{
-				Name:			engine.columnMapper.Obj2Table(t.Field(i).Name),
-				FieldName:		t.Field(i).Name,
-				SQLType:		sqlType,
-				Length:			sqlType.DefaultLength,
-				Length2:		sqlType.DefaultLength2,
-				Nullable:		true,
-				Default:		"",
-				Indexes:		make(map[string]bool),
-				IsPrimaryKey:	false,
-				IsAutoIncrement:false,
-				MapType:		TWOSIDES,
-				IsCreated:		false,
-				IsUpdated:		false,
-				IsCascade:		false,
-				IsVersion:		false,
-				DefaultIsEmpty:	false,
+				Name:            engine.columnMapper.Obj2Table(t.Field(i).Name),
+				FieldName:       t.Field(i).Name,
+				SQLType:         sqlType,
+				Length:          sqlType.DefaultLength,
+				Length2:         sqlType.DefaultLength2,
+				Nullable:        true,
+				Default:         "",
+				Indexes:         make(map[string]bool),
+				IsPrimaryKey:    false,
+				IsAutoIncrement: false,
+				MapType:         TWOSIDES,
+				IsCreated:       false,
+				IsUpdated:       false,
+				IsCascade:       false,
+				IsVersion:       false,
+				DefaultIsEmpty:  false,
 			}
 		}
 		if col.IsAutoIncrement {
