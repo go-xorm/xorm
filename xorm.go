@@ -50,12 +50,12 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		DataSourceName: dataSourceName, dialect: dialect,
 		tableCachers: make(map[reflect.Type]core.Cacher)}
 
-	engine.SetMapper(core.SnakeMapper{})
+	engine.SetMapper(core.NewCacheMapper(new(core.SnakeMapper)))
 
 	engine.Filters = dialect.Filters()
 
 	engine.Tables = make(map[reflect.Type]*core.Table)
-	engine.mutex = &sync.Mutex{}
+	engine.mutex = &sync.RWMutex{}
 	engine.TagIdentifier = "xorm"
 
 	engine.Logger = os.Stdout

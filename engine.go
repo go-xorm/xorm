@@ -27,7 +27,7 @@ type Engine struct {
 	dialect        core.Dialect
 	Tables         map[reflect.Type]*core.Table
 
-	mutex        *sync.Mutex
+	mutex        *sync.RWMutex
 	ShowSQL      bool
 	ShowErr      bool
 	ShowDebug    bool
@@ -388,12 +388,14 @@ func (engine *Engine) Having(conditions string) *Session {
 }
 
 func (engine *Engine) autoMapType(t reflect.Type) *core.Table {
-	engine.mutex.Lock()
-	defer engine.mutex.Unlock()
+	engine.mutex.RLock()
 	table, ok := engine.Tables[t]
+	engine.mutex.RUnlock()
 	if !ok {
 		table = engine.mapType(t)
+		engine.mutex.Lock()
 		engine.Tables[t] = table
+		engine.mutex.Unlock()
 	}
 	return table
 }
