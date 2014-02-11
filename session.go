@@ -1379,10 +1379,10 @@ func (session *Session) dropAll() error {
 
 func row2map(rows *sql.Rows, fields []string) (resultsMap map[string][]byte, err error) {
 	result := make(map[string][]byte)
-	var scanResultContainers []interface{}
+	scanResultContainers := make([]interface{}, len(fields))
 	for i := 0; i < len(fields); i++ {
 		var scanResultContainer interface{}
-		scanResultContainers = append(scanResultContainers, &scanResultContainer)
+		scanResultContainers[i] = &scanResultContainer
 	}
 	if err := rows.Scan(scanResultContainers...); err != nil {
 		return nil, err
@@ -1435,10 +1435,10 @@ func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount in
 
 	table := session.Engine.autoMapType(rType(bean))
 
-	var scanResultContainers []interface{}
-	for i := 0; i < fieldsCount; i++ {
+	scanResultContainers := make([]interface{}, len(fields))
+	for i := 0; i < len(fields); i++ {
 		var scanResultContainer interface{}
-		scanResultContainers = append(scanResultContainers, &scanResultContainer)
+		scanResultContainers[i] = &scanResultContainer
 	}
 	if err := rows.Scan(scanResultContainers...); err != nil {
 		return err
@@ -1528,8 +1528,8 @@ func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount in
 					fieldValue.SetUint(uint64(vv.Int()))
 				}
 			case reflect.Struct:
-				if fieldType == reflect.TypeOf(c_TIME_DEFAULT) {
-					if rawValueType == reflect.TypeOf(c_TIME_DEFAULT) {
+				if fieldType == core.TimeType {
+					if rawValueType == core.TimeType {
 						hasAssigned = true
 						fieldValue.Set(vv)
 					}
@@ -1567,97 +1567,97 @@ func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount in
 				//typeStr := fieldType.String()
 				switch fieldType {
 				// following types case matching ptr's native type, therefore assign ptr directly
-				case reflect.TypeOf(&c_EMPTY_STRING):
+				case core.PtrStringType:
 					if rawValueType.Kind() == reflect.String {
 						x := vv.String()
 						hasAssigned = true
 						fieldValue.Set(reflect.ValueOf(&x))
 					}
-				case reflect.TypeOf(&c_BOOL_DEFAULT):
+				case core.PtrBoolType:
 					if rawValueType.Kind() == reflect.Bool {
 						x := vv.Bool()
 						hasAssigned = true
 						fieldValue.Set(reflect.ValueOf(&x))
 					}
-				case reflect.TypeOf(&c_TIME_DEFAULT):
-					if rawValueType == reflect.TypeOf(c_TIME_DEFAULT) {
+				case core.PtrTimeType:
+					if rawValueType == core.PtrTimeType {
 						hasAssigned = true
 						var x time.Time = rawValue.Interface().(time.Time)
 						fieldValue.Set(reflect.ValueOf(&x))
 					}
-				case reflect.TypeOf(&c_FLOAT64_DEFAULT):
+				case core.PtrFloat64Type:
 					if rawValueType.Kind() == reflect.Float64 {
 						x := vv.Float()
 						hasAssigned = true
 						fieldValue.Set(reflect.ValueOf(&x))
 					}
-				case reflect.TypeOf(&c_UINT64_DEFAULT):
+				case core.PtrUint64Type:
 					if rawValueType.Kind() == reflect.Int64 {
 						var x uint64 = uint64(vv.Int())
 						hasAssigned = true
 						fieldValue.Set(reflect.ValueOf(&x))
 					}
-				case reflect.TypeOf(&c_INT64_DEFAULT):
+				case core.PtrInt64Type:
 					if rawValueType.Kind() == reflect.Int64 {
 						x := vv.Int()
 						hasAssigned = true
 						fieldValue.Set(reflect.ValueOf(&x))
 					}
-				case reflect.TypeOf(&c_FLOAT32_DEFAULT):
+				case core.PtrFloat32Type:
 					if rawValueType.Kind() == reflect.Float64 {
 						var x float32 = float32(vv.Float())
 						hasAssigned = true
 						fieldValue.Set(reflect.ValueOf(&x))
 					}
-				case reflect.TypeOf(&c_INT_DEFAULT):
+				case core.PtrIntType:
 					if rawValueType.Kind() == reflect.Int64 {
 						var x int = int(vv.Int())
 						hasAssigned = true
 						fieldValue.Set(reflect.ValueOf(&x))
 					}
-				case reflect.TypeOf(&c_INT32_DEFAULT):
+				case core.PtrInt32Type:
 					if rawValueType.Kind() == reflect.Int64 {
 						var x int32 = int32(vv.Int())
 						hasAssigned = true
 						fieldValue.Set(reflect.ValueOf(&x))
 					}
-				case reflect.TypeOf(&c_INT8_DEFAULT):
+				case core.PtrInt8Type:
 					if rawValueType.Kind() == reflect.Int64 {
 						var x int8 = int8(vv.Int())
 						hasAssigned = true
 						fieldValue.Set(reflect.ValueOf(&x))
 					}
-				case reflect.TypeOf(&c_INT16_DEFAULT):
+				case core.PtrInt16Type:
 					if rawValueType.Kind() == reflect.Int64 {
 						var x int16 = int16(vv.Int())
 						hasAssigned = true
 						fieldValue.Set(reflect.ValueOf(&x))
 					}
-				case reflect.TypeOf(&c_UINT_DEFAULT):
+				case core.PtrUintType:
 					if rawValueType.Kind() == reflect.Int64 {
 						var x uint = uint(vv.Int())
 						hasAssigned = true
 						fieldValue.Set(reflect.ValueOf(&x))
 					}
-				case reflect.TypeOf(&c_UINT32_DEFAULT):
+				case core.PtrUint32Type:
 					if rawValueType.Kind() == reflect.Int64 {
 						var x uint32 = uint32(vv.Int())
 						hasAssigned = true
 						fieldValue.Set(reflect.ValueOf(&x))
 					}
-				case reflect.TypeOf(&c_UINT8_DEFAULT):
+				case core.Uint8Type:
 					if rawValueType.Kind() == reflect.Int64 {
 						var x uint8 = uint8(vv.Int())
 						hasAssigned = true
 						fieldValue.Set(reflect.ValueOf(&x))
 					}
-				case reflect.TypeOf(&c_UINT16_DEFAULT):
+				case core.Uint16Type:
 					if rawValueType.Kind() == reflect.Int64 {
 						var x uint16 = uint16(vv.Int())
 						hasAssigned = true
 						fieldValue.Set(reflect.ValueOf(&x))
 					}
-				case reflect.TypeOf(&c_COMPLEX64_DEFAULT):
+				case core.Complex64Type:
 					var x complex64
 					err := json.Unmarshal([]byte(vv.String()), &x)
 					if err != nil {
@@ -1666,7 +1666,7 @@ func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount in
 						fieldValue.Set(reflect.ValueOf(&x))
 					}
 					hasAssigned = true
-				case reflect.TypeOf(&c_COMPLEX128_DEFAULT):
+				case core.Complex128Type:
 					var x complex128
 					err := json.Unmarshal([]byte(vv.String()), &x)
 					if err != nil {
@@ -2105,7 +2105,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 		fieldValue.SetUint(x)
 	//Currently only support Time type
 	case reflect.Struct:
-		if fieldType == reflect.TypeOf(c_TIME_DEFAULT) {
+		if fieldType == core.TimeType {
 			x, err := session.byte2Time(col, data)
 			if err != nil {
 				return err
@@ -2146,11 +2146,11 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 		//typeStr := fieldType.String()
 		switch fieldType {
 		// case "*string":
-		case reflect.TypeOf(&c_EMPTY_STRING):
+		case core.PtrStringType:
 			x := string(data)
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*bool":
-		case reflect.TypeOf(&c_BOOL_DEFAULT):
+		case core.PtrBoolType:
 			d := string(data)
 			v, err := strconv.ParseBool(d)
 			if err != nil {
@@ -2158,7 +2158,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			}
 			fieldValue.Set(reflect.ValueOf(&v))
 		// case "*complex64":
-		case reflect.TypeOf(&c_COMPLEX64_DEFAULT):
+		case core.PtrComplex64Type:
 			var x complex64
 			err := json.Unmarshal(data, &x)
 			if err != nil {
@@ -2167,7 +2167,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*complex128":
-		case reflect.TypeOf(&c_COMPLEX128_DEFAULT):
+		case core.PtrComplex128Type:
 			var x complex128
 			err := json.Unmarshal(data, &x)
 			if err != nil {
@@ -2176,14 +2176,14 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*float64":
-		case reflect.TypeOf(&c_FLOAT64_DEFAULT):
+		case core.PtrFloat64Type:
 			x, err := strconv.ParseFloat(string(data), 64)
 			if err != nil {
 				return fmt.Errorf("arg %v as float64: %s", key, err.Error())
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*float32":
-		case reflect.TypeOf(&c_FLOAT32_DEFAULT):
+		case core.PtrFloat32Type:
 			var x float32
 			x1, err := strconv.ParseFloat(string(data), 32)
 			if err != nil {
@@ -2192,7 +2192,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			x = float32(x1)
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*time.Time":
-		case reflect.TypeOf(&c_TIME_DEFAULT):
+		case core.PtrTimeType:
 			x, err := session.byte2Time(col, data)
 			if err != nil {
 				return err
@@ -2200,7 +2200,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			v = x
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*uint64":
-		case reflect.TypeOf(&c_UINT64_DEFAULT):
+		case core.PtrUint64Type:
 			var x uint64
 			x, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
@@ -2208,7 +2208,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*uint":
-		case reflect.TypeOf(&c_UINT_DEFAULT):
+		case core.PtrUintType:
 			var x uint
 			x1, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
@@ -2217,7 +2217,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			x = uint(x1)
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*uint32":
-		case reflect.TypeOf(&c_UINT32_DEFAULT):
+		case core.PtrUint32Type:
 			var x uint32
 			x1, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
@@ -2226,7 +2226,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			x = uint32(x1)
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*uint8":
-		case reflect.TypeOf(&c_UINT8_DEFAULT):
+		case core.PtrUint8Type:
 			var x uint8
 			x1, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
@@ -2235,7 +2235,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			x = uint8(x1)
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*uint16":
-		case reflect.TypeOf(&c_UINT16_DEFAULT):
+		case core.PtrUint16Type:
 			var x uint16
 			x1, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
@@ -2244,7 +2244,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			x = uint16(x1)
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*int64":
-		case reflect.TypeOf(&c_INT64_DEFAULT):
+		case core.PtrInt64Type:
 			sdata := string(data)
 			var x int64
 			var err error
@@ -2269,7 +2269,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*int":
-		case reflect.TypeOf(&c_INT_DEFAULT):
+		case core.PtrIntType:
 			sdata := string(data)
 			var x int
 			var x1 int64
@@ -2298,14 +2298,14 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*int32":
-		case reflect.TypeOf(&c_INT32_DEFAULT):
+		case core.PtrInt32Type:
 			sdata := string(data)
 			var x int32
 			var x1 int64
 			var err error
 			// for mysql, when use bit, it returned \x01
 			if col.SQLType.Name == core.Bit &&
-				strings.Contains(session.Engine.DriverName, "mysql") {
+				session.Engine.dialect.DBType() == core.MYSQL {
 				if len(data) == 1 {
 					x = int32(data[0])
 				} else {
@@ -2327,7 +2327,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*int8":
-		case reflect.TypeOf(&c_INT8_DEFAULT):
+		case core.PtrInt8Type:
 			sdata := string(data)
 			var x int8
 			var x1 int64
@@ -2356,7 +2356,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
 		// case "*int16":
-		case reflect.TypeOf(&c_INT16_DEFAULT):
+		case core.PtrInt16Type:
 			sdata := string(data)
 			var x int16
 			var x1 int64
@@ -2432,7 +2432,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 	case reflect.String:
 		return fieldValue.String(), nil
 	case reflect.Struct:
-		if fieldType == reflect.TypeOf(c_TIME_DEFAULT) {
+		if fieldType == core.TimeType {
 			t := fieldValue.Interface().(time.Time)
 			if session.Engine.dialect.DBType() == core.MSSQL {
 				if t.IsZero() {
@@ -3207,4 +3207,75 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	// --
 
 	return res.RowsAffected()
+}
+
+func genCols(table *core.Table, session *Session, bean interface{}, useCol bool, includeQuote bool) ([]string, []interface{}, error) {
+	colNames := make([]string, 0)
+	args := make([]interface{}, 0)
+
+	for _, col := range table.Columns() {
+		lColName := strings.ToLower(col.Name)
+		if useCol && !col.IsVersion && !col.IsCreated && !col.IsUpdated {
+			if _, ok := session.Statement.columnMap[lColName]; !ok {
+				continue
+			}
+		}
+		if col.MapType == core.ONLYFROMDB {
+			continue
+		}
+
+		fieldValuePtr, err := col.ValueOf(bean)
+		if err != nil {
+			session.Engine.LogError(err)
+			continue
+		}
+		fieldValue := *fieldValuePtr
+
+		if col.IsAutoIncrement {
+			switch fieldValue.Type().Kind() {
+			case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int, reflect.Int64:
+				if fieldValue.Int() == 0 {
+					continue
+				}
+			case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint, reflect.Uint64:
+				if fieldValue.Uint() == 0 {
+					continue
+				}
+			case reflect.String:
+				if len(fieldValue.String()) == 0 {
+					continue
+				}
+			}
+		}
+
+		if session.Statement.ColumnStr != "" {
+			if _, ok := session.Statement.columnMap[lColName]; !ok {
+				continue
+			}
+		}
+		if session.Statement.OmitStr != "" {
+			if _, ok := session.Statement.columnMap[lColName]; ok {
+				continue
+			}
+		}
+
+		if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
+			args = append(args, time.Now())
+		} else if col.IsVersion && session.Statement.checkVersion {
+			args = append(args, 1)
+		} else {
+			arg, err := session.value2Interface(col, fieldValue)
+			if err != nil {
+				return colNames, args, err
+			}
+			args = append(args, arg)
+		}
+
+		if includeQuote {
+			colNames = append(colNames, session.Engine.Quote(col.Name)+" = ?")
+		} else {
+			colNames = append(colNames, col.Name)
+		}
+	}
+	return colNames, args, nil
 }

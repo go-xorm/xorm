@@ -143,7 +143,60 @@ var (
 	c_TIME_DEFAULT       time.Time
 )
 
+var (
+	IntType   = reflect.TypeOf(c_INT_DEFAULT)
+	Int8Type  = reflect.TypeOf(c_INT8_DEFAULT)
+	Int16Type = reflect.TypeOf(c_INT16_DEFAULT)
+	Int32Type = reflect.TypeOf(c_INT32_DEFAULT)
+	Int64Type = reflect.TypeOf(c_INT64_DEFAULT)
+
+	UintType   = reflect.TypeOf(c_UINT_DEFAULT)
+	Uint8Type  = reflect.TypeOf(c_UINT8_DEFAULT)
+	Uint16Type = reflect.TypeOf(c_UINT16_DEFAULT)
+	Uint32Type = reflect.TypeOf(c_UINT32_DEFAULT)
+	Uint64Type = reflect.TypeOf(c_UINT64_DEFAULT)
+
+	Float32Type = reflect.TypeOf(c_FLOAT32_DEFAULT)
+	Float64Type = reflect.TypeOf(c_FLOAT64_DEFAULT)
+
+	Complex64Type  = reflect.TypeOf(c_COMPLEX64_DEFAULT)
+	Complex128Type = reflect.TypeOf(c_COMPLEX128_DEFAULT)
+
+	StringType = reflect.TypeOf(c_EMPTY_STRING)
+	BoolType   = reflect.TypeOf(c_BOOL_DEFAULT)
+	ByteType   = reflect.TypeOf(c_BYTE_DEFAULT)
+
+	TimeType = reflect.TypeOf(c_TIME_DEFAULT)
+)
+
+var (
+	PtrIntType   = reflect.PtrTo(IntType)
+	PtrInt8Type  = reflect.PtrTo(Int8Type)
+	PtrInt16Type = reflect.PtrTo(Int16Type)
+	PtrInt32Type = reflect.PtrTo(Int32Type)
+	PtrInt64Type = reflect.PtrTo(Int64Type)
+
+	PtrUintType   = reflect.PtrTo(UintType)
+	PtrUint8Type  = reflect.PtrTo(Uint8Type)
+	PtrUint16Type = reflect.PtrTo(Uint16Type)
+	PtrUint32Type = reflect.PtrTo(Uint32Type)
+	PtrUint64Type = reflect.PtrTo(Uint64Type)
+
+	PtrFloat32Type = reflect.PtrTo(Float32Type)
+	PtrFloat64Type = reflect.PtrTo(Float64Type)
+
+	PtrComplex64Type  = reflect.PtrTo(Complex64Type)
+	PtrComplex128Type = reflect.PtrTo(Complex128Type)
+
+	PtrStringType = reflect.PtrTo(StringType)
+	PtrBoolType   = reflect.PtrTo(BoolType)
+	PtrByteType   = reflect.PtrTo(ByteType)
+
+	PtrTimeType = reflect.PtrTo(TimeType)
+)
+
 func Type2SQLType(t reflect.Type) (st SQLType) {
+
 	switch k := t.Kind(); k {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32:
 		st = SQLType{Int, 0, 0}

@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/lunny/xorm/core"
 )
 
 func indexNoCase(s, sep string) int {
@@ -94,7 +96,7 @@ func value2Bytes(rawValue *reflect.Value) (data []byte, err error) {
 		}
 	//时间类型
 	case reflect.Struct:
-		if aa == reflect.TypeOf(c_TIME_DEFAULT) {
+		if aa == core.TimeType {
 			str = rawValue.Interface().(time.Time).Format(time.RFC3339Nano)
 			data = []byte(str)
 		} else {
