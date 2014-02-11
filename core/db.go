@@ -163,9 +163,65 @@ func (s *Stmt) Query(args ...interface{}) (*Rows, error) {
 	return &Rows{rows, s.Mapper}, nil
 }
 
+func (s *Stmt) QueryMap(mp interface{}) (*Rows, error) {
+	vv := reflect.ValueOf(mp)
+	if vv.Kind() != reflect.Ptr || vv.Elem().Kind() != reflect.Map {
+		return nil, errors.New("mp should be a map's pointer")
+	}
+
+	args := make([]interface{}, len(s.names))
+	for k, i := range s.names {
+		args[i] = vv.Elem().MapIndex(reflect.ValueOf(k)).Interface()
+	}
+
+	return s.Query(args...)
+}
+
+func (s *Stmt) QueryStruct(st interface{}) (*Rows, error) {
+	vv := reflect.ValueOf(st)
+	if vv.Kind() != reflect.Ptr || vv.Elem().Kind() != reflect.Struct {
+		return nil, errors.New("mp should be a map's pointer")
+	}
+
+	args := make([]interface{}, len(s.names))
+	for k, i := range s.names {
+		args[i] = vv.Elem().FieldByName(k).Interface()
+	}
+
+	return s.Query(args...)
+}
+
 func (s *Stmt) QueryRow(args ...interface{}) *Row {
 	row := s.Stmt.QueryRow(args...)
 	return &Row{row, nil, s.Mapper}
+}
+
+func (s *Stmt) QueryRowMap(mp interface{}) *Row {
+	vv := reflect.ValueOf(mp)
+	if vv.Kind() != reflect.Ptr || vv.Elem().Kind() != reflect.Map {
+		return &Row{nil, errors.New("mp should be a map's pointer"), s.Mapper}
+	}
+
+	args := make([]interface{}, len(s.names))
+	for k, i := range s.names {
+		args[i] = vv.Elem().MapIndex(reflect.ValueOf(k)).Interface()
+	}
+
+	return s.QueryRow(args...)
+}
+
+func (s *Stmt) QueryRowStruct(st interface{}) *Row {
+	vv := reflect.ValueOf(st)
+	if vv.Kind() != reflect.Ptr || vv.Elem().Kind() != reflect.Struct {
+		return &Row{nil, errors.New("st should be a struct's pointer"), s.Mapper}
+	}
+
+	args := make([]interface{}, len(s.names))
+	for k, i := range s.names {
+		args[i] = vv.Elem().FieldByName(k).Interface()
+	}
+
+	return s.QueryRow(args...)
 }
 
 var (
