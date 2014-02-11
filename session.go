@@ -17,9 +17,9 @@ import (
 // Struct Session keep a pointer to sql.DB and provides all execution of all
 // kind of database operations.
 type Session struct {
-	Db                     *sql.DB
+	Db                     *core.DB
 	Engine                 *Engine
-	Tx                     *sql.Tx
+	Tx                     *core.Tx
 	Statement              Statement
 	IsAutoCommit           bool
 	IsCommitedOrRollbacked bool
@@ -35,7 +35,7 @@ type Session struct {
 	beforeClosures []func(interface{})
 	afterClosures  []func(interface{})
 
-	stmtCache map[uint32]*sql.Stmt //key: hash.Hash32 of (queryStr, len(queryStr))
+	stmtCache map[uint32]*core.Stmt //key: hash.Hash32 of (queryStr, len(queryStr))
 }
 
 // Method Init reset the session as the init status.
@@ -262,7 +262,7 @@ func (session *Session) newDb() error {
 			return err
 		}
 		session.Db = db
-		session.stmtCache = make(map[uint32]*sql.Stmt, 0)
+		session.stmtCache = make(map[uint32]*core.Stmt, 0)
 	}
 	return nil
 }
@@ -897,7 +897,7 @@ func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
 	return nil
 }
 
-func (session *Session) doPrepare(sqlStr string) (stmt *sql.Stmt, err error) {
+func (session *Session) doPrepare(sqlStr string) (stmt *core.Stmt, err error) {
 	crc := crc32.ChecksumIEEE([]byte(sqlStr))
 	// TODO try hash(sqlStr+len(sqlStr))
 	var has bool
@@ -944,7 +944,7 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 		}
 	}
 
-	var rawRows *sql.Rows
+	var rawRows *core.Rows
 	session.queryPreprocess(&sqlStr, args...)
 	if session.IsAutoCommit {
 		stmt, err := session.doPrepare(sqlStr)
@@ -1102,8 +1102,8 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	}
 
 	if sliceValue.Kind() != reflect.Map {
-		var rawRows *sql.Rows
-		var stmt *sql.Stmt
+		var rawRows *core.Rows
+		var stmt *core.Stmt
 
 		session.queryPreprocess(&sqlStr, args...)
 		// err = session.queryRows(&stmt, &rawRows, sqlStr, args...)
@@ -1377,7 +1377,7 @@ func (session *Session) dropAll() error {
 	return nil
 }
 
-func row2map(rows *sql.Rows, fields []string) (resultsMap map[string][]byte, err error) {
+func row2map(rows *core.Rows, fields []string) (resultsMap map[string][]byte, err error) {
 	result := make(map[string][]byte)
 	scanResultContainers := make([]interface{}, len(fields))
 	for i := 0; i < len(fields); i++ {
@@ -1426,7 +1426,7 @@ func (session *Session) getField(dataStruct *reflect.Value, key string, table *c
 	return fieldValue
 }
 
-func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount int, bean interface{}) error {
+func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount int, bean interface{}) error {
 
 	dataStruct := reflect.Indirect(reflect.ValueOf(bean))
 	if dataStruct.Kind() != reflect.Struct {
@@ -1713,7 +1713,7 @@ func (session *Session) query(sqlStr string, paramStr ...interface{}) (resultsSl
 	return txQuery(session.Tx, sqlStr, paramStr...)
 }
 
-func txQuery(tx *sql.Tx, sqlStr string, params ...interface{}) (resultsSlice []map[string][]byte, err error) {
+func txQuery(tx *core.Tx, sqlStr string, params ...interface{}) (resultsSlice []map[string][]byte, err error) {
 	rows, err := tx.Query(sqlStr, params...)
 	if err != nil {
 		return nil, err
@@ -1723,7 +1723,7 @@ func txQuery(tx *sql.Tx, sqlStr string, params ...interface{}) (resultsSlice []m
 	return rows2maps(rows)
 }
 
-func query(db *sql.DB, sqlStr string, params ...interface{}) (resultsSlice []map[string][]byte, err error) {
+func query(db *core.DB, sqlStr string, params ...interface{}) (resultsSlice []map[string][]byte, err error) {
 	s, err := db.Prepare(sqlStr)
 	if err != nil {
 		return nil, err

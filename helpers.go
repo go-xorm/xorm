@@ -1,7 +1,6 @@
 package xorm
 
 import (
-	"database/sql"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -121,7 +120,7 @@ func value2Bytes(rawValue *reflect.Value) (data []byte, err error) {
 	return
 }
 
-func rows2maps(rows *sql.Rows) (resultsSlice []map[string][]byte, err error) {
+func rows2maps(rows *core.Rows) (resultsSlice []map[string][]byte, err error) {
 	fields, err := rows.Columns()
 	if err != nil {
 		return nil, err

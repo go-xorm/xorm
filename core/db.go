@@ -155,6 +155,19 @@ func (s *Stmt) ExecStruct(st interface{}) (sql.Result, error) {
 	return s.Stmt.Exec(args...)
 }
 
+func (s *Stmt) Query(args ...interface{}) (*Rows, error) {
+	rows, err := s.Stmt.Query(args...)
+	if err != nil {
+		return nil, err
+	}
+	return &Rows{rows, s.Mapper}, nil
+}
+
+func (s *Stmt) QueryRow(args ...interface{}) *Row {
+	row := s.Stmt.QueryRow(args...)
+	return &Row{row, nil, s.Mapper}
+}
+
 var (
 	re = regexp.MustCompile(`[?](\w+)`)
 )

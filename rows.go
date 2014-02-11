@@ -4,14 +4,16 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+
+	"github.com/lunny/xorm/core"
 )
 
 type Rows struct {
 	NoTypeCheck bool
 
 	session     *Session
-	stmt        *sql.Stmt
-	rows        *sql.Rows
+	stmt        *core.Stmt
+	rows        *core.Rows
 	fields      []string
 	fieldsCount int
 	beanType    reflect.Type

@@ -124,8 +124,8 @@ func (engine *Engine) MapCacher(bean interface{}, cacher core.Cacher) {
 }
 
 // OpenDB provides a interface to operate database directly.
-func (engine *Engine) OpenDB() (*sql.DB, error) {
-	return sql.Open(engine.DriverName, engine.DataSourceName)
+func (engine *Engine) OpenDB() (*core.DB, error) {
+	return core.Open(engine.DriverName, engine.DataSourceName)
 }
 
 // New a session

@@ -1,7 +1,7 @@
 package xorm
 
 import (
-	"database/sql"
+	"github.com/lunny/xorm/core"
 	//"fmt"
 	"sync"
 	//"sync/atomic"
@@ -18,8 +18,8 @@ import (
 // Close for invoking when engine.Close
 type IConnectPool interface {
 	Init(engine *Engine) error
-	RetrieveDB(engine *Engine) (*sql.DB, error)
-	ReleaseDB(engine *Engine, db *sql.DB)
+	RetrieveDB(engine *Engine) (*core.DB, error)
+	ReleaseDB(engine *Engine, db *core.DB)
 	Close(engine *Engine) error
 	SetMaxIdleConns(conns int)
 	MaxIdleConns() int
@@ -43,13 +43,13 @@ func (p *NoneConnectPool) Init(engine *Engine) error {
 }
 
 // RetrieveDB directly open a connection
-func (p *NoneConnectPool) RetrieveDB(engine *Engine) (db *sql.DB, err error) {
+func (p *NoneConnectPool) RetrieveDB(engine *Engine) (db *core.DB, err error) {
 	db, err = engine.OpenDB()
 	return
 }
 
 // ReleaseDB directly close a connection
-func (p *NoneConnectPool) ReleaseDB(engine *Engine, db *sql.DB) {
+func (p *NoneConnectPool) ReleaseDB(engine *Engine, db *core.DB) {
 	db.Close()
 }
 
@@ -78,7 +78,7 @@ func (p *NoneConnectPool) MaxConns() int {
 // About the system connection pool, you can review the code database/sql/sql.go
 // It's currently default Pool implments.
 type SysConnectPool struct {
-	db           *sql.DB
+	db           *core.DB
 	maxIdleConns int
 	maxConns     int
 	curConns     int
@@ -118,7 +118,7 @@ func newCondNode() *node {
 }
 
 // RetrieveDB just return the only db
-func (s *SysConnectPool) RetrieveDB(engine *Engine) (db *sql.DB, err error) {
+func (s *SysConnectPool) RetrieveDB(engine *Engine) (db *core.DB, err error) {
 	/*if s.maxConns > 0 {
 	    fmt.Println("before retrieve")
 	    s.mutex.Lock()
@@ -141,7 +141,7 @@ func (s *SysConnectPool) RetrieveDB(engine *Engine) (db *sql.DB, err error) {
 }
 
 // ReleaseDB do nothing
-func (s *SysConnectPool) ReleaseDB(engine *Engine, db *sql.DB) {
+func (s *SysConnectPool) ReleaseDB(engine *Engine, db *core.DB) {
 	/*if s.maxConns > 0 {
 	    s.mutex.Lock()
 	    fmt.Println("before release", s.queue.Len())
@@ -191,8 +191,8 @@ func (p *SysConnectPool) MaxConns() int {
 
 // NewSimpleConnectPool new a SimpleConnectPool
 func NewSimpleConnectPool() IConnectPool {
-	return &SimpleConnectPool{releasedConnects: make([]*sql.DB, 10),
-		usingConnects:  map[*sql.DB]time.Time{},
+	return &SimpleConnectPool{releasedConnects: make([]*core.DB, 10),
+		usingConnects:  map[*core.DB]time.Time{},
 		cur:            -1,
 		maxWaitTimeOut: 14400,
 		maxIdleConns:   10,
@@ -205,9 +205,9 @@ func NewSimpleConnectPool() IConnectPool {
 // Opening or Closing a database connection must be enter a lock.
 // This implements will be improved in furture.
 type SimpleConnectPool struct {
-	releasedConnects []*sql.DB
+	releasedConnects []*core.DB
 	cur              int
-	usingConnects    map[*sql.DB]time.Time
+	usingConnects    map[*core.DB]time.Time
 	maxWaitTimeOut   int
 	mutex            *sync.Mutex
 	maxIdleConns     int
@@ -218,10 +218,10 @@ func (s *SimpleConnectPool) Init(engine *Engine) error {
 }
 
 // RetrieveDB get a connection from connection pool
-func (p *SimpleConnectPool) RetrieveDB(engine *Engine) (*sql.DB, error) {
+func (p *SimpleConnectPool) RetrieveDB(engine *Engine) (*core.DB, error) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	var db *sql.DB = nil
+	var db *core.DB = nil
 	var err error = nil
 	//fmt.Printf("%x, rbegin - released:%v, using:%v\n", &p, p.cur+1, len(p.usingConnects))
 	if p.cur < 0 {
@@ -242,7 +242,7 @@ func (p *SimpleConnectPool) RetrieveDB(engine *Engine) (*sql.DB, error) {
 }
 
 // ReleaseDB release a db from connection pool
-func (p *SimpleConnectPool) ReleaseDB(engine *Engine, db *sql.DB) {
+func (p *SimpleConnectPool) ReleaseDB(engine *Engine, db *core.DB) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	//fmt.Printf("%x, lbegin - released:%v, using:%v\n", &p, p.cur+1, len(p.usingConnects))
