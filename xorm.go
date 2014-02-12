@@ -46,9 +46,11 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		return nil, err
 	}
 
-	engine := &Engine{DriverName: driverName,
-		DataSourceName: dataSourceName, dialect: dialect,
-		tableCachers: make(map[reflect.Type]core.Cacher)}
+	engine := &Engine{
+		DriverName:     driverName,
+		DataSourceName: dataSourceName,
+		dialect:        dialect,
+		tableCachers:   make(map[reflect.Type]core.Cacher)}
 
 	engine.SetMapper(core.NewCacheMapper(new(core.SnakeMapper)))
 
@@ -58,7 +60,7 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 	engine.mutex = &sync.RWMutex{}
 	engine.TagIdentifier = "xorm"
 
-	engine.Logger = os.Stdout
+	engine.Logger = NewSimpleLogger(os.Stdout)
 
 	//engine.Pool = NewSimpleConnectPool()
 	//engine.Pool = NewNoneConnectPool()

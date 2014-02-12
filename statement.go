@@ -210,7 +210,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
             if col.SQLType.IsText() {
                 bytes, err := json.Marshal(fieldValue.Interface())
                 if err != nil {
-                    engine.LogSQL(err)
+                    engine.LogError(err)
                     continue
                 }
                 val = string(bytes)
@@ -227,7 +227,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
                 } else {
                     bytes, err = json.Marshal(fieldValue.Interface())
                     if err != nil {
-                        engine.LogSQL(err)
+                        engine.LogError(err)
                         continue
                     }
                     val = bytes
@@ -373,7 +373,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 			if col.SQLType.IsText() {
 				bytes, err := json.Marshal(fieldValue.Interface())
 				if err != nil {
-					engine.LogSQL(err)
+					engine.LogError(err)
 					continue
 				}
 				val = string(bytes)
@@ -390,7 +390,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 				} else {
 					bytes, err = json.Marshal(fieldValue.Interface())
 					if err != nil {
-						engine.LogSQL(err)
+						engine.LogError(err)
 						continue
 					}
 					val = bytes

@@ -282,7 +282,7 @@ func (session *Session) Begin() error {
 		session.IsCommitedOrRollbacked = false
 		session.Tx = tx
 
-		session.Engine.LogSQL("BEGIN TRANSACTION")
+		session.Engine.logSQL("BEGIN TRANSACTION")
 	}
 	return nil
 }
@@ -290,7 +290,7 @@ func (session *Session) Begin() error {
 // When using transaction, you can rollback if any error
 func (session *Session) Rollback() error {
 	if !session.IsAutoCommit && !session.IsCommitedOrRollbacked {
-		session.Engine.LogSQL("ROLL BACK")
+		session.Engine.logSQL("ROLL BACK")
 		session.IsCommitedOrRollbacked = true
 		return session.Tx.Rollback()
 	}
@@ -300,7 +300,7 @@ func (session *Session) Rollback() error {
 // When using transaction, Commit will commit all operations.
 func (session *Session) Commit() error {
 	if !session.IsAutoCommit && !session.IsCommitedOrRollbacked {
-		session.Engine.LogSQL("COMMIT")
+		session.Engine.logSQL("COMMIT")
 		session.IsCommitedOrRollbacked = true
 		var err error
 		if err = session.Tx.Commit(); err == nil {
@@ -419,8 +419,7 @@ func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, er
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
 
-	session.Engine.LogSQL(sqlStr)
-	session.Engine.LogSQL(args)
+	session.Engine.logSQL(sqlStr, args)
 
 	if session.IsAutoCommit {
 		return session.innerExec(sqlStr, args...)
@@ -1480,7 +1479,7 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 					x := reflect.New(fieldType)
 					err := json.Unmarshal([]byte(vv.String()), x.Interface())
 					if err != nil {
-						session.Engine.LogSQL(err)
+						session.Engine.LogError(err)
 						return err
 					}
 					fieldValue.Set(x.Elem())
@@ -1700,8 +1699,7 @@ func (session *Session) queryPreprocess(sqlStr *string, paramStr ...interface{})
 		*sqlStr = filter.Do(*sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
 
-	session.Engine.LogSQL(*sqlStr)
-	session.Engine.LogSQL(paramStr)
+	session.Engine.logSQL(*sqlStr, paramStr)
 }
 
 func (session *Session) query(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
@@ -2467,7 +2465,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 	case reflect.Complex64, reflect.Complex128:
 		bytes, err := json.Marshal(fieldValue.Interface())
 		if err != nil {
-			session.Engine.LogSQL(err)
+			session.Engine.LogError(err)
 			return 0, err
 		}
 		return string(bytes), nil
@@ -2479,7 +2477,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		if col.SQLType.IsText() {
 			bytes, err := json.Marshal(fieldValue.Interface())
 			if err != nil {
-				session.Engine.LogSQL(err)
+				session.Engine.LogError(err)
 				return 0, err
 			}
 			return string(bytes), nil
@@ -2492,7 +2490,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 			} else {
 				bytes, err = json.Marshal(fieldValue.Interface())
 				if err != nil {
-					session.Engine.LogSQL(err)
+					session.Engine.LogError(err)
 					return 0, err
 				}
 			}

@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"reflect"
 	"strconv"
@@ -34,7 +33,7 @@ type Engine struct {
 	ShowWarn     bool
 	Pool         IConnectPool
 	Filters      []core.Filter
-	Logger       io.Writer
+	Logger       ILogger // io.Writer
 	Cacher       core.Cacher
 	tableCachers map[reflect.Type]core.Cacher
 }
@@ -144,35 +143,44 @@ func (engine *Engine) Close() error {
 func (engine *Engine) Ping() error {
 	session := engine.NewSession()
 	defer session.Close()
-	engine.LogSQL("PING DATABASE", engine.DriverName)
+	engine.LogInfo("PING DATABASE", engine.DriverName)
 	return session.Ping()
 }
 
 // logging sql
-func (engine *Engine) LogSQL(contents ...interface{}) {
+func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
 	if engine.ShowSQL {
-		io.WriteString(engine.Logger, fmt.Sprintln(contents...))
+		if len(sqlArgs) > 0 {
+			engine.LogInfo("[sql]", sqlStr, "[args]", sqlArgs)
+		} else {
+			engine.LogInfo("[sql]", sqlStr)
+		}
 	}
 }
 
 // logging error
 func (engine *Engine) LogError(contents ...interface{}) {
 	if engine.ShowErr {
-		io.WriteString(engine.Logger, fmt.Sprintln(contents...))
+		engine.Logger.Err(fmt.Sprintln(contents...))
 	}
+}
+
+// logging error
+func (engine *Engine) LogInfo(contents ...interface{}) {
+	engine.Logger.Info(fmt.Sprintln(contents...))
 }
 
 // logging debug
 func (engine *Engine) LogDebug(contents ...interface{}) {
 	if engine.ShowDebug {
-		io.WriteString(engine.Logger, fmt.Sprintln(contents...))
+		engine.Logger.Debug(fmt.Sprintln(contents...))
 	}
 }
 
 // logging warn
 func (engine *Engine) LogWarn(contents ...interface{}) {
 	if engine.ShowWarn {
-		io.WriteString(engine.Logger, fmt.Sprintln(contents...))
+		engine.Logger.Warning(fmt.Sprintln(contents...))
 	}
 }
 
