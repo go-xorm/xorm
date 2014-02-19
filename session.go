@@ -2627,7 +2627,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 
 // Method InsertOne insert only one struct into database as a record.
 // The in parameter bean must a struct or a point to struct. The return
-// parameter is lastInsertId and error
+// parameter is inserted and error
 func (session *Session) InsertOne(bean interface{}) (int64, error) {
 	err := session.newDb()
 	if err != nil {

@@ -111,6 +111,7 @@ func (db *mysql) SqlType(c *Column) string {
 	switch t := c.SQLType.Name; t {
 	case Bool:
 		res = TinyInt
+		c.Length = 1
 	case Serial:
 		c.IsAutoIncrement = true
 		c.IsPrimaryKey = true
@@ -259,7 +260,7 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*Column, err
 		if col.SQLType.IsText() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
-			}else{
+			} else {
 				if col.DefaultIsEmpty {
 					col.Default = "''"
 				}

@@ -1,14 +1,17 @@
 ## Contributing to xorm
 
-`xorm` has a backlog of pull requests, but contributions are still very
+`xorm` has a backlog of [pull requests](https://help.github.com/articles/using-pull-requests), but contributions are still very
 much welcome. You can help with patch review, submitting bug reports,
 or adding new functionality. There is no formal style guide, but
 please conform to the style of existing code and general Go formatting
 conventions when submitting patches.
 
+* [fork a repo](https://help.github.com/articles/fork-a-repo)
+* [creating a pull request ](https://help.github.com/articles/creating-a-pull-request)
+
 ### Patch review
 
-Help review existing open pull requests by commenting on the code or
+Help review existing open [pull requests](https://help.github.com/articles/using-pull-requests) by commenting on the code or
 proposed functionality.
 
 ### Bug reports
