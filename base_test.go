@@ -331,36 +331,44 @@ func update(engine *Engine, t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = engine.Insert(&Article{0, "1", "2", "3", "4", "5", 2})
+	defer func() {
+		err = engine.DropTables(&Article{})
+		if err != nil {
+			t.Error(err)
+			panic(err)
+		}
+	}()
+
+	a := &Article{0, "1", "2", "3", "4", "5", 2}
+	cnt, err = engine.Insert(a)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	if cnt != 1 {
-		err = errors.New("insert not returned 1")
+		err = errors.New(fmt.Sprintf("insert not returned 1 but %d", cnt))
 		t.Error(err)
 		panic(err)
-		return
 	}
 
-	cnt, err = engine.Id(1).Update(&Article{Name: "6"})
+	if a.Id == 0 {
+		err = errors.New("insert returned id is 0")
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Id(a.Id).Update(&Article{Name: "6"})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	if cnt != 1 {
-		err = errors.New("update not returned 1")
+		err = errors.New(fmt.Sprintf("insert not returned 1 but %d", cnt))
 		t.Error(err)
 		panic(err)
 		return
-	}
-
-	err = engine.DropTables(&Article{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
 	}
 }
 

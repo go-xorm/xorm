@@ -3,12 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	_ "github.com/bylevel/pq"
-	"github.com/dvirsky/go-pylog/logging"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/lunny/xorm"
-	_ "github.com/mattn/go-sqlite3"
-	_ "github.com/ziutek/mymysql/godrv"
 	"io/ioutil"
 	"os"
 	"path"
@@ -16,6 +10,13 @@ import (
 	"strconv"
 	"strings" //[SWH|+]
 	"text/template"
+
+	"github.com/dvirsky/go-pylog/logging"
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
+	"github.com/lunny/xorm"
+	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/ziutek/mymysql/godrv"
 )
 
 var CmdReverse = &Command{
