@@ -370,6 +370,53 @@ func update(engine *Engine, t *testing.T) {
 		panic(err)
 		return
 	}
+
+	type UpdateAllCols struct {
+		Id int64
+		Bool bool
+		String string
+	}
+
+	col1 := &UpdateAllCols{}
+	err = engine.Sync(col1)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	
+	_, err = engine.Insert(col1)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	col2 := &UpdateAllCols{col1.Id, true, ""}
+	_, err = engine.Id(col2.Id).AllCols().Update(col2)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	col3 := &UpdateAllCols{}
+	has, err := engine.Id(col2.Id).Get(col3)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if !has {
+		err = errors.New(fmt.Sprintf("cannot get id %d", col2.Id))
+		t.Error(err)
+		panic(err)
+		return
+	}
+
+	if *col2 != *col3 {
+		err = errors.New(fmt.Sprintf("col2 should eq col3"))
+		t.Error(err)
+		panic(err)
+		return
+	}
 }
 
 func updateSameMapper(engine *Engine, t *testing.T) {

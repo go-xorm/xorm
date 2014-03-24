@@ -25,6 +25,7 @@ type Statement struct {
 	HavingStr     string
 	ColumnStr     string
 	columnMap     map[string]bool
+	useAllCols bool
 	OmitStr       string
 	ConditionStr  string
 	AltTableName  string
@@ -239,7 +240,8 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 
 // Auto generating conditions according a struct
 func buildConditions(engine *Engine, table *Table, bean interface{},
-	includeVersion bool, includeUpdated bool, includeNil bool, includeAutoIncr bool, allUseBool bool,
+	includeVersion bool, includeUpdated bool, includeNil bool, 
+	includeAutoIncr bool, allUseBool bool, useAllCols bool,
 	boolColumnMap map[string]bool) ([]string, []interface{}) {
 
 	colNames := make([]string, 0)
@@ -262,7 +264,7 @@ func buildConditions(engine *Engine, table *Table, bean interface{},
 		fieldValue := col.ValueOf(bean)
 		fieldType := reflect.TypeOf(fieldValue.Interface())
 
-		requiredField := false
+		requiredField := useAllCols
 		if fieldType.Kind() == reflect.Ptr {
 			if fieldValue.IsNil() {
 				if includeNil {
@@ -517,6 +519,11 @@ func (statement *Statement) Cols(columns ...string) *Statement {
 	return statement
 }
 
+func (statement *Statement) AllCols() *Statement {
+	statement.useAllCols = true
+	return statement
+}
+
 // indicates that use bool fields as update contents and query contiditions
 func (statement *Statement) UseBool(columns ...string) *Statement {
 	if len(columns) > 0 {
@@ -719,7 +726,8 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 	statement.RefTable = table
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true, true,
-		false, true, statement.allUseBool, statement.boolColumnMap)
+		false, true, statement.allUseBool, statement.useAllCols,
+		statement.boolColumnMap)
 
 	statement.ConditionStr = strings.Join(colNames, " AND ")
 	statement.BeanArgs = args
@@ -758,7 +766,7 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 	statement.RefTable = table
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true, true, false,
-		true, statement.allUseBool, statement.boolColumnMap)
+		true, statement.allUseBool, statement.useAllCols,statement.boolColumnMap)
 
 	statement.ConditionStr = strings.Join(colNames, " AND ")
 	statement.BeanArgs = args
