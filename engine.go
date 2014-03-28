@@ -23,6 +23,7 @@ const (
 	MSSQL = "mssql"
 
 	ORACLE_OCI = "oci8"
+	QL         = "ql"
 )
 
 // a dialect is a driver's wrapper

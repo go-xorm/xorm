@@ -40,6 +40,10 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 	} else if driverName == ORACLE_OCI {
 		engine.dialect = &oracle{}
 		engine.Filters = append(engine.Filters, &QuoteFilter{})
+	} else if driverName == QL {
+		engine.dialect = &ql{}
+		engine.Filters = append(engine.Filters, &PgSeqFilter{})
+		engine.Filters = append(engine.Filters, &QuoteFilter{})
 	} else {
 		return nil, errors.New(fmt.Sprintf("Unsupported driver name: %v", driverName))
 	}
