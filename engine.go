@@ -34,6 +34,8 @@ type dialect interface {
 	SqlType(t *Column) string
 	SupportInsertMany() bool
 	QuoteStr() string
+	RollBackStr() string
+	DropTableSql(tableName string) string
 	AutoIncrStr() string
 	SupportEngine() bool
 	SupportCharset() bool
@@ -449,6 +451,18 @@ func (engine *Engine) newTable() *Table {
 	return table
 }
 
+func addIndex(indexName string, table *Table, col *Column, indexType int) {
+	if index, ok := table.Indexes[indexName]; ok {
+		index.AddColumn(col.Name)
+		col.Indexes[index.Name] = true
+	} else {
+		index := NewIndex(indexName, indexType)
+		index.AddColumn(col.Name)
+		table.AddIndex(index)
+		col.Indexes[index.Name] = true
+	}
+}
+
 func (engine *Engine) mapType(t reflect.Type) *Table {
 	table := engine.newTable()
 	table.Name = engine.tableMapper.Obj2Table(t.Name())
@@ -484,8 +498,9 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 					table.PrimaryKeys = parentTable.PrimaryKeys
 					continue
 				}
-				var indexType int
-				var indexName string
+
+				indexNames := make(map[string]int)
+				var isIndex, isUnique bool
 				var preKey string
 				for j, key := range tags {
 					k := strings.ToUpper(key)
@@ -521,15 +536,15 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 					case k == "UPDATED":
 						col.IsUpdated = true
 					case strings.HasPrefix(k, "INDEX(") && strings.HasSuffix(k, ")"):
-						indexType = IndexType
-						indexName = k[len("INDEX")+1 : len(k)-1]
+						indexName := k[len("INDEX")+1 : len(k)-1]
+						indexNames[indexName] = IndexType
 					case k == "INDEX":
-						indexType = IndexType
+						isIndex = true
 					case strings.HasPrefix(k, "UNIQUE(") && strings.HasSuffix(k, ")"):
-						indexName = k[len("UNIQUE")+1 : len(k)-1]
-						indexType = UniqueType
+						indexName := k[len("UNIQUE")+1 : len(k)-1]
+						indexNames[indexName] = UniqueType
 					case k == "UNIQUE":
-						indexType = UniqueType
+						isUnique = true
 					case k == "NOTNULL":
 						col.Nullable = false
 					case k == "NOT":
@@ -584,32 +599,15 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 				if col.Name == "" {
 					col.Name = engine.columnMapper.Obj2Table(t.Field(i).Name)
 				}
-				if indexType == IndexType {
-					if indexName == "" {
-						indexName = col.Name
-					}
-					if index, ok := table.Indexes[indexName]; ok {
-						index.AddColumn(col.Name)
-						col.Indexes[index.Name] = true
-					} else {
-						index := NewIndex(indexName, IndexType)
-						index.AddColumn(col.Name)
-						table.AddIndex(index)
-						col.Indexes[index.Name] = true
-					}
-				} else if indexType == UniqueType {
-					if indexName == "" {
-						indexName = col.Name
-					}
-					if index, ok := table.Indexes[indexName]; ok {
-						index.AddColumn(col.Name)
-						col.Indexes[index.Name] = true
-					} else {
-						index := NewIndex(indexName, UniqueType)
-						index.AddColumn(col.Name)
-						table.AddIndex(index)
-						col.Indexes[index.Name] = true
-					}
+
+				if isUnique {
+					indexNames[col.Name] = UniqueType
+				} else if isIndex {
+					indexNames[col.Name] = IndexType
+				}
+
+				for indexName, indexType := range indexNames {
+					addIndex(indexName, table, col, indexType)
 				}
 			}
 		} else {
@@ -810,6 +808,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 						}
 					}
 				} else if index.Type == IndexType {
+					fmt.Println("index:", table.Name, name, index)
 					isExist, err := session.isIndexExist2(table.Name, index.Cols, false)
 					if err != nil {
 						return err

@@ -25,7 +25,7 @@ type Statement struct {
 	HavingStr     string
 	ColumnStr     string
 	columnMap     map[string]bool
-	useAllCols bool
+	useAllCols    bool
 	OmitStr       string
 	ConditionStr  string
 	AltTableName  string
@@ -240,7 +240,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 
 // Auto generating conditions according a struct
 func buildConditions(engine *Engine, table *Table, bean interface{},
-	includeVersion bool, includeUpdated bool, includeNil bool, 
+	includeVersion bool, includeUpdated bool, includeNil bool,
 	includeAutoIncr bool, allUseBool bool, useAllCols bool,
 	boolColumnMap map[string]bool) ([]string, []interface{}) {
 
@@ -712,13 +712,7 @@ func (s *Statement) genDelIndexSQL() []string {
 }
 
 func (s *Statement) genDropSQL() string {
-	if s.Engine.dialect.DBType() == MSSQL {
-		return "IF EXISTS (SELECT * FROM sysobjects WHERE id = object_id(N'" +
-			s.TableName() + "') and OBJECTPROPERTY(id, N'IsUserTable') = 1) " +
-			"DROP TABLE " + s.Engine.Quote(s.TableName()) + ";"
-	} else {
-		return "DROP TABLE IF EXISTS " + s.Engine.Quote(s.TableName()) + ";"
-	}
+	return s.Engine.dialect.DropTableSql(s.TableName()) + ";"
 }
 
 func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) {
@@ -766,7 +760,7 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 	statement.RefTable = table
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true, true, false,
-		true, statement.allUseBool, statement.useAllCols,statement.boolColumnMap)
+		true, statement.allUseBool, statement.useAllCols, statement.boolColumnMap)
 
 	statement.ConditionStr = strings.Join(colNames, " AND ")
 	statement.BeanArgs = args
