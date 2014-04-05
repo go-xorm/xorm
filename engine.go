@@ -808,7 +808,6 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 						}
 					}
 				} else if index.Type == IndexType {
-					fmt.Println("index:", table.Name, name, index)
 					isExist, err := session.isIndexExist2(table.Name, index.Cols, false)
 					if err != nil {
 						return err
