@@ -336,6 +336,18 @@ func (engine *Engine) Cols(columns ...string) *Session {
 	return session.Cols(columns...)
 }
 
+func (engine *Engine) AllCols() *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.AllCols()
+}
+
+func (engine *Engine) MustCols(columns ...string) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.MustCols(columns...)
+}
+
 // Xorm automatically retrieve condition according struct, but
 // if struct has bool field, it will ignore them. So use UseBool
 // to tell system to do not ignore them.

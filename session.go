@@ -131,6 +131,11 @@ func (session *Session) AllCols() *Session {
 	return session
 }
 
+func (session *Session) MustCols(columns ...string) *Session {
+	session.Statement.MustCols(columns...)
+	return session
+}
+
 func (session *Session) NoCascade() *Session {
 	session.Statement.UseCascade = false
 	return session
@@ -1029,7 +1034,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	if len(condiBean) > 0 {
 		colNames, args := buildConditions(session.Engine, table, condiBean[0], true, true,
 			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-			session.Statement.boolColumnMap)
+			session.Statement.mustColumnMap)
 		session.Statement.ConditionStr = strings.Join(colNames, " AND ")
 		session.Statement.BeanArgs = args
 	}
@@ -2845,7 +2850,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		if session.Statement.ColumnStr == "" {
 			colNames, args = buildConditions(session.Engine, table, bean, false, false,
 				false, false, session.Statement.allUseBool, session.Statement.useAllCols,
-				session.Statement.boolColumnMap)
+				session.Statement.mustColumnMap)
 		} else {
 			colNames, args, err = table.genCols(session, bean, true, true)
 			if err != nil {
@@ -2880,7 +2885,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	if len(condiBean) > 0 {
 		condiColNames, condiArgs = buildConditions(session.Engine, session.Statement.RefTable, condiBean[0], true, true,
 			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-			session.Statement.boolColumnMap)
+			session.Statement.mustColumnMap)
 	}
 
 	var condition = ""
@@ -3069,7 +3074,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	session.Statement.RefTable = table
 	colNames, args := buildConditions(session.Engine, table, bean, true, true,
 		false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-		session.Statement.boolColumnMap)
+		session.Statement.mustColumnMap)
 
 	var condition = ""
 

@@ -372,8 +372,8 @@ func update(engine *Engine, t *testing.T) {
 	}
 
 	type UpdateAllCols struct {
-		Id int64
-		Bool bool
+		Id     int64
+		Bool   bool
 		String string
 	}
 
@@ -383,7 +383,7 @@ func update(engine *Engine, t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
-	
+
 	_, err = engine.Insert(col1)
 	if err != nil {
 		t.Error(err)
@@ -416,6 +416,57 @@ func update(engine *Engine, t *testing.T) {
 		t.Error(err)
 		panic(err)
 		return
+	}
+
+	{
+		type UpdateMustCols struct {
+			Id     int64
+			Bool   bool
+			String string
+		}
+
+		col1 := &UpdateMustCols{}
+		err = engine.Sync(col1)
+		if err != nil {
+			t.Error(err)
+			panic(err)
+		}
+
+		_, err = engine.Insert(col1)
+		if err != nil {
+			t.Error(err)
+			panic(err)
+		}
+
+		col2 := &UpdateMustCols{col1.Id, true, ""}
+		boolStr := engine.columnMapper.Obj2Table("Bool")
+		stringStr := engine.columnMapper.Obj2Table("String")
+		_, err = engine.Id(col2.Id).MustCols(boolStr, stringStr).Update(col2)
+		if err != nil {
+			t.Error(err)
+			panic(err)
+		}
+
+		col3 := &UpdateMustCols{}
+		has, err := engine.Id(col2.Id).Get(col3)
+		if err != nil {
+			t.Error(err)
+			panic(err)
+		}
+
+		if !has {
+			err = errors.New(fmt.Sprintf("cannot get id %d", col2.Id))
+			t.Error(err)
+			panic(err)
+			return
+		}
+
+		if *col2 != *col3 {
+			err = errors.New(fmt.Sprintf("col2 should eq col3"))
+			t.Error(err)
+			panic(err)
+			return
+		}
 	}
 }
 

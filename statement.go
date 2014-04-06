@@ -41,7 +41,7 @@ type Statement struct {
 	IsDistinct    bool
 	allUseBool    bool
 	checkVersion  bool
-	boolColumnMap map[string]bool
+	mustColumnMap map[string]bool
 	inColumns     map[string][]interface{}
 }
 
@@ -70,7 +70,7 @@ func (statement *Statement) Init() {
 	statement.UseAutoTime = true
 	statement.IsDistinct = false
 	statement.allUseBool = false
-	statement.boolColumnMap = make(map[string]bool)
+	statement.mustColumnMap = make(map[string]bool)
 	statement.checkVersion = true
 	statement.inColumns = make(map[string][]interface{})
 }
@@ -242,7 +242,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 func buildConditions(engine *Engine, table *Table, bean interface{},
 	includeVersion bool, includeUpdated bool, includeNil bool,
 	includeAutoIncr bool, allUseBool bool, useAllCols bool,
-	boolColumnMap map[string]bool) ([]string, []interface{}) {
+	mustColumnMap map[string]bool) ([]string, []interface{}) {
 
 	colNames := make([]string, 0)
 	var args = make([]interface{}, 0)
@@ -265,6 +265,14 @@ func buildConditions(engine *Engine, table *Table, bean interface{},
 		fieldType := reflect.TypeOf(fieldValue.Interface())
 
 		requiredField := useAllCols
+		if b, ok := mustColumnMap[strings.ToLower(col.Name)]; ok {
+			if b {
+				requiredField = true
+			} else {
+				continue
+			}
+		}
+
 		if fieldType.Kind() == reflect.Ptr {
 			if fieldValue.IsNil() {
 				if includeNil {
@@ -286,8 +294,6 @@ func buildConditions(engine *Engine, table *Table, bean interface{},
 		switch fieldType.Kind() {
 		case reflect.Bool:
 			if allUseBool || requiredField {
-				val = fieldValue.Interface()
-			} else if _, ok := boolColumnMap[col.Name]; ok {
 				val = fieldValue.Interface()
 			} else {
 				// if a bool in a struct, it will not be as a condition because it default is false,
@@ -519,18 +525,34 @@ func (statement *Statement) Cols(columns ...string) *Statement {
 	return statement
 }
 
+// Update use only: update all columns
 func (statement *Statement) AllCols() *Statement {
 	statement.useAllCols = true
 	return statement
 }
 
+// Update use only: must update columns
+func (statement *Statement) MustCols(columns ...string) *Statement {
+	newColumns := col2NewCols(columns...)
+	for _, nc := range newColumns {
+		statement.mustColumnMap[strings.ToLower(nc)] = true
+	}
+	return statement
+}
+
+// Update use only: not update columns
+/*func (statement *Statement) NotCols(columns ...string) *Statement {
+	newColumns := col2NewCols(columns...)
+	for _, nc := range newColumns {
+		statement.mustColumnMap[strings.ToLower(nc)] = false
+	}
+	return statement
+}*/
+
 // indicates that use bool fields as update contents and query contiditions
 func (statement *Statement) UseBool(columns ...string) *Statement {
 	if len(columns) > 0 {
-		newColumns := col2NewCols(columns...)
-		for _, nc := range newColumns {
-			statement.boolColumnMap[strings.ToLower(nc)] = true
-		}
+		statement.MustCols(columns...)
 	} else {
 		statement.allUseBool = true
 	}
@@ -721,7 +743,7 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true, true,
 		false, true, statement.allUseBool, statement.useAllCols,
-		statement.boolColumnMap)
+		statement.mustColumnMap)
 
 	statement.ConditionStr = strings.Join(colNames, " AND ")
 	statement.BeanArgs = args
@@ -760,7 +782,7 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 	statement.RefTable = table
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true, true, false,
-		true, statement.allUseBool, statement.useAllCols, statement.boolColumnMap)
+		true, statement.allUseBool, statement.useAllCols, statement.mustColumnMap)
 
 	statement.ConditionStr = strings.Join(colNames, " AND ")
 	statement.BeanArgs = args

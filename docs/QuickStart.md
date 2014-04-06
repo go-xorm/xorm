@@ -4,7 +4,7 @@ xorm 快速入门
 * [1.创建Orm引擎](#10)
 * [2.定义表结构体](#20)
 	* [2.1.名称映射规则](#21)
-	* [2.2.前缀映射规则和后缀映射规则](#22)
+	* [2.2.前缀映射，后缀映射和缓存映射](#22)
 	* [2.3.使用Table和Tag改变名称映射](#23)
 	* [2.4.Column属性定义](#24)
 	* [2.5.Go与字段类型对应表](#25)
@@ -29,12 +29,13 @@ xorm 快速入门
 * [9.执行SQL命令](#100)
 * [10.事务处理](#110)
 * [11.缓存](#120)
-* [12.xorm工具](#130)
-	* [12.1.反转命令](#131)
-* [13.Examples](#140)
-* [14.案例](#150)
-* [15.那些年我们踩过的坑](#160)
-* [16.讨论](#170)
+* [12.事件](#125)
+* [13.xorm工具](#130)
+	* [13.1.反转命令](#131)
+* [14.Examples](#140)
+* [15.案例](#150)
+* [16.那些年我们踩过的坑](#160)
+* [17.讨论](#170)
 
 <a name="10" id="10"></a>
 ## 1.创建Orm引擎
@@ -129,11 +130,11 @@ engine.SetColumnMapper(SnakeMapper{})
 ```
 
 <a name="22" id="22"></a>
-### 2.2.前缀映射规则和后缀映射规则
+### 2.2.前缀映射，后缀映射和缓存映射
 
 * 通过`engine.NewPrefixMapper(SnakeMapper{}, "prefix")`可以在SnakeMapper的基础上在命名中添加统一的前缀，当然也可以把SnakeMapper{}换成SameMapper或者你自定义的Mapper。
 * 通过`engine.NewSufffixMapper(SnakeMapper{}, "suffix")`可以在SnakeMapper的基础上在命名中添加统一的后缀，当然也可以把SnakeMapper{}换成SameMapper或者你自定义的Mapper。
-* 
+* 通过`eneing.NewCacheMapper(SnakeMapper{})`可以组合其它的映射规则，起到在内存中缓存曾经映射过的命名映射。
 
 <a name="23" id="23"></a>
 ### 2.3.使用Table和Tag改变名称映射
@@ -153,7 +154,7 @@ type User struct {
 }
 ```
 
-对于不同的数据库系统，数据类型其实是有些差异的。因此xorm中对数据类型有自己的定义，基本的原则是尽量兼容各种数据库的字段类型，具体的字段对应关系可以查看[字段类型对应表](https://github.com/lunny/xorm/blob/master/docs/COLUMNTYPE.md)。
+对于不同的数据库系统，数据类型其实是有些差异的。因此xorm中对数据类型有自己的定义，基本的原则是尽量兼容各种数据库的字段类型，具体的字段对应关系可以查看[字段类型对应表](https://github.com/lunny/xorm/blob/master/docs/COLUMNTYPE.md)。对于使用者，一般只要使用自己熟悉的数据库字段定义即可。
 
 具体的映射规则如下，另Tag中的关键字均不区分大小写，字段名区分大小写：
 
@@ -407,7 +408,11 @@ engine.Cols("age", "name").Update(&user)
 // UPDATE user SET age=? AND name=?
 ```
 
-其中的参数"age", "name"也可以写成"age, name"，两种写法均可
+* AllCols()
+查询或更新所有字段。
+
+* MustCols(…string)
+某些字段必须更新。
 
 * Omit(...string)
 和cols相反，此函数指定排除某些指定的字段。注意：此方法和Cols方法不可同时使用
@@ -729,20 +734,46 @@ engine.ClearCache(new(User))
 
 ![cache design](https://raw.github.com/lunny/xorm/master/docs/cache_design.png)
 
+<a name="125" id="125"></a>
+## 12.事件
+xorm支持两种方式的事件，一种是在Struct中的特定方法来作为事件的方法，一种是在执行语句的过程中执行事件。
+
+在Struct中作为成员方法的事件如下：
+
+* BeforeInsert()
+
+* BeforeUpdate()
+
+* BeforeDelete()
+
+* AfterInsert()
+
+* AfterUpdate()
+
+* AfterDelete()
+
+在语句执行过程中的事件方法为：
+
+* Before(beforeFunc interface{})
+
+* After(afterFunc interface{})
+
+其中beforeFunc和afterFunc的原型为func(bean interface{}).
+
 <a name="130" id="130"></a>
-## 12.xorm工具
+## 13.xorm工具
 xorm工具提供了xorm命令，能够帮助做很多事情。
 
-### 12.1.反转命令
+### 13.1.反转命令
 参见 [xorm工具](https://github.com/lunny/xorm/tree/master/xorm)
 
 <a name="140" id="140"></a>
-## 13.Examples
+## 14.Examples
 
 请访问[https://github.com/lunny/xorm/tree/master/examples](https://github.com/lunny/xorm/tree/master/examples)
 
 <a name="150" id="150"></a>
-## 14.案例
+## 15.案例
 
 * [Gowalker](http://gowalker.org)，源代码 [github.com/Unknwon/gowalker](http://github.com/Unknwon/gowalker)
 
@@ -753,7 +784,7 @@ xorm工具提供了xorm命令，能够帮助做很多事情。
 * [VeryHour](http://veryhour.com)
 
 <a name="160" id="160"></a>
-## 15.那些年我们踩过的坑
+## 16.那些年我们踩过的坑
 * 怎么同时使用xorm的tag和json的tag？
   
 答：使用空格
@@ -797,5 +828,5 @@ money float64 `xorm:"Numeric"`
 
 
 <a name="170" id="170"></a>
-## 16.讨论
+## 17.讨论
 请加入QQ群：280360085 进行讨论。
