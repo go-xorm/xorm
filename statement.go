@@ -113,11 +113,12 @@ func (statement *Statement) Or(querystring string, args ...interface{}) *Stateme
 
 // tempororily set table name
 func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
-	t := rType(tableNameOrBean)
+	v := rValue(tableNameOrBean)
+	t := v.Type()
 	if t.Kind() == reflect.String {
 		statement.AltTableName = tableNameOrBean.(string)
 	} else if t.Kind() == reflect.Struct {
-		statement.RefTable = statement.Engine.autoMapType(t)
+		statement.RefTable = statement.Engine.autoMapType(v)
 	}
 	return statement
 }
@@ -342,7 +343,7 @@ func buildConditions(engine *Engine, table *Table, bean interface{},
 					val = t
 				}
 			} else {
-				engine.autoMapType(fieldValue.Type())
+				engine.autoMapType(fieldValue)
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
 					if len(table.PrimaryKeys) == 1 {
 						pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)

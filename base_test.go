@@ -3990,6 +3990,28 @@ func testCompositeKey2(engine *Engine, t *testing.T) {
 	}
 }
 
+type CustomTableName struct {
+	Id   int64
+	Name string
+}
+
+func (c *CustomTableName) TableName() string {
+	return "customtablename"
+}
+
+func testCustomTableName(engine *Engine, t *testing.T) {
+	c := new(CustomTableName)
+	err := engine.DropTables(c)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = engine.CreateTables(c)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func testAll(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
@@ -4100,6 +4122,8 @@ func testAll2(engine *Engine, t *testing.T) {
 	testProcessors(engine, t)
 	fmt.Println("-------------- transaction --------------")
 	transaction(engine, t)
+	fmt.Println("-------------- testCustomTableName --------------")
+	testCustomTableName(engine, t)
 }
 
 // !nash! the 3rd set of the test is intended for non-cache enabled engine

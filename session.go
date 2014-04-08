@@ -358,12 +358,12 @@ func cleanupProcessorsClosures(slices *[]func(interface{})) {
 }
 
 func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]byte) error {
-	dataStruct := reflect.Indirect(reflect.ValueOf(obj))
+	dataStruct := rValue(obj)
 	if dataStruct.Kind() != reflect.Struct {
 		return errors.New("Expected a pointer to a struct")
 	}
 
-	table := session.Engine.autoMapType(rType(obj))
+	table := session.Engine.autoMapType(dataStruct)
 
 	for key, data := range objMap {
 		key = strings.ToLower(key)
@@ -1017,12 +1017,14 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	if session.Statement.RefTable == nil {
 		if sliceElementType.Kind() == reflect.Ptr {
 			if sliceElementType.Elem().Kind() == reflect.Struct {
-				table = session.Engine.autoMapType(sliceElementType.Elem())
+				pv := reflect.New(sliceElementType.Elem())
+				table = session.Engine.autoMapType(pv.Elem())
 			} else {
 				return errors.New("slice type")
 			}
 		} else if sliceElementType.Kind() == reflect.Struct {
-			table = session.Engine.autoMapType(sliceElementType)
+			pv := reflect.New(sliceElementType)
+			table = session.Engine.autoMapType(pv.Elem())
 		} else {
 			return errors.New("slice type")
 		}
@@ -1386,13 +1388,12 @@ func (session *Session) getField(dataStruct *reflect.Value, key string, table *T
 }
 
 func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount int, bean interface{}) error {
-
-	dataStruct := reflect.Indirect(reflect.ValueOf(bean))
+	dataStruct := rValue(bean)
 	if dataStruct.Kind() != reflect.Struct {
 		return errors.New("Expected a pointer to a struct")
 	}
 
-	table := session.Engine.autoMapType(rType(bean))
+	table := session.Engine.autoMapType(dataStruct)
 
 	var scanResultContainers []interface{}
 	for i := 0; i < fieldsCount; i++ {
@@ -1494,7 +1495,7 @@ func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount in
 						fieldValue.Set(vv)
 					}
 				} else if session.Statement.UseCascade {
-					table := session.Engine.autoMapType(fieldValue.Type())
+					table := session.Engine.autoMapType(*fieldValue)
 					if table != nil {
 						var x int64
 						if rawValueType.Kind() == reflect.Int64 {
@@ -1763,9 +1764,10 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 	}
 
 	bean := sliceValue.Index(0).Interface()
-	sliceElementType := rType(bean)
+	elementValue := rValue(bean)
+	//sliceElementType := elementValue.Type()
 
-	table := session.Engine.autoMapType(sliceElementType)
+	table := session.Engine.autoMapType(elementValue)
 	session.Statement.RefTable = table
 
 	size := sliceValue.Len()
@@ -2073,7 +2075,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			v = x
 			fieldValue.Set(reflect.ValueOf(v))
 		} else if session.Statement.UseCascade {
-			table := session.Engine.autoMapType(fieldValue.Type())
+			table := session.Engine.autoMapType(*fieldValue)
 			if table != nil {
 				x, err := strconv.ParseInt(string(data), 10, 64)
 				if err != nil {
