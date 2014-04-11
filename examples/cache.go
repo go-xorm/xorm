@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/lunny/xorm"
-	"github.com/lunny/xorm/caches"
+	"github.com/go-xorm/xorm"
+	"github.com/go-xorm/xorm/caches"
 	_ "github.com/mattn/go-sqlite3"
 )
 

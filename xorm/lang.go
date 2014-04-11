@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/go-xorm/core"
 	"io/ioutil"
 	"strings"
 	"text/template"
-	"github.com/lunny/xorm/core"
 )
 
 type LangTmpl struct {

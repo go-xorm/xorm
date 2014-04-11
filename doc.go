@@ -9,7 +9,7 @@ Installation
 
 Make sure you have installed Go 1.1+ and then:
 
-    go get github.com/lunny/xorm
+    go get github.com/go-xorm/xorm
 
 Create Engine
 
@@ -137,6 +137,6 @@ The above 7 methods could use with condition methods.
     engine.Join("LEFT", "userdetail", "user.id=userdetail.id").Find()
     //SELECT * FROM user LEFT JOIN userdetail ON user.id=userdetail.id
 
-More usage, please visit https://github.com/lunny/xorm/blob/master/docs/QuickStartEn.md
+More usage, please visit https://github.com/go-xorm/xorm/blob/master/docs/QuickStartEn.md
 */
 package xorm
