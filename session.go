@@ -2910,6 +2910,8 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	var sqlStr, inSql string
 	var inArgs []interface{}
+	doIncVer := false
+	var verValue *reflect.Value
 	if table.Version != "" && session.Statement.checkVersion {
 		if condition != "" {
 			condition = fmt.Sprintf("WHERE (%v) AND %v = ?", condition,
@@ -2932,7 +2934,13 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			session.Engine.Quote(table.Version)+" = "+session.Engine.Quote(table.Version)+" + 1",
 			condition)
 
-		condiArgs = append(condiArgs, table.VersionColumn().ValueOf(bean).Interface())
+		verValue, err = table.VersionColumn().ValueOf(bean)
+		if err != nil {
+			return 0, err
+		}
+
+		condiArgs = append(condiArgs, verValue.Interface())
+		doIncVer = true
 	} else {
 		if condition != "" {
 			condition = "WHERE " + condition
@@ -2959,6 +2967,8 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	res, err := session.exec(sqlStr, args...)
 	if err != nil {
 		return 0, err
+	} else if doIncVer {
+		verValue.SetInt(verValue.Int() + 1)
 	}
 
 	if table.Cacher != nil && session.Statement.UseCache {
