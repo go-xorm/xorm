@@ -1,6 +1,7 @@
 package xorm
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"os"
@@ -11,13 +12,33 @@ import (
 
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm/caches"
-	_ "github.com/go-xorm/xorm/dialects"
 	_ "github.com/go-xorm/xorm/drivers"
 )
 
 const (
 	Version string = "0.4"
 )
+
+func init() {
+	provided_dialects := map[string]struct {
+		dbType core.DbType
+		get    func() core.Dialect
+	}{
+		"odbc":     {"mssql", func() core.Dialect { return &mssql{} }},
+		"mysql":    {"mysql", func() core.Dialect { return &mysql{} }},
+		"mymysql":  {"mysql", func() core.Dialect { return &mysql{} }},
+		"oci8":     {"oracle", func() core.Dialect { return &oracle{} }},
+		"postgres": {"postgres", func() core.Dialect { return &postgres{} }},
+		"sqlite3":  {"sqlite3", func() core.Dialect { return &sqlite3{} }},
+	}
+
+	for k, v := range provided_dialects {
+		_, err := sql.Open(string(k), "")
+		if err == nil {
+			core.RegisterDialect(v.dbType, v.get())
+		}
+	}
+}
 
 func close(engine *Engine) {
 	engine.Close()

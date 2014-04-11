@@ -1,4 +1,4 @@
-package dialects
+package xorm
 
 import (
 	"errors"
@@ -6,58 +6,58 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/go-xorm/core"
+	"github.com/go-xorm/core"
 )
 
-func init() {
-	RegisterDialect("mssql", &mssql{})
-}
+// func init() {
+// 	RegisterDialect("mssql", &mssql{})
+// }
 
 type mssql struct {
-	Base
+	core.Base
 }
 
-func (db *mssql) Init(uri *Uri, drivername, dataSourceName string) error {
+func (db *mssql) Init(uri *core.Uri, drivername, dataSourceName string) error {
 	return db.Base.Init(db, uri, drivername, dataSourceName)
 }
 
-func (db *mssql) SqlType(c *Column) string {
+func (db *mssql) SqlType(c *core.Column) string {
 	var res string
 	switch t := c.SQLType.Name; t {
-	case Bool:
-		res = TinyInt
-	case Serial:
+	case core.Bool:
+		res = core.TinyInt
+	case core.Serial:
 		c.IsAutoIncrement = true
 		c.IsPrimaryKey = true
 		c.Nullable = false
-		res = Int
-	case BigSerial:
+		res = core.Int
+	case core.BigSerial:
 		c.IsAutoIncrement = true
 		c.IsPrimaryKey = true
 		c.Nullable = false
-		res = BigInt
-	case Bytea, Blob, Binary, TinyBlob, MediumBlob, LongBlob:
-		res = VarBinary
+		res = core.BigInt
+	case core.Bytea, core.Blob, core.Binary, core.TinyBlob, core.MediumBlob, core.LongBlob:
+		res = core.VarBinary
 		if c.Length == 0 {
 			c.Length = 50
 		}
-	case TimeStamp:
-		res = DateTime
-	case TimeStampz:
+	case core.TimeStamp:
+		res = core.DateTime
+	case core.TimeStampz:
 		res = "DATETIMEOFFSET"
 		c.Length = 7
-	case MediumInt:
-		res = Int
-	case MediumText, TinyText, LongText:
-		res = Text
-	case Double:
-		res = Real
+	case core.MediumInt:
+		res = core.Int
+	case core.MediumText, core.TinyText, core.LongText:
+		res = core.Text
+	case core.Double:
+		res = core.Real
 	default:
 		res = t
 	}
 
-	if res == Int {
-		return Int
+	if res == core.Int {
+		return core.Int
 	}
 
 	var hasLen1 bool = (c.Length > 0)
@@ -118,12 +118,12 @@ func (db *mssql) TableCheckSql(tableName string) (string, []interface{}) {
 	return sql, args
 }
 
-func (db *mssql) GetColumns(tableName string) ([]string, map[string]*Column, error) {
+func (db *mssql) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{}
 	s := `select a.name as name, b.name as ctype,a.max_length,a.precision,a.scale
 from sys.columns a left join sys.types b on a.user_type_id=b.user_type_id
 where a.object_id=object_id('` + tableName + `')`
-	cnn, err := Open(db.DriverName(), db.DataSourceName())
+	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -133,7 +133,7 @@ where a.object_id=object_id('` + tableName + `')`
 	if err != nil {
 		return nil, nil, err
 	}
-	cols := make(map[string]*Column)
+	cols := make(map[string]*core.Column)
 	colSeq := make([]string, 0)
 	for rows.Next() {
 		var name, ctype, precision, scale string
@@ -143,7 +143,7 @@ where a.object_id=object_id('` + tableName + `')`
 			return nil, nil, err
 		}
 
-		col := new(Column)
+		col := new(core.Column)
 		col.Indexes = make(map[string]bool)
 		col.Length = maxLen
 		col.Name = strings.Trim(name, "` ")
@@ -151,14 +151,14 @@ where a.object_id=object_id('` + tableName + `')`
 		ct := strings.ToUpper(ctype)
 		switch ct {
 		case "DATETIMEOFFSET":
-			col.SQLType = SQLType{TimeStampz, 0, 0}
+			col.SQLType = core.SQLType{core.TimeStampz, 0, 0}
 		case "NVARCHAR":
-			col.SQLType = SQLType{Varchar, 0, 0}
+			col.SQLType = core.SQLType{core.Varchar, 0, 0}
 		case "IMAGE":
-			col.SQLType = SQLType{VarBinary, 0, 0}
+			col.SQLType = core.SQLType{core.VarBinary, 0, 0}
 		default:
-			if _, ok := SqlTypes[ct]; ok {
-				col.SQLType = SQLType{ct, 0, 0}
+			if _, ok := core.SqlTypes[ct]; ok {
+				col.SQLType = core.SQLType{ct, 0, 0}
 			} else {
 				return nil, nil, errors.New(fmt.Sprintf("unknow colType %v for %v - %v",
 					ct, tableName, col.Name))
@@ -180,10 +180,10 @@ where a.object_id=object_id('` + tableName + `')`
 	return colSeq, cols, nil
 }
 
-func (db *mssql) GetTables() ([]*Table, error) {
+func (db *mssql) GetTables() ([]*core.Table, error) {
 	args := []interface{}{}
 	s := `select name from sysobjects where xtype ='U'`
-	cnn, err := Open(db.DriverName(), db.DataSourceName())
+	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
@@ -193,9 +193,9 @@ func (db *mssql) GetTables() ([]*Table, error) {
 		return nil, err
 	}
 
-	tables := make([]*Table, 0)
+	tables := make([]*core.Table, 0)
 	for rows.Next() {
-		table := NewEmptyTable()
+		table := core.NewEmptyTable()
 		var name string
 		err = rows.Scan(&name)
 		if err != nil {
@@ -207,7 +207,7 @@ func (db *mssql) GetTables() ([]*Table, error) {
 	return tables, nil
 }
 
-func (db *mssql) GetIndexes(tableName string) (map[string]*Index, error) {
+func (db *mssql) GetIndexes(tableName string) (map[string]*core.Index, error) {
 	args := []interface{}{tableName}
 	s := `SELECT
 IXS.NAME                    AS  [INDEX_NAME],
@@ -223,7 +223,7 @@ INNER   JOIN SYS.COLUMNS C  ON IXS.OBJECT_ID=C.OBJECT_ID
 AND IXCS.COLUMN_ID=C.COLUMN_ID
 WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 `
-	cnn, err := Open(db.DriverName(), db.DataSourceName())
+	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +233,7 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 		return nil, err
 	}
 
-	indexes := make(map[string]*Index, 0)
+	indexes := make(map[string]*core.Index, 0)
 	for rows.Next() {
 		var indexType int
 		var indexName, colName, isUnique string
@@ -249,9 +249,9 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 		}
 
 		if i {
-			indexType = UniqueType
+			indexType = core.UniqueType
 		} else {
-			indexType = IndexType
+			indexType = core.IndexType
 		}
 
 		colName = strings.Trim(colName, "` ")
@@ -260,10 +260,10 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 			indexName = indexName[5+len(tableName) : len(indexName)]
 		}
 
-		var index *Index
+		var index *core.Index
 		var ok bool
 		if index, ok = indexes[indexName]; !ok {
-			index = new(Index)
+			index = new(core.Index)
 			index.Type = indexType
 			index.Name = indexName
 			indexes[indexName] = index
@@ -273,7 +273,7 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 	return indexes, nil
 }
 
-func (db *mssql) CreateTablSql(table *Table, tableName, storeEngine, charset string) string {
+func (db *mssql) CreateTablSql(table *core.Table, tableName, storeEngine, charset string) string {
 	var sql string
 	if tableName == "" {
 		tableName = table.Name
@@ -307,6 +307,6 @@ func (db *mssql) CreateTablSql(table *Table, tableName, storeEngine, charset str
 	return sql
 }
 
-func (db *mssql) Filters() []Filter {
-	return []Filter{&IdFilter{}, &QuoteFilter{}}
+func (db *mssql) Filters() []core.Filter {
+	return []core.Filter{&core.IdFilter{}, &core.QuoteFilter{}}
 }
