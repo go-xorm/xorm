@@ -276,23 +276,6 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error)
 	return indexes, nil
 }
 
-// PgSeqFilter filter SQL replace ?, ? ... to $1, $2 ...
-type PgSeqFilter struct {
-}
-
-func (s *PgSeqFilter) Do(sql string, dialect core.Dialect, table *core.Table) string {
-	segs := strings.Split(sql, "?")
-	size := len(segs)
-	res := ""
-	for i, c := range segs {
-		if i < size-1 {
-			res += c + fmt.Sprintf("$%v", i+1)
-		}
-	}
-	res += segs[size-1]
-	return res
-}
-
 func (db *postgres) Filters() []core.Filter {
-	return []core.Filter{&core.IdFilter{}, &core.QuoteFilter{}, &PgSeqFilter{}}
+	return []core.Filter{&core.IdFilter{}, &core.QuoteFilter{}, &core.SeqFilter{"$", 1}}
 }

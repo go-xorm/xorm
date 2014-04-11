@@ -119,10 +119,13 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 		return nil, nil, err
 	}
 	defer cnn.Close()
+
 	rows, err := cnn.Query(s, args...)
 	if err != nil {
 		return nil, nil, err
 	}
+	defer rows.Close()
+
 	cols := make(map[string]*core.Column)
 	colSeq := make([]string, 0)
 	for rows.Next() {
