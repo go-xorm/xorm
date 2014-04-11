@@ -1,7 +1,7 @@
 package drivers
 
 import (
-	"github.com/lunny/xorm/core"
+	"github.com/go-xorm/core"
 )
 
 func init() {

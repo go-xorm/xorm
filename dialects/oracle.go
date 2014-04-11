@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/lunny/xorm/core"
+	. "github.com/go-xorm/core"
 )
 
 func init() {
@@ -150,6 +150,10 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*Column, er
 		if col.SQLType.IsText() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
+			} else {
+				if col.DefaultIsEmpty {
+					col.Default = "''"
+				}
 			}
 		}
 		cols[col.Name] = col

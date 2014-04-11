@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/lunny/xorm/core"
+	"github.com/go-xorm/core"
 )
 
 type Rows struct {

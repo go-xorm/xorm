@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings" //[SWH|+]
 	"text/template"
 
 	_ "github.com/bylevel/pq"
@@ -15,6 +16,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/lunny/xorm"
 	"github.com/lunny/xorm/core"
+
 	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/ziutek/mymysql/godrv"
 )
@@ -93,12 +95,14 @@ func runReverse(cmd *Command, args []string) {
 	var genDir string
 	var model string
 	if len(args) == 4 {
-
 		genDir, err = filepath.Abs(args[3])
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
+
+		//[SWH|+] 经测试，path.Base不能解析windows下的“\”，需要替换为“/”
+		genDir = strings.Replace(genDir, "\\", "/", -1)
 		model = path.Base(genDir)
 	} else {
 		model = "model"
@@ -119,6 +123,7 @@ func runReverse(cmd *Command, args []string) {
 	var langTmpl LangTmpl
 	var ok bool
 	var lang string = "go"
+	var prefix string = "" //[SWH|+]
 
 	cfgPath := path.Join(dir, "config")
 	info, err := os.Stat(cfgPath)
@@ -130,6 +135,11 @@ func runReverse(cmd *Command, args []string) {
 		}
 		if j, ok := configs["genJson"]; ok {
 			genJson, err = strconv.ParseBool(j)
+		}
+
+		//[SWH|+]
+		if j, ok := configs["prefix"]; ok {
+			prefix = j
 		}
 	}
 
@@ -192,6 +202,10 @@ func runReverse(cmd *Command, args []string) {
 
 			tbls := make([]*core.Table, 0)
 			for _, table := range tables {
+				//[SWH|+]
+				if prefix != "" {
+					table.Name = strings.TrimPrefix(table.Name, prefix)
+				}
 				tbls = append(tbls, table)
 			}
 
@@ -224,6 +238,10 @@ func runReverse(cmd *Command, args []string) {
 			w.Close()
 		} else {
 			for _, table := range tables {
+				//[SWH|+]
+				if prefix != "" {
+					table.Name = strings.TrimPrefix(table.Name, prefix)
+				}
 				// imports
 				tbs := []*core.Table{table}
 				imports := langTmpl.GenImports(tbs)

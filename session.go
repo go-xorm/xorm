@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lunny/xorm/core"
+	"github.com/go-xorm/core"
 )
 
 // Struct Session keep a pointer to sql.DB and provides all execution of all
@@ -131,6 +131,16 @@ func (session *Session) In(column string, args ...interface{}) *Session {
 // Method Cols provides some columns to special
 func (session *Session) Cols(columns ...string) *Session {
 	session.Statement.Cols(columns...)
+	return session
+}
+
+func (session *Session) AllCols() *Session {
+	session.Statement.AllCols()
+	return session
+}
+
+func (session *Session) MustCols(columns ...string) *Session {
+	session.Statement.MustCols(columns...)
 	return session
 }
 
@@ -290,7 +300,7 @@ func (session *Session) Begin() error {
 // When using transaction, you can rollback if any error
 func (session *Session) Rollback() error {
 	if !session.IsAutoCommit && !session.IsCommitedOrRollbacked {
-		session.Engine.logSQL("ROLL BACK")
+		session.Engine.logSQL(session.Engine.dialect.RollBackStr())
 		session.IsCommitedOrRollbacked = true
 		return session.Tx.Rollback()
 	}
@@ -357,13 +367,14 @@ func cleanupProcessorsClosures(slices *[]func(interface{})) {
 }
 
 func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]byte) error {
-	dataStruct := reflect.Indirect(reflect.ValueOf(obj))
+	dataStruct := rValue(obj)
 	if dataStruct.Kind() != reflect.Struct {
 		return errors.New("Expected a pointer to a struct")
 	}
 
-	table := session.Engine.autoMapType(rType(obj))
 	var col *core.Column
+	table := session.Engine.autoMapType(dataStruct)
+
 	for key, data := range objMap {
 		if col = table.GetColumn(key); col == nil {
 			session.Engine.LogWarn(fmt.Sprintf("table %v's has not column %v. %v", table.Name, key, table.Columns()))
@@ -609,7 +620,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 		return false, ErrCacheFailed
 	}
 
-	cacher := session.Engine.getCacher(session.Statement.RefTable.Type)
+	cacher := session.Engine.getCacher2(session.Statement.RefTable)
 	tableName := session.Statement.TableName()
 	session.Engine.LogDebug("[xorm:cacheGet] find sql:", newsql, args)
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args)
@@ -698,7 +709,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 	}
 
 	table := session.Statement.RefTable
-	cacher := session.Engine.getCacher(t)
+	cacher := session.Engine.getCacher2(table)
 	ids, err := core.GetCacheSql(cacher, session.Statement.TableName(), newsql, args)
 	if err != nil {
 		//session.Engine.LogError(err)
@@ -927,6 +938,7 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	session.Statement.Limit(1)
 	var sqlStr string
 	var args []interface{}
+
 	session.Statement.RefTable = session.Engine.autoMap(bean)
 
 	if session.Statement.RawSQL == "" {
@@ -936,7 +948,7 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 		args = session.Statement.RawParams
 	}
 
-	if cacher := session.Engine.getCacher(session.Statement.RefTable.Type); cacher != nil && session.Statement.UseCache {
+	if cacher := session.Engine.getCacher2(session.Statement.RefTable); cacher != nil && session.Statement.UseCache {
 		has, err := session.cacheGet(bean, sqlStr, args...)
 		if err != ErrCacheFailed {
 			return has, err
@@ -1051,12 +1063,14 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	if session.Statement.RefTable == nil {
 		if sliceElementType.Kind() == reflect.Ptr {
 			if sliceElementType.Elem().Kind() == reflect.Struct {
-				table = session.Engine.autoMapType(sliceElementType.Elem())
+				pv := reflect.New(sliceElementType.Elem())
+				table = session.Engine.autoMapType(pv.Elem())
 			} else {
 				return errors.New("slice type")
 			}
 		} else if sliceElementType.Kind() == reflect.Struct {
-			table = session.Engine.autoMapType(sliceElementType)
+			pv := reflect.New(sliceElementType)
+			table = session.Engine.autoMapType(pv.Elem())
 		} else {
 			return errors.New("slice type")
 		}
@@ -1067,7 +1081,8 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 
 	if len(condiBean) > 0 {
 		colNames, args := buildConditions(session.Engine, table, condiBean[0], true, true,
-			false, true, session.Statement.allUseBool, session.Statement.boolColumnMap)
+			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
+			session.Statement.mustColumnMap)
 		session.Statement.ConditionStr = strings.Join(colNames, " AND ")
 		session.Statement.BeanArgs = args
 	}
@@ -1089,7 +1104,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		args = session.Statement.RawParams
 	}
 
-	if cacher := session.Engine.getCacher(table.Type); cacher != nil &&
+	if cacher := session.Engine.getCacher2(table); cacher != nil &&
 		session.Statement.UseCache &&
 		!session.Statement.IsDistinct {
 		err = session.cacheFind(sliceElementType, sqlStr, rowsSlicePtr, args...)
@@ -1426,13 +1441,12 @@ func (session *Session) getField(dataStruct *reflect.Value, key string, table *c
 }
 
 func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount int, bean interface{}) error {
-
-	dataStruct := reflect.Indirect(reflect.ValueOf(bean))
+	dataStruct := rValue(bean)
 	if dataStruct.Kind() != reflect.Struct {
 		return errors.New("Expected a pointer to a struct")
 	}
 
-	table := session.Engine.autoMapType(rType(bean))
+	table := session.Engine.autoMapType(dataStruct)
 
 	scanResultContainers := make([]interface{}, len(fields))
 	for i := 0; i < len(fields); i++ {
@@ -1533,7 +1547,7 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 						fieldValue.Set(vv)
 					}
 				} else if session.Statement.UseCascade {
-					table := session.Engine.autoMapType(fieldValue.Type())
+					table := session.Engine.autoMapType(*fieldValue)
 					if table != nil {
 						var x int64
 						if rawValueType.Kind() == reflect.Int64 {
@@ -1801,9 +1815,10 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 	}
 
 	bean := sliceValue.Index(0).Interface()
-	sliceElementType := rType(bean)
+	elementValue := rValue(bean)
+	//sliceElementType := elementValue.Type()
 
-	table := session.Engine.autoMapType(sliceElementType)
+	table := session.Engine.autoMapType(elementValue)
 	session.Statement.RefTable = table
 
 	size := sliceValue.Len()
@@ -1901,7 +1916,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 		return 0, err
 	}
 
-	if cacher := session.Engine.getCacher(table.Type); cacher != nil && session.Statement.UseCache {
+	if cacher := session.Engine.getCacher2(table); cacher != nil && session.Statement.UseCache {
 		session.cacheInsert(session.Statement.TableName())
 	}
 
@@ -2111,7 +2126,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			v = x
 			fieldValue.Set(reflect.ValueOf(v))
 		} else if session.Statement.UseCascade {
-			table := session.Engine.autoMapType(fieldValue.Type())
+			table := session.Engine.autoMapType(*fieldValue)
 			if table != nil {
 				x, err := strconv.ParseInt(string(data), 10, 64)
 				if err != nil {
@@ -2524,6 +2539,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	}
 
 	colPlaces := strings.Repeat("?, ", len(colNames))
+	//fmt.Println(colNames, args)
 	colPlaces = colPlaces[0 : len(colPlaces)-2]
 
 	sqlStr := fmt.Sprintf("INSERT INTO %v%v%v (%v%v%v) VALUES (%v)",
@@ -2575,7 +2591,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			handleAfterInsertProcessorFunc(bean)
 		}
 
-		if cacher := session.Engine.getCacher(table.Type); cacher != nil && session.Statement.UseCache {
+		if cacher := session.Engine.getCacher2(table); cacher != nil && session.Statement.UseCache {
 			session.cacheInsert(session.Statement.TableName())
 		}
 
@@ -2634,7 +2650,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			handleAfterInsertProcessorFunc(bean)
 		}
 
-		if cacher := session.Engine.getCacher(table.Type); cacher != nil && session.Statement.UseCache {
+		if cacher := session.Engine.getCacher2(table); cacher != nil && session.Statement.UseCache {
 			session.cacheInsert(session.Statement.TableName())
 		}
 
@@ -2687,7 +2703,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 
 // Method InsertOne insert only one struct into database as a record.
 // The in parameter bean must a struct or a point to struct. The return
-// parameter is lastInsertId and error
+// parameter is inserted and error
 func (session *Session) InsertOne(bean interface{}) (int64, error) {
 	err := session.newDb()
 	if err != nil {
@@ -2747,7 +2763,7 @@ func (session *Session) cacheInsert(tables ...string) error {
 	}
 
 	table := session.Statement.RefTable
-	cacher := session.Engine.getCacher(table.Type)
+	cacher := session.Engine.getCacher2(table)
 
 	for _, t := range tables {
 		session.Engine.LogDebug("cache clear:", t)
@@ -2781,7 +2797,7 @@ func (session *Session) cacheUpdate(sqlStr string, args ...interface{}) error {
 		}
 	}
 	table := session.Statement.RefTable
-	cacher := session.Engine.getCacher(table.Type)
+	cacher := session.Engine.getCacher2(table)
 	tableName := session.Statement.TableName()
 	session.Engine.LogDebug("[xorm:cacheUpdate] get cache sql", newsql, args[nStart:])
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args[nStart:])
@@ -2906,7 +2922,8 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 		if session.Statement.ColumnStr == "" {
 			colNames, args = buildConditions(session.Engine, table, bean, false, false,
-				false, false, session.Statement.allUseBool, session.Statement.boolColumnMap)
+				false, false, session.Statement.allUseBool, session.Statement.useAllCols,
+				session.Statement.mustColumnMap)
 		} else {
 			colNames, args, err = genCols(table, session, bean, true, true)
 			if err != nil {
@@ -2940,7 +2957,8 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	if len(condiBean) > 0 {
 		condiColNames, condiArgs = buildConditions(session.Engine, session.Statement.RefTable, condiBean[0], true, true,
-			false, true, session.Statement.allUseBool, session.Statement.boolColumnMap)
+			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
+			session.Statement.mustColumnMap)
 	}
 
 	var condition = ""
@@ -3019,7 +3037,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		return 0, err
 	}
 
-	if cacher := session.Engine.getCacher(t); cacher != nil && session.Statement.UseCache {
+	if cacher := session.Engine.getCacher2(table); cacher != nil && session.Statement.UseCache {
 		//session.cacheUpdate(sqlStr, args...)
 		cacher.ClearIds(session.Statement.TableName())
 		cacher.ClearBeans(session.Statement.TableName())
@@ -3071,7 +3089,7 @@ func (session *Session) cacheDelete(sqlStr string, args ...interface{}) error {
 		return ErrCacheFailed
 	}
 
-	cacher := session.Engine.getCacher(session.Statement.RefTable.Type)
+	cacher := session.Engine.getCacher2(session.Statement.RefTable)
 	tableName := session.Statement.TableName()
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args)
 	if err != nil {
@@ -3137,7 +3155,8 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	table := session.Engine.autoMap(bean)
 	session.Statement.RefTable = table
 	colNames, args := buildConditions(session.Engine, table, bean, true, true,
-		false, true, session.Statement.allUseBool, session.Statement.boolColumnMap)
+		false, true, session.Statement.allUseBool, session.Statement.useAllCols,
+		session.Statement.mustColumnMap)
 
 	var condition = ""
 
@@ -3167,7 +3186,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 
 	args = append(session.Statement.Params, args...)
 
-	if cacher := session.Engine.getCacher(session.Statement.RefTable.Type); cacher != nil && session.Statement.UseCache {
+	if cacher := session.Engine.getCacher2(session.Statement.RefTable); cacher != nil && session.Statement.UseCache {
 		session.cacheDelete(sqlStr, args...)
 	}
 

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"regexp"
 
-	"github.com/lunny/xorm/core"
+	"github.com/go-xorm/core"
 )
 
 func init() {

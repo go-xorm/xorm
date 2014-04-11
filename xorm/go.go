@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 	"text/template"
+
 	"github.com/lunny/xorm/core"
 )
 
@@ -238,7 +239,7 @@ func tag(table *core.Table, col *core.Column) string {
 	nstr := col.SQLType.Name
 	if col.Length != 0 {
 		if col.Length2 != 0 {
-			nstr += fmt.Sprintf("(%v, %v)", col.Length, col.Length2)
+			nstr += fmt.Sprintf("(%v,%v)", col.Length, col.Length2)
 		} else {
 			nstr += fmt.Sprintf("(%v)", col.Length)
 		}

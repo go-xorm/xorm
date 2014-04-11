@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/lunny/xorm/core"
+	. "github.com/go-xorm/core"
 )
 
 func init() {
@@ -37,6 +37,7 @@ func (db *mysql) SqlType(c *Column) string {
 	switch t := c.SQLType.Name; t {
 	case Bool:
 		res = TinyInt
+		c.Length = 1
 	case Serial:
 		c.IsAutoIncrement = true
 		c.IsPrimaryKey = true

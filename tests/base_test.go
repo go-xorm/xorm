@@ -271,7 +271,7 @@ func insertTwoTable(engine *xorm.Engine, t *testing.T) {
 }
 
 type Article struct {
-	Id      int32  `xorm:"pk INT autoincr`
+	Id      int32  `xorm:"pk INT autoincr"`
 	Name    string `xorm:"VARCHAR(45)"`
 	Img     string `xorm:"VARCHAR(100)"`
 	Aside   string `xorm:"VARCHAR(200)"`
@@ -334,30 +334,142 @@ func update(engine *xorm.Engine, t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = engine.Insert(&Article{0, "1", "2", "3", "4", "5", 2})
+	defer func() {
+		err = engine.DropTables(&Article{})
+		if err != nil {
+			t.Error(err)
+			panic(err)
+		}
+	}()
+
+	a := &Article{0, "1", "2", "3", "4", "5", 2}
+	cnt, err = engine.Insert(a)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	if cnt != 1 {
-		err = errors.New("insert not returned 1")
+		err = errors.New(fmt.Sprintf("insert not returned 1 but %d", cnt))
 		t.Error(err)
 		panic(err)
-		return
 	}
 
-	cnt, err = engine.Id(1).Update(&Article{Name: "6"})
+	if a.Id == 0 {
+		err = errors.New("insert returned id is 0")
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Id(a.Id).Update(&Article{Name: "6"})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	if cnt != 1 {
-		err = errors.New("update not returned 1")
+		err = errors.New(fmt.Sprintf("insert not returned 1 but %d", cnt))
 		t.Error(err)
 		panic(err)
 		return
+	}
+
+	type UpdateAllCols struct {
+		Id     int64
+		Bool   bool
+		String string
+	}
+
+	col1 := &UpdateAllCols{}
+	err = engine.Sync(col1)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	_, err = engine.Insert(col1)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	col2 := &UpdateAllCols{col1.Id, true, ""}
+	_, err = engine.Id(col2.Id).AllCols().Update(col2)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	col3 := &UpdateAllCols{}
+	has, err := engine.Id(col2.Id).Get(col3)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if !has {
+		err = errors.New(fmt.Sprintf("cannot get id %d", col2.Id))
+		t.Error(err)
+		panic(err)
+		return
+	}
+
+	if *col2 != *col3 {
+		err = errors.New(fmt.Sprintf("col2 should eq col3"))
+		t.Error(err)
+		panic(err)
+		return
+	}
+
+	{
+		type UpdateMustCols struct {
+			Id     int64
+			Bool   bool
+			String string
+		}
+
+		col1 := &UpdateMustCols{}
+		err = engine.Sync(col1)
+		if err != nil {
+			t.Error(err)
+			panic(err)
+		}
+
+		_, err = engine.Insert(col1)
+		if err != nil {
+			t.Error(err)
+			panic(err)
+		}
+
+		col2 := &UpdateMustCols{col1.Id, true, ""}
+		boolStr := engine.columnMapper.Obj2Table("Bool")
+		stringStr := engine.columnMapper.Obj2Table("String")
+		_, err = engine.Id(col2.Id).MustCols(boolStr, stringStr).Update(col2)
+		if err != nil {
+			t.Error(err)
+			panic(err)
+		}
+
+		col3 := &UpdateMustCols{}
+		has, err := engine.Id(col2.Id).Get(col3)
+		if err != nil {
+			t.Error(err)
+			panic(err)
+		}
+
+		if !has {
+			err = errors.New(fmt.Sprintf("cannot get id %d", col2.Id))
+			t.Error(err)
+			panic(err)
+			return
+		}
+
+		if *col2 != *col3 {
+			err = errors.New(fmt.Sprintf("col2 should eq col3"))
+			t.Error(err)
+			panic(err)
+			return
+		}
 	}
 }
 
@@ -612,25 +724,54 @@ func where(engine *xorm.Engine, t *testing.T) {
 
 func in(engine *xorm.Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
-	err := engine.In("(id)", 1, 2, 3).Find(&users)
+	err := engine.In("(id)", 7, 8, 9).Find(&users)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println(users)
+	if len(users) != 3 {
+		err = errors.New("in uses should be 7,8,9 total 3")
+		t.Error(err)
+		panic(err)
+	}
+
+	for _, user := range users {
+		if user.Uid != 7 && user.Uid != 8 && user.Uid != 9 {
+			err = errors.New("in uses should be 7,8,9 total 3")
+			t.Error(err)
+			panic(err)
+		}
+	}
+
+	users = make([]Userinfo, 0)
+	ids := []interface{}{7, 8, 9}
+	err = engine.Where("departname = ?", "dev").In("(id)", ids...).Find(&users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 	fmt.Println(users)
 
-	ids := []interface{}{1, 2, 3}
-	err = engine.Where("(id) > ?", 2).In("(id)", ids...).Find(&users)
-	if err != nil {
+	if len(users) != 3 {
+		err = errors.New("in uses should be 7,8,9 total 3")
 		t.Error(err)
 		panic(err)
 	}
-	fmt.Println(users)
+
+	for _, user := range users {
+		if user.Uid != 7 && user.Uid != 8 && user.Uid != 9 {
+			err = errors.New("in uses should be 7,8,9 total 3")
+			t.Error(err)
+			panic(err)
+		}
+	}
 
 	department := engine.ColumnMapper.Obj2Table("Departname")
 	dev := engine.ColumnMapper.Obj2Table("Dev")
 
 	err = engine.In("(id)", 1).In("(id)", 2).In(department, dev).Find(&users)
+
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -3771,6 +3912,39 @@ func testCompositeKey(engine *xorm.Engine, t *testing.T) {
 	}
 }
 
+type Lowercase struct {
+	Id    int64
+	Name  string
+	ended int64 `xorm:"-"`
+}
+
+func testLowerCase(engine *Engine, t *testing.T) {
+	err := engine.Sync(&Lowercase{})
+	_, err = engine.Where("id > 0").Delete(&Lowercase{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	_, err = engine.Insert(&Lowercase{ended: 1})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	ls := make([]Lowercase, 0)
+	err = engine.Find(&ls)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if len(ls) != 1 {
+		err = errors.New("should be 1")
+		t.Error(err)
+		panic(err)
+	}
+}
+
 type User struct {
 	UserId   string `xorm:"varchar(19) not null pk"`
 	NickName string `xorm:"varchar(19) not null"`
@@ -3779,8 +3953,8 @@ type User struct {
 }
 
 func testCompositeKey2(engine *xorm.Engine, t *testing.T) {
-
 	err := engine.DropTables(&User{})
+
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -3836,7 +4010,29 @@ func testCompositeKey2(engine *xorm.Engine, t *testing.T) {
 	}
 }
 
-func testAll(engine *xorm.Engine, t *testing.T) {
+type CustomTableName struct {
+	Id   int64
+	Name string
+}
+
+func (c *CustomTableName) TableName() string {
+	return "customtablename"
+}
+
+func testCustomTableName(engine *Engine, t *testing.T) {
+	c := new(CustomTableName)
+	err := engine.DropTables(c)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = engine.CreateTables(c)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func testAll(engine *Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
 	fmt.Println("-------------- insert --------------")
@@ -3924,10 +4120,14 @@ func testAll2(engine *xorm.Engine, t *testing.T) {
 	testPrefixTableName(engine, t)
 	fmt.Println("-------------- testCreatedUpdated --------------")
 	testCreatedUpdated(engine, t)
+	fmt.Println("-------------- testLowercase ---------------")
+	testLowerCase(engine, t)
 	fmt.Println("-------------- processors --------------")
 	testProcessors(engine, t)
 	fmt.Println("-------------- transaction --------------")
 	transaction(engine, t)
+	fmt.Println("-------------- testCustomTableName --------------")
+	testCustomTableName(engine, t)
 }
 
 // !nash! the 3rd set of the test is intended for non-cache enabled engine

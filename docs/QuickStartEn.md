@@ -100,30 +100,47 @@ engine.Logger = f
 <a name="20" id="20"></a>
 ## 2.Define struct
 
-xorm支持将一个struct映射为数据库中对应的一张表。映射规则如下：
+xorm map a struct to a database table, the rule is below.
 
 <a name="21" id="21"></a>
-### 2.1.名称映射规则
+### 2.1.name mapping rule
 
-名称映射规则主要负责结构体名称到表名和结构体field到表字段的名称映射。由xorm.IMapper接口的实现者来管理，xorm内置了两种IMapper实现：`SnakeMapper` 和 `SameMapper`。SnakeMapper支持struct为驼峰式命名，表结构为下划线命名之间的转换；SameMapper支持相同的命名。
+use xorm.IMapper interface to implement. There are two IMapper implemented: `SnakeMapper` and `SameMapper`. SnakeMapper means struct name is word by word and table name or column name as 下划线. SameMapper means same name between struct and table.
 
-当前SnakeMapper为默认值，如果需要改变时，在engine创建完成后使用
+SnakeMapper is the default.
 
 ```Go
 engine.Mapper = SameMapper{}
 ```
 
+同时需要注意的是：
+
+* 如果你使用了别的命名规则映射方案，也可以自己实现一个IMapper。
+* 表名称和字段名称的映射规则默认是相同的，当然也可以设置为不同，如：
+
+```Go
+engine.SetTableMapper(SameMapper{})
+engine.SetColumnMapper(SnakeMapper{})
+```
+
+<a name="22" id="22"></a>
+### 2.2.前缀映射规则，后缀映射规则和缓存映射规则
+
+* 通过`engine.NewPrefixMapper(SnakeMapper{}, "prefix")`可以在SnakeMapper的基础上在命名中添加统一的前缀，当然也可以把SnakeMapper{}换成SameMapper或者你自定义的Mapper。
+* 通过`engine.NewSufffixMapper(SnakeMapper{}, "suffix")`可以在SnakeMapper的基础上在命名中添加统一的后缀，当然也可以把SnakeMapper{}换成SameMapper或者你自定义的Mapper。
+* 通过`eneing.NewCacheMapper(SnakeMapper{})`可以起到在内存中缓存曾经映射过的命名映射。
+
 当然，如果你使用了别的命名规则映射方案，也可以自己实现一个IMapper。
 
 <a name="22" id="22"></a>
-### 2.2.使用Table和Tag改变名称映射
+### 2.3.使用Table和Tag改变名称映射
 
 如果所有的命名都是按照IMapper的映射来操作的，那当然是最理想的。但是如果碰到某个表名或者某个字段名跟映射规则不匹配时，我们就需要别的机制来改变。
 
 通过`engine.Table()`方法可以改变struct对应的数据库表的名称，通过sturct中field对应的Tag中使用`xorm:"'table_name'"`可以使该field对应的Column名称为指定名称。这里使用两个单引号将Column名称括起来是为了防止名称冲突，因为我们在Tag中还可以对这个Column进行更多的定义。如果名称不冲突的情况，单引号也可以不使用。
 
 <a name="23" id="23"></a>
-### 2.3.Column属性定义
+### 2.4.Column属性定义
 我们在field对应的Tag中对Column的一些属性进行定义，定义的方法基本和我们写SQL定义表结构类似，比如：
 
 ```

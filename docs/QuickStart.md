@@ -4,7 +4,7 @@ xorm 快速入门
 * [1.创建Orm引擎](#10)
 * [2.定义表结构体](#20)
 	* [2.1.名称映射规则](#21)
-	* [2.2.前缀映射规则和后缀映射规则](#22)
+	* [2.2.前缀映射，后缀映射和缓存映射](#22)
 	* [2.3.使用Table和Tag改变名称映射](#23)
 	* [2.4.Column属性定义](#24)
 	* [2.5.Go与字段类型对应表](#25)
@@ -29,12 +29,13 @@ xorm 快速入门
 * [9.执行SQL命令](#100)
 * [10.事务处理](#110)
 * [11.缓存](#120)
-* [12.xorm工具](#130)
-	* [12.1.反转命令](#131)
-* [13.Examples](#140)
-* [14.案例](#150)
-* [15.那些年我们踩过的坑](#160)
-* [16.讨论](#170)
+* [12.事件](#125)
+* [13.xorm工具](#130)
+	* [13.1.反转命令](#131)
+* [14.Examples](#140)
+* [15.案例](#150)
+* [16.那些年我们踩过的坑](#160)
+* [17.讨论](#170)
 
 <a name="10" id="10"></a>
 ## 1.创建Orm引擎
@@ -64,8 +65,11 @@ defer engine.Close()
 一般如果只针对一个数据库进行操作，只需要创建一个Engine即可。Engine支持在多GoRutine下使用。
 
 xorm当前支持五种驱动四个数据库如下：
+<<<<<<< HEAD
+=======
 
 * Mysql: [github.com/Go-SQL-Driver/MySQL](https://github.com/Go-SQL-Driver/MySQL)
+>>>>>>> master
 
 * MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
 
@@ -120,27 +124,39 @@ engine.SetMapper(SameMapper{})
 
 同时需要注意的是：
 
+<<<<<<< HEAD
 * 如果你使用了别的命名规则映射方案，也可以自己实现一个IMapper。
 * 表名称和字段名称的映射规则默认是相同的，当然也可以设置为不同，如：
 
+=======
+* 如果你使用了别的命名规则映射方案，也可以自己实现一个IMapper。
+* 表名称和字段名称的映射规则默认是相同的，当然也可以设置为不同，如：
+
+>>>>>>> master
 ```Go
 engine.SetTableMapper(SameMapper{})
 engine.SetColumnMapper(SnakeMapper{})
 ```
 
 <a name="22" id="22"></a>
-### 2.2.前缀映射规则和后缀映射规则
+### 2.2.前缀映射，后缀映射和缓存映射
 
 * 通过`engine.NewPrefixMapper(SnakeMapper{}, "prefix")`可以在SnakeMapper的基础上在命名中添加统一的前缀，当然也可以把SnakeMapper{}换成SameMapper或者你自定义的Mapper。
 * 通过`engine.NewSufffixMapper(SnakeMapper{}, "suffix")`可以在SnakeMapper的基础上在命名中添加统一的后缀，当然也可以把SnakeMapper{}换成SameMapper或者你自定义的Mapper。
+<<<<<<< HEAD
 * 
+=======
+* 通过`eneing.NewCacheMapper(SnakeMapper{})`可以组合其它的映射规则，起到在内存中缓存曾经映射过的命名映射。
+>>>>>>> master
 
 <a name="23" id="23"></a>
 ### 2.3.使用Table和Tag改变名称映射
 
 如果所有的命名都是按照IMapper的映射来操作的，那当然是最理想的。但是如果碰到某个表名或者某个字段名跟映射规则不匹配时，我们就需要别的机制来改变。
 
-通过`engine.Table()`方法可以改变struct对应的数据库表的名称，通过sturct中field对应的Tag中使用`xorm:"'column_name'"`可以使该field对应的Column名称为指定名称。这里使用两个单引号将Column名称括起来是为了防止名称冲突，因为我们在Tag中还可以对这个Column进行更多的定义。如果名称不冲突的情况，单引号也可以不使用。
+* 如果struct拥有`Tablename() string`的成员方法，那么此方法的返回值即是该struct默认对应的数据库表名。
+
+* 通过`engine.Table()`方法可以改变struct对应的数据库表的名称，通过sturct中field对应的Tag中使用`xorm:"'column_name'"`可以使该field对应的Column名称为指定名称。这里使用两个单引号将Column名称括起来是为了防止名称冲突，因为我们在Tag中还可以对这个Column进行更多的定义。如果名称不冲突的情况，单引号也可以不使用。
 
 <a name="23" id="23"></a>
 ### 2.4.Column属性定义
@@ -153,7 +169,7 @@ type User struct {
 }
 ```
 
-对于不同的数据库系统，数据类型其实是有些差异的。因此xorm中对数据类型有自己的定义，基本的原则是尽量兼容各种数据库的字段类型，具体的字段对应关系可以查看[字段类型对应表](https://github.com/lunny/xorm/blob/master/docs/COLUMNTYPE.md)。
+对于不同的数据库系统，数据类型其实是有些差异的。因此xorm中对数据类型有自己的定义，基本的原则是尽量兼容各种数据库的字段类型，具体的字段对应关系可以查看[字段类型对应表](https://github.com/lunny/xorm/blob/master/docs/COLUMNTYPE.md)。对于使用者，一般只要使用自己熟悉的数据库字段定义即可。
 
 具体的映射规则如下，另Tag中的关键字均不区分大小写，字段名区分大小写：
 
@@ -407,7 +423,11 @@ engine.Cols("age", "name").Update(&user)
 // UPDATE user SET age=? AND name=?
 ```
 
-其中的参数"age", "name"也可以写成"age, name"，两种写法均可
+* AllCols()
+查询或更新所有字段。
+
+* MustCols(…string)
+某些字段必须更新。
 
 * Omit(...string)
 和cols相反，此函数指定排除某些指定的字段。注意：此方法和Cols方法不可同时使用
@@ -578,13 +598,21 @@ affected, err := engine.Id(id).Update(user)
 
 这里需要注意，Update会自动从user结构体中提取非0和非nil得值作为需要更新的内容，因此，如果需要更新一个值为0，则此种方法将无法实现，因此有两种选择：
 
+<<<<<<< HEAD
 1. 通过添加Cols函数指定需要更新结构体中的哪些值，未指定的将不更新，指定了的即使为0也会更新。
+=======
+* 1.通过添加Cols函数指定需要更新结构体中的哪些值，未指定的将不更新，指定了的即使为0也会更新。
+>>>>>>> master
 
 ```Go
 affected, err := engine.Id(id).Cols("age").Update(&user)
 ```
 
+<<<<<<< HEAD
 2. 通过传入map[string]interface{}来进行更新，但这时需要额外指定更新到哪个表，因为通过map是无法自动检测更新哪个表的。
+=======
+* 2.通过传入map[string]interface{}来进行更新，但这时需要额外指定更新到哪个表，因为通过map是无法自动检测更新哪个表的。
+>>>>>>> master
 
 ```Go
 affected, err := engine.Table(new(User)).Id(id).Update(map[string]interface{}{"age":0})
@@ -681,6 +709,8 @@ if err != nil {
 }
 ```
 
+* 注意如果您使用的是mysql，数据库引擎为innodb事务才有效，myisam引擎是不支持事务的。
+
 <a name="120" id="120"></a>
 ## 11.缓存
 
@@ -727,20 +757,46 @@ engine.ClearCache(new(User))
 
 ![cache design](https://raw.github.com/lunny/xorm/master/docs/cache_design.png)
 
+<a name="125" id="125"></a>
+## 12.事件
+xorm支持两种方式的事件，一种是在Struct中的特定方法来作为事件的方法，一种是在执行语句的过程中执行事件。
+
+在Struct中作为成员方法的事件如下：
+
+* BeforeInsert()
+
+* BeforeUpdate()
+
+* BeforeDelete()
+
+* AfterInsert()
+
+* AfterUpdate()
+
+* AfterDelete()
+
+在语句执行过程中的事件方法为：
+
+* Before(beforeFunc interface{})
+
+* After(afterFunc interface{})
+
+其中beforeFunc和afterFunc的原型为func(bean interface{}).
+
 <a name="130" id="130"></a>
-## 12.xorm工具
+## 13.xorm工具
 xorm工具提供了xorm命令，能够帮助做很多事情。
 
-### 12.1.反转命令
+### 13.1.反转命令
 参见 [xorm工具](https://github.com/lunny/xorm/tree/master/xorm)
 
 <a name="140" id="140"></a>
-## 13.Examples
+## 14.Examples
 
 请访问[https://github.com/lunny/xorm/tree/master/examples](https://github.com/lunny/xorm/tree/master/examples)
 
 <a name="150" id="150"></a>
-## 14.案例
+## 15.案例
 
 * [Gowalker](http://gowalker.org)，源代码 [github.com/Unknwon/gowalker](http://github.com/Unknwon/gowalker)
 
@@ -751,7 +807,7 @@ xorm工具提供了xorm命令，能够帮助做很多事情。
 * [VeryHour](http://veryhour.com)
 
 <a name="160" id="160"></a>
-## 15.那些年我们踩过的坑
+## 16.那些年我们踩过的坑
 * 怎么同时使用xorm的tag和json的tag？
   
 答：使用空格
@@ -795,5 +851,5 @@ money float64 `xorm:"Numeric"`
 
 
 <a name="170" id="170"></a>
-## 16.讨论
+## 17.讨论
 请加入QQ群：280360085 进行讨论。

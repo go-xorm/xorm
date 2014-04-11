@@ -79,7 +79,11 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 ## 案例
 
+* [Gogs](http://try.gogits.org) - [github.com/gogits/gogs](http://github.com/gogits/gogs)
+
 * [Gowalker](http://gowalker.org) - [github.com/Unknwon/gowalker](http://github.com/Unknwon/gowalker)
+
+* [Gobuild.io](http://gobuild.io) - [github.com/shxsun/gobuild](http://github.com/shxsun/gobuild)
 
 * [Sudo China](http://sudochina.com) - [github.com/insionng/toropress](http://github.com/insionng/toropress)
 
@@ -87,9 +91,7 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * [Very Hour](http://veryhour.com/)
 
-## Todo
-
-[开发计划](https://trello.com/b/IHsuAnhk/xorm)
+* [GoCMS - github.com/zzboy/GoCMS](https://github.com/zzdboy/GoCMS)
 
 ## 讨论
 

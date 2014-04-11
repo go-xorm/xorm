@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/lunny/xorm/core"
+	. "github.com/go-xorm/core"
 )
 
 func init() {
@@ -127,6 +127,7 @@ func (db *postgres) GetColumns(tableName string) ([]string, map[string]*Column, 
 	for rows.Next() {
 		col := new(Column)
 		col.Indexes = make(map[string]bool)
+
 		var colName, isNullable, dataType string
 		var maxLenStr, colDefault, numPrecision, numRadix *string
 		err = rows.Scan(&colName, &colDefault, &isNullable, &dataType, &maxLenStr, &numPrecision, &numRadix)
@@ -183,6 +184,10 @@ func (db *postgres) GetColumns(tableName string) ([]string, map[string]*Column, 
 		if col.SQLType.IsText() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
+			} else {
+				if col.DefaultIsEmpty {
+					col.Default = "''"
+				}
 			}
 		}
 		cols[col.Name] = col

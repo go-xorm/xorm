@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lunny/xorm/core"
+	"github.com/go-xorm/core"
 )
 
 type LRUCacher struct {

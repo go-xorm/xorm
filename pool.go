@@ -1,13 +1,12 @@
 package xorm
 
 import (
-	"github.com/lunny/xorm/core"
-	//"fmt"
-	"sync"
-	//"sync/atomic"
 	"container/list"
 	"reflect"
+	"sync"
 	"time"
+
+	"github.com/go-xorm/core"
 )
 
 // Interface IConnecPool is a connection pool interface, all implements should implement
