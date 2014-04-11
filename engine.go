@@ -589,8 +589,7 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 								col.Name = key
 							}
 						}
-						panic("broken")
-						//engine.dialect.SqlType(col)
+						engine.dialect.SqlType(col)
 					}
 					preKey = k
 				}

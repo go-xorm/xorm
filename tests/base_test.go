@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lunny/xorm"
-	"github.com/lunny/xorm/core"
+	"github.com/go-xorm/core"
+	"github.com/go-xorm/xorm"
 )
 
 /*
@@ -442,8 +442,8 @@ func update(engine *xorm.Engine, t *testing.T) {
 		}
 
 		col2 := &UpdateMustCols{col1.Id, true, ""}
-		boolStr := engine.columnMapper.Obj2Table("Bool")
-		stringStr := engine.columnMapper.Obj2Table("String")
+		boolStr := engine.ColumnMapper.Obj2Table("Bool")
+		stringStr := engine.ColumnMapper.Obj2Table("String")
 		_, err = engine.Id(col2.Id).MustCols(boolStr, stringStr).Update(col2)
 		if err != nil {
 			t.Error(err)
@@ -746,7 +746,8 @@ func in(engine *xorm.Engine, t *testing.T) {
 
 	users = make([]Userinfo, 0)
 	ids := []interface{}{7, 8, 9}
-	err = engine.Where("departname = ?", "dev").In("(id)", ids...).Find(&users)
+	department := engine.ColumnMapper.Obj2Table("Departname")
+	err = engine.Where("`"+department+"` = ?", "dev").In("(id)", ids...).Find(&users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -767,7 +768,6 @@ func in(engine *xorm.Engine, t *testing.T) {
 		}
 	}
 
-	department := engine.ColumnMapper.Obj2Table("Departname")
 	dev := engine.ColumnMapper.Obj2Table("Dev")
 
 	err = engine.In("(id)", 1).In("(id)", 2).In(department, dev).Find(&users)
@@ -3918,9 +3918,9 @@ type Lowercase struct {
 	ended int64 `xorm:"-"`
 }
 
-func testLowerCase(engine *Engine, t *testing.T) {
+func testLowerCase(engine *xorm.Engine, t *testing.T) {
 	err := engine.Sync(&Lowercase{})
-	_, err = engine.Where("id > 0").Delete(&Lowercase{})
+	_, err = engine.Where("(id) > 0").Delete(&Lowercase{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -4019,7 +4019,7 @@ func (c *CustomTableName) TableName() string {
 	return "customtablename"
 }
 
-func testCustomTableName(engine *Engine, t *testing.T) {
+func testCustomTableName(engine *xorm.Engine, t *testing.T) {
 	c := new(CustomTableName)
 	err := engine.DropTables(c)
 	if err != nil {
@@ -4032,7 +4032,7 @@ func testCustomTableName(engine *Engine, t *testing.T) {
 	}
 }
 
-func testAll(engine *Engine, t *testing.T) {
+func testAll(engine *xorm.Engine, t *testing.T) {
 	fmt.Println("-------------- directCreateTable --------------")
 	directCreateTable(engine, t)
 	fmt.Println("-------------- insert --------------")

@@ -7,9 +7,9 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/go-xorm/xorm"
+	"github.com/go-xorm/xorm/caches"
 	_ "github.com/lunny/godbc"
-	"github.com/lunny/xorm"
-	"github.com/lunny/xorm/caches"
 )
 
 const mssqlConnStr = "driver={SQL Server};Server=192.168.20.135;Database=xorm_test; uid=sa; pwd=1234;"

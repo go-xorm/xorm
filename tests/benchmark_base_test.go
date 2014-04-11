@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/lunny/xorm"
+	"github.com/go-xorm/xorm"
 )
 
 type BigStruct struct {

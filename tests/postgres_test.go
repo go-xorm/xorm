@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/go-xorm/core"
+	"github.com/go-xorm/xorm"
+	"github.com/go-xorm/xorm/caches"
 	_ "github.com/lib/pq"
-	"github.com/lunny/xorm"
-	"github.com/lunny/xorm/caches"
-	"github.com/lunny/xorm/core"
 )
 
 //var connStr string = "dbname=xorm_test user=lunny password=1234 sslmode=disable"
