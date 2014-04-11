@@ -15,10 +15,10 @@
 
 * **v0.2.3** : 改善了文档；提供了乐观锁支持；添加了带时区时间字段支持；Mapper现在分成表名Mapper和字段名Mapper，同时实现了表或字段的自定义前缀后缀；Insert方法的返回值含义从id, err更改为 affected, err，请大家注意；添加了UseBool 和 Distinct函数。
 * **v0.2.2** : Postgres驱动新增了对lib/pq的支持；新增了逐条遍历方法Iterate；新增了SetMaxConns(go1.2+)支持，修复了bug若干；
-* **v0.2.1** : 新增数据库反转工具，当前支持go和c++代码的生成，详见 [Xorm Tool README](https://github.com/lunny/xorm/blob/master/xorm/README.md); 修复了一些bug.
-* **v0.2.0** : 新增 [缓存](https://github.com/lunny/xorm/blob/master/docs/QuickStart.md#120)支持，查询速度提升3-5倍； 新增数据库表和Struct同名的映射方式； 新增Sync同步表结构；
-* **v0.1.9** : 新增 postgres 和 mymysql 驱动支持; 在Postgres中支持原始SQL语句中使用 ` 和 ? 符号; 新增Cols, StoreEngine, Charset 函数；SQL语句打印支持io.Writer接口，默认打印到控制台；新增更多的字段类型支持，详见 [映射规则](https://github.com/lunny/xorm/blob/master/docs/QuickStart.md#21)；删除废弃的MakeSession和Create函数。
-* **v0.1.8** : 新增联合index，联合unique支持，请查看 [映射规则](https://github.com/lunny/xorm/blob/master/docs/QuickStart.md#21)。
+* **v0.2.1** : 新增数据库反转工具，当前支持go和c++代码的生成，详见 [Xorm Tool README](https://github.com/go-xorm/xorm/blob/master/xorm/README.md); 修复了一些bug.
+* **v0.2.0** : 新增 [缓存](https://github.com/go-xorm/xorm/blob/master/docs/QuickStart.md#120)支持，查询速度提升3-5倍； 新增数据库表和Struct同名的映射方式； 新增Sync同步表结构；
+* **v0.1.9** : 新增 postgres 和 mymysql 驱动支持; 在Postgres中支持原始SQL语句中使用 ` 和 ? 符号; 新增Cols, StoreEngine, Charset 函数；SQL语句打印支持io.Writer接口，默认打印到控制台；新增更多的字段类型支持，详见 [映射规则](https://github.com/go-xorm/xorm/blob/master/docs/QuickStart.md#21)；删除废弃的MakeSession和Create函数。
+* **v0.1.8** : 新增联合index，联合unique支持，请查看 [映射规则](https://github.com/go-xorm/xorm/blob/master/docs/QuickStart.md#21)。
 * **v0.1.7** : 新增IConnectPool接口以及NoneConnectPool, SysConnectPool, SimpleConnectPool三种实现，可以选择不使用连接池，使用系统连接池和使用自带连接池三种实现，默认为SysConnectPool，即系统自带的连接池。同时支持自定义连接池。Engine新增Close方法，在系统退出时应调用此方法。
 * **v0.1.6** : 新增Conversion，支持自定义类型到数据库类型的转换；新增查询结构体自动检测匿名成员支持；新增单向映射支持；
 * **v0.1.5** : 新增对多线程的支持；新增Sql()函数；支持任意sql语句的struct查询；Get函数返回值变动；MakeSession和Create函数被NewSession和NewEngine函数替代；

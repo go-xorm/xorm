@@ -8,7 +8,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/lunny/xorm/core"
+	"github.com/go-xorm/core"
 )
 
 var (
