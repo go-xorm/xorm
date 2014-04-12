@@ -2911,7 +2911,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	var sqlStr, inSql string
 	var inArgs []interface{}
 	doIncVer := false
-	var verValue *reflect.Value
+	var verValue reflect.Value
 	if table.Version != "" && session.Statement.checkVersion {
 		if condition != "" {
 			condition = fmt.Sprintf("WHERE (%v) AND %v = ?", condition,
@@ -2934,10 +2934,10 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			session.Engine.Quote(table.Version)+" = "+session.Engine.Quote(table.Version)+" + 1",
 			condition)
 
-		verValue, err = table.VersionColumn().ValueOf(bean)
-		if err != nil {
-			return 0, err
-		}
+		verValue = table.VersionColumn().ValueOf(bean)
+		//if err != nil {
+		//	return 0, err
+		//}
 
 		condiArgs = append(condiArgs, verValue.Interface())
 		doIncVer = true
