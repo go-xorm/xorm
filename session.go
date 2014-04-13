@@ -2934,7 +2934,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			session.Engine.Quote(table.Version)+" = "+session.Engine.Quote(table.Version)+" + 1",
 			condition)
 
-		verValue = table.VersionColumn().ValueOf(bean) 
+		verValue = table.VersionColumn().ValueOf(bean)
 		//if err != nil {
 		//	return 0, err
 		//}
