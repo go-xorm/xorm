@@ -457,7 +457,9 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 	table := engine.newTable()
 	method := v.MethodByName("TableName")
 	if !method.IsValid() {
-		method = v.Addr().MethodByName("TableName")
+		if v.CanAddr() {
+			method = v.Addr().MethodByName("TableName")
+		}
 	}
 	if method.IsValid() {
 		params := []reflect.Value{}
