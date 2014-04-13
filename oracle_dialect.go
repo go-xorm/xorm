@@ -1,4 +1,4 @@
-package dialects
+package xorm
 
 import (
 	"errors"
@@ -6,37 +6,37 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/lunny/xorm/core"
+	"github.com/go-xorm/core"
 )
 
-func init() {
-	RegisterDialect("oracle", &oracle{})
-}
+// func init() {
+// 	RegisterDialect("oracle", &oracle{})
+// }
 
 type oracle struct {
-	Base
+	core.Base
 }
 
-func (db *oracle) Init(uri *Uri, drivername, dataSourceName string) error {
+func (db *oracle) Init(uri *core.Uri, drivername, dataSourceName string) error {
 	return db.Base.Init(db, uri, drivername, dataSourceName)
 }
 
-func (db *oracle) SqlType(c *Column) string {
+func (db *oracle) SqlType(c *core.Column) string {
 	var res string
 	switch t := c.SQLType.Name; t {
-	case Bit, TinyInt, SmallInt, MediumInt, Int, Integer, BigInt, Bool, Serial, BigSerial:
+	case core.Bit, core.TinyInt, core.SmallInt, core.MediumInt, core.Int, core.Integer, core.BigInt, core.Bool, core.Serial, core.BigSerial:
 		return "NUMBER"
-	case Binary, VarBinary, Blob, TinyBlob, MediumBlob, LongBlob, Bytea:
-		return Blob
-	case Time, DateTime, TimeStamp:
-		res = TimeStamp
-	case TimeStampz:
+	case core.Binary, core.VarBinary, core.Blob, core.TinyBlob, core.MediumBlob, core.LongBlob, core.Bytea:
+		return core.Blob
+	case core.Time, core.DateTime, core.TimeStamp:
+		res = core.TimeStamp
+	case core.TimeStampz:
 		res = "TIMESTAMP WITH TIME ZONE"
-	case Float, Double, Numeric, Decimal:
+	case core.Float, core.Double, core.Numeric, core.Decimal:
 		res = "NUMBER"
-	case Text, MediumText, LongText:
+	case core.Text, core.MediumText, core.LongText:
 		res = "CLOB"
-	case Char, Varchar, TinyText:
+	case core.Char, core.Varchar, core.TinyText:
 		return "VARCHAR2"
 	default:
 		res = t
@@ -93,12 +93,12 @@ func (db *oracle) ColumnCheckSql(tableName, colName string) (string, []interface
 		" AND column_name = ?", args
 }
 
-func (db *oracle) GetColumns(tableName string) ([]string, map[string]*Column, error) {
+func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{strings.ToUpper(tableName)}
 	s := "SELECT column_name,data_default,data_type,data_length,data_precision,data_scale," +
 		"nullable FROM USER_TAB_COLUMNS WHERE table_name = :1"
 
-	cnn, err := Open(db.DriverName(), db.DataSourceName())
+	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -109,10 +109,10 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*Column, er
 	}
 	defer rows.Close()
 
-	cols := make(map[string]*Column)
+	cols := make(map[string]*core.Column)
 	colSeq := make([]string, 0)
 	for rows.Next() {
-		col := new(Column)
+		col := new(core.Column)
 		col.Indexes = make(map[string]bool)
 
 		var colName, colDefault, nullable, dataType, dataPrecision, dataScale string
@@ -135,13 +135,13 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*Column, er
 
 		switch dataType {
 		case "VARCHAR2":
-			col.SQLType = SQLType{Varchar, 0, 0}
+			col.SQLType = core.SQLType{core.Varchar, 0, 0}
 		case "TIMESTAMP WITH TIME ZONE":
-			col.SQLType = SQLType{TimeStampz, 0, 0}
+			col.SQLType = core.SQLType{core.TimeStampz, 0, 0}
 		default:
-			col.SQLType = SQLType{strings.ToUpper(dataType), 0, 0}
+			col.SQLType = core.SQLType{strings.ToUpper(dataType), 0, 0}
 		}
-		if _, ok := SqlTypes[col.SQLType.Name]; !ok {
+		if _, ok := core.SqlTypes[col.SQLType.Name]; !ok {
 			return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v", dataType))
 		}
 
@@ -150,6 +150,10 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*Column, er
 		if col.SQLType.IsText() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
+			} else {
+				if col.DefaultIsEmpty {
+					col.Default = "''"
+				}
 			}
 		}
 		cols[col.Name] = col
@@ -159,10 +163,10 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*Column, er
 	return colSeq, cols, nil
 }
 
-func (db *oracle) GetTables() ([]*Table, error) {
+func (db *oracle) GetTables() ([]*core.Table, error) {
 	args := []interface{}{}
 	s := "SELECT table_name FROM user_tables"
-	cnn, err := Open(db.DriverName(), db.DataSourceName())
+	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
@@ -172,9 +176,9 @@ func (db *oracle) GetTables() ([]*Table, error) {
 		return nil, err
 	}
 
-	tables := make([]*Table, 0)
+	tables := make([]*core.Table, 0)
 	for rows.Next() {
-		table := NewEmptyTable()
+		table := core.NewEmptyTable()
 		err = rows.Scan(&table.Name)
 		if err != nil {
 			return nil, err
@@ -185,12 +189,12 @@ func (db *oracle) GetTables() ([]*Table, error) {
 	return tables, nil
 }
 
-func (db *oracle) GetIndexes(tableName string) (map[string]*Index, error) {
+func (db *oracle) GetIndexes(tableName string) (map[string]*core.Index, error) {
 	args := []interface{}{tableName}
 	s := "SELECT t.column_name,i.uniqueness,i.index_name FROM user_ind_columns t,user_indexes i " +
 		"WHERE t.index_name = i.index_name and t.table_name = i.table_name and t.table_name =:1"
 
-	cnn, err := Open(db.DriverName(), db.DataSourceName())
+	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +205,7 @@ func (db *oracle) GetIndexes(tableName string) (map[string]*Index, error) {
 	}
 	defer rows.Close()
 
-	indexes := make(map[string]*Index, 0)
+	indexes := make(map[string]*core.Index, 0)
 	for rows.Next() {
 		var indexType int
 		var indexName, colName, uniqueness string
@@ -214,15 +218,15 @@ func (db *oracle) GetIndexes(tableName string) (map[string]*Index, error) {
 		indexName = strings.Trim(indexName, `" `)
 
 		if uniqueness == "UNIQUE" {
-			indexType = UniqueType
+			indexType = core.UniqueType
 		} else {
-			indexType = IndexType
+			indexType = core.IndexType
 		}
 
-		var index *Index
+		var index *core.Index
 		var ok bool
 		if index, ok = indexes[indexName]; !ok {
-			index = new(Index)
+			index = new(core.Index)
 			index.Type = indexType
 			index.Name = indexName
 			indexes[indexName] = index
@@ -236,7 +240,7 @@ func (db *oracle) GetIndexes(tableName string) (map[string]*Index, error) {
 type OracleSeqFilter struct {
 }
 
-func (s *OracleSeqFilter) Do(sql string, dialect Dialect, table *Table) string {
+func (s *OracleSeqFilter) Do(sql string, dialect core.Dialect, table *core.Table) string {
 	counts := strings.Count(sql, "?")
 	for i := 1; i <= counts; i++ {
 		newstr := ":" + fmt.Sprintf("%v", i)
@@ -245,6 +249,6 @@ func (s *OracleSeqFilter) Do(sql string, dialect Dialect, table *Table) string {
 	return sql
 }
 
-func (db *oracle) Filters() []Filter {
-	return []Filter{&QuoteFilter{}, &OracleSeqFilter{}, &IdFilter{}}
+func (db *oracle) Filters() []core.Filter {
+	return []core.Filter{&core.QuoteFilter{}, &OracleSeqFilter{}, &core.IdFilter{}}
 }

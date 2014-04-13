@@ -1,15 +1,13 @@
 package xorm
 
 import (
-	//"bytes"
+	"encoding/json"
 	"fmt"
 	"reflect"
-	//"strconv"
-	"encoding/json"
 	"strings"
 	"time"
 
-	"github.com/lunny/xorm/core"
+	"github.com/go-xorm/core"
 )
 
 type inParam struct {
@@ -32,6 +30,7 @@ type Statement struct {
 	HavingStr     string
 	ColumnStr     string
 	columnMap     map[string]bool
+	useAllCols    bool
 	OmitStr       string
 	ConditionStr  string
 	AltTableName  string
@@ -47,7 +46,7 @@ type Statement struct {
 	IsDistinct    bool
 	allUseBool    bool
 	checkVersion  bool
-	boolColumnMap map[string]bool
+	mustColumnMap map[string]bool
 	inColumns     map[string]*inParam
 }
 
@@ -68,6 +67,7 @@ func (statement *Statement) Init() {
 	statement.columnMap = make(map[string]bool)
 	statement.ConditionStr = ""
 	statement.AltTableName = ""
+	statement.IdParam = nil
 	statement.RawSQL = ""
 	statement.RawParams = make([]interface{}, 0)
 	statement.BeanArgs = make([]interface{}, 0)
@@ -75,7 +75,7 @@ func (statement *Statement) Init() {
 	statement.UseAutoTime = true
 	statement.IsDistinct = false
 	statement.allUseBool = false
-	statement.boolColumnMap = make(map[string]bool)
+	statement.mustColumnMap = make(map[string]bool)
 	statement.checkVersion = true
 	statement.inColumns = make(map[string]*inParam)
 }
@@ -118,11 +118,12 @@ func (statement *Statement) Or(querystring string, args ...interface{}) *Stateme
 
 // tempororily set table name
 func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
-	t := rType(tableNameOrBean)
+	v := rValue(tableNameOrBean)
+	t := v.Type()
 	if t.Kind() == reflect.String {
 		statement.AltTableName = tableNameOrBean.(string)
 	} else if t.Kind() == reflect.Struct {
-		statement.RefTable = statement.Engine.autoMapType(t)
+		statement.RefTable = statement.Engine.autoMapType(v)
 	}
 	return statement
 }
@@ -210,7 +211,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
             if col.SQLType.IsText() {
                 bytes, err := json.Marshal(fieldValue.Interface())
                 if err != nil {
-                    engine.LogSQL(err)
+                    engine.LogError(err)
                     continue
                 }
                 val = string(bytes)
@@ -227,7 +228,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
                 } else {
                     bytes, err = json.Marshal(fieldValue.Interface())
                     if err != nil {
-                        engine.LogSQL(err)
+                        engine.LogError(err)
                         continue
                     }
                     val = bytes
@@ -245,8 +246,9 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 
 // Auto generating conditions according a struct
 func buildConditions(engine *Engine, table *core.Table, bean interface{},
-	includeVersion bool, includeUpdated bool, includeNil bool, includeAutoIncr bool, allUseBool bool,
-	boolColumnMap map[string]bool) ([]string, []interface{}) {
+	includeVersion bool, includeUpdated bool, includeNil bool,
+	includeAutoIncr bool, allUseBool bool, useAllCols bool,
+	mustColumnMap map[string]bool) ([]string, []interface{}) {
 
 	colNames := make([]string, 0)
 	var args = make([]interface{}, 0)
@@ -274,7 +276,15 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 		fieldValue := *fieldValuePtr
 		fieldType := reflect.TypeOf(fieldValue.Interface())
 
-		requiredField := false
+		requiredField := useAllCols
+		if b, ok := mustColumnMap[strings.ToLower(col.Name)]; ok {
+			if b {
+				requiredField = true
+			} else {
+				continue
+			}
+		}
+
 		if fieldType.Kind() == reflect.Ptr {
 			if fieldValue.IsNil() {
 				if includeNil {
@@ -296,8 +306,6 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 		switch fieldType.Kind() {
 		case reflect.Bool:
 			if allUseBool || requiredField {
-				val = fieldValue.Interface()
-			} else if _, ok := boolColumnMap[col.Name]; ok {
 				val = fieldValue.Interface()
 			} else {
 				// if a bool in a struct, it will not be as a condition because it default is false,
@@ -346,7 +354,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 					val = t
 				}
 			} else {
-				engine.autoMapType(fieldValue.Type())
+				engine.autoMapType(fieldValue)
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
 					if len(table.PrimaryKeys) == 1 {
 						pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)
@@ -373,7 +381,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 			if col.SQLType.IsText() {
 				bytes, err := json.Marshal(fieldValue.Interface())
 				if err != nil {
-					engine.LogSQL(err)
+					engine.LogError(err)
 					continue
 				}
 				val = string(bytes)
@@ -390,7 +398,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 				} else {
 					bytes, err = json.Marshal(fieldValue.Interface())
 					if err != nil {
-						engine.LogSQL(err)
+						engine.LogError(err)
 						continue
 					}
 					val = bytes
@@ -534,13 +542,34 @@ func (statement *Statement) Cols(columns ...string) *Statement {
 	return statement
 }
 
+// Update use only: update all columns
+func (statement *Statement) AllCols() *Statement {
+	statement.useAllCols = true
+	return statement
+}
+
+// Update use only: must update columns
+func (statement *Statement) MustCols(columns ...string) *Statement {
+	newColumns := col2NewCols(columns...)
+	for _, nc := range newColumns {
+		statement.mustColumnMap[strings.ToLower(nc)] = true
+	}
+	return statement
+}
+
+// Update use only: not update columns
+/*func (statement *Statement) NotCols(columns ...string) *Statement {
+	newColumns := col2NewCols(columns...)
+	for _, nc := range newColumns {
+		statement.mustColumnMap[strings.ToLower(nc)] = false
+	}
+	return statement
+}*/
+
 // indicates that use bool fields as update contents and query contiditions
 func (statement *Statement) UseBool(columns ...string) *Statement {
 	if len(columns) > 0 {
-		newColumns := col2NewCols(columns...)
-		for _, nc := range newColumns {
-			statement.boolColumnMap[strings.ToLower(nc)] = true
-		}
+		statement.MustCols(columns...)
 	} else {
 		statement.allUseBool = true
 	}
@@ -676,13 +705,7 @@ func (s *Statement) genDelIndexSQL() []string {
 }
 
 func (s *Statement) genDropSQL() string {
-	if s.Engine.dialect.DBType() == core.MSSQL {
-		return "IF EXISTS (SELECT * FROM sysobjects WHERE id = object_id(N'" +
-			s.TableName() + "') and OBJECTPROPERTY(id, N'IsUserTable') = 1) " +
-			"DROP TABLE " + s.Engine.Quote(s.TableName()) + ";"
-	} else {
-		return "DROP TABLE IF EXISTS " + s.Engine.Quote(s.TableName()) + ";"
-	}
+	return s.Engine.dialect.DropTableSql(s.TableName()) + ";"
 }
 
 func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) {
@@ -690,7 +713,8 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 	statement.RefTable = table
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true, true,
-		false, true, statement.allUseBool, statement.boolColumnMap)
+		false, true, statement.allUseBool, statement.useAllCols,
+		statement.mustColumnMap)
 
 	statement.ConditionStr = strings.Join(colNames, " AND ")
 	statement.BeanArgs = args
@@ -729,7 +753,7 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 	statement.RefTable = table
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true, true, false,
-		true, statement.allUseBool, statement.boolColumnMap)
+		true, statement.allUseBool, statement.useAllCols, statement.mustColumnMap)
 
 	statement.ConditionStr = strings.Join(colNames, " AND ")
 	statement.BeanArgs = args

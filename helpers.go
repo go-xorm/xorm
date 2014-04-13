@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lunny/xorm/core"
+	"github.com/go-xorm/core"
 )
 
 func indexNoCase(s, sep string) int {
@@ -38,9 +38,14 @@ func makeArray(elem string, count int) []string {
 	return res
 }
 
+func rValue(bean interface{}) reflect.Value {
+	return reflect.Indirect(reflect.ValueOf(bean))
+}
+
 func rType(bean interface{}) reflect.Type {
 	sliceValue := reflect.Indirect(reflect.ValueOf(bean))
-	return reflect.TypeOf(sliceValue.Interface())
+	//return reflect.TypeOf(sliceValue.Interface())
+	return sliceValue.Type()
 }
 
 func structName(v reflect.Type) string {

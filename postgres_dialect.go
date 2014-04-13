@@ -1,4 +1,4 @@
-package dialects
+package xorm
 
 import (
 	"errors"
@@ -6,53 +6,53 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/lunny/xorm/core"
+	"github.com/go-xorm/core"
 )
 
-func init() {
-	RegisterDialect("postgres", &postgres{})
-}
+// func init() {
+// 	RegisterDialect("postgres", &postgres{})
+// }
 
 type postgres struct {
-	Base
+	core.Base
 }
 
-func (db *postgres) Init(uri *Uri, drivername, dataSourceName string) error {
+func (db *postgres) Init(uri *core.Uri, drivername, dataSourceName string) error {
 	return db.Base.Init(db, uri, drivername, dataSourceName)
 }
 
-func (db *postgres) SqlType(c *Column) string {
+func (db *postgres) SqlType(c *core.Column) string {
 	var res string
 	switch t := c.SQLType.Name; t {
-	case TinyInt:
-		res = SmallInt
+	case core.TinyInt:
+		res = core.SmallInt
 		return res
-	case MediumInt, Int, Integer:
+	case core.MediumInt, core.Int, core.Integer:
 		if c.IsAutoIncrement {
-			return Serial
+			return core.Serial
 		}
-		return Integer
-	case Serial, BigSerial:
+		return core.Integer
+	case core.Serial, core.BigSerial:
 		c.IsAutoIncrement = true
 		c.Nullable = false
 		res = t
-	case Binary, VarBinary:
-		return Bytea
-	case DateTime:
-		res = TimeStamp
-	case TimeStampz:
+	case core.Binary, core.VarBinary:
+		return core.Bytea
+	case core.DateTime:
+		res = core.TimeStamp
+	case core.TimeStampz:
 		return "timestamp with time zone"
-	case Float:
-		res = Real
-	case TinyText, MediumText, LongText:
-		res = Text
-	case Blob, TinyBlob, MediumBlob, LongBlob:
-		return Bytea
-	case Double:
+	case core.Float:
+		res = core.Real
+	case core.TinyText, core.MediumText, core.LongText:
+		res = core.Text
+	case core.Blob, core.TinyBlob, core.MediumBlob, core.LongBlob:
+		return core.Bytea
+	case core.Double:
 		return "DOUBLE PRECISION"
 	default:
 		if c.IsAutoIncrement {
-			return Serial
+			return core.Serial
 		}
 		res = t
 	}
@@ -108,11 +108,11 @@ func (db *postgres) ColumnCheckSql(tableName, colName string) (string, []interfa
 		" AND column_name = ?", args
 }
 
-func (db *postgres) GetColumns(tableName string) ([]string, map[string]*Column, error) {
+func (db *postgres) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{tableName}
 	s := "SELECT column_name, column_default, is_nullable, data_type, character_maximum_length" +
 		", numeric_precision, numeric_precision_radix FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = $1"
-	cnn, err := Open(db.DriverName(), db.DataSourceName())
+	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -121,12 +121,13 @@ func (db *postgres) GetColumns(tableName string) ([]string, map[string]*Column, 
 	if err != nil {
 		return nil, nil, err
 	}
-	cols := make(map[string]*Column)
+	cols := make(map[string]*core.Column)
 	colSeq := make([]string, 0)
 
 	for rows.Next() {
-		col := new(Column)
+		col := new(core.Column)
 		col.Indexes = make(map[string]bool)
+
 		var colName, isNullable, dataType string
 		var maxLenStr, colDefault, numPrecision, numRadix *string
 		err = rows.Scan(&colName, &colDefault, &isNullable, &dataType, &maxLenStr, &numPrecision, &numRadix)
@@ -160,21 +161,21 @@ func (db *postgres) GetColumns(tableName string) ([]string, map[string]*Column, 
 
 		switch dataType {
 		case "character varying", "character":
-			col.SQLType = SQLType{Varchar, 0, 0}
+			col.SQLType = core.SQLType{core.Varchar, 0, 0}
 		case "timestamp without time zone":
-			col.SQLType = SQLType{DateTime, 0, 0}
+			col.SQLType = core.SQLType{core.DateTime, 0, 0}
 		case "timestamp with time zone":
-			col.SQLType = SQLType{TimeStampz, 0, 0}
+			col.SQLType = core.SQLType{core.TimeStampz, 0, 0}
 		case "double precision":
-			col.SQLType = SQLType{Double, 0, 0}
+			col.SQLType = core.SQLType{core.Double, 0, 0}
 		case "boolean":
-			col.SQLType = SQLType{Bool, 0, 0}
+			col.SQLType = core.SQLType{core.Bool, 0, 0}
 		case "time without time zone":
-			col.SQLType = SQLType{Time, 0, 0}
+			col.SQLType = core.SQLType{core.Time, 0, 0}
 		default:
-			col.SQLType = SQLType{strings.ToUpper(dataType), 0, 0}
+			col.SQLType = core.SQLType{strings.ToUpper(dataType), 0, 0}
 		}
-		if _, ok := SqlTypes[col.SQLType.Name]; !ok {
+		if _, ok := core.SqlTypes[col.SQLType.Name]; !ok {
 			return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v", dataType))
 		}
 
@@ -183,6 +184,10 @@ func (db *postgres) GetColumns(tableName string) ([]string, map[string]*Column, 
 		if col.SQLType.IsText() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
+			} else {
+				if col.DefaultIsEmpty {
+					col.Default = "''"
+				}
 			}
 		}
 		cols[col.Name] = col
@@ -192,10 +197,10 @@ func (db *postgres) GetColumns(tableName string) ([]string, map[string]*Column, 
 	return colSeq, cols, nil
 }
 
-func (db *postgres) GetTables() ([]*Table, error) {
+func (db *postgres) GetTables() ([]*core.Table, error) {
 	args := []interface{}{}
 	s := "SELECT tablename FROM pg_tables where schemaname = 'public'"
-	cnn, err := Open(db.DriverName(), db.DataSourceName())
+	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
@@ -205,9 +210,9 @@ func (db *postgres) GetTables() ([]*Table, error) {
 		return nil, err
 	}
 
-	tables := make([]*Table, 0)
+	tables := make([]*core.Table, 0)
 	for rows.Next() {
-		table := NewEmptyTable()
+		table := core.NewEmptyTable()
 		var name string
 		err = rows.Scan(&name)
 		if err != nil {
@@ -219,11 +224,11 @@ func (db *postgres) GetTables() ([]*Table, error) {
 	return tables, nil
 }
 
-func (db *postgres) GetIndexes(tableName string) (map[string]*Index, error) {
+func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error) {
 	args := []interface{}{tableName}
 	s := "SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = 'public' and tablename = $1"
 
-	cnn, err := Open(db.DriverName(), db.DataSourceName())
+	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +238,7 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*Index, error) {
 		return nil, err
 	}
 
-	indexes := make(map[string]*Index, 0)
+	indexes := make(map[string]*core.Index, 0)
 	for rows.Next() {
 		var indexType int
 		var indexName, indexdef string
@@ -245,9 +250,9 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*Index, error) {
 		indexName = strings.Trim(indexName, `" `)
 
 		if strings.HasPrefix(indexdef, "CREATE UNIQUE INDEX") {
-			indexType = UniqueType
+			indexType = core.UniqueType
 		} else {
-			indexType = IndexType
+			indexType = core.IndexType
 		}
 		cs := strings.Split(indexdef, "(")
 		colNames = strings.Split(cs[1][0:len(cs[1])-1], ",")
@@ -262,7 +267,7 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*Index, error) {
 			}
 		}
 
-		index := &Index{Name: indexName, Type: indexType, Cols: make([]string, 0)}
+		index := &core.Index{Name: indexName, Type: indexType, Cols: make([]string, 0)}
 		for _, colName := range colNames {
 			index.Cols = append(index.Cols, strings.Trim(colName, `" `))
 		}
@@ -271,23 +276,6 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*Index, error) {
 	return indexes, nil
 }
 
-// PgSeqFilter filter SQL replace ?, ? ... to $1, $2 ...
-type PgSeqFilter struct {
-}
-
-func (s *PgSeqFilter) Do(sql string, dialect Dialect, table *Table) string {
-	segs := strings.Split(sql, "?")
-	size := len(segs)
-	res := ""
-	for i, c := range segs {
-		if i < size-1 {
-			res += c + fmt.Sprintf("$%v", i+1)
-		}
-	}
-	res += segs[size-1]
-	return res
-}
-
-func (db *postgres) Filters() []Filter {
-	return []Filter{&IdFilter{}, &QuoteFilter{}, &PgSeqFilter{}}
+func (db *postgres) Filters() []core.Filter {
+	return []core.Filter{&core.IdFilter{}, &core.QuoteFilter{}, &core.SeqFilter{"$", 1}}
 }

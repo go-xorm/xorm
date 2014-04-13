@@ -1,4 +1,4 @@
-package dialects
+package xorm
 
 import (
 	"crypto/tls"
@@ -8,15 +8,15 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/lunny/xorm/core"
+	"github.com/go-xorm/core"
 )
 
-func init() {
-	RegisterDialect("mysql", &mysql{})
-}
+// func init() {
+// 	RegisterDialect("mysql", &mysql{})
+// }
 
 type mysql struct {
-	Base
+	core.Base
 	net               string
 	addr              string
 	params            map[string]string
@@ -28,29 +28,30 @@ type mysql struct {
 	clientFoundRows   bool
 }
 
-func (db *mysql) Init(uri *Uri, drivername, dataSourceName string) error {
+func (db *mysql) Init(uri *core.Uri, drivername, dataSourceName string) error {
 	return db.Base.Init(db, uri, drivername, dataSourceName)
 }
 
-func (db *mysql) SqlType(c *Column) string {
+func (db *mysql) SqlType(c *core.Column) string {
 	var res string
 	switch t := c.SQLType.Name; t {
-	case Bool:
-		res = TinyInt
-	case Serial:
+	case core.Bool:
+		res = core.TinyInt
+		c.Length = 1
+	case core.Serial:
 		c.IsAutoIncrement = true
 		c.IsPrimaryKey = true
 		c.Nullable = false
-		res = Int
-	case BigSerial:
+		res = core.Int
+	case core.BigSerial:
 		c.IsAutoIncrement = true
 		c.IsPrimaryKey = true
 		c.Nullable = false
-		res = BigInt
-	case Bytea:
-		res = Blob
-	case TimeStampz:
-		res = Char
+		res = core.BigInt
+	case core.Bytea:
+		res = core.Blob
+	case core.TimeStampz:
+		res = core.Char
 		c.Length = 64
 	default:
 		res = t
@@ -109,23 +110,26 @@ func (db *mysql) TableCheckSql(tableName string) (string, []interface{}) {
 	return sql, args
 }
 
-func (db *mysql) GetColumns(tableName string) ([]string, map[string]*Column, error) {
+func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{db.DbName, tableName}
 	s := "SELECT `COLUMN_NAME`, `IS_NULLABLE`, `COLUMN_DEFAULT`, `COLUMN_TYPE`," +
 		" `COLUMN_KEY`, `EXTRA` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = ? AND `TABLE_NAME` = ?"
-	cnn, err := Open(db.DriverName(), db.DataSourceName())
+	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, nil, err
 	}
 	defer cnn.Close()
+
 	rows, err := cnn.Query(s, args...)
 	if err != nil {
 		return nil, nil, err
 	}
-	cols := make(map[string]*Column)
+	defer rows.Close()
+
+	cols := make(map[string]*core.Column)
 	colSeq := make([]string, 0)
 	for rows.Next() {
-		col := new(Column)
+		col := new(core.Column)
 		col.Indexes = make(map[string]bool)
 
 		var columnName, isNullable, colType, colKey, extra string
@@ -163,8 +167,8 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*Column, err
 		colType = strings.ToUpper(colName)
 		col.Length = len1
 		col.Length2 = len2
-		if _, ok := SqlTypes[colType]; ok {
-			col.SQLType = SQLType{colType, len1, len2}
+		if _, ok := core.SqlTypes[colType]; ok {
+			col.SQLType = core.SQLType{colType, len1, len2}
 		} else {
 			return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v", colType))
 		}
@@ -191,10 +195,10 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*Column, err
 	return colSeq, cols, nil
 }
 
-func (db *mysql) GetTables() ([]*Table, error) {
+func (db *mysql) GetTables() ([]*core.Table, error) {
 	args := []interface{}{db.DbName}
 	s := "SELECT `TABLE_NAME`, `ENGINE`, `TABLE_ROWS`, `AUTO_INCREMENT` from `INFORMATION_SCHEMA`.`TABLES` WHERE `TABLE_SCHEMA`=?"
-	cnn, err := Open(db.DriverName(), db.DataSourceName())
+	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
@@ -204,9 +208,9 @@ func (db *mysql) GetTables() ([]*Table, error) {
 		return nil, err
 	}
 
-	tables := make([]*Table, 0)
+	tables := make([]*core.Table, 0)
 	for rows.Next() {
-		table := NewEmptyTable()
+		table := core.NewEmptyTable()
 		var name, engine, tableRows string
 		var autoIncr *string
 		err = rows.Scan(&name, &engine, &tableRows, &autoIncr)
@@ -220,10 +224,10 @@ func (db *mysql) GetTables() ([]*Table, error) {
 	return tables, nil
 }
 
-func (db *mysql) GetIndexes(tableName string) (map[string]*Index, error) {
+func (db *mysql) GetIndexes(tableName string) (map[string]*core.Index, error) {
 	args := []interface{}{db.DbName, tableName}
 	s := "SELECT `INDEX_NAME`, `NON_UNIQUE`, `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`STATISTICS` WHERE `TABLE_SCHEMA` = ? AND `TABLE_NAME` = ?"
-	cnn, err := Open(db.DriverName(), db.DataSourceName())
+	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +237,7 @@ func (db *mysql) GetIndexes(tableName string) (map[string]*Index, error) {
 		return nil, err
 	}
 
-	indexes := make(map[string]*Index, 0)
+	indexes := make(map[string]*core.Index, 0)
 	for rows.Next() {
 		var indexType int
 		var indexName, colName, nonUnique string
@@ -247,9 +251,9 @@ func (db *mysql) GetIndexes(tableName string) (map[string]*Index, error) {
 		}
 
 		if "YES" == nonUnique || nonUnique == "1" {
-			indexType = IndexType
+			indexType = core.IndexType
 		} else {
-			indexType = UniqueType
+			indexType = core.UniqueType
 		}
 
 		colName = strings.Trim(colName, "` ")
@@ -258,10 +262,10 @@ func (db *mysql) GetIndexes(tableName string) (map[string]*Index, error) {
 			indexName = indexName[5+len(tableName) : len(indexName)]
 		}
 
-		var index *Index
+		var index *core.Index
 		var ok bool
 		if index, ok = indexes[indexName]; !ok {
-			index = new(Index)
+			index = new(core.Index)
 			index.Type = indexType
 			index.Name = indexName
 			indexes[indexName] = index
@@ -271,6 +275,6 @@ func (db *mysql) GetIndexes(tableName string) (map[string]*Index, error) {
 	return indexes, nil
 }
 
-func (db *mysql) Filters() []Filter {
-	return []Filter{&IdFilter{}}
+func (db *mysql) Filters() []core.Filter {
+	return []core.Filter{&core.IdFilter{}}
 }
