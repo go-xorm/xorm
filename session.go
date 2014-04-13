@@ -126,6 +126,16 @@ func (session *Session) Cols(columns ...string) *Session {
 	return session
 }
 
+func (session *Session) AllCols() *Session {
+	session.Statement.AllCols()
+	return session
+}
+
+func (session *Session) MustCols(columns ...string) *Session {
+	session.Statement.MustCols(columns...)
+	return session
+}
+
 func (session *Session) NoCascade() *Session {
 	session.Statement.UseCascade = false
 	return session
@@ -281,7 +291,7 @@ func (session *Session) Begin() error {
 // When using transaction, you can rollback if any error
 func (session *Session) Rollback() error {
 	if !session.IsAutoCommit && !session.IsCommitedOrRollbacked {
-		session.Engine.LogSQL("ROLL BACK")
+		session.Engine.LogSQL(session.Engine.dialect.RollBackStr())
 		session.IsCommitedOrRollbacked = true
 		return session.Tx.Rollback()
 	}
@@ -348,12 +358,12 @@ func cleanupProcessorsClosures(slices *[]func(interface{})) {
 }
 
 func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]byte) error {
-	dataStruct := reflect.Indirect(reflect.ValueOf(obj))
+	dataStruct := rValue(obj)
 	if dataStruct.Kind() != reflect.Struct {
 		return errors.New("Expected a pointer to a struct")
 	}
 
-	table := session.Engine.autoMapType(rType(obj))
+	table := session.Engine.autoMapType(dataStruct)
 
 	for key, data := range objMap {
 		key = strings.ToLower(key)
@@ -1007,12 +1017,14 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	if session.Statement.RefTable == nil {
 		if sliceElementType.Kind() == reflect.Ptr {
 			if sliceElementType.Elem().Kind() == reflect.Struct {
-				table = session.Engine.autoMapType(sliceElementType.Elem())
+				pv := reflect.New(sliceElementType.Elem())
+				table = session.Engine.autoMapType(pv.Elem())
 			} else {
 				return errors.New("slice type")
 			}
 		} else if sliceElementType.Kind() == reflect.Struct {
-			table = session.Engine.autoMapType(sliceElementType)
+			pv := reflect.New(sliceElementType)
+			table = session.Engine.autoMapType(pv.Elem())
 		} else {
 			return errors.New("slice type")
 		}
@@ -1023,7 +1035,8 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 
 	if len(condiBean) > 0 {
 		colNames, args := buildConditions(session.Engine, table, condiBean[0], true, true,
-			false, true, session.Statement.allUseBool, session.Statement.boolColumnMap)
+			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
+			session.Statement.mustColumnMap)
 		session.Statement.ConditionStr = strings.Join(colNames, " AND ")
 		session.Statement.BeanArgs = args
 	}
@@ -1375,13 +1388,12 @@ func (session *Session) getField(dataStruct *reflect.Value, key string, table *T
 }
 
 func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount int, bean interface{}) error {
-
-	dataStruct := reflect.Indirect(reflect.ValueOf(bean))
+	dataStruct := rValue(bean)
 	if dataStruct.Kind() != reflect.Struct {
 		return errors.New("Expected a pointer to a struct")
 	}
 
-	table := session.Engine.autoMapType(rType(bean))
+	table := session.Engine.autoMapType(dataStruct)
 
 	var scanResultContainers []interface{}
 	for i := 0; i < fieldsCount; i++ {
@@ -1483,7 +1495,7 @@ func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount in
 						fieldValue.Set(vv)
 					}
 				} else if session.Statement.UseCascade {
-					table := session.Engine.autoMapType(fieldValue.Type())
+					table := session.Engine.autoMapType(*fieldValue)
 					if table != nil {
 						var x int64
 						if rawValueType.Kind() == reflect.Int64 {
@@ -1752,9 +1764,10 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 	}
 
 	bean := sliceValue.Index(0).Interface()
-	sliceElementType := rType(bean)
+	elementValue := rValue(bean)
+	//sliceElementType := elementValue.Type()
 
-	table := session.Engine.autoMapType(sliceElementType)
+	table := session.Engine.autoMapType(elementValue)
 	session.Statement.RefTable = table
 
 	size := sliceValue.Len()
@@ -2062,7 +2075,7 @@ func (session *Session) bytes2Value(col *Column, fieldValue *reflect.Value, data
 			v = x
 			fieldValue.Set(reflect.ValueOf(v))
 		} else if session.Statement.UseCascade {
-			table := session.Engine.autoMapType(fieldValue.Type())
+			table := session.Engine.autoMapType(*fieldValue)
 			if table != nil {
 				x, err := strconv.ParseInt(string(data), 10, 64)
 				if err != nil {
@@ -2838,7 +2851,8 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 		if session.Statement.ColumnStr == "" {
 			colNames, args = buildConditions(session.Engine, table, bean, false, false,
-				false, false, session.Statement.allUseBool, session.Statement.boolColumnMap)
+				false, false, session.Statement.allUseBool, session.Statement.useAllCols,
+				session.Statement.mustColumnMap)
 		} else {
 			colNames, args, err = table.genCols(session, bean, true, true)
 			if err != nil {
@@ -2872,7 +2886,8 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	if len(condiBean) > 0 {
 		condiColNames, condiArgs = buildConditions(session.Engine, session.Statement.RefTable, condiBean[0], true, true,
-			false, true, session.Statement.allUseBool, session.Statement.boolColumnMap)
+			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
+			session.Statement.mustColumnMap)
 	}
 
 	var condition = ""
@@ -2895,6 +2910,8 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	var sqlStr, inSql string
 	var inArgs []interface{}
+	doIncVer := false
+	var verValue reflect.Value
 	if table.Version != "" && session.Statement.checkVersion {
 		if condition != "" {
 			condition = fmt.Sprintf("WHERE (%v) AND %v = ?", condition,
@@ -2917,7 +2934,13 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			session.Engine.Quote(table.Version)+" = "+session.Engine.Quote(table.Version)+" + 1",
 			condition)
 
-		condiArgs = append(condiArgs, table.VersionColumn().ValueOf(bean).Interface())
+		verValue = table.VersionColumn().ValueOf(bean)
+		//if err != nil {
+		//	return 0, err
+		//}
+
+		condiArgs = append(condiArgs, verValue.Interface())
+		doIncVer = true
 	} else {
 		if condition != "" {
 			condition = "WHERE " + condition
@@ -2944,6 +2967,8 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	res, err := session.exec(sqlStr, args...)
 	if err != nil {
 		return 0, err
+	} else if doIncVer {
+		verValue.SetInt(verValue.Int() + 1)
 	}
 
 	if table.Cacher != nil && session.Statement.UseCache {
@@ -3060,7 +3085,8 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	table := session.Engine.autoMap(bean)
 	session.Statement.RefTable = table
 	colNames, args := buildConditions(session.Engine, table, bean, true, true,
-		false, true, session.Statement.allUseBool, session.Statement.boolColumnMap)
+		false, true, session.Statement.allUseBool, session.Statement.useAllCols,
+		session.Statement.mustColumnMap)
 
 	var condition = ""
 

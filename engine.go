@@ -23,6 +23,7 @@ const (
 	MSSQL = "mssql"
 
 	ORACLE_OCI = "oci8"
+	QL         = "ql"
 )
 
 // a dialect is a driver's wrapper
@@ -33,6 +34,8 @@ type dialect interface {
 	SqlType(t *Column) string
 	SupportInsertMany() bool
 	QuoteStr() string
+	RollBackStr() string
+	DropTableSql(tableName string) string
 	AutoIncrStr() string
 	SupportEngine() bool
 	SupportCharset() bool
@@ -154,9 +157,9 @@ func (engine *Engine) NoCascade() *Session {
 
 // Set a table use a special cacher
 func (engine *Engine) MapCacher(bean interface{}, cacher Cacher) {
-	t := rType(bean)
-	engine.autoMapType(t)
-	engine.Tables[t].Cacher = cacher
+	v := rValue(bean)
+	engine.autoMapType(v)
+	engine.Tables[v.Type()].Cacher = cacher
 }
 
 // OpenDB provides a interface to operate database directly.
@@ -333,6 +336,18 @@ func (engine *Engine) Cols(columns ...string) *Session {
 	return session.Cols(columns...)
 }
 
+func (engine *Engine) AllCols() *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.AllCols()
+}
+
+func (engine *Engine) MustCols(columns ...string) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.MustCols(columns...)
+}
+
 // Xorm automatically retrieve condition according struct, but
 // if struct has bool field, it will ignore them. So use UseBool
 // to tell system to do not ignore them.
@@ -420,12 +435,13 @@ func (engine *Engine) Having(conditions string) *Session {
 	return session.Having(conditions)
 }
 
-func (engine *Engine) autoMapType(t reflect.Type) *Table {
+func (engine *Engine) autoMapType(v reflect.Value) *Table {
+	t := v.Type()
 	engine.mutex.RLock()
 	table, ok := engine.Tables[t]
 	engine.mutex.RUnlock()
 	if !ok {
-		table = engine.mapType(t)
+		table = engine.mapType(v)
 		engine.mutex.Lock()
 		engine.Tables[t] = table
 		engine.mutex.Unlock()
@@ -434,8 +450,8 @@ func (engine *Engine) autoMapType(t reflect.Type) *Table {
 }
 
 func (engine *Engine) autoMap(bean interface{}) *Table {
-	t := rType(bean)
-	return engine.autoMapType(t)
+	v := rValue(bean)
+	return engine.autoMapType(v)
 }
 
 func (engine *Engine) newTable() *Table {
@@ -448,9 +464,36 @@ func (engine *Engine) newTable() *Table {
 	return table
 }
 
-func (engine *Engine) mapType(t reflect.Type) *Table {
+func addIndex(indexName string, table *Table, col *Column, indexType int) {
+	if index, ok := table.Indexes[indexName]; ok {
+		index.AddColumn(col.Name)
+		col.Indexes[index.Name] = true
+	} else {
+		index := NewIndex(indexName, indexType)
+		index.AddColumn(col.Name)
+		table.AddIndex(index)
+		col.Indexes[index.Name] = true
+	}
+}
+
+func (engine *Engine) mapType(v reflect.Value) *Table {
+	t := v.Type()
 	table := engine.newTable()
-	table.Name = engine.tableMapper.Obj2Table(t.Name())
+	method := v.MethodByName("TableName")
+	if !method.IsValid() {
+		method = v.Addr().MethodByName("TableName")
+	}
+	if method.IsValid() {
+		params := []reflect.Value{}
+		results := method.Call(params)
+		if len(results) == 1 {
+			table.Name = results[0].Interface().(string)
+		}
+	}
+
+	if table.Name == "" {
+		table.Name = engine.tableMapper.Obj2Table(t.Name())
+	}
 	table.Type = t
 
 	var idFieldColName string
@@ -460,7 +503,8 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 		tag := t.Field(i).Tag
 		ormTagStr := tag.Get(engine.TagIdentifier)
 		var col *Column
-		fieldType := t.Field(i).Type
+		fieldValue := v.Field(i)
+		fieldType := fieldValue.Type()
 
 		if ormTagStr != "" {
 			col = &Column{FieldName: t.Field(i).Name, Nullable: true, IsPrimaryKey: false,
@@ -473,7 +517,7 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 				}
 				if (strings.ToUpper(tags[0]) == "EXTENDS") &&
 					(fieldType.Kind() == reflect.Struct) {
-					parentTable := engine.mapType(fieldType)
+					parentTable := engine.mapType(fieldValue)
 					for name, col := range parentTable.Columns {
 						col.FieldName = fmt.Sprintf("%v.%v", fieldType.Name(), col.FieldName)
 						table.Columns[strings.ToLower(name)] = col
@@ -483,8 +527,9 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 					table.PrimaryKeys = parentTable.PrimaryKeys
 					continue
 				}
-				var indexType int
-				var indexName string
+
+				indexNames := make(map[string]int)
+				var isIndex, isUnique bool
 				var preKey string
 				for j, key := range tags {
 					k := strings.ToUpper(key)
@@ -520,15 +565,15 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 					case k == "UPDATED":
 						col.IsUpdated = true
 					case strings.HasPrefix(k, "INDEX(") && strings.HasSuffix(k, ")"):
-						indexType = IndexType
-						indexName = k[len("INDEX")+1 : len(k)-1]
+						indexName := k[len("INDEX")+1 : len(k)-1]
+						indexNames[indexName] = IndexType
 					case k == "INDEX":
-						indexType = IndexType
+						isIndex = true
 					case strings.HasPrefix(k, "UNIQUE(") && strings.HasSuffix(k, ")"):
-						indexName = k[len("UNIQUE")+1 : len(k)-1]
-						indexType = UniqueType
+						indexName := k[len("UNIQUE")+1 : len(k)-1]
+						indexNames[indexName] = UniqueType
 					case k == "UNIQUE":
-						indexType = UniqueType
+						isUnique = true
 					case k == "NOTNULL":
 						col.Nullable = false
 					case k == "NOT":
@@ -583,32 +628,15 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 				if col.Name == "" {
 					col.Name = engine.columnMapper.Obj2Table(t.Field(i).Name)
 				}
-				if indexType == IndexType {
-					if indexName == "" {
-						indexName = col.Name
-					}
-					if index, ok := table.Indexes[indexName]; ok {
-						index.AddColumn(col.Name)
-						col.Indexes[index.Name] = true
-					} else {
-						index := NewIndex(indexName, IndexType)
-						index.AddColumn(col.Name)
-						table.AddIndex(index)
-						col.Indexes[index.Name] = true
-					}
-				} else if indexType == UniqueType {
-					if indexName == "" {
-						indexName = col.Name
-					}
-					if index, ok := table.Indexes[indexName]; ok {
-						index.AddColumn(col.Name)
-						col.Indexes[index.Name] = true
-					} else {
-						index := NewIndex(indexName, UniqueType)
-						index.AddColumn(col.Name)
-						table.AddIndex(index)
-						col.Indexes[index.Name] = true
-					}
+
+				if isUnique {
+					indexNames[col.Name] = UniqueType
+				} else if isIndex {
+					indexNames[col.Name] = IndexType
+				}
+
+				for indexName, indexType := range indexNames {
+					addIndex(indexName, table, col, indexType)
 				}
 			}
 		} else {
@@ -660,19 +688,20 @@ func (engine *Engine) mapping(beans ...interface{}) (e error) {
 	engine.mutex.Lock()
 	defer engine.mutex.Unlock()
 	for _, bean := range beans {
-		t := rType(bean)
-		engine.Tables[t] = engine.mapType(t)
+		v := rValue(bean)
+		engine.Tables[v.Type()] = engine.mapType(v)
 	}
 	return
 }
 
 // If a table has any reocrd
 func (engine *Engine) IsTableEmpty(bean interface{}) (bool, error) {
-	t := rType(bean)
+	v := rValue(bean)
+	t := v.Type()
 	if t.Kind() != reflect.Struct {
 		return false, errors.New("bean should be a struct or struct's point")
 	}
-	engine.autoMapType(t)
+	engine.autoMapType(v)
 	session := engine.NewSession()
 	defer session.Close()
 	rows, err := session.Count(bean)
@@ -681,11 +710,11 @@ func (engine *Engine) IsTableEmpty(bean interface{}) (bool, error) {
 
 // If a table is exist
 func (engine *Engine) IsTableExist(bean interface{}) (bool, error) {
-	t := rType(bean)
-	if t.Kind() != reflect.Struct {
+	v := rValue(bean)
+	if v.Type().Kind() != reflect.Struct {
 		return false, errors.New("bean should be a struct or struct's point")
 	}
-	table := engine.autoMapType(t)
+	table := engine.autoMapType(v)
 	session := engine.NewSession()
 	defer session.Close()
 	has, err := session.isTableExist(table.Name)

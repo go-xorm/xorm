@@ -108,6 +108,12 @@ func (db *mssql) AutoIncrStr() string {
 	return "IDENTITY"
 }
 
+func (db *mssql) DropTableSql(tableName string) string {
+	return fmt.Sprintf("IF EXISTS (SELECT * FROM sysobjects WHERE id = "+
+		"object_id(N'%s') and OBJECTPROPERTY(id, N'IsUserTable') = 1) "+
+		"DROP TABLE \"%s\"", tableName, tableName)
+}
+
 func (db *mssql) SupportCharset() bool {
 	return false
 }
@@ -187,7 +193,7 @@ where a.object_id=object_id('` + tableName + `')`
 		if col.SQLType.IsText() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
-			}else{
+			} else {
 				if col.DefaultIsEmpty {
 					col.Default = "''"
 				}

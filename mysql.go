@@ -89,6 +89,14 @@ func (b *base) DBType() string {
 	return b.uri.dbType
 }
 
+func (db *base) RollBackStr() string {
+	return "ROLL BACK"
+}
+
+func (db *base) DropTableSql(tableName string) string {
+	return fmt.Sprintf("DROP TABLE IF EXISTS `%s`", tableName)
+}
+
 type mysql struct {
 	base
 	net               string
