@@ -93,6 +93,9 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * [GoCMS - github.com/zzboy/GoCMS](https://github.com/zzdboy/GoCMS)
 
+* [GoBBS - gobbs.domolo.com](http://gobbs.domolo.com/)
+
+
 ## 讨论
 
 请加入QQ群：280360085 进行讨论。

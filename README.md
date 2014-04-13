@@ -90,6 +90,9 @@ Or
 
 * [GoCMS - github.com/zzboy/GoCMS](https://github.com/zzdboy/GoCMS)
 
+* [GoBBS - gobbs.domolo.com](http://gobbs.domolo.com/)
+
+
 # Discuss
 
 Please visit [Xorm on Google Groups](https://groups.google.com/forum/#!forum/xorm)
