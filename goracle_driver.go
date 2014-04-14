@@ -1,4 +1,4 @@
-package drivers
+package xorm
 
 import (
 	"errors"
@@ -7,9 +7,9 @@ import (
 	"github.com/go-xorm/core"
 )
 
-func init() {
-	core.RegisterDriver("goracle", &goracleDriver{})
-}
+// func init() {
+// 	core.RegisterDriver("goracle", &goracleDriver{})
+// }
 
 type goracleDriver struct {
 }

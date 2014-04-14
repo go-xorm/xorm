@@ -1,4 +1,4 @@
-package drivers
+package xorm
 
 import (
 	"errors"
@@ -7,16 +7,16 @@ import (
 	"github.com/go-xorm/core"
 )
 
-func init() {
-	core.RegisterDriver("oci", &ociDriver{})
-}
+// func init() {
+// 	core.RegisterDriver("oci8", &oci8Driver{})
+// }
 
-type ociDriver struct {
+type oci8Driver struct {
 }
 
 //dataSourceName=user/password@ipv4:port/dbname
 //dataSourceName=user/password@[ipv6]:port/dbname
-func (p *ociDriver) Parse(driverName, dataSourceName string) (*core.Uri, error) {
+func (p *oci8Driver) Parse(driverName, dataSourceName string) (*core.Uri, error) {
 	db := &core.Uri{DbType: core.ORACLE}
 	dsnPattern := regexp.MustCompile(
 		`^(?P<user>.*)\/(?P<password>.*)@` + // user:password@

@@ -12,7 +12,6 @@ import (
 
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm/caches"
-	_ "github.com/go-xorm/xorm/drivers"
 )
 
 const (
@@ -20,22 +19,26 @@ const (
 )
 
 func init() {
-	provided_dialects := map[string]struct {
-		dbType core.DbType
-		get    func() core.Dialect
+
+	providedDrvsNDialects := map[string]struct {
+		dbType     core.DbType
+		getDriver  func() core.Driver
+		getDialect func() core.Dialect
 	}{
-		"odbc":     {"mssql", func() core.Dialect { return &mssql{} }},
-		"mysql":    {"mysql", func() core.Dialect { return &mysql{} }},
-		"mymysql":  {"mysql", func() core.Dialect { return &mysql{} }},
-		"oci8":     {"oracle", func() core.Dialect { return &oracle{} }},
-		"postgres": {"postgres", func() core.Dialect { return &postgres{} }},
-		"sqlite3":  {"sqlite3", func() core.Dialect { return &sqlite3{} }},
+		"odbc":     {"mssql", func() core.Driver { return &odbcDriver{} }, func() core.Dialect { return &mssql{} }}, // !nashtsai! TODO change this when supporting MS Access
+		"mysql":    {"mysql", func() core.Driver { return &mysqlDriver{} }, func() core.Dialect { return &mysql{} }},
+		"mymysql":  {"mysql", func() core.Driver { return &mymysqlDriver{} }, func() core.Dialect { return &mysql{} }},
+		"postgres": {"postgres", func() core.Driver { return &pqDriver{} }, func() core.Dialect { return &postgres{} }},
+		"sqlite3":  {"sqlite3", func() core.Driver { return &sqlite3Driver{} }, func() core.Dialect { return &sqlite3{} }},
+		"oci8":     {"oracle", func() core.Driver { return &oci8Driver{} }, func() core.Dialect { return &oracle{} }},
+		"goracle":  {"oracle", func() core.Driver { return &goracleDriver{} }, func() core.Dialect { return &oracle{} }},
 	}
 
-	for k, v := range provided_dialects {
-		_, err := sql.Open(string(k), "")
+	for driverName, v := range providedDrvsNDialects {
+		_, err := sql.Open(driverName, "")
 		if err == nil {
-			core.RegisterDialect(v.dbType, v.get())
+			core.RegisterDriver(driverName, v.getDriver())
+			core.RegisterDialect(v.dbType, v.getDialect())
 		}
 	}
 }

@@ -1,4 +1,4 @@
-package drivers
+package xorm
 
 import (
 	"errors"
@@ -8,9 +8,9 @@ import (
 	"github.com/go-xorm/core"
 )
 
-func init() {
-	core.RegisterDriver("postgres", &pqDriver{})
-}
+// func init() {
+// 	core.RegisterDriver("postgres", &pqDriver{})
+// }
 
 type pqDriver struct {
 }
