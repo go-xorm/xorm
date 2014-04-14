@@ -1,5 +1,5 @@
 //LRUCacher implements Cacher according to LRU algorithm
-package caches
+package xorm
 
 import (
 	"container/list"

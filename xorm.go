@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/go-xorm/core"
-	"github.com/go-xorm/xorm/caches"
 )
 
 const (
@@ -95,14 +94,14 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 	return engine, err
 }
 
-func NewLRUCacher(store core.CacheStore, max int) *caches.LRUCacher {
-	return caches.NewLRUCacher(store, core.CacheExpired, core.CacheMaxMemory, max)
+// func NewLRUCacher(store core.CacheStore, max int) *LRUCacher {
+// 	return NewLRUCacher(store, core.CacheExpired, core.CacheMaxMemory, max)
+// }
+
+func NewLRUCacher2(store core.CacheStore, expired time.Duration, max int) *LRUCacher {
+	return NewLRUCacher(store, expired, 0, max)
 }
 
-func NewLRUCacher2(store core.CacheStore, expired time.Duration, max int) *caches.LRUCacher {
-	return caches.NewLRUCacher(store, expired, 0, max)
-}
-
-func NewMemoryStore() *caches.MemoryStore {
-	return caches.NewMemoryStore()
-}
+// func NewMemoryStore() *MemoryStore {
+// 	return NewMemoryStore()
+// }

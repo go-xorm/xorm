@@ -1,15 +1,10 @@
 // MemoryStore implements CacheStore provide local machine
-package caches
+package xorm
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/go-xorm/core"
-)
-
-var (
-	ErrNotExist = errors.New("key not exist")
 )
 
 var _ core.CacheStore = NewMemoryStore()
