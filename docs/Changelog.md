@@ -5,7 +5,7 @@
 	* Add MustCols function
 
 	Bug Fixes:
-	* [#53](../issues/85) 
+	* [#53](/go-xorm/xorm/issues/53) 
 	* #89
 	* #86
 	* #92
