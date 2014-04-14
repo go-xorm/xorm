@@ -1,5 +1,15 @@
 ## Changelog
 
+* **v0.3.2** 
+	Improvements:
+	* Add MustCols function
+
+	Bug Fixes:
+	* #53
+	* #89
+	* #86
+	* #92
+
 * **v0.3.1** 
 
 	Features:
