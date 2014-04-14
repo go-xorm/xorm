@@ -5,7 +5,7 @@
 	* Add MustCols function
 
 	Bug Fixes:
-	* [#53]
+	* #53
 	* #89
 	* #86
 	* #92
