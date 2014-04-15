@@ -48,6 +48,7 @@ type Statement struct {
 	checkVersion  bool
 	mustColumnMap map[string]bool
 	inColumns     map[string]*inParam
+	incColumns    map[string]interface{}
 }
 
 // init
@@ -78,6 +79,7 @@ func (statement *Statement) Init() {
 	statement.mustColumnMap = make(map[string]bool)
 	statement.checkVersion = true
 	statement.inColumns = make(map[string]*inParam)
+	statement.incColumns = make(map[string]interface{}, 0)
 }
 
 // add the raw sql statement
@@ -468,6 +470,18 @@ func (statement *Statement) Id(id interface{}) *Statement {
 	// !nashtsai! perhaps no need to validate pk values' type just let sql complaint happen
 
 	return statement
+}
+
+// Generate  "Update ... Set column = column + arg" statment
+func (statement *Statement) Inc(column string, arg interface{}) *Statement {
+	k := strings.ToLower(column)
+	statement.incColumns[k] = arg
+	return statement
+}
+
+// Generate  "Update ... Set column = column + arg" statment
+func (statement *Statement) getInc() map[string]interface{} {
+	return statement.incColumns
 }
 
 // Generate "Where column IN (?) " statment
