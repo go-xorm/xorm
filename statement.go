@@ -79,6 +79,7 @@ func (statement *Statement) Init() {
 	statement.mustColumnMap = make(map[string]bool)
 	statement.checkVersion = true
 	statement.inColumns = make(map[string]*inParam)
+	statement.incColumns = make(map[string]interface{}, 0)
 }
 
 // add the raw sql statement
@@ -482,6 +483,7 @@ func (statement *Statement) Inc(column string, arg interface{}) *Statement {
 func (statement *Statement) getInc() map[string]interface{} {
 	return statement.incColumns
 }
+
 // Generate "Where column IN (?) " statment
 func (statement *Statement) In(column string, args ...interface{}) *Statement {
 	k := strings.ToLower(column)
