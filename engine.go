@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -71,6 +72,7 @@ type Engine struct {
 	Logger         io.Writer
 	Cacher         Cacher
 	UseCache       bool
+	TimeZone       string
 }
 
 func (engine *Engine) SetMapper(mapper IMapper) {
@@ -1070,4 +1072,42 @@ func (engine *Engine) Import(ddlPath string) ([]sql.Result, error) {
 		}
 	}
 	return results, lastError
+}
+
+func (engine *Engine) TZTime(t time.Time) (r time.Time) {
+	switch engine.TimeZone {
+	case "Local", "L":
+		r = t.Local()
+	case "UTC", "U":
+		fallthrough
+	default:
+		r = t.UTC()
+	}
+	return
+}
+
+func (engine *Engine) NowTime(SQLTypeName string) interface{} {
+	t := time.Now()
+	return engine.FormatTime(SQLTypeName, t)
+}
+
+func (engine *Engine) FormatTime(SQLTypeName string, t time.Time) (v interface{}) {
+	switch SQLTypeName {
+	case Time:
+		s := engine.TZTime(t).Format("2006-01-02 15:04:05") //time.RFC3339
+		v = s[11:19]
+	case Date:
+		v = engine.TZTime(t).Format("2006-01-02")
+	case DateTime, TimeStamp:
+		v = engine.TZTime(t).Format("2006-01-02 15:04:05")
+	case TimeStampz:
+		if engine.dialect.DBType() == MSSQL {
+			v = engine.TZTime(t).Format("2006-01-02T15:04:05.9999999Z07:00")
+		} else {
+			v = engine.TZTime(t).Format(time.RFC3339Nano)
+		}
+	default:
+		v = engine.TZTime(t)
+	}
+	return
 }

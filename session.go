@@ -1807,7 +1807,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 					}
 				}
 				if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
-					args = append(args, time.Now())
+					args = append(args, session.Engine.NowTime(col.SQLType.Name))
 				} else {
 					arg, err := session.value2Interface(col, fieldValue)
 					if err != nil {
@@ -1835,7 +1835,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 					}
 				}
 				if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
-					args = append(args, time.Now())
+					args = append(args, session.Engine.NowTime(col.SQLType.Name))
 				} else {
 					arg, err := session.value2Interface(col, fieldValue)
 					if err != nil {
@@ -2401,20 +2401,13 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 					return nil, nil
 				}
 			}
-			if col.SQLType.Name == Time {
-				//s := fieldValue.Interface().(time.Time).Format("2006-01-02 15:04:05 -0700")
-				s := fieldValue.Interface().(time.Time).Format(time.RFC3339)
-				return s[11:19], nil
-			} else if col.SQLType.Name == Date {
-				return fieldValue.Interface().(time.Time).Format("2006-01-02"), nil
-			} else if col.SQLType.Name == TimeStampz {
-				if session.Engine.dialect.DBType() == MSSQL {
-					tf := t.Format("2006-01-02T15:04:05.9999999Z07:00")
-					return tf, nil
-				}
-				return fieldValue.Interface().(time.Time).Format(time.RFC3339Nano), nil
+			switch fieldValue.Interface().(type) {
+				case time.Time:
+				tf := session.Engine.FormatTime(col.SQLType.Name,fieldValue.Interface().(time.Time))
+				return tf, nil
+				default:
+				return fieldValue.Interface(), nil
 			}
-			return fieldValue.Interface(), nil
 		}
 		if fieldTable, ok := session.Engine.Tables[fieldValue.Type()]; ok {
 			if len(fieldTable.PrimaryKeys) == 1 {
@@ -2878,7 +2871,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	if session.Statement.UseAutoTime && table.Updated != "" {
 		colNames = append(colNames, session.Engine.Quote(table.Updated)+" = ?")
-		args = append(args, time.Now())
+		args = append(args, session.Engine.NowTime(table.Columns[table.Updated].SQLType.Name))
 	}
 
 	var condiColNames []string

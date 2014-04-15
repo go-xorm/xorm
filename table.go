@@ -456,7 +456,7 @@ func (table *Table) genCols(session *Session, bean interface{}, useCol bool, inc
 		}
 
 		if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
-			args = append(args, time.Now())
+			args = append(args, session.Engine.NowTime(col.SQLType.Name))
 		} else if col.IsVersion && session.Statement.checkVersion {
 			args = append(args, 1)
 		} else {
