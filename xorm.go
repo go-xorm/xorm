@@ -4,41 +4,52 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/go-xorm/core"
 	"os"
 	"reflect"
 	"runtime"
 	"sync"
 	"time"
-
-	"github.com/go-xorm/core"
 )
 
 const (
 	Version string = "0.4"
 )
 
-func init() {
+// !nashtsai! implicit register drivers and dialects is no good, as init() can be called before sql driver got registered
+// func init() {
+// 	regDrvsNDialects()
+// }
 
-	providedDrvsNDialects := map[string]struct {
-		dbType     core.DbType
-		getDriver  func() core.Driver
-		getDialect func() core.Dialect
-	}{
-		"odbc":     {"mssql", func() core.Driver { return &odbcDriver{} }, func() core.Dialect { return &mssql{} }}, // !nashtsai! TODO change this when supporting MS Access
-		"mysql":    {"mysql", func() core.Driver { return &mysqlDriver{} }, func() core.Dialect { return &mysql{} }},
-		"mymysql":  {"mysql", func() core.Driver { return &mymysqlDriver{} }, func() core.Dialect { return &mysql{} }},
-		"postgres": {"postgres", func() core.Driver { return &pqDriver{} }, func() core.Dialect { return &postgres{} }},
-		"sqlite3":  {"sqlite3", func() core.Driver { return &sqlite3Driver{} }, func() core.Dialect { return &sqlite3{} }},
-		"oci8":     {"oracle", func() core.Driver { return &oci8Driver{} }, func() core.Dialect { return &oracle{} }},
-		"goracle":  {"oracle", func() core.Driver { return &goracleDriver{} }, func() core.Dialect { return &oracle{} }},
-	}
-
-	for driverName, v := range providedDrvsNDialects {
-		_, err := sql.Open(driverName, "")
-		if err == nil {
-			core.RegisterDriver(driverName, v.getDriver())
-			core.RegisterDialect(v.dbType, v.getDialect())
+func regDrvsNDialects() bool {
+	if core.RegisteredDriverSize() == 0 {
+		providedDrvsNDialects := map[string]struct {
+			dbType     core.DbType
+			getDriver  func() core.Driver
+			getDialect func() core.Dialect
+		}{
+			"odbc":     {"mssql", func() core.Driver { return &odbcDriver{} }, func() core.Dialect { return &mssql{} }}, // !nashtsai! TODO change this when supporting MS Access
+			"mysql":    {"mysql", func() core.Driver { return &mysqlDriver{} }, func() core.Dialect { return &mysql{} }},
+			"mymysql":  {"mysql", func() core.Driver { return &mymysqlDriver{} }, func() core.Dialect { return &mysql{} }},
+			"postgres": {"postgres", func() core.Driver { return &pqDriver{} }, func() core.Dialect { return &postgres{} }},
+			"sqlite3":  {"sqlite3", func() core.Driver { return &sqlite3Driver{} }, func() core.Dialect { return &sqlite3{} }},
+			"oci8":     {"oracle", func() core.Driver { return &oci8Driver{} }, func() core.Dialect { return &oracle{} }},
+			"goracle":  {"oracle", func() core.Driver { return &goracleDriver{} }, func() core.Dialect { return &oracle{} }},
 		}
+
+		for driverName, v := range providedDrvsNDialects {
+			_, err := sql.Open(driverName, "")
+			if err == nil {
+				// fmt.Printf("driver succeed: %v\n", driverName)
+				core.RegisterDriver(driverName, v.getDriver())
+				core.RegisterDialect(v.dbType, v.getDialect())
+			} else {
+				// fmt.Printf("driver failed: %v | err: %v\n", driverName, err)
+			}
+		}
+		return true
+	} else {
+		return false
 	}
 }
 
@@ -49,6 +60,7 @@ func close(engine *Engine) {
 // new a db manager according to the parameter. Currently support four
 // drivers
 func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
+	regDrvsNDialects()
 	driver := core.QueryDriver(driverName)
 	if driver == nil {
 		return nil, errors.New(fmt.Sprintf("Unsupported driver name: %v", driverName))
