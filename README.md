@@ -41,6 +41,18 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 # Changelog
 
+* **v0.3.2** 
+	Improvements:
+	* Add MustCols function
+
+	Bug Fixes:
+	* #46
+	* #51
+	* #53
+	* #89
+	* #86
+	* #92
+
 * **v0.3.1** 
 
 	Features:
@@ -89,6 +101,9 @@ Or
 * [Very Hour](http://veryhour.com/)
 
 * [GoCMS - github.com/zzboy/GoCMS](https://github.com/zzdboy/GoCMS)
+
+* [GoBBS - gobbs.domolo.com](http://gobbs.domolo.com/)
+
 
 # Discuss
 
