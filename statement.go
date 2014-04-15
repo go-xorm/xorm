@@ -332,16 +332,7 @@ func buildConditions(engine *Engine, table *Table, bean interface{},
 				if !requiredField && (t.IsZero() || !fieldValue.IsValid()) {
 					continue
 				}
-				var str string
-				if col.SQLType.Name == Time {
-					s := t.UTC().Format("2006-01-02 15:04:05")
-					val = s[11:19]
-				} else if col.SQLType.Name == Date {
-					str = t.Format("2006-01-02")
-					val = str
-				} else {
-					val = t
-				}
+				val = engine.FormatTime(col.SQLType.Name, t)
 			} else {
 				engine.autoMapType(fieldValue)
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
