@@ -61,7 +61,7 @@ func (session *Session) Close() {
 	}
 
 	if session.Db != nil {
-		session.Engine.Pool.ReleaseDB(session.Engine, session.Db)
+		//session.Engine.Pool.ReleaseDB(session.Engine, session.Db)
 		session.Db = nil
 		session.Tx = nil
 		session.stmtCache = nil
@@ -267,11 +267,11 @@ func (session *Session) Having(conditions string) *Session {
 
 func (session *Session) newDb() error {
 	if session.Db == nil {
-		db, err := session.Engine.Pool.RetrieveDB(session.Engine)
+		/*db, err := session.Engine.Pool.RetrieveDB(session.Engine)
 		if err != nil {
 			return err
-		}
-		session.Db = db
+		}*/
+		session.Db = session.Engine.db
 		session.stmtCache = make(map[uint32]*core.Stmt, 0)
 	}
 	return nil
@@ -426,7 +426,7 @@ func (session *Session) innerExec(sqlStr string, args ...interface{}) (sql.Resul
 }
 
 func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, error) {
-	for _, filter := range session.Engine.Filters {
+	for _, filter := range session.Engine.dialect.Filters() {
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
 
@@ -612,7 +612,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 	if session.Statement.RefTable == nil || len(session.Statement.RefTable.PrimaryKeys) != 1 {
 		return false, ErrCacheFailed
 	}
-	for _, filter := range session.Engine.Filters {
+	for _, filter := range session.Engine.dialect.Filters() {
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
 	newsql := session.Statement.convertIdSql(sqlStr)
@@ -699,7 +699,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 		return ErrCacheFailed
 	}
 
-	for _, filter := range session.Engine.Filters {
+	for _, filter := range session.Engine.dialect.Filters() {
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
 
@@ -1709,7 +1709,7 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 }
 
 func (session *Session) queryPreprocess(sqlStr *string, paramStr ...interface{}) {
-	for _, filter := range session.Engine.Filters {
+	for _, filter := range session.Engine.dialect.Filters() {
 		*sqlStr = filter.Do(*sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
 
@@ -2263,7 +2263,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			var err error
 			// for mysql, when use bit, it returned \x01
 			if col.SQLType.Name == core.Bit &&
-				strings.Contains(session.Engine.DriverName, "mysql") {
+				strings.Contains(session.Engine.DriverName(), "mysql") {
 				if len(data) == 1 {
 					x = int64(data[0])
 				} else {
@@ -2289,7 +2289,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			var err error
 			// for mysql, when use bit, it returned \x01
 			if col.SQLType.Name == core.Bit &&
-				strings.Contains(session.Engine.DriverName, "mysql") {
+				strings.Contains(session.Engine.DriverName(), "mysql") {
 				if len(data) == 1 {
 					x = int(data[0])
 				} else {
@@ -2347,7 +2347,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			var err error
 			// for mysql, when use bit, it returned \x01
 			if col.SQLType.Name == core.Bit &&
-				strings.Contains(session.Engine.DriverName, "mysql") {
+				strings.Contains(session.Engine.DriverName(), "mysql") {
 				if len(data) == 1 {
 					x = int8(data[0])
 				} else {
@@ -2376,7 +2376,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			var err error
 			// for mysql, when use bit, it returned \x01
 			if col.SQLType.Name == core.Bit &&
-				strings.Contains(session.Engine.DriverName, "mysql") {
+				strings.Contains(session.Engine.DriverName(), "mysql") {
 				if len(data) == 1 {
 					x = int16(data[0])
 				} else {
@@ -2583,7 +2583,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	// for postgres, many of them didn't implement lastInsertId, so we should
 	// implemented it ourself.
 
-	if session.Engine.DriverName != core.POSTGRES || table.AutoIncrement == "" {
+	if session.Engine.DriverName() != core.POSTGRES || table.AutoIncrement == "" {
 		res, err := session.exec(sqlStr, args...)
 		if err != nil {
 			return 0, err
@@ -2782,7 +2782,7 @@ func (session *Session) cacheUpdate(sqlStr string, args ...interface{}) error {
 	if newsql == "" {
 		return ErrCacheFailed
 	}
-	for _, filter := range session.Engine.Filters {
+	for _, filter := range session.Engine.dialect.Filters() {
 		newsql = filter.Do(newsql, session.Engine.dialect, session.Statement.RefTable)
 	}
 	session.Engine.LogDebug("[xorm:cacheUpdate] new sql", oldhead, newsql)
@@ -3085,7 +3085,7 @@ func (session *Session) cacheDelete(sqlStr string, args ...interface{}) error {
 		return ErrCacheFailed
 	}
 
-	for _, filter := range session.Engine.Filters {
+	for _, filter := range session.Engine.dialect.Filters() {
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
 

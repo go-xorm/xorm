@@ -69,39 +69,35 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		return nil, err
 	}
 
+	db, err := core.OpenDialect(dialect)
+	if err != nil {
+		return nil, err
+	}
+
 	engine := &Engine{
-		DriverName:     driverName,
-		DataSourceName: dataSourceName,
-		dialect:        dialect,
+		db:            db,
+		dialect:       dialect,
+		Tables:        make(map[reflect.Type]*core.Table),
+		mutex:         &sync.RWMutex{},
+		TagIdentifier: "xorm",
+		Logger:        NewSimpleLogger(os.Stdout),
 	}
 
 	engine.SetMapper(core.NewCacheMapper(new(core.SnakeMapper)))
 
-	engine.Filters = dialect.Filters()
-
-	engine.Tables = make(map[reflect.Type]*core.Table)
-
-	engine.mutex = &sync.RWMutex{}
-	engine.TagIdentifier = "xorm"
-
-	engine.Logger = NewSimpleLogger(os.Stdout)
-
-	//engine.Pool = NewSimpleConnectPool()
-	//engine.Pool = NewNoneConnectPool()
+	//engine.Filters = dialect.Filters()
 	//engine.Cacher = NewLRUCacher()
-	err = engine.SetPool(NewSysConnectPool())
+	//err = engine.SetPool(NewSysConnectPool())
+
 	runtime.SetFinalizer(engine, close)
 	return engine, err
 }
 
-// func NewLRUCacher(store core.CacheStore, max int) *LRUCacher {
-// 	return NewLRUCacher(store, core.CacheExpired, core.CacheMaxMemory, max)
-// }
+// clone an engine
+func (engine *Engine) Clone() (*Engine, error) {
+	return NewEngine(engine.dialect.DriverName(), engine.dialect.DataSourceName())
+}
 
 func NewLRUCacher2(store core.CacheStore, expired time.Duration, max int) *LRUCacher {
 	return NewLRUCacher(store, expired, 0, max)
 }
-
-// func NewMemoryStore() *MemoryStore {
-// 	return NewMemoryStore()
-// }

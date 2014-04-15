@@ -42,7 +42,7 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 		args = rows.session.Statement.RawParams
 	}
 
-	for _, filter := range rows.session.Engine.Filters {
+	for _, filter := range rows.session.Engine.dialect.Filters() {
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, rows.session.Statement.RefTable)
 	}
 

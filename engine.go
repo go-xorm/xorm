@@ -18,23 +18,32 @@ import (
 // Engine is the major struct of xorm, it means a database manager.
 // Commonly, an application only need one engine
 type Engine struct {
-	ColumnMapper   core.IMapper
-	TableMapper    core.IMapper
-	TagIdentifier  string
-	DriverName     string
-	DataSourceName string
-	dialect        core.Dialect
-	Tables         map[reflect.Type]*core.Table
+	db      *core.DB
+	dialect core.Dialect
 
-	mutex     *sync.RWMutex
+	ColumnMapper  core.IMapper
+	TableMapper   core.IMapper
+	TagIdentifier string
+	Tables        map[reflect.Type]*core.Table
+
+	mutex  *sync.RWMutex
+	Cacher core.Cacher
+
 	ShowSQL   bool
 	ShowErr   bool
 	ShowDebug bool
 	ShowWarn  bool
-	Pool      IConnectPool
-	Filters   []core.Filter
-	Logger    ILogger // io.Writer
-	Cacher    core.Cacher
+	//Pool      IConnectPool
+	//Filters []core.Filter
+	Logger ILogger // io.Writer
+}
+
+func (engine *Engine) DriverName() string {
+	return engine.dialect.DriverName()
+}
+
+func (engine *Engine) DataSourceName() string {
+	return engine.dialect.DataSourceName()
 }
 
 func (engine *Engine) SetMapper(mapper core.IMapper) {
@@ -80,19 +89,19 @@ func (engine *Engine) AutoIncrStr() string {
 }
 
 // Set engine's pool, the pool default is Go's standard library's connection pool.
-func (engine *Engine) SetPool(pool IConnectPool) error {
+/*func (engine *Engine) SetPool(pool IConnectPool) error {
 	engine.Pool = pool
 	return engine.Pool.Init(engine)
-}
+}*/
 
 // SetMaxConns is only available for go 1.2+
 func (engine *Engine) SetMaxConns(conns int) {
-	engine.Pool.SetMaxConns(conns)
+	engine.db.SetMaxOpenConns(conns)
 }
 
 // SetMaxIdleConns
 func (engine *Engine) SetMaxIdleConns(conns int) {
-	engine.Pool.SetMaxIdleConns(conns)
+	engine.db.SetMaxIdleConns(conns)
 }
 
 // SetDefaltCacher set the default cacher. Xorm's default not enable cacher.
@@ -122,8 +131,12 @@ func (engine *Engine) MapCacher(bean interface{}, cacher core.Cacher) {
 }
 
 // OpenDB provides a interface to operate database directly.
-func (engine *Engine) OpenDB() (*core.DB, error) {
-	return core.Open(engine.DriverName, engine.DataSourceName)
+func (engine *Engine) NewDB() (*core.DB, error) {
+	return core.OpenDialect(engine.dialect)
+}
+
+func (engine *Engine) DB() *core.DB {
+	return engine.db
 }
 
 // New a session
@@ -135,7 +148,7 @@ func (engine *Engine) NewSession() *Session {
 
 // Close the engine
 func (engine *Engine) Close() error {
-	return engine.Pool.Close(engine)
+	return engine.db.Close()
 }
 
 // Ping tests if database is alive.
