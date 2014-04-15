@@ -14,7 +14,7 @@ Xorm is a simple and powerful ORM for Go.
 
 * Both ORM and raw SQL operation Support
 
-* Sync database sechmea Support
+* Sync database schema Support
 
 * Query Cache speed up
 
