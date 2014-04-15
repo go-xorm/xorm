@@ -130,7 +130,7 @@ func (engine *Engine) MapCacher(bean interface{}, cacher core.Cacher) {
 	engine.Tables[v.Type()].Cacher = cacher
 }
 
-// OpenDB provides a interface to operate database directly.
+// NewDB provides an interface to operate database directly
 func (engine *Engine) NewDB() (*core.DB, error) {
 	return core.OpenDialect(engine.dialect)
 }
@@ -151,7 +151,7 @@ func (engine *Engine) Close() error {
 	return engine.db.Close()
 }
 
-// Ping tests if database is alive.
+// Ping tests if database is alive
 func (engine *Engine) Ping() error {
 	session := engine.NewSession()
 	defer session.Close()
