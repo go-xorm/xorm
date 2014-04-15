@@ -473,9 +473,13 @@ func (statement *Statement) Id(id interface{}) *Statement {
 }
 
 // Generate  "Update ... Set column = column + arg" statment
-func (statement *Statement) Inc(column string, arg interface{}) *Statement {
+func (statement *Statement) Incr(column string, arg ...interface{}) *Statement {
 	k := strings.ToLower(column)
-	statement.incColumns[k] = arg
+	if len(arg) > 0 {
+		statement.incColumns[k] = arg[0]
+	} else {
+		statement.incColumns[k] = 1
+	}
 	return statement
 }
 

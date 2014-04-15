@@ -358,10 +358,10 @@ func (engine *Engine) In(column string, args ...interface{}) *Session {
 }
 
 // Method Inc provides a update string like "column = column + ?"
-func (engine *Engine) Inc(column string, arg interface{}) *Session {
+func (engine *Engine) Incr(column string, arg ...interface{}) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
-	return session.Inc(column, arg)
+	return session.Incr(column, arg...)
 }
 
 // Temporarily change the Get, Find, Update's table

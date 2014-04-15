@@ -129,8 +129,8 @@ func (session *Session) In(column string, args ...interface{}) *Session {
 }
 
 // Method In provides a query string like "count = count + 1"
-func (session *Session) Inc(column string, arg interface{}) *Session {
-	session.Statement.Inc(column, arg)
+func (session *Session) Incr(column string, arg ...interface{}) *Session {
+	session.Statement.Incr(column, arg...)
 	return session
 }
 
