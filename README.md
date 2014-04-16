@@ -2,7 +2,7 @@
 
 Xorm is a simple and powerful ORM for Go.
 
-[![Build Status](https://drone.io/github.com/lunny/xorm/status.png)](https://drone.io/github.com/lunny/xorm/latest)  [![Go Walker](http://gowalker.org/api/v1/badge)](http://gowalker.org/github.com/lunny/xorm) [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/lunny/xorm/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+[![Build Status](https://drone.io/github.com/go-xorm/xorm/status.png)](https://drone.io/github.com/go-xorm/xorm/latest)  [![Go Walker](http://gowalker.org/api/v1/badge)](http://gowalker.org/github.com/go-xorm/xorm) [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/lunny/go-xorm/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
 
 # Features
 
@@ -14,11 +14,11 @@ Xorm is a simple and powerful ORM for Go.
 
 * Both ORM and raw SQL operation Support
 
-* Sync database sechmea Support
+* Sync database schema Support
 
 * Query Cache speed up
 
-* Database Reverse support, See [Xorm Tool README](https://github.com/lunny/xorm/blob/master/xorm/README.md)
+* Database Reverse support, See [Xorm Tool README](https://github.com/go-xorm/xorm/blob/master/xorm/README.md)
 
 * Simple cascade loading support
 
@@ -43,7 +43,8 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * **v0.3.2** 
 	Improvements:
-	* Add MustCols function
+	* Add AllCols & MustCols function
+	* Add TableName for custom table name
 
 	Bug Fixes:
 	* #46
@@ -66,25 +67,25 @@ Drivers for Go's sql package which currently support database/sql includes:
 	* Allowed int/int32/int64/uint/uint32/uint64/string as Primary Key type
 	* Performance improvement for Get()/Find()/Iterate()
 
-[More changelogs ...](https://github.com/lunny/xorm/blob/master/docs/Changelog.md)
+[More changelogs ...](https://github.com/go-xorm/xorm/blob/master/docs/Changelog.md)
 
 # Installation
 
 If you have [gopm](https://github.com/gpmgo/gopm) installed, 
 
-	gopm get github.com/lunny/xorm
+	gopm get github.com/go-xorm/xorm
 	
 Or
 
-	go get github.com/lunny/xorm
+	go get github.com/go-xorm/xorm
 
 # Documents
 
-* [GoDoc](http://godoc.org/github.com/lunny/xorm)
+* [GoDoc](http://godoc.org/github.com/go-xorm/xorm)
 
-* [GoWalker](http://gowalker.org/github.com/lunny/xorm)
+* [GoWalker](http://gowalker.org/github.com/go-xorm/xorm)
 
-* [Quick Start](https://github.com/lunny/xorm/blob/master/docs/QuickStartEn.md)
+* [Quick Start](https://github.com/go-xorm/xorm/blob/master/docs/QuickStartEn.md)
 
 # Cases
 
@@ -111,7 +112,7 @@ Please visit [Xorm on Google Groups](https://groups.google.com/forum/#!forum/xor
 
 # Contributors
 
-If you want to pull request, please see [CONTRIBUTING](https://github.com/lunny/xorm/blob/master/CONTRIBUTING.md)
+If you want to pull request, please see [CONTRIBUTING](https://github.com/go-xorm/xorm/blob/master/CONTRIBUTING.md)
 
 * [Lunny](https://github.com/lunny)
 * [Nashtsai](https://github.com/nashtsai)

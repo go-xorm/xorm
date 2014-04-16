@@ -1,5 +1,18 @@
 ## 更新日志
 
+* **v0.3.2** 
+	Improvements:
+	* Add AllCols & MustCols function
+	* Add TableName for custom table name
+
+	Bug Fixes:
+	* #46
+	* #51
+	* #53
+	* #89
+	* #86
+	* #92
+	
 * **v0.3.1**
 
 	新特性:
