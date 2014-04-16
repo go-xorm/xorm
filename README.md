@@ -43,7 +43,8 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * **v0.3.2** 
 	Improvements:
-	* Add MustCols function
+	* Add AllCols & MustCols function
+	* Add TableName for custom table name
 
 	Bug Fixes:
 	* #46
