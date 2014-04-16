@@ -24,7 +24,7 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		DriverName:     driverName,
 		DataSourceName: dataSourceName,
 		Filters:        make([]Filter, 0),
-		TimeZone:       "UTC",
+		TimeZone:       "Local",
 	}
 	engine.SetMapper(SnakeMapper{})
 

@@ -1086,13 +1086,13 @@ func (engine *Engine) TZTime(t time.Time) (r time.Time) {
 	return
 }
 
-func (engine *Engine) NowTime(SQLTypeName string) interface{} {
+func (engine *Engine) NowTime(sqlTypeName string) interface{} {
 	t := time.Now()
-	return engine.FormatTime(SQLTypeName, t)
+	return engine.FormatTime(sqlTypeName, t)
 }
 
-func (engine *Engine) FormatTime(SQLTypeName string, t time.Time) (v interface{}) {
-	switch SQLTypeName {
+func (engine *Engine) FormatTime(sqlTypeName string, t time.Time) (v interface{}) {
+	switch sqlTypeName {
 	case Time:
 		s := engine.TZTime(t).Format("2006-01-02 15:04:05") //time.RFC3339
 		v = s[11:19]

@@ -1964,7 +1964,7 @@ func (session *Session) byte2Time(col *Column, data []byte) (outTime time.Time, 
 		outErr = errors.New(fmt.Sprintf("unsupported time format %v: %v", sdata, err))
 		return
 	}
-	outTime = x
+	outTime = session.Engine.TZTime(x)
 	return
 }
 
@@ -2402,10 +2402,10 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 				}
 			}
 			switch fieldValue.Interface().(type) {
-				case time.Time:
-				tf := session.Engine.FormatTime(col.SQLType.Name,fieldValue.Interface().(time.Time))
+			case time.Time:
+				tf := session.Engine.FormatTime(col.SQLType.Name, fieldValue.Interface().(time.Time))
 				return tf, nil
-				default:
+			default:
 				return fieldValue.Interface(), nil
 			}
 		}
