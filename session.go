@@ -1930,17 +1930,17 @@ func (session *Session) byte2Time(col *Column, data []byte) (outTime time.Time, 
 			x = time.Unix(0, sd)
 		}
 	} else if len(sdata) > 19 {
-		x, err = time.Parse(time.RFC3339Nano, sdata)
+		x, err = time.ParseInLocation(time.RFC3339Nano, sdata, session.Engine.TZLocation())
 		if err != nil {
-			x, err = time.Parse("2006-01-02 15:04:05.999999999", sdata)
+			x, err = time.ParseInLocation("2006-01-02 15:04:05.999999999", sdata, session.Engine.TZLocation())
 		}
 		if err != nil {
-			x, err = time.Parse("2006-01-02 15:04:05.9999999 Z07:00", sdata)
+			x, err = time.ParseInLocation("2006-01-02 15:04:05.9999999 Z07:00", sdata, session.Engine.TZLocation())
 		}
 	} else if len(sdata) == 19 {
-		x, err = time.Parse("2006-01-02 15:04:05", sdata)
+		x, err = time.ParseInLocation("2006-01-02 15:04:05", sdata, session.Engine.TZLocation())
 	} else if len(sdata) == 10 && sdata[4] == '-' && sdata[7] == '-' {
-		x, err = time.Parse("2006-01-02", sdata)
+		x, err = time.ParseInLocation("2006-01-02", sdata, session.Engine.TZLocation())
 	} else if col.SQLType.Name == Time {
 		if strings.Contains(sdata, " ") {
 			ssd := strings.Split(sdata, " ")
@@ -1955,7 +1955,7 @@ func (session *Session) byte2Time(col *Column, data []byte) (outTime time.Time, 
 		//fmt.Println(sdata)
 
 		st := fmt.Sprintf("2006-01-02 %v", sdata)
-		x, err = time.Parse("2006-01-02 15:04:05", st)
+		x, err = time.ParseInLocation("2006-01-02 15:04:05", st, session.Engine.TZLocation())
 	} else {
 		outErr = errors.New(fmt.Sprintf("unsupported time format %v", sdata))
 		return
@@ -2402,10 +2402,10 @@ func (session *Session) value2Interface(col *Column, fieldValue reflect.Value) (
 				}
 			}
 			switch fieldValue.Interface().(type) {
-				case time.Time:
-				tf := session.Engine.FormatTime(col.SQLType.Name,fieldValue.Interface().(time.Time))
+			case time.Time:
+				tf := session.Engine.FormatTime(col.SQLType.Name, fieldValue.Interface().(time.Time))
 				return tf, nil
-				default:
+			default:
 				return fieldValue.Interface(), nil
 			}
 		}
