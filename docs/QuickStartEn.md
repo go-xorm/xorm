@@ -110,7 +110,7 @@ use xorm.IMapper interface to implement. There are two IMapper implemented: `Sna
 SnakeMapper is the default.
 
 ```Go
-engine.Mapper = SameMapper{}
+engine.SetMapper(SameMapper{})
 ```
 
 同时需要注意的是：
