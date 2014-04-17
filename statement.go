@@ -99,7 +99,8 @@ func (statement *Statement) Where(querystring string, args ...interface{}) *Stat
 // add Where & and statment
 func (statement *Statement) And(querystring string, args ...interface{}) *Statement {
 	if statement.WhereStr != "" {
-		statement.WhereStr = fmt.Sprintf("(%v) AND (%v)", statement.WhereStr, querystring)
+		statement.WhereStr = fmt.Sprintf("(%v) %s (%v)", statement.WhereStr,
+			statement.Engine.dialect.AndStr(), querystring)
 	} else {
 		statement.WhereStr = querystring
 	}
@@ -110,7 +111,8 @@ func (statement *Statement) And(querystring string, args ...interface{}) *Statem
 // add Where & Or statment
 func (statement *Statement) Or(querystring string, args ...interface{}) *Statement {
 	if statement.WhereStr != "" {
-		statement.WhereStr = fmt.Sprintf("(%v) OR (%v)", statement.WhereStr, querystring)
+		statement.WhereStr = fmt.Sprintf("(%v) %s (%v)", statement.WhereStr,
+			statement.Engine.dialect.OrStr(), querystring)
 	} else {
 		statement.WhereStr = querystring
 	}
@@ -451,23 +453,9 @@ func (statement *Statement) Id(id interface{}) *Statement {
 			statement.IdParam = &pk
 		}
 	default:
-		// TODO treat as int primitve for now, need to handle type check
+		// TODO: treat as int primitve for now, need to handle type check?
 		statement.IdParam = &core.PK{id}
-
-		// !nashtsai! REVIEW although it will be user's mistake if called Id() twice with
-		// different value and Id should be PK's field name, however, at this stage probably
-		// can't tell which table is gonna be used
-		// if statement.WhereStr == "" {
-		//     statement.WhereStr = "(id)=?"
-		//     statement.Params = []interface{}{id}
-		// } else {
-		//     // TODO what if id param has already passed
-		//     statement.WhereStr = statement.WhereStr + " AND (id)=?"
-		//     statement.Params = append(statement.Params, id)
-		// }
 	}
-
-	// !nashtsai! perhaps no need to validate pk values' type just let sql complaint happen
 
 	return statement
 }
@@ -516,14 +504,14 @@ func (statement *Statement) genInSql() (string, []interface{}) {
 	if len(statement.inColumns) == 1 {
 		return inStrs[0], args
 	}
-	return fmt.Sprintf("(%v)", strings.Join(inStrs, " AND ")), args
+	return fmt.Sprintf("(%v)", strings.Join(inStrs, " "+statement.Engine.dialect.AndStr()+" ")), args
 }
 
 func (statement *Statement) attachInSql() {
 	inSql, inArgs := statement.genInSql()
 	if len(inSql) > 0 {
 		if statement.ConditionStr != "" {
-			statement.ConditionStr += " AND "
+			statement.ConditionStr += " " + statement.Engine.dialect.AndStr() + " "
 		}
 		statement.ConditionStr += inSql
 		statement.Params = append(statement.Params, inArgs...)
@@ -696,11 +684,9 @@ func uniqueName(tableName, uqeName string) string {
 func (s *Statement) genUniqueSQL() []string {
 	var sqls []string = make([]string, 0)
 	tbName := s.TableName()
-	quote := s.Engine.Quote
-	for idxName, unique := range s.RefTable.Indexes {
-		if unique.Type == core.UniqueType {
-			sql := fmt.Sprintf("CREATE UNIQUE INDEX %v ON %v (%v);", quote(uniqueName(tbName, idxName)),
-				quote(tbName), quote(strings.Join(unique.Cols, quote(","))))
+	for _, index := range s.RefTable.Indexes {
+		if index.Type == core.UniqueType {
+			sql := s.Engine.dialect.CreateIndexSql(tbName, index)
 			sqls = append(sqls, sql)
 		}
 	}
@@ -737,7 +723,7 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 		false, true, statement.allUseBool, statement.useAllCols,
 		statement.mustColumnMap)
 
-	statement.ConditionStr = strings.Join(colNames, " AND ")
+	statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.dialect.AndStr()+" ")
 	statement.BeanArgs = args
 
 	var columnStr string = statement.ColumnStr
@@ -755,7 +741,7 @@ func (s *Statement) genAddColumnStr(col *core.Column) (string, []interface{}) {
 	return sql, []interface{}{}
 }
 
-func (s *Statement) genAddIndexStr(idxName string, cols []string) (string, []interface{}) {
+/*func (s *Statement) genAddIndexStr(idxName string, cols []string) (string, []interface{}) {
 	quote := s.Engine.Quote
 	colstr := quote(strings.Join(cols, quote(", ")))
 	sql := fmt.Sprintf("CREATE INDEX %v ON %v (%v);", quote(idxName), quote(s.TableName()), colstr)
@@ -767,7 +753,7 @@ func (s *Statement) genAddUniqueStr(uqeName string, cols []string) (string, []in
 	colstr := quote(strings.Join(cols, quote(", ")))
 	sql := fmt.Sprintf("CREATE UNIQUE INDEX %v ON %v (%v);", quote(uqeName), quote(s.TableName()), colstr)
 	return sql, []interface{}{}
-}
+}*/
 
 func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}) {
 	table := statement.Engine.autoMap(bean)

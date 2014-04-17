@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/go-xorm/xorm"
-	"github.com/go-xorm/xorm/caches"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -24,7 +24,7 @@ func main() {
 		return
 	}
 	Orm.ShowSQL = true
-	cacher := xorm.NewLRUCacher(caches.NewMemoryStore(), 1000)
+	cacher := xorm.NewLRUCacher2(xorm.NewMemoryStore(), time.Hour, 1000)
 	Orm.SetDefaultCacher(cacher)
 
 	err = Orm.CreateTables(&User{})

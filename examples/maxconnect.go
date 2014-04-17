@@ -34,7 +34,7 @@ func test(engine *xorm.Engine) {
 	}
 
 	engine.ShowSQL = true
-	engine.Pool.SetMaxConns(5)
+	engine.SetMaxOpenConns(5)
 	size := 1000
 	queue := make(chan int, size)
 

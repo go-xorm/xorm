@@ -65,11 +65,8 @@ defer engine.Close()
 一般如果只针对一个数据库进行操作，只需要创建一个Engine即可。Engine支持在多GoRutine下使用。
 
 xorm当前支持五种驱动四个数据库如下：
-<<<<<<< HEAD
-=======
 
 * Mysql: [github.com/Go-SQL-Driver/MySQL](https://github.com/Go-SQL-Driver/MySQL)
->>>>>>> master
 
 * MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
 
@@ -124,15 +121,9 @@ engine.SetMapper(SameMapper{})
 
 同时需要注意的是：
 
-<<<<<<< HEAD
 * 如果你使用了别的命名规则映射方案，也可以自己实现一个IMapper。
 * 表名称和字段名称的映射规则默认是相同的，当然也可以设置为不同，如：
 
-=======
-* 如果你使用了别的命名规则映射方案，也可以自己实现一个IMapper。
-* 表名称和字段名称的映射规则默认是相同的，当然也可以设置为不同，如：
-
->>>>>>> master
 ```Go
 engine.SetTableMapper(SameMapper{})
 engine.SetColumnMapper(SnakeMapper{})
@@ -142,12 +133,10 @@ engine.SetColumnMapper(SnakeMapper{})
 ### 2.2.前缀映射，后缀映射和缓存映射
 
 * 通过`engine.NewPrefixMapper(SnakeMapper{}, "prefix")`可以在SnakeMapper的基础上在命名中添加统一的前缀，当然也可以把SnakeMapper{}换成SameMapper或者你自定义的Mapper。
+
 * 通过`engine.NewSufffixMapper(SnakeMapper{}, "suffix")`可以在SnakeMapper的基础上在命名中添加统一的后缀，当然也可以把SnakeMapper{}换成SameMapper或者你自定义的Mapper。
-<<<<<<< HEAD
-* 
-=======
+
 * 通过`eneing.NewCacheMapper(SnakeMapper{})`可以组合其它的映射规则，起到在内存中缓存曾经映射过的命名映射。
->>>>>>> master
 
 <a name="23" id="23"></a>
 ### 2.3.使用Table和Tag改变名称映射
@@ -598,21 +587,12 @@ affected, err := engine.Id(id).Update(user)
 
 这里需要注意，Update会自动从user结构体中提取非0和非nil得值作为需要更新的内容，因此，如果需要更新一个值为0，则此种方法将无法实现，因此有两种选择：
 
-<<<<<<< HEAD
 1. 通过添加Cols函数指定需要更新结构体中的哪些值，未指定的将不更新，指定了的即使为0也会更新。
-=======
-* 1.通过添加Cols函数指定需要更新结构体中的哪些值，未指定的将不更新，指定了的即使为0也会更新。
->>>>>>> master
-
 ```Go
 affected, err := engine.Id(id).Cols("age").Update(&user)
 ```
 
-<<<<<<< HEAD
 2. 通过传入map[string]interface{}来进行更新，但这时需要额外指定更新到哪个表，因为通过map是无法自动检测更新哪个表的。
-=======
-* 2.通过传入map[string]interface{}来进行更新，但这时需要额外指定更新到哪个表，因为通过map是无法自动检测更新哪个表的。
->>>>>>> master
 
 ```Go
 affected, err := engine.Table(new(User)).Id(id).Update(map[string]interface{}{"age":0})

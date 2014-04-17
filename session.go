@@ -1351,10 +1351,10 @@ func (session *Session) addIndex(tableName, idxName string) error {
 	if session.IsAutoClose {
 		defer session.Close()
 	}
-	//fmt.Println(idxName)
-	cols := session.Statement.RefTable.Indexes[idxName].Cols
-	sqlStr, args := session.Statement.genAddIndexStr(indexName(tableName, idxName), cols)
-	_, err = session.exec(sqlStr, args...)
+	index := session.Statement.RefTable.Indexes[idxName]
+	sqlStr := session.Engine.dialect.CreateIndexSql(tableName, index)
+	//genAddIndexStr(indexName(tableName, idxName), cols)
+	_, err = session.exec(sqlStr)
 	return err
 }
 
@@ -1368,9 +1368,9 @@ func (session *Session) addUnique(tableName, uqeName string) error {
 		defer session.Close()
 	}
 	//fmt.Println(uqeName, session.Statement.RefTable.Uniques)
-	cols := session.Statement.RefTable.Indexes[uqeName].Cols
-	sqlStr, args := session.Statement.genAddUniqueStr(uniqueName(tableName, uqeName), cols)
-	_, err = session.exec(sqlStr, args...)
+	index := session.Statement.RefTable.Indexes[uqeName]
+	sqlStr := session.Engine.dialect.CreateIndexSql(tableName, index)
+	_, err = session.exec(sqlStr)
 	return err
 }
 
