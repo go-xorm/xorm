@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
-	"time"
 )
 
 const (
@@ -108,8 +107,4 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 // clone an engine
 func (engine *Engine) Clone() (*Engine, error) {
 	return NewEngine(engine.dialect.DriverName(), engine.dialect.DataSourceName())
-}
-
-func NewLRUCacher2(store core.CacheStore, expired time.Duration, max int) *LRUCacher {
-	return NewLRUCacher(store, expired, 0, max)
 }

@@ -11,22 +11,26 @@ import (
 )
 
 type LRUCacher struct {
-	idList     *list.List
-	sqlList    *list.List
-	idIndex    map[string]map[string]*list.Element
-	sqlIndex   map[string]map[string]*list.Element
-	store      core.CacheStore
-	Max        int
-	mutex      sync.Mutex
-	Expired    time.Duration
-	maxSize    int
-	GcInterval time.Duration
+	idList   *list.List
+	sqlList  *list.List
+	idIndex  map[string]map[string]*list.Element
+	sqlIndex map[string]map[string]*list.Element
+	store    core.CacheStore
+	mutex    sync.Mutex
+	// maxSize    int
+	MaxElementSize int
+	Expired        time.Duration
+	GcInterval     time.Duration
 }
 
-func NewLRUCacher(store core.CacheStore, expired time.Duration, maxSize int, max int) *LRUCacher {
+func NewLRUCacher(store core.CacheStore, maxElementSize int) *LRUCacher {
+	return NewLRUCacher2(store, 0, maxElementSize)
+}
+
+func NewLRUCacher2(store core.CacheStore, expired time.Duration, maxElementSize int) *LRUCacher {
 	cacher := &LRUCacher{store: store, idList: list.New(),
-		sqlList: list.New(), Expired: expired, maxSize: maxSize,
-		GcInterval: core.CacheGcInterval, Max: max,
+		sqlList: list.New(), Expired: expired,
+		GcInterval: core.CacheGcInterval, MaxElementSize: maxElementSize,
 		sqlIndex: make(map[string]map[string]*list.Element),
 		idIndex:  make(map[string]map[string]*list.Element),
 	}
@@ -193,7 +197,7 @@ func (m *LRUCacher) PutIds(tableName, sql string, ids interface{}) {
 		el.Value.(*sqlNode).lastVisit = time.Now()
 	}
 	m.store.Put(sql, ids)
-	if m.sqlList.Len() > m.Max {
+	if m.sqlList.Len() > m.MaxElementSize {
 		e := m.sqlList.Front()
 		node := e.Value.(*sqlNode)
 		m.delIds(node.tbName, node.sql)
@@ -214,7 +218,7 @@ func (m *LRUCacher) PutBean(tableName string, id string, obj interface{}) {
 	}
 
 	m.store.Put(genId(tableName, id), obj)
-	if m.idList.Len() > m.Max {
+	if m.idList.Len() > m.MaxElementSize {
 		e := m.idList.Front()
 		node := e.Value.(*idNode)
 		m.delBean(node.tbName, node.id)
