@@ -36,8 +36,8 @@ type Engine struct {
 	ShowWarn  bool
 	//Pool      IConnectPool
 	//Filters []core.Filter
-	Logger   ILogger // io.Writer
-	TimeZone string
+	Logger     ILogger // io.Writer
+	TZLocation *time.Location
 }
 
 func (engine *Engine) DriverName() string {
@@ -1094,28 +1094,8 @@ func (engine *Engine) Import(ddlPath string) ([]sql.Result, error) {
 	return results, lastError
 }
 
-func (engine *Engine) TZTime(t time.Time) (r time.Time) {
-	switch engine.TimeZone {
-	case "Local", "L":
-		r = t.Local()
-	case "UTC", "U":
-		fallthrough
-	default:
-		r = t.UTC()
-	}
-	return
-}
-
-func (engine *Engine) TZLocation() (r *time.Location) {
-	switch engine.TimeZone {
-	case "Local", "L":
-		r = time.Local
-	case "UTC", "U":
-		fallthrough
-	default:
-		r = time.UTC
-	}
-	return
+func (engine *Engine) TZTime(t time.Time) time.Time {
+	return t.In(engine.TZLocation)
 }
 
 func (engine *Engine) NowTime(sqlTypeName string) interface{} {

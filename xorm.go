@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
+	"time"
 )
 
 const (
@@ -92,7 +93,7 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		mutex:         &sync.RWMutex{},
 		TagIdentifier: "xorm",
 		Logger:        NewSimpleLogger(os.Stdout),
-		TimeZone:      "Local",
+		TZLocation:    time.Local,
 	}
 
 	engine.SetMapper(core.NewCacheMapper(new(core.SnakeMapper)))
