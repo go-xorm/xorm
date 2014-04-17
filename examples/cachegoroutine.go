@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"time"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"
 	_ "github.com/mattn/go-sqlite3"
-	"os"
 )
 
 type User struct {
@@ -84,7 +86,7 @@ func main() {
 		return
 	}
 	engine.ShowSQL = true
-	cacher := xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
+	cacher := xorm.NewLRUCacher2(xorm.NewMemoryStore(), time.Hour, 1000)
 	engine.SetDefaultCacher(cacher)
 	fmt.Println(engine)
 	test(engine)
@@ -94,7 +96,7 @@ func main() {
 	fmt.Println("-----start mysql go routines-----")
 	engine, err = mysqlEngine()
 	engine.ShowSQL = true
-	cacher = xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
+	cacher = xorm.NewLRUCacher2(xorm.NewMemoryStore(), time.Hour, 1000)
 	engine.SetDefaultCacher(cacher)
 	if err != nil {
 		fmt.Println(err)

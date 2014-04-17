@@ -90,14 +90,8 @@ func (engine *Engine) AutoIncrStr() string {
 	return engine.dialect.AutoIncrStr()
 }
 
-// Set engine's pool, the pool default is Go's standard library's connection pool.
-/*func (engine *Engine) SetPool(pool IConnectPool) error {
-	engine.Pool = pool
-	return engine.Pool.Init(engine)
-}*/
-
-// SetMaxConns is only available for go 1.2+
-func (engine *Engine) SetMaxConns(conns int) {
+// SetMaxOpenConns is only available for go 1.2+
+func (engine *Engine) SetMaxOpenConns(conns int) {
 	engine.db.SetMaxOpenConns(conns)
 }
 
@@ -139,6 +133,10 @@ func (engine *Engine) NewDB() (*core.DB, error) {
 
 func (engine *Engine) DB() *core.DB {
 	return engine.db
+}
+
+func (engine *Engine) Dialect() core.Dialect {
+	return engine.dialect
 }
 
 // New a session

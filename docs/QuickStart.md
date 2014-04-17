@@ -70,6 +70,8 @@ xorm supports four drivers now:
 
 * Postgres: [github.com/lib/pq](https://github.com/lib/pq)
 
+* MsSql: [github.com/lunny/godbc](https://githubcom/lunny/godbc)
+
 NewEngine's parameters are the same as `sql.Open`. So you should read the drivers' document for parameters' usage.
 
 After engine created, you can do some settings.
@@ -100,7 +102,7 @@ engine.Logger = f
 <a name="20" id="20"></a>
 ## 2.Define struct
 
-xorm map a struct to a database table, the rule is below.
+xorm maps a struct to a database table, the rule is below.
 
 <a name="21" id="21"></a>
 ### 2.1.name mapping rule
@@ -113,10 +115,10 @@ SnakeMapper is the default.
 engine.SetMapper(SameMapper{})
 ```
 
-同时需要注意的是：
+And you should notice:
 
-* 如果你使用了别的命名规则映射方案，也可以自己实现一个IMapper。
-* 表名称和字段名称的映射规则默认是相同的，当然也可以设置为不同，如：
+* If you want to use other mapping rule, implement IMapper
+* Tables's mapping rule could be different from Columns':
 
 ```Go
 engine.SetTableMapper(SameMapper{})
@@ -124,7 +126,7 @@ engine.SetColumnMapper(SnakeMapper{})
 ```
 
 <a name="22" id="22"></a>
-### 2.2.前缀映射规则，后缀映射规则和缓存映射规则
+### 2.2.Prefix mapping, Suffix Mapping and Cache Mapping
 
 * 通过`engine.NewPrefixMapper(SnakeMapper{}, "prefix")`可以在SnakeMapper的基础上在命名中添加统一的前缀，当然也可以把SnakeMapper{}换成SameMapper或者你自定义的Mapper。
 * 通过`engine.NewSufffixMapper(SnakeMapper{}, "suffix")`可以在SnakeMapper的基础上在命名中添加统一的后缀，当然也可以把SnakeMapper{}换成SameMapper或者你自定义的Mapper。
@@ -133,14 +135,15 @@ engine.SetColumnMapper(SnakeMapper{})
 当然，如果你使用了别的命名规则映射方案，也可以自己实现一个IMapper。
 
 <a name="22" id="22"></a>
-### 2.3.使用Table和Tag改变名称映射
+### 2.3.Tag mapping
 
 如果所有的命名都是按照IMapper的映射来操作的，那当然是最理想的。但是如果碰到某个表名或者某个字段名跟映射规则不匹配时，我们就需要别的机制来改变。
 
 通过`engine.Table()`方法可以改变struct对应的数据库表的名称，通过sturct中field对应的Tag中使用`xorm:"'table_name'"`可以使该field对应的Column名称为指定名称。这里使用两个单引号将Column名称括起来是为了防止名称冲突，因为我们在Tag中还可以对这个Column进行更多的定义。如果名称不冲突的情况，单引号也可以不使用。
 
 <a name="23" id="23"></a>
-### 2.4.Column属性定义
+### 2.4.Column defenition
+
 我们在field对应的Tag中对Column的一些属性进行定义，定义的方法基本和我们写SQL定义表结构类似，比如：
 
 ```
@@ -150,37 +153,37 @@ type User struct {
 }
 ```
 
-对于不同的数据库系统，数据类型其实是有些差异的。因此xorm中对数据类型有自己的定义，基本的原则是尽量兼容各种数据库的字段类型，具体的字段对应关系可以查看[字段类型对应表](https://github.com/go-xorm/xorm/blob/master/docs/COLUMNTYPE.md)。
+For different DBMS, data types对于不同的数据库系统，数据类型其实是有些差异的。因此xorm中对数据类型有自己的定义，基本的原则是尽量兼容各种数据库的字段类型，具体的字段对应关系可以查看[字段类型对应表](https://github.com/go-xorm/xorm/blob/master/docs/COLUMNTYPE.md)。
 
 具体的映射规则如下，另Tag中的关键字均不区分大小写，字段名区分大小写：
 
 <table>
     <tr>
-        <td>name</td><td>当前field对应的字段的名称，可选，如不写，则自动根据field名字和转换规则命名</td>
+        <td>name or 'name'</td><td>Column Name, optional</td>
     </tr>
     <tr>
-        <td>pk</td><td>是否是Primary Key，当前仅支持int64类型</td>
+        <td>pk</td><td>If column is Primary Key</td>
     </tr>
     <tr>
         <td>当前支持30多种字段类型，详情参见 [字段类型](https://github.com/go-xorm/xorm/blob/master/docs/COLUMNTYPE.md)</td><td>字段类型</td>
     </tr>
     <tr>
-        <td>autoincr</td><td>是否是自增</td>
+        <td>autoincr</td><td>If autoincrement column</td>
     </tr>
     <tr>
-        <td>[not ]null</td><td>是否可以为空</td>
+        <td>[not ]null | notnull</td><td>if column could be blank</td>
     </tr>
     <tr>
-        <td>unique或unique(uniquename)</td><td>是否是唯一，如不加括号则该字段不允许重复；如加上括号，则括号中为联合唯一索引的名字，此时如果有另外一个或多个字段和本unique的uniquename相同，则这些uniquename相同的字段组成联合唯一索引</td>
+        <td>unique/unique(uniquename)</td><td>是否是唯一，如不加括号则该字段不允许重复；如加上括号，则括号中为联合唯一索引的名字，此时如果有另外一个或多个字段和本unique的uniquename相同，则这些uniquename相同的字段组成联合唯一索引</td>
     </tr>
     <tr>
-        <td>index或index(indexname)</td><td>是否是索引，如不加括号则该字段自身为索引，如加上括号，则括号中为联合索引的名字，此时如果有另外一个或多个字段和本index的indexname相同，则这些indexname相同的字段组成联合索引</td>
+        <td>index/index(indexname)</td><td>是否是索引，如不加括号则该字段自身为索引，如加上括号，则括号中为联合索引的名字，此时如果有另外一个或多个字段和本index的indexname相同，则这些indexname相同的字段组成联合索引</td>
     </tr>
     <tr>
     	<td>extends</td><td>应用于一个匿名结构体之上，表示此匿名结构体的成员也映射到数据库中</td>
     </tr>
     <tr>
-        <td>-</td><td>这个Field将不进行字段映射</td>
+        <td>-</td><td>This field will not be mapping</td>
     </tr>
      <tr>
         <td>-></td><td>这个Field将只写入到数据库而不从数据库读取</td>
@@ -198,7 +201,7 @@ type User struct {
         <td>version</td><td>This field will be filled 1 on insert and autoincrement on update</td>
     </tr>
     <tr>
-        <td>default 0</td><td>设置默认值，紧跟的内容如果是Varchar等需要加上单引号</td>
+        <td>default 0 | default 'name'</td><td>column default value</td>
     </tr>
 </table>
 
@@ -224,13 +227,13 @@ type Conversion interface {
 xorm提供了一些动态获取和修改表结构的方法。对于一般的应用，很少动态修改表结构，则只需调用Sync()同步下表结构即可。
 
 <a name="31" id="31"></a>
-## 3.1 获取数据库信息
+## 3.1 retrieve database meta info
 
 * DBMetas()
 xorm支持获取表结构信息，通过调用`engine.DBMetas()`可以获取到所有的表的信息
 
 <a name="31" id="31"></a>
-## 3.2.表操作
+## 3.2.directly table operation
 
 * CreateTables()
 创建表使用`engine.CreateTables()`，参数为一个或多个空的对应Struct的指针。同时可用的方法有Charset()和StoreEngine()，如果对应的数据库支持，这两个方法可以在创建表时指定表的字符编码和使用的引擎。当前仅支持Mysql数据库。
@@ -245,7 +248,7 @@ xorm支持获取表结构信息，通过调用`engine.DBMetas()`可以获取到�
 删除表使用`engine.DropTables()`，参数为一个或多个空的对应Struct的指针或者表的名字。如果为string传入，则只删除对应的表，如果传入的为Struct，则删除表的同时还会删除对应的索引。
 
 <a name="32" id="32"></a>
-## 3.3.创建索引和唯一索引
+## 3.3.create indexes and uniques
 
 * CreateIndexes
 根据struct中的tag来创建索引
