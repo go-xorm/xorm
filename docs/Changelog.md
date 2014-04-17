@@ -2,7 +2,7 @@
 
 * **v0.4.0 M1** 
 	Changes:
-	* moved xorm cmd to github.com/go-xorm/cmd [github.com/go-xorm/cmd](github.com/go-xorm/cmd)
+	* moved xorm cmd to [github.com/go-xorm/cmd](github.com/go-xorm/cmd)
 	* refactored general DB operation a core lib at [github.com/go-xorm/core](https://github.com/go-xorm/core)
 	* moved tests to github.com/go-xorm/tests [github.com/go-xorm/tests](github.com/go-xorm/tests)
 
