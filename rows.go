@@ -4,14 +4,16 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+
+	"github.com/go-xorm/core"
 )
 
 type Rows struct {
 	NoTypeCheck bool
 
 	session     *Session
-	stmt        *sql.Stmt
-	rows        *sql.Rows
+	stmt        *core.Stmt
+	rows        *core.Rows
 	fields      []string
 	fieldsCount int
 	beanType    reflect.Type
@@ -30,24 +32,23 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 
 	defer rows.session.Statement.Init()
 
-	var sql string
+	var sqlStr string
 	var args []interface{}
 	rows.session.Statement.RefTable = rows.session.Engine.autoMap(bean)
 	if rows.session.Statement.RawSQL == "" {
-		sql, args = rows.session.Statement.genGetSql(bean)
+		sqlStr, args = rows.session.Statement.genGetSql(bean)
 	} else {
-		sql = rows.session.Statement.RawSQL
+		sqlStr = rows.session.Statement.RawSQL
 		args = rows.session.Statement.RawParams
 	}
 
-	for _, filter := range rows.session.Engine.Filters {
-		sql = filter.Do(sql, session)
+	for _, filter := range rows.session.Engine.dialect.Filters() {
+		sqlStr = filter.Do(sqlStr, session.Engine.dialect, rows.session.Statement.RefTable)
 	}
 
-	rows.session.Engine.LogSQL(sql)
-	rows.session.Engine.LogSQL(args)
+	rows.session.Engine.logSQL(sqlStr, args)
 
-	rows.stmt, err = rows.session.Db.Prepare(sql)
+	rows.stmt, err = rows.session.Db.Prepare(sqlStr)
 	if err != nil {
 		rows.lastError = err
 		defer rows.Close()

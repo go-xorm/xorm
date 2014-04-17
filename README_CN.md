@@ -1,10 +1,10 @@
 # xorm
 
-[English](https://github.com/lunny/xorm/blob/master/README.md)
+[English](https://github.com/go-xorm/xorm/blob/master/README.md)
 
 xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作非常简便。
 
-[![Build Status](https://drone.io/github.com/lunny/xorm/status.png)](https://drone.io/github.com/lunny/xorm/latest)  [![Go Walker](http://gowalker.org/api/v1/badge)](http://gowalker.org/github.com/lunny/xorm)
+[![Build Status](https://drone.io/github.com/go-xorm/xorm/status.png)](https://drone.io/github.com/go-xorm/xorm/latest)  [![Go Walker](http://gowalker.org/api/v1/badge)](http://gowalker.org/github.com/go-xorm/xorm)
 
 ## 特性
 
@@ -69,25 +69,25 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 	* 查询函数 Get()/Find()/Iterate() 在性能上的改进
 
 
-[更多更新日志...](https://github.com/lunny/xorm/blob/master/docs/ChangelogCN.md)
+[更多更新日志...](https://github.com/go-xorm/xorm/blob/master/docs/ChangelogCN.md)
 
 ## 安装
 
 推荐使用 [gopm](https://github.com/gpmgo/gopm) 进行安装： 
 
-	gopm get github.com/lunny/xorm
+	gopm get github.com/go-xorm/xorm
 	
 或者您也可以使用go工具进行安装：
 
-	go get github.com/lunny/xorm
+	go get github.com/go-xorm/xorm
 
 ## 文档
 
-* [快速开始](https://github.com/lunny/xorm/blob/master/docs/QuickStart.md)
+* [快速开始](https://github.com/go-xorm/xorm/blob/master/docs/QuickStart.md)
 
-* [GoWalker代码文档](http://gowalker.org/github.com/lunny/xorm)
+* [GoWalker代码文档](http://gowalker.org/github.com/go-xorm/xorm)
 
-* [Godoc代码文档](http://godoc.org/github.com/lunny/xorm)
+* [Godoc代码文档](http://godoc.org/github.com/go-xorm/xorm)
 
 
 ## 案例
@@ -115,7 +115,7 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 # 贡献者
 
-如果您也想为Xorm贡献您的力量，请查看 [CONTRIBUTING](https://github.com/lunny/xorm/blob/master/CONTRIBUTING.md)
+如果您也想为Xorm贡献您的力量，请查看 [CONTRIBUTING](https://github.com/go-xorm/xorm/blob/master/CONTRIBUTING.md)
 
 * [Lunny](https://github.com/lunny)
 * [Nashtsai](https://github.com/nashtsai)

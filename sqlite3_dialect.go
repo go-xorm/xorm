@@ -1,46 +1,44 @@
 package xorm
 
 import (
-	"database/sql"
 	"strings"
+
+	"github.com/go-xorm/core"
 )
 
+// func init() {
+// 	RegisterDialect("sqlite3", &sqlite3{})
+// }
+
 type sqlite3 struct {
-	base
+	core.Base
 }
 
-type sqlite3Parser struct {
+func (db *sqlite3) Init(uri *core.Uri, drivername, dataSourceName string) error {
+	return db.Base.Init(db, uri, drivername, dataSourceName)
 }
 
-func (p *sqlite3Parser) parse(driverName, dataSourceName string) (*uri, error) {
-	return &uri{dbType: SQLITE, dbName: dataSourceName}, nil
-}
-
-func (db *sqlite3) Init(drivername, dataSourceName string) error {
-	return db.base.init(&sqlite3Parser{}, drivername, dataSourceName)
-}
-
-func (db *sqlite3) SqlType(c *Column) string {
+func (db *sqlite3) SqlType(c *core.Column) string {
 	switch t := c.SQLType.Name; t {
-	case Date, DateTime, TimeStamp, Time:
-		return Numeric
-	case TimeStampz:
-		return Text
-	case Char, Varchar, TinyText, Text, MediumText, LongText:
-		return Text
-	case Bit, TinyInt, SmallInt, MediumInt, Int, Integer, BigInt, Bool:
-		return Integer
-	case Float, Double, Real:
-		return Real
-	case Decimal, Numeric:
-		return Numeric
-	case TinyBlob, Blob, MediumBlob, LongBlob, Bytea, Binary, VarBinary:
-		return Blob
-	case Serial, BigSerial:
+	case core.Date, core.DateTime, core.TimeStamp, core.Time:
+		return core.Numeric
+	case core.TimeStampz:
+		return core.Text
+	case core.Char, core.Varchar, core.TinyText, core.Text, core.MediumText, core.LongText:
+		return core.Text
+	case core.Bit, core.TinyInt, core.SmallInt, core.MediumInt, core.Int, core.Integer, core.BigInt, core.Bool:
+		return core.Integer
+	case core.Float, core.Double, core.Real:
+		return core.Real
+	case core.Decimal, core.Numeric:
+		return core.Numeric
+	case core.TinyBlob, core.Blob, core.MediumBlob, core.LongBlob, core.Bytea, core.Binary, core.VarBinary:
+		return core.Blob
+	case core.Serial, core.BigSerial:
 		c.IsPrimaryKey = true
 		c.IsAutoIncrement = true
 		c.Nullable = false
-		return Integer
+		return core.Integer
 	default:
 		return t
 	}
@@ -86,36 +84,37 @@ func (db *sqlite3) ColumnCheckSql(tableName, colName string) (string, []interfac
 	return sql, args
 }
 
-func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*Column, error) {
+func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{tableName}
 	s := "SELECT sql FROM sqlite_master WHERE type='table' and name = ?"
-	cnn, err := sql.Open(db.driverName, db.dataSourceName)
+	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, nil, err
 	}
 	defer cnn.Close()
-	res, err := query(cnn, s, args...)
+
+	rows, err := cnn.Query(s, args...)
 	if err != nil {
 		return nil, nil, err
 	}
+	defer rows.Close()
 
-	var sql string
-	for _, record := range res {
-		for name, content := range record {
-			if name == "sql" {
-				sql = string(content)
-			}
+	var name string
+	for rows.Next() {
+		err = rows.Scan(&name)
+		if err != nil {
+			return nil, nil, err
 		}
 	}
 
-	nStart := strings.Index(sql, "(")
-	nEnd := strings.Index(sql, ")")
-	colCreates := strings.Split(sql[nStart+1:nEnd], ",")
-	cols := make(map[string]*Column)
+	nStart := strings.Index(name, "(")
+	nEnd := strings.Index(name, ")")
+	colCreates := strings.Split(name[nStart+1:nEnd], ",")
+	cols := make(map[string]*core.Column)
 	colSeq := make([]string, 0)
 	for _, colStr := range colCreates {
 		fields := strings.Fields(strings.TrimSpace(colStr))
-		col := new(Column)
+		col := new(core.Column)
 		col.Indexes = make(map[string]bool)
 		col.Nullable = true
 		for idx, field := range fields {
@@ -123,7 +122,7 @@ func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*Column, e
 				col.Name = strings.Trim(field, "`[] ")
 				continue
 			} else if idx == 1 {
-				col.SQLType = SQLType{field, 0, 0}
+				col.SQLType = core.SQLType{field, 0, 0}
 			}
 			switch field {
 			case "PRIMARY":
@@ -144,28 +143,27 @@ func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*Column, e
 	return colSeq, cols, nil
 }
 
-func (db *sqlite3) GetTables() ([]*Table, error) {
+func (db *sqlite3) GetTables() ([]*core.Table, error) {
 	args := []interface{}{}
 	s := "SELECT name FROM sqlite_master WHERE type='table'"
 
-	cnn, err := sql.Open(db.driverName, db.dataSourceName)
+	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
 	defer cnn.Close()
-	res, err := query(cnn, s, args...)
+	rows, err := cnn.Query(s, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	tables := make([]*Table, 0)
-	for _, record := range res {
-		table := new(Table)
-		for name, content := range record {
-			switch name {
-			case "name":
-				table.Name = string(content)
-			}
+	tables := make([]*core.Table, 0)
+	for rows.Next() {
+		table := core.NewEmptyTable()
+		err = rows.Scan(&table.Name)
+		if err != nil {
+			return nil, err
 		}
 		if table.Name == "sqlite_sequence" {
 			continue
@@ -175,28 +173,33 @@ func (db *sqlite3) GetTables() ([]*Table, error) {
 	return tables, nil
 }
 
-func (db *sqlite3) GetIndexes(tableName string) (map[string]*Index, error) {
+func (db *sqlite3) GetIndexes(tableName string) (map[string]*core.Index, error) {
 	args := []interface{}{tableName}
 	s := "SELECT sql FROM sqlite_master WHERE type='index' and tbl_name = ?"
-	cnn, err := sql.Open(db.driverName, db.dataSourceName)
+	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
 	defer cnn.Close()
-	res, err := query(cnn, s, args...)
+	rows, err := cnn.Query(s, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	indexes := make(map[string]*Index, 0)
-	for _, record := range res {
-		index := new(Index)
-		sql := string(record["sql"])
+	indexes := make(map[string]*core.Index, 0)
+	for rows.Next() {
+		var sql string
+		err = rows.Scan(&sql)
+		if err != nil {
+			return nil, err
+		}
 
 		if sql == "" {
 			continue
 		}
 
+		index := new(core.Index)
 		nNStart := strings.Index(sql, "INDEX")
 		nNEnd := strings.Index(sql, "ON")
 		if nNStart == -1 || nNEnd == -1 {
@@ -212,9 +215,9 @@ func (db *sqlite3) GetIndexes(tableName string) (map[string]*Index, error) {
 		}
 
 		if strings.HasPrefix(sql, "CREATE UNIQUE INDEX") {
-			index.Type = UniqueType
+			index.Type = core.UniqueType
 		} else {
-			index.Type = IndexType
+			index.Type = core.IndexType
 		}
 
 		nStart := strings.Index(sql, "(")
@@ -229,4 +232,8 @@ func (db *sqlite3) GetIndexes(tableName string) (map[string]*Index, error) {
 	}
 
 	return indexes, nil
+}
+
+func (db *sqlite3) Filters() []core.Filter {
+	return []core.Filter{&core.IdFilter{}}
 }

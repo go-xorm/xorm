@@ -4,17 +4,19 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"github.com/go-xorm/core"
 )
 
-type mymysql struct {
-	mysql
+// func init() {
+// 	core.RegisterDriver("mymysql", &mymysqlDriver{})
+// }
+
+type mymysqlDriver struct {
 }
 
-type mymysqlParser struct {
-}
-
-func (p *mymysqlParser) parse(driverName, dataSourceName string) (*uri, error) {
-	db := &uri{dbType: MYSQL}
+func (p *mymysqlDriver) Parse(driverName, dataSourceName string) (*core.Uri, error) {
+	db := &core.Uri{DbType: core.MYSQL}
 
 	pd := strings.SplitN(dataSourceName, "*", 2)
 	if len(pd) == 2 {
@@ -23,9 +25,9 @@ func (p *mymysqlParser) parse(driverName, dataSourceName string) (*uri, error) {
 		if len(p) != 2 {
 			return nil, errors.New("Wrong protocol part of URI")
 		}
-		db.proto = p[0]
+		db.Proto = p[0]
 		options := strings.Split(p[1], ",")
-		db.raddr = options[0]
+		db.Raddr = options[0]
 		for _, o := range options[1:] {
 			kv := strings.SplitN(o, "=", 2)
 			var k, v string
@@ -36,13 +38,13 @@ func (p *mymysqlParser) parse(driverName, dataSourceName string) (*uri, error) {
 			}
 			switch k {
 			case "laddr":
-				db.laddr = v
+				db.Laddr = v
 			case "timeout":
 				to, err := time.ParseDuration(v)
 				if err != nil {
 					return nil, err
 				}
-				db.timeout = to
+				db.Timeout = to
 			default:
 				return nil, errors.New("Unknown option: " + k)
 			}
@@ -55,13 +57,9 @@ func (p *mymysqlParser) parse(driverName, dataSourceName string) (*uri, error) {
 	if len(dup) != 3 {
 		return nil, errors.New("Wrong database part of URI")
 	}
-	db.dbName = dup[0]
-	db.user = dup[1]
-	db.passwd = dup[2]
+	db.DbName = dup[0]
+	db.User = dup[1]
+	db.Passwd = dup[2]
 
 	return db, nil
-}
-
-func (db *mymysql) Init(drivername, uri string) error {
-	return db.mysql.base.init(&mymysqlParser{}, drivername, uri)
 }
