@@ -13,8 +13,8 @@ import (
 
 	"github.com/dvirsky/go-pylog/logging"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-xorm/xorm"
 	_ "github.com/lib/pq"
-	"github.com/lunny/xorm"
 	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/ziutek/mymysql/godrv"
 )
