@@ -17,8 +17,8 @@ type oracle struct {
 	core.Base
 }
 
-func (db *oracle) Init(uri *core.Uri, drivername, dataSourceName string) error {
-	return db.Base.Init(db, uri, drivername, dataSourceName)
+func (db *oracle) Init(d *core.DB, uri *core.Uri, drivername, dataSourceName string) error {
+	return db.Base.Init(d, db, uri, drivername, dataSourceName)
 }
 
 func (db *oracle) SqlType(c *core.Column) string {
@@ -98,12 +98,7 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Colum
 	s := "SELECT column_name,data_default,data_type,data_length,data_precision,data_scale," +
 		"nullable FROM USER_TAB_COLUMNS WHERE table_name = :1"
 
-	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
-	if err != nil {
-		return nil, nil, err
-	}
-	defer cnn.Close()
-	rows, err := cnn.Query(s, args...)
+	rows, err := db.DB().Query(s, args...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -166,15 +161,12 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Colum
 func (db *oracle) GetTables() ([]*core.Table, error) {
 	args := []interface{}{}
 	s := "SELECT table_name FROM user_tables"
-	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
+
+	rows, err := db.DB().Query(s, args...)
 	if err != nil {
 		return nil, err
 	}
-	defer cnn.Close()
-	rows, err := cnn.Query(s, args...)
-	if err != nil {
-		return nil, err
-	}
+	defer rows.Close()
 
 	tables := make([]*core.Table, 0)
 	for rows.Next() {
@@ -194,12 +186,7 @@ func (db *oracle) GetIndexes(tableName string) (map[string]*core.Index, error) {
 	s := "SELECT t.column_name,i.uniqueness,i.index_name FROM user_ind_columns t,user_indexes i " +
 		"WHERE t.index_name = i.index_name and t.table_name = i.table_name and t.table_name =:1"
 
-	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
-	if err != nil {
-		return nil, err
-	}
-	defer cnn.Close()
-	rows, err := cnn.Query(s, args...)
+	rows, err := db.DB().Query(s, args...)
 	if err != nil {
 		return nil, err
 	}

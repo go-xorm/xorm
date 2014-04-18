@@ -4,12 +4,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/go-xorm/core"
 	"os"
 	"reflect"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/go-xorm/core"
 )
 
 const (
@@ -76,12 +77,12 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		return nil, errors.New(fmt.Sprintf("Unsupported dialect type: %v", uri.DbType))
 	}
 
-	err = dialect.Init(uri, driverName, dataSourceName)
+	db, err := core.Open(driverName, dataSourceName)
 	if err != nil {
 		return nil, err
 	}
 
-	db, err := core.OpenDialect(dialect)
+	err = dialect.Init(db, uri, driverName, dataSourceName)
 	if err != nil {
 		return nil, err
 	}

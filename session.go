@@ -155,11 +155,6 @@ func (session *Session) NoCascade() *Session {
 	return session
 }
 
-/*
-func (session *Session) MustCols(columns ...string) *Session {
-	session.Statement.Must()
-}*/
-
 // Xorm automatically retrieve condition according struct, but
 // if struct has bool field, it will ignore them. So use UseBool
 // to tell system to do not ignore them.
@@ -2443,11 +2438,12 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 
 	switch k {
 	case reflect.Bool:
-		if fieldValue.Bool() {
+		return fieldValue.Bool(), nil
+		/*if fieldValue.Bool() {
 			return 1, nil
 		} else {
 			return 0, nil
-		}
+		}*/
 	case reflect.String:
 		return fieldValue.String(), nil
 	case reflect.Struct:
@@ -2953,9 +2949,9 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	//for update action to like "column = column + ?"
 	incColumns := session.Statement.getInc()
-	for k, v := range incColumns {
-		colNames = append(colNames, k+" = "+k+" + ?")
-		args = append(args, v)
+	for _, v := range incColumns {
+		colNames = append(colNames, session.Engine.Quote(v.colName)+" = "+session.Engine.Quote(v.colName)+" + ?")
+		args = append(args, v.arg)
 	}
 	var condiColNames []string
 	var condiArgs []interface{}

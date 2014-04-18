@@ -14,8 +14,8 @@ type sqlite3 struct {
 	core.Base
 }
 
-func (db *sqlite3) Init(uri *core.Uri, drivername, dataSourceName string) error {
-	return db.Base.Init(db, uri, drivername, dataSourceName)
+func (db *sqlite3) Init(d *core.DB, uri *core.Uri, drivername, dataSourceName string) error {
+	return db.Base.Init(d, db, uri, drivername, dataSourceName)
 }
 
 func (db *sqlite3) SqlType(c *core.Column) string {
@@ -87,13 +87,8 @@ func (db *sqlite3) ColumnCheckSql(tableName, colName string) (string, []interfac
 func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{tableName}
 	s := "SELECT sql FROM sqlite_master WHERE type='table' and name = ?"
-	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
-	if err != nil {
-		return nil, nil, err
-	}
-	defer cnn.Close()
 
-	rows, err := cnn.Query(s, args...)
+	rows, err := db.DB().Query(s, args...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -147,12 +142,7 @@ func (db *sqlite3) GetTables() ([]*core.Table, error) {
 	args := []interface{}{}
 	s := "SELECT name FROM sqlite_master WHERE type='table'"
 
-	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
-	if err != nil {
-		return nil, err
-	}
-	defer cnn.Close()
-	rows, err := cnn.Query(s, args...)
+	rows, err := db.DB().Query(s, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -176,12 +166,8 @@ func (db *sqlite3) GetTables() ([]*core.Table, error) {
 func (db *sqlite3) GetIndexes(tableName string) (map[string]*core.Index, error) {
 	args := []interface{}{tableName}
 	s := "SELECT sql FROM sqlite_master WHERE type='index' and tbl_name = ?"
-	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
-	if err != nil {
-		return nil, err
-	}
-	defer cnn.Close()
-	rows, err := cnn.Query(s, args...)
+
+	rows, err := db.DB().Query(s, args...)
 	if err != nil {
 		return nil, err
 	}

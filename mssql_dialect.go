@@ -17,8 +17,8 @@ type mssql struct {
 	core.Base
 }
 
-func (db *mssql) Init(uri *core.Uri, drivername, dataSourceName string) error {
-	return db.Base.Init(db, uri, drivername, dataSourceName)
+func (db *mssql) Init(d *core.DB, uri *core.Uri, drivername, dataSourceName string) error {
+	return db.Base.Init(d, db, uri, drivername, dataSourceName)
 }
 
 func (db *mssql) SqlType(c *core.Column) string {
@@ -123,13 +123,8 @@ func (db *mssql) GetColumns(tableName string) ([]string, map[string]*core.Column
 	s := `select a.name as name, b.name as ctype,a.max_length,a.precision,a.scale
 from sys.columns a left join sys.types b on a.user_type_id=b.user_type_id
 where a.object_id=object_id('` + tableName + `')`
-	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
-	if err != nil {
-		return nil, nil, err
-	}
-	defer cnn.Close()
 
-	rows, err := cnn.Query(s, args...)
+	rows, err := db.DB().Query(s, args...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -183,12 +178,8 @@ where a.object_id=object_id('` + tableName + `')`
 func (db *mssql) GetTables() ([]*core.Table, error) {
 	args := []interface{}{}
 	s := `select name from sysobjects where xtype ='U'`
-	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
-	if err != nil {
-		return nil, err
-	}
-	defer cnn.Close()
-	rows, err := cnn.Query(s, args...)
+
+	rows, err := db.DB().Query(s, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -223,12 +214,7 @@ INNER   JOIN SYS.COLUMNS C  ON IXS.OBJECT_ID=C.OBJECT_ID
 AND IXCS.COLUMN_ID=C.COLUMN_ID
 WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 `
-	cnn, err := core.Open(db.DriverName(), db.DataSourceName())
-	if err != nil {
-		return nil, err
-	}
-	defer cnn.Close()
-	rows, err := cnn.Query(s, args...)
+	rows, err := db.DB().Query(s, args...)
 	if err != nil {
 		return nil, err
 	}
