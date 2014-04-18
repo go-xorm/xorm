@@ -96,8 +96,8 @@ engine.Logger = f
 
 3.Engine provide DB connection pool settings.
 
-* Use `engine.SetIdleConns()` to set idle connections.
-* Use `engine.SetMaxConns()` to set Max connections. This methods support only Go 1.2+.
+* Use `engine.SetMaxIdleConns()` to set idle connections.
+* Use `engine.SetMaxOpenConns()` to set Max connections. This methods support only Go 1.2+.
 
 <a name="20" id="20"></a>
 ## 2.Define struct

@@ -98,6 +98,11 @@ f, err := os.Create("sql.log")
 engine.Logger = f
 ```
 
+3.engine内部支持连接池接口。
+
+* 如果需要设置连接池的空闲数大小，可以使用`engine.SetMaxIdleConns()`来实现。
+* 如果需要设置最大打开连接数，则可以使用`engine.SetMaxOpenConns()`来实现。
+
 <a name="20" id="20"></a>
 ## 2.定义表结构体
 
