@@ -15,6 +15,11 @@ type inParam struct {
 	args    []interface{}
 }
 
+type incrParam struct {
+	colName string
+	arg     interface{}
+}
+
 // statement save all the sql info for executing SQL
 type Statement struct {
 	RefTable      *core.Table
@@ -48,7 +53,7 @@ type Statement struct {
 	checkVersion  bool
 	mustColumnMap map[string]bool
 	inColumns     map[string]*inParam
-	incColumns    map[string]interface{}
+	incrColumns   map[string]incrParam
 }
 
 // init
@@ -79,7 +84,7 @@ func (statement *Statement) Init() {
 	statement.mustColumnMap = make(map[string]bool)
 	statement.checkVersion = true
 	statement.inColumns = make(map[string]*inParam)
-	statement.incColumns = make(map[string]interface{}, 0)
+	statement.incrColumns = make(map[string]incrParam)
 }
 
 // add the raw sql statement
@@ -464,16 +469,16 @@ func (statement *Statement) Id(id interface{}) *Statement {
 func (statement *Statement) Incr(column string, arg ...interface{}) *Statement {
 	k := strings.ToLower(column)
 	if len(arg) > 0 {
-		statement.incColumns[k] = arg[0]
+		statement.incrColumns[k] = incrParam{column, arg[0]}
 	} else {
-		statement.incColumns[k] = 1
+		statement.incrColumns[k] = incrParam{column, 1}
 	}
 	return statement
 }
 
 // Generate  "Update ... Set column = column + arg" statment
-func (statement *Statement) getInc() map[string]interface{} {
-	return statement.incColumns
+func (statement *Statement) getInc() map[string]incrParam {
+	return statement.incrColumns
 }
 
 // Generate "Where column IN (?) " statment

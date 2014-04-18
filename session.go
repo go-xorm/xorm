@@ -2956,9 +2956,9 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	//for update action to like "column = column + ?"
 	incColumns := session.Statement.getInc()
-	for k, v := range incColumns {
-		colNames = append(colNames, k+" = "+k+" + ?")
-		args = append(args, v)
+	for _, v := range incColumns {
+		colNames = append(colNames, session.Engine.Quote(v.colName)+" = "+session.Engine.Quote(v.colName)+" + ?")
+		args = append(args, v.arg)
 	}
 	var condiColNames []string
 	var condiArgs []interface{}

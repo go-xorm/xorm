@@ -75,6 +75,12 @@ func (engine *Engine) QuoteStr() string {
 
 // Use QuoteStr quote the string sql
 func (engine *Engine) Quote(sql string) string {
+	if len(sql) == 0 {
+		return sql
+	}
+	if string(sql[0]) == engine.dialect.QuoteStr() || sql[0] == '`' {
+		return sql
+	}
 	return engine.dialect.QuoteStr() + sql + engine.dialect.QuoteStr()
 }
 
