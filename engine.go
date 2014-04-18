@@ -95,6 +95,11 @@ func (engine *Engine) SetMaxOpenConns(conns int) {
 	engine.db.SetMaxOpenConns(conns)
 }
 
+// @Deprecated
+func (engine *Engine) SetMaxConns(conns int) {
+	engine.SetMaxOpenConns(conns)
+}
+
 // SetMaxIdleConns
 func (engine *Engine) SetMaxIdleConns(conns int) {
 	engine.db.SetMaxIdleConns(conns)
