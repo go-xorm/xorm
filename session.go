@@ -2944,7 +2944,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	if session.Statement.UseAutoTime && table.Updated != "" {
 		colNames = append(colNames, session.Engine.Quote(table.Updated)+" = ?")
-		args = append(args, session.Engine.NowTime(table.Columns()[table.Updated].SQLType.Name))
+		args = append(args, session.Engine.NowTime(table.Columns()[strings.ToLower(table.Updated)].SQLType.Name))
 	}
 
 	//for update action to like "column = column + ?"
