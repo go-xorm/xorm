@@ -1075,6 +1075,11 @@ func (engine *Engine) Import(ddlPath string) ([]sql.Result, error) {
 }
 
 func (engine *Engine) TZTime(t time.Time) (r time.Time) {
+	if t.Location() == nil {
+		return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(),
+			t.Minute(), t.Second(), t.Nanosecond(), engine.TZLocation())
+	}
+
 	switch engine.TimeZone {
 	case "Local", "L":
 		r = t.Local()
@@ -1104,6 +1109,7 @@ func (engine *Engine) NowTime(sqlTypeName string) interface{} {
 }
 
 func (engine *Engine) FormatTime(sqlTypeName string, t time.Time) (v interface{}) {
+	fmt.Println("sqlTypeName:", sqlTypeName)
 	switch sqlTypeName {
 	case Time:
 		s := engine.TZTime(t).Format("2006-01-02 15:04:05") //time.RFC3339
@@ -1111,7 +1117,9 @@ func (engine *Engine) FormatTime(sqlTypeName string, t time.Time) (v interface{}
 	case Date:
 		v = engine.TZTime(t).Format("2006-01-02")
 	case DateTime, TimeStamp:
-		v = engine.TZTime(t).Format("2006-01-02 15:04:05")
+		l := engine.TZTime(t)
+		v = l.Format("2006-01-02 15:04:05")
+		fmt.Println("xxxx", t, l, v, engine.TimeZone)
 	case TimeStampz:
 		if engine.dialect.DBType() == MSSQL {
 			v = engine.TZTime(t).Format("2006-01-02T15:04:05.9999999Z07:00")

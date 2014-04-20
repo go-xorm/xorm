@@ -1492,7 +1492,17 @@ func (session *Session) row2Bean(rows *sql.Rows, fields []string, fieldsCount in
 				if fieldType == reflect.TypeOf(c_TIME_DEFAULT) {
 					if rawValueType == reflect.TypeOf(c_TIME_DEFAULT) {
 						hasAssigned = true
-						fieldValue.Set(vv)
+						if true {
+							t := vv.Interface().(time.Time)
+							f := time.Date(t.Year(), t.Month(), t.Day(), t.Hour(),
+								t.Minute(), t.Second(), t.Nanosecond(), session.Engine.TZLocation())
+							fieldValue.Set(reflect.ValueOf(f))
+						} else {
+							fieldValue.Set(vv)
+						}
+					} else {
+						// TODO:
+						fmt.Println("=====unknow time type", rawValueType)
 					}
 				} else if session.Statement.UseCascade {
 					table := session.Engine.autoMapType(*fieldValue)
