@@ -1545,7 +1545,18 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 				if fieldType == core.TimeType {
 					if rawValueType == core.TimeType {
 						hasAssigned = true
+						t := vv.Interface().(time.Time)
+						z, _ := t.Zone()
+						if len(z) == 0 || t.Year() == 0 { // !nashtsai! HACK tmp work around for lib/pq doesn't properly time with location
+							session.Engine.LogDebug("empty zone key[%v] : %v | zone: %v | location: %+v\n", key, t, z, *t.Location())
+							tt := time.Date(t.Year(), t.Month(), t.Day(), t.Hour(),
+								t.Minute(), t.Second(), t.Nanosecond(), time.Local)
+							vv = reflect.ValueOf(tt)
+						}
 						fieldValue.Set(vv)
+						// t = fieldValue.Interface().(time.Time)
+						// z, _ = t.Zone()
+						// session.Engine.LogDebug("fieldValue key[%v]: %v | zone: %v | location: %+v\n", key, t, z, *t.Location())
 					}
 				} else if session.Statement.UseCascade {
 					table := session.Engine.autoMapType(*fieldValue)
@@ -1975,24 +1986,38 @@ func (session *Session) byte2Time(col *core.Column, data []byte) (outTime time.T
 
 	if sdata == "0000-00-00 00:00:00" ||
 		sdata == "0001-01-01 00:00:00" {
-	} else if !strings.ContainsAny(sdata, "- :") {
+	} else if !strings.ContainsAny(sdata, "- :") { // !nashtsai! has only found that mymysql driver is using this for time type column
 		// time stamp
 		sd, err := strconv.ParseInt(sdata, 10, 64)
 		if err == nil {
 			x = time.Unix(0, sd)
+			// !nashtsai! HACK mymysql driver is casuing Local location being change to CHAT and cause wrong time conversion
+			x = x.In(time.UTC)
+			x = time.Date(x.Year(), x.Month(), x.Day(), x.Hour(),
+				x.Minute(), x.Second(), x.Nanosecond(), session.Engine.TZLocation)
+			session.Engine.LogDebug("time(0) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+		} else {
+			session.Engine.LogDebug("time(0) err key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		}
 	} else if len(sdata) > 19 {
+
 		x, err = time.ParseInLocation(time.RFC3339Nano, sdata, session.Engine.TZLocation)
+		session.Engine.LogDebug("time(1) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		if err != nil {
 			x, err = time.ParseInLocation("2006-01-02 15:04:05.999999999", sdata, session.Engine.TZLocation)
+			session.Engine.LogDebug("time(2) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		}
 		if err != nil {
 			x, err = time.ParseInLocation("2006-01-02 15:04:05.9999999 Z07:00", sdata, session.Engine.TZLocation)
+			session.Engine.LogDebug("time(3) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		}
+
 	} else if len(sdata) == 19 {
 		x, err = time.ParseInLocation("2006-01-02 15:04:05", sdata, session.Engine.TZLocation)
+		session.Engine.LogDebug("time(4) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 	} else if len(sdata) == 10 && sdata[4] == '-' && sdata[7] == '-' {
 		x, err = time.ParseInLocation("2006-01-02", sdata, session.Engine.TZLocation)
+		session.Engine.LogDebug("time(5) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 	} else if col.SQLType.Name == core.Time {
 		if strings.Contains(sdata, " ") {
 			ssd := strings.Split(sdata, " ")
@@ -2008,6 +2033,7 @@ func (session *Session) byte2Time(col *core.Column, data []byte) (outTime time.T
 
 		st := fmt.Sprintf("2006-01-02 %v", sdata)
 		x, err = time.ParseInLocation("2006-01-02 15:04:05", st, session.Engine.TZLocation)
+		session.Engine.LogDebug("time(6) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 	} else {
 		outErr = errors.New(fmt.Sprintf("unsupported time format %v", sdata))
 		return
@@ -2083,7 +2109,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 		var err error
 		// for mysql, when use bit, it returned \x01
 		if col.SQLType.Name == core.Bit &&
-			session.Engine.dialect.DBType() == core.MYSQL {
+			session.Engine.dialect.DBType() == core.MYSQL { // !nashtsai! TODO dialect needs to provide conversion interface API
 			if len(data) == 1 {
 				x = int64(data[0])
 			} else {
