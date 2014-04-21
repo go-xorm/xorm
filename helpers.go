@@ -1,12 +1,13 @@
 package xorm
 
 import (
-	"database/sql"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-xorm/core"
 )
 
 func indexNoCase(s, sep string) int {
@@ -99,7 +100,7 @@ func value2Bytes(rawValue *reflect.Value) (data []byte, err error) {
 		}
 	//时间类型
 	case reflect.Struct:
-		if aa == reflect.TypeOf(c_TIME_DEFAULT) {
+		if aa == core.TimeType {
 			str = rawValue.Interface().(time.Time).Format(time.RFC3339Nano)
 			data = []byte(str)
 		} else {
@@ -124,7 +125,7 @@ func value2Bytes(rawValue *reflect.Value) (data []byte, err error) {
 	return
 }
 
-func rows2maps(rows *sql.Rows) (resultsSlice []map[string][]byte, err error) {
+func rows2maps(rows *core.Rows) (resultsSlice []map[string][]byte, err error) {
 	fields, err := rows.Columns()
 	if err != nil {
 		return nil, err

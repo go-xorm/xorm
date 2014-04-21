@@ -1,2 +1,2 @@
 [target]
-path = github.com/lunny/xorm
+path = github.com/go-xorm/xorm

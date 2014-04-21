@@ -1,17 +1,58 @@
 package xorm
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"os"
 	"reflect"
 	"runtime"
 	"sync"
+	"time"
+
+	"github.com/go-xorm/core"
 )
 
 const (
-	Version string = "0.3.1"
+	Version string = "0.4"
 )
+
+// !nashtsai! implicit register drivers and dialects is no good, as init() can be called before sql driver got registered
+// func init() {
+// 	regDrvsNDialects()
+// }
+
+func regDrvsNDialects() bool {
+	if core.RegisteredDriverSize() == 0 {
+		providedDrvsNDialects := map[string]struct {
+			dbType     core.DbType
+			getDriver  func() core.Driver
+			getDialect func() core.Dialect
+		}{
+			"odbc":     {"mssql", func() core.Driver { return &odbcDriver{} }, func() core.Dialect { return &mssql{} }}, // !nashtsai! TODO change this when supporting MS Access
+			"mysql":    {"mysql", func() core.Driver { return &mysqlDriver{} }, func() core.Dialect { return &mysql{} }},
+			"mymysql":  {"mysql", func() core.Driver { return &mymysqlDriver{} }, func() core.Dialect { return &mysql{} }},
+			"postgres": {"postgres", func() core.Driver { return &pqDriver{} }, func() core.Dialect { return &postgres{} }},
+			"sqlite3":  {"sqlite3", func() core.Driver { return &sqlite3Driver{} }, func() core.Dialect { return &sqlite3{} }},
+			"oci8":     {"oracle", func() core.Driver { return &oci8Driver{} }, func() core.Dialect { return &oracle{} }},
+			"goracle":  {"oracle", func() core.Driver { return &goracleDriver{} }, func() core.Dialect { return &oracle{} }},
+		}
+
+		for driverName, v := range providedDrvsNDialects {
+			_, err := sql.Open(driverName, "")
+			if err == nil {
+				// fmt.Printf("driver succeed: %v\n", driverName)
+				core.RegisterDriver(driverName, v.getDriver())
+				core.RegisterDialect(v.dbType, v.getDialect())
+			} else {
+				// fmt.Printf("driver failed: %v | err: %v\n", driverName, err)
+			}
+		}
+		return true
+	} else {
+		return false
+	}
+}
 
 func close(engine *Engine) {
 	engine.Close()
@@ -20,49 +61,53 @@ func close(engine *Engine) {
 // new a db manager according to the parameter. Currently support four
 // drivers
 func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
-	engine := &Engine{
-		DriverName:     driverName,
-		DataSourceName: dataSourceName,
-		Filters:        make([]Filter, 0),
-		TimeZone:       "Local",
-	}
-	engine.SetMapper(SnakeMapper{})
-
-	if driverName == SQLITE {
-		engine.dialect = &sqlite3{}
-	} else if driverName == MYSQL {
-		engine.dialect = &mysql{}
-	} else if driverName == POSTGRES {
-		engine.dialect = &postgres{}
-		engine.Filters = append(engine.Filters, &PgSeqFilter{})
-		engine.Filters = append(engine.Filters, &QuoteFilter{})
-	} else if driverName == MYMYSQL {
-		engine.dialect = &mymysql{}
-	} else if driverName == "odbc" {
-		engine.dialect = &mssql{quoteFilter: &QuoteFilter{}}
-		engine.Filters = append(engine.Filters, &QuoteFilter{})
-	} else if driverName == ORACLE_OCI {
-		engine.dialect = &oracle{}
-		engine.Filters = append(engine.Filters, &QuoteFilter{})
-	} else {
+	regDrvsNDialects()
+	driver := core.QueryDriver(driverName)
+	if driver == nil {
 		return nil, errors.New(fmt.Sprintf("Unsupported driver name: %v", driverName))
 	}
-	err := engine.dialect.Init(driverName, dataSourceName)
+
+	uri, err := driver.Parse(driverName, dataSourceName)
 	if err != nil {
 		return nil, err
 	}
 
-	engine.Tables = make(map[reflect.Type]*Table)
-	engine.mutex = &sync.RWMutex{}
-	engine.TagIdentifier = "xorm"
+	dialect := core.QueryDialect(uri.DbType)
+	if dialect == nil {
+		return nil, errors.New(fmt.Sprintf("Unsupported dialect type: %v", uri.DbType))
+	}
 
-	engine.Filters = append(engine.Filters, &IdFilter{})
-	engine.Logger = os.Stdout
+	db, err := core.Open(driverName, dataSourceName)
+	if err != nil {
+		return nil, err
+	}
 
-	//engine.Pool = NewSimpleConnectPool()
-	//engine.Pool = NewNoneConnectPool()
+	err = dialect.Init(db, uri, driverName, dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+
+	engine := &Engine{
+		db:            db,
+		dialect:       dialect,
+		Tables:        make(map[reflect.Type]*core.Table),
+		mutex:         &sync.RWMutex{},
+		TagIdentifier: "xorm",
+		Logger:        NewSimpleLogger(os.Stdout),
+		TZLocation:    time.Local,
+	}
+
+	engine.SetMapper(core.NewCacheMapper(new(core.SnakeMapper)))
+
+	//engine.Filters = dialect.Filters()
 	//engine.Cacher = NewLRUCacher()
-	err = engine.SetPool(NewSysConnectPool())
+	//err = engine.SetPool(NewSysConnectPool())
+
 	runtime.SetFinalizer(engine, close)
 	return engine, err
+}
+
+// clone an engine
+func (engine *Engine) Clone() (*Engine, error) {
+	return NewEngine(engine.dialect.DriverName(), engine.dialect.DataSourceName())
 }
