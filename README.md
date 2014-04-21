@@ -1,8 +1,8 @@
-[中文](https://github.com/lunny/xorm/blob/master/README_CN.md)
+[中文](https://github.com/go-xorm/xorm/blob/master/README_CN.md)
 
 Xorm is a simple and powerful ORM for Go.
 
-[![Build Status](https://drone.io/github.com/go-xorm/xorm/status.png)](https://drone.io/github.com/go-xorm/xorm/latest)  [![Go Walker](http://gowalker.org/api/v1/badge)](http://gowalker.org/github.com/go-xorm/xorm) [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/lunny/go-xorm/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+[![Build Status](https://drone.io/github.com/go-xorm/xorm/status.png)](https://drone.io/github.com/go-xorm/xorm/latest)  [![Go Walker](http://gowalker.org/api/v1/badge)](http://gowalker.org/github.com/go-xorm/xorm) [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/lunny/xorm/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
 
 # Features
 
@@ -41,6 +41,17 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 # Changelog
 
+* **v0.4.0 RC1** 
+	Changes:
+	* moved xorm cmd to [github.com/go-xorm/cmd](github.com/go-xorm/cmd)
+	* refactored general DB operation a core lib at [github.com/go-xorm/core](https://github.com/go-xorm/core)
+	* moved tests to github.com/go-xorm/tests [github.com/go-xorm/tests](github.com/go-xorm/tests)
+
+	Improvements:
+	* Prepared statement cache
+	* Add Incr API
+	* Specify Timezone Location
+	
 * **v0.3.2** 
 	Improvements:
 	* Add AllCols & MustCols function
