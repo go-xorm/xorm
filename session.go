@@ -1553,7 +1553,11 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 								t.Minute(), t.Second(), t.Nanosecond(), time.Local)
 							vv = reflect.ValueOf(tt)
 						}
+						// !nashtsai! convert to engine location
+						t = vv.Interface().(time.Time).In(session.Engine.TZLocation)
+						vv = reflect.ValueOf(t)
 						fieldValue.Set(vv)
+
 						// t = fieldValue.Interface().(time.Time)
 						// z, _ = t.Zone()
 						// session.Engine.LogDebug("fieldValue key[%v]: %v | zone: %v | location: %+v\n", key, t, z, *t.Location())
