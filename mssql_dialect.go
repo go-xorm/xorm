@@ -203,10 +203,7 @@ func (db *mssql) GetIndexes(tableName string) (map[string]*core.Index, error) {
 	s := `SELECT
 IXS.NAME                    AS  [INDEX_NAME],
 C.NAME                      AS  [COLUMN_NAME],
-IXS.is_unique AS [IS_UNIQUE],
-CASE    IXCS.IS_INCLUDED_COLUMN
-WHEN    0   THEN    'NONE'
-ELSE    'INCLUDED'  END     AS  [IS_INCLUDED_COLUMN]
+IXS.is_unique AS [IS_UNIQUE]
 FROM SYS.INDEXES IXS
 INNER JOIN SYS.INDEX_COLUMNS   IXCS
 ON IXS.OBJECT_ID=IXCS.OBJECT_ID  AND IXS.INDEX_ID = IXCS.INDEX_ID
