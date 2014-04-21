@@ -259,7 +259,7 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 	return indexes, nil
 }
 
-func (db *mssql) CreateTablSql(table *core.Table, tableName, storeEngine, charset string) string {
+func (db *mssql) CreateTableSql(table *core.Table, tableName, storeEngine, charset string) string {
 	var sql string
 	if tableName == "" {
 		tableName = table.Name
