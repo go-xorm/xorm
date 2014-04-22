@@ -34,7 +34,6 @@ type Engine struct {
 	ShowErr   bool
 	ShowDebug bool
 	ShowWarn  bool
-	ShowInfo  bool
 	//Pool      IConnectPool
 	//Filters []core.Filter
 	Logger     ILogger // io.Writer
@@ -191,9 +190,7 @@ func (engine *Engine) LogError(contents ...interface{}) {
 
 // logging error
 func (engine *Engine) LogInfo(contents ...interface{}) {
-	if engine.ShowInfo {
-		engine.Logger.Info(fmt.Sprintln(contents...))
-	}
+	engine.Logger.Info(fmt.Sprintln(contents...))
 }
 
 // logging debug
