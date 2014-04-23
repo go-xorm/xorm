@@ -102,11 +102,11 @@ func (db *postgres) TableCheckSql(tableName string) (string, []interface{}) {
 	return `SELECT tablename FROM pg_tables WHERE tablename = ?`, args
 }
 
-func (db *postgres) ColumnCheckSql(tableName, colName string) (string, []interface{}) {
+/*func (db *postgres) ColumnCheckSql(tableName, colName string) (string, []interface{}) {
 	args := []interface{}{tableName, colName}
 	return "SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = ?" +
 		" AND column_name = ?", args
-}
+}*/
 
 func (db *postgres) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{tableName}

@@ -1253,7 +1253,7 @@ func (session *Session) Ping() error {
 	return session.Db.Ping()
 }
 
-func (session *Session) isColumnExist(tableName, colName string) (bool, error) {
+func (session *Session) isColumnExist(tableName string, col *core.Column) (bool, error) {
 	err := session.newDb()
 	if err != nil {
 		return false, err
@@ -1262,9 +1262,10 @@ func (session *Session) isColumnExist(tableName, colName string) (bool, error) {
 	if session.IsAutoClose {
 		defer session.Close()
 	}
-	sqlStr, args := session.Engine.dialect.ColumnCheckSql(tableName, colName)
-	results, err := session.query(sqlStr, args...)
-	return len(results) > 0, err
+	return session.Engine.dialect.IsColumnExist(tableName, col)
+	//sqlStr, args := session.Engine.dialect.ColumnCheckSql(tableName, colName)
+	//results, err := session.query(sqlStr, args...)
+	//return len(results) > 0, err
 }
 
 func (session *Session) isTableExist(tableName string) (bool, error) {
@@ -3314,7 +3315,7 @@ func genCols(table *core.Table, session *Session, bean interface{}, useCol bool,
 		}
 
 		if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
-			args = append(args, time.Now())
+			args = append(args, session.Engine.NowTime(col.SQLType.Name))
 		} else if col.IsVersion && session.Statement.checkVersion {
 			args = append(args, 1)
 		} else {

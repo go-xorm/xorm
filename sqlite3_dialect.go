@@ -78,10 +78,25 @@ func (db *sqlite3) TableCheckSql(tableName string) (string, []interface{}) {
 	return "SELECT name FROM sqlite_master WHERE type='table' and name = ?", args
 }
 
-func (db *sqlite3) ColumnCheckSql(tableName, colName string) (string, []interface{}) {
+/*func (db *sqlite3) ColumnCheckSql(tableName, colName string) (string, []interface{}) {
 	args := []interface{}{tableName}
 	sql := "SELECT name FROM sqlite_master WHERE type='table' and name = ? and ((sql like '%`" + colName + "`%') or (sql like '%[" + colName + "]%'))"
 	return sql, args
+}*/
+
+func (db *sqlite3) IsColumnExist(tableName string, col *core.Column) (bool, error) {
+	args := []interface{}{tableName}
+	query := "SELECT name FROM sqlite_master WHERE type='table' and name = ? and ((sql like '%`" + col.Name + "`%') or (sql like '%[" + col.Name + "]%'))"
+	rows, err := db.DB().Query(query, args...)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		return true, nil
+	}
+	return false, ErrNotExist
 }
 
 func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
