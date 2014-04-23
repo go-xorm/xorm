@@ -3314,7 +3314,7 @@ func genCols(table *core.Table, session *Session, bean interface{}, useCol bool,
 		}
 
 		if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
-			args = append(args, time.Now())
+			args = append(args, session.Engine.NowTime(col.SQLType.Name))
 		} else if col.IsVersion && session.Statement.checkVersion {
 			args = append(args, 1)
 		} else {
