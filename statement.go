@@ -762,11 +762,12 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 	statement.ConditionStr = strings.Join(colNames, " AND ")
 	statement.BeanArgs = args
 	// count(index fieldname) > count(0) > count(*)
-	var id string = "0"
+	// for compitable on kinds of database, just use *
+	/*var id string = "0"
 	if len(table.PrimaryKeys) == 1 {
-		id = statement.Engine.Quote(table.PrimaryKeys[0])
-	}
-	return statement.genSelectSql(fmt.Sprintf("COUNT(%v) AS %v", id, statement.Engine.Quote("total"))), append(statement.Params, statement.BeanArgs...)
+		id = statement.Engine.Quote(statement.TableName()) + "." + statement.Engine.Quote(table.PrimaryKeys[0])
+	}*/
+	return statement.genSelectSql(fmt.Sprintf("COUNT(*) AS %v", statement.Engine.Quote("total"))), append(statement.Params, statement.BeanArgs...)
 }
 
 func (statement *Statement) genSelectSql(columnStr string) (a string) {
