@@ -419,7 +419,7 @@ engine.Cols("age", "name").Update(&user)
 * Omit(...string)
 和cols相反，此函数指定排除某些指定的字段。注意：此方法和Cols方法不可同时使用
 ```Go
-engine.Cols("age").Update(&user)
+engine.Omit("age").Update(&user)
 // UPDATE user SET name = ? AND department = ?
 ```
 

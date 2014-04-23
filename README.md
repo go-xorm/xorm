@@ -123,12 +123,9 @@ Or
 
 Please visit [Xorm on Google Groups](https://groups.google.com/forum/#!forum/xorm)
 
-# Contributors
+# Contributing
 
 If you want to pull request, please see [CONTRIBUTING](https://github.com/go-xorm/xorm/blob/master/CONTRIBUTING.md)
-
-* [Lunny](https://github.com/lunny)
-* [Nashtsai](https://github.com/nashtsai)
 
 # LICENSE
 
