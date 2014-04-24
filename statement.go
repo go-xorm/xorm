@@ -733,7 +733,7 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 
 func (s *Statement) genAddColumnStr(col *core.Column) (string, []interface{}) {
 	quote := s.Engine.Quote
-	sql := fmt.Sprintf("ALTER TABLE %v ADD COLUMN %v;", quote(s.TableName()),
+	sql := fmt.Sprintf("ALTER TABLE %v ADD %v;", quote(s.TableName()),
 		col.String(s.Engine.dialect))
 	return sql, []interface{}{}
 }
