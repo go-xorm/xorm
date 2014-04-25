@@ -58,7 +58,7 @@ engine, err = xorm.NewEngine("sqlite3", "./test.db")
 defer engine.Close()
 ```
 
-Generally, you can only create one engine. Engine supports run on go rutines.
+Generally, you can only create one engine. Engine supports run on go routines.
 
 xorm supports four drivers now:
 
