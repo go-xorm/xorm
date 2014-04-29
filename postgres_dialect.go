@@ -108,6 +108,24 @@ func (db *postgres) TableCheckSql(tableName string) (string, []interface{}) {
 		" AND column_name = ?", args
 }*/
 
+func (db *postgres) IsColumnExist(tableName string, col *core.Column) (bool, error) {
+	args := []interface{}{tableName, col.Name}
+
+	//query := "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = ? AND `TABLE_NAME` = ? AND `COLUMN_NAME` = ?"
+	query := "SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = $1" +
+		" AND column_name = $2"
+	rows, err := db.DB().Query(query, args...)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		return true, nil
+	}
+	return false, core.ErrNotExist
+}
+
 func (db *postgres) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{tableName}
 	s := "SELECT column_name, column_default, is_nullable, data_type, character_maximum_length" +
