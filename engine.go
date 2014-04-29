@@ -1120,7 +1120,11 @@ func (engine *Engine) FormatTime(sqlTypeName string, t time.Time) (v interface{}
 	case core.Date:
 		v = engine.TZTime(t).Format("2006-01-02")
 	case core.DateTime, core.TimeStamp:
-		v = engine.TZTime(t).Format("2006-01-02 15:04:05")
+		if engine.dialect.DBType() == "ql" {
+			v = engine.TZTime(t)
+		} else {
+			v = engine.TZTime(t).Format("2006-01-02 15:04:05")
+		}
 	case core.TimeStampz:
 		if engine.dialect.DBType() == core.MSSQL {
 			v = engine.TZTime(t).Format("2006-01-02T15:04:05.9999999Z07:00")

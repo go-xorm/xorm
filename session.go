@@ -1083,7 +1083,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	if len(condiBean) > 0 {
 		colNames, args := buildConditions(session.Engine, table, condiBean[0], true, true,
 			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-			session.Statement.mustColumnMap)
+			session.Statement.mustColumnMap, false)
 		session.Statement.ConditionStr = strings.Join(colNames, " AND ")
 		session.Statement.BeanArgs = args
 	}
@@ -2950,7 +2950,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		if session.Statement.ColumnStr == "" {
 			colNames, args = buildConditions(session.Engine, table, bean, false, false,
 				false, false, session.Statement.allUseBool, session.Statement.useAllCols,
-				session.Statement.mustColumnMap)
+				session.Statement.mustColumnMap, true)
 		} else {
 			colNames, args, err = genCols(table, session, bean, true, true)
 			if err != nil {
@@ -2991,7 +2991,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	if len(condiBean) > 0 {
 		condiColNames, condiArgs = buildConditions(session.Engine, session.Statement.RefTable, condiBean[0], true, true,
 			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-			session.Statement.mustColumnMap)
+			session.Statement.mustColumnMap, false)
 	}
 
 	var condition = ""
@@ -3004,11 +3004,12 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	if condition == "" {
 		if len(condiColNames) > 0 {
-			condition = fmt.Sprintf("%v", strings.Join(condiColNames, " AND "))
+			condition = fmt.Sprintf("%v", strings.Join(condiColNames, " "+session.Engine.Dialect().AndStr()+" "))
 		}
 	} else {
 		if len(condiColNames) > 0 {
-			condition = fmt.Sprintf("(%v) AND (%v)", condition, strings.Join(condiColNames, " AND "))
+			condition = fmt.Sprintf("(%v) %v (%v)", condition,
+				session.Engine.Dialect().AndStr(), strings.Join(condiColNames, " "+session.Engine.Dialect().AndStr()+" "))
 		}
 	}
 
@@ -3018,7 +3019,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	var verValue *reflect.Value
 	if table.Version != "" && session.Statement.checkVersion {
 		if condition != "" {
-			condition = fmt.Sprintf("WHERE (%v) AND %v = ?", condition,
+			condition = fmt.Sprintf("WHERE (%v) %v %v = ?", condition, session.Engine.Dialect().AndStr(),
 				session.Engine.Quote(table.Version))
 		} else {
 			condition = fmt.Sprintf("WHERE %v = ?", session.Engine.Quote(table.Version))
@@ -3026,7 +3027,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		inSql, inArgs = session.Statement.genInSql()
 		if len(inSql) > 0 {
 			if condition != "" {
-				condition += " AND " + inSql
+				condition += " " + session.Engine.Dialect().AndStr() + " " + inSql
 			} else {
 				condition = "WHERE " + inSql
 			}
@@ -3052,7 +3053,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		inSql, inArgs = session.Statement.genInSql()
 		if len(inSql) > 0 {
 			if condition != "" {
-				condition += " AND " + inSql
+				condition += " " + session.Engine.Dialect().AndStr() + " " + inSql
 			} else {
 				condition = "WHERE " + inSql
 			}
@@ -3194,23 +3195,24 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	session.Statement.RefTable = table
 	colNames, args := buildConditions(session.Engine, table, bean, true, true,
 		false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-		session.Statement.mustColumnMap)
+		session.Statement.mustColumnMap, false)
 
 	var condition = ""
+	var andStr = session.Engine.dialect.AndStr()
 
 	session.Statement.processIdParam()
 	if session.Statement.WhereStr != "" {
 		condition = session.Statement.WhereStr
 		if len(colNames) > 0 {
-			condition += " AND " + strings.Join(colNames, " AND ")
+			condition += " " + andStr + " " + strings.Join(colNames, " "+andStr+" ")
 		}
 	} else {
-		condition = strings.Join(colNames, " AND ")
+		condition = strings.Join(colNames, " "+andStr+" ")
 	}
 	inSql, inArgs := session.Statement.genInSql()
 	if len(inSql) > 0 {
 		if len(condition) > 0 {
-			condition += " AND "
+			condition += " " + andStr + " "
 		}
 		condition += inSql
 		args = append(args, inArgs...)

@@ -96,6 +96,9 @@ func (statement *Statement) Sql(querystring string, args ...interface{}) *Statem
 
 // add Where statment
 func (statement *Statement) Where(querystring string, args ...interface{}) *Statement {
+	if !strings.Contains(querystring, statement.Engine.dialect.EqStr()) {
+		querystring = strings.Replace(querystring, "=", statement.Engine.dialect.EqStr(), -1)
+	}
 	statement.WhereStr = querystring
 	statement.Params = args
 	return statement
@@ -257,7 +260,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 func buildConditions(engine *Engine, table *core.Table, bean interface{},
 	includeVersion bool, includeUpdated bool, includeNil bool,
 	includeAutoIncr bool, allUseBool bool, useAllCols bool,
-	mustColumnMap map[string]bool) ([]string, []interface{}) {
+	mustColumnMap map[string]bool, update bool) ([]string, []interface{}) {
 
 	colNames := make([]string, 0)
 	var args = make([]interface{}, 0)
@@ -298,7 +301,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 			if fieldValue.IsNil() {
 				if includeNil {
 					args = append(args, nil)
-					colNames = append(colNames, fmt.Sprintf("%v=?", engine.Quote(col.Name)))
+					colNames = append(colNames, fmt.Sprintf("%v %s ?", engine.Quote(col.Name), engine.dialect.EqStr()))
 				}
 				continue
 			} else if !fieldValue.IsValid() {
@@ -353,7 +356,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 					continue
 				}
 				val = engine.FormatTime(col.SQLType.Name, t)
-				fmt.Println("-------", t, val, col.Name)
+				//fmt.Println("-------", t, val, col.Name)
 			} else {
 				engine.autoMapType(fieldValue)
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
@@ -412,7 +415,21 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 		}
 
 		args = append(args, val)
-		colNames = append(colNames, fmt.Sprintf("%v=?", engine.Quote(col.Name)))
+		var condi string
+		if update {
+			if col.IsPrimaryKey && engine.dialect.DBType() == "ql" {
+				continue
+			} else {
+				condi = fmt.Sprintf("%v = ?", engine.Quote(col.Name))
+			}
+		} else {
+			if col.IsPrimaryKey && engine.dialect.DBType() == "ql" {
+				condi = "id() == ?"
+			} else {
+				condi = fmt.Sprintf("%v %s ?", engine.Quote(col.Name), engine.dialect.EqStr())
+			}
+		}
+		colNames = append(colNames, condi)
 	}
 
 	return colNames, args
@@ -646,7 +663,22 @@ func (statement *Statement) genColumnStr() string {
 		if col.MapType == core.ONLYTODB {
 			continue
 		}
-		colNames = append(colNames, statement.Engine.Quote(statement.TableName())+"."+statement.Engine.Quote(col.Name))
+
+		if statement.JoinStr != "" {
+			name := statement.Engine.Quote(statement.TableName()) + "." + statement.Engine.Quote(col.Name)
+			if col.IsPrimaryKey && statement.Engine.Dialect().DBType() == "ql" {
+				colNames = append(colNames, "id() as "+name)
+			} else {
+				colNames = append(colNames, name)
+			}
+		} else {
+			name := statement.Engine.Quote(col.Name)
+			if col.IsPrimaryKey && statement.Engine.Dialect().DBType() == "ql" {
+				colNames = append(colNames, "id() as "+name)
+			} else {
+				colNames = append(colNames, name)
+			}
+		}
 	}
 	return strings.Join(colNames, ", ")
 }
@@ -718,7 +750,7 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true, true,
 		false, true, statement.allUseBool, statement.useAllCols,
-		statement.mustColumnMap)
+		statement.mustColumnMap, false)
 
 	statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.dialect.AndStr()+" ")
 	statement.BeanArgs = args
@@ -757,16 +789,16 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 	statement.RefTable = table
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true, true, false,
-		true, statement.allUseBool, statement.useAllCols, statement.mustColumnMap)
+		true, statement.allUseBool, statement.useAllCols, statement.mustColumnMap, false)
 
-	statement.ConditionStr = strings.Join(colNames, " AND ")
+	statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.Dialect().AndStr()+" ")
 	statement.BeanArgs = args
 	// count(index fieldname) > count(0) > count(*)
 	var id string = "0"
-	if len(table.PrimaryKeys) == 1 {
-		id = statement.Engine.Quote(table.PrimaryKeys[0])
+	if statement.Engine.Dialect().DBType() == "ql" {
+		id = ""
 	}
-	return statement.genSelectSql(fmt.Sprintf("COUNT(%v) AS %v", id, statement.Engine.Quote("total"))), append(statement.Params, statement.BeanArgs...)
+	return statement.genSelectSql(fmt.Sprintf("count(%v) AS %v", id, statement.Engine.Quote("total"))), append(statement.Params, statement.BeanArgs...)
 }
 
 func (statement *Statement) genSelectSql(columnStr string) (a string) {
@@ -789,7 +821,8 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 	if statement.WhereStr != "" {
 		a = fmt.Sprintf("%v WHERE %v", a, statement.WhereStr)
 		if statement.ConditionStr != "" {
-			a = fmt.Sprintf("%v AND %v", a, statement.ConditionStr)
+			a = fmt.Sprintf("%v %v %v", a, statement.Engine.Dialect().AndStr(),
+				statement.ConditionStr)
 		}
 	} else if statement.ConditionStr != "" {
 		a = fmt.Sprintf("%v WHERE %v", a, statement.ConditionStr)
@@ -822,11 +855,19 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 
 func (statement *Statement) processIdParam() {
 	if statement.IdParam != nil {
-		for i, col := range statement.RefTable.PKColumns() {
-			if i < len(*(statement.IdParam)) {
-				statement.And(fmt.Sprintf("%v=?", statement.Engine.Quote(col.Name)), (*(statement.IdParam))[i])
-			} else {
-				statement.And(fmt.Sprintf("%v=?", statement.Engine.Quote(col.Name)), "")
+		if statement.Engine.dialect.DBType() != "ql" {
+			for i, col := range statement.RefTable.PKColumns() {
+				if i < len(*(statement.IdParam)) {
+					statement.And(fmt.Sprintf("%v %s ?", statement.Engine.Quote(col.Name),
+						statement.Engine.dialect.EqStr()), (*(statement.IdParam))[i])
+				} else {
+					statement.And(fmt.Sprintf("%v %s ?", statement.Engine.Quote(col.Name),
+						statement.Engine.dialect.EqStr()), "")
+				}
+			}
+		} else {
+			if len(*(statement.IdParam)) <= 1 {
+				statement.And("id() == ?", (*(statement.IdParam))[0])
 			}
 		}
 	}
