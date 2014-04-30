@@ -353,7 +353,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 					continue
 				}
 				val = engine.FormatTime(col.SQLType.Name, t)
-				fmt.Println("-------", t, val, col.Name)
+				//fmt.Println("-------", t, val, col.Name)
 			} else {
 				engine.autoMapType(fieldValue)
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
