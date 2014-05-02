@@ -62,7 +62,7 @@ engine, err = xorm.NewEngine("sqlite3", "./test.db")
 defer engine.Close()
 ```
 
-一般如果只针对一个数据库进行操作，只需要创建一个Engine即可。Engine支持在多GoRutine下使用。
+你可以创建一个或多个engine, 不过一般如果操作一个数据库，只需要创建一个Engine即可。Engine支持在多GoRutine下使用。
 
 xorm当前支持五种驱动四个数据库如下：
 

@@ -2947,7 +2947,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		session.Statement.RefTable = table
 
 		if session.Statement.ColumnStr == "" {
-			colNames, args = buildConditions(session.Engine, table, bean, false, false,
+			colNames, args = buildUpdates(session.Engine, table, bean, false, false,
 				false, false, session.Statement.allUseBool, session.Statement.useAllCols,
 				session.Statement.mustColumnMap)
 		} else {
