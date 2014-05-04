@@ -451,8 +451,11 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 		}
 
 		fieldValue := *fieldValuePtr
-		fieldType := reflect.TypeOf(fieldValue.Interface())
+		if fieldValue.Interface() == nil {
+			continue
+		}
 
+		fieldType := reflect.TypeOf(fieldValue.Interface())
 		requiredField := useAllCols
 		if b, ok := mustColumnMap[strings.ToLower(col.Name)]; ok {
 			if b {

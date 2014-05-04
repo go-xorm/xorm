@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"reflect"
 	"strconv"
@@ -263,6 +264,77 @@ func (engine *Engine) DBMetas() ([]*core.Table, error) {
 		}
 	}
 	return tables, nil
+}
+
+func (engine *Engine) DumpAllToFile(fp string) error {
+	f, err := os.Create(fp)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return engine.DumpAll(f)
+}
+
+func (engine *Engine) DumpAll(w io.Writer) error {
+	tables, err := engine.DBMetas()
+	if err != nil {
+		return err
+	}
+
+	for _, table := range tables {
+		_, err = io.WriteString(w, engine.dialect.CreateTableSql(table, "", "", "")+"\n\n")
+		if err != nil {
+			return err
+		}
+		for _, index := range table.Indexes {
+			_, err = io.WriteString(w, engine.dialect.CreateIndexSql(table.Name, index)+"\n\n")
+			if err != nil {
+				return err
+			}
+		}
+
+		rows, err := engine.DB().Query("SELECT * FROM " + engine.Quote(table.Name))
+		if err != nil {
+			return err
+		}
+		cols, err := rows.Columns()
+		if err != nil {
+			return err
+		}
+		if len(cols) == 0 {
+			continue
+		}
+		for rows.Next() {
+			dest := make([]interface{}, len(cols))
+			err = rows.ScanSlice(&dest)
+			if err != nil {
+				return err
+			}
+
+			_, err = io.WriteString(w, "INSERT INTO "+engine.Quote(table.Name)+" ("+engine.Quote(strings.Join(cols, engine.Quote(", ")))+") VALUES (")
+			if err != nil {
+				return err
+			}
+
+			var temp string
+			for _, d := range dest {
+				if d == nil {
+					temp += ", NULL"
+				} else if reflect.TypeOf(d).Kind() == reflect.String {
+					temp += ", '" + strings.Replace(d.(string), "'", "''", -1) + "'"
+				} else if reflect.TypeOf(d).Kind() == reflect.Slice {
+					temp += fmt.Sprintf(", %s", engine.dialect.FormatBytes(d.([]byte)))
+				} else {
+					temp += fmt.Sprintf(", %v", d)
+				}
+			}
+			_, err = io.WriteString(w, temp[2:]+");\n\n")
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // use cascade or not
