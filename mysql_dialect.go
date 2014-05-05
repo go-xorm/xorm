@@ -151,6 +151,9 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 
 		if colDefault != nil {
 			col.Default = *colDefault
+			if col.Default == "" {
+				col.DefaultIsEmpty = true
+			}
 		}
 
 		cts := strings.Split(colType, "(")
@@ -203,6 +206,10 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 		if col.SQLType.IsText() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
+			} else {
+				if col.DefaultIsEmpty {
+					col.Default = "''"
+				}
 			}
 		}
 		cols[col.Name] = col
