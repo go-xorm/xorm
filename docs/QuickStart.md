@@ -58,7 +58,7 @@ engine, err = xorm.NewEngine("sqlite3", "./test.db")
 defer engine.Close()
 ```
 
-Generally, you can only create one engine. Engine supports run on go rutines.
+You can create many engines for different databases.Generally, you just need create only one engine. Engine supports run on go routines.
 
 xorm supports four drivers now:
 
@@ -385,7 +385,7 @@ engine.Cols("age", "name").Update(&user)
 * Omit(...string)
 和cols相反，此函数指定排除某些指定的字段。注意：此方法和Cols方法不可同时使用
 ```Go
-engine.Cols("age").Update(&user)
+engine.Omit("age").Update(&user)
 // UPDATE user SET name = ? AND department = ?
 ```
 
