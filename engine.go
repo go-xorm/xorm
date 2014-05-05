@@ -666,20 +666,30 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 								continue
 							}
 							col.SQLType = core.SQLType{fs[0], 0, 0}
-							fs2 := strings.Split(fs[1][0:len(fs[1])-1], ",")
-							if len(fs2) == 2 {
-								col.Length, err = strconv.Atoi(fs2[0])
-								if err != nil {
-									engine.LogError(err)
+							if fs[0] == core.Enum && fs[1][0] == '\'' { //enum
+								options := strings.Split(fs[1][0:len(fs[1])-1], ",")
+								col.EnumOptions = make(map[string]int)
+								for k, v := range options {
+									v = strings.TrimSpace(v)
+									v = strings.Trim(v, "'")
+									col.EnumOptions[v] = k
 								}
-								col.Length2, err = strconv.Atoi(fs2[1])
-								if err != nil {
-									engine.LogError(err)
-								}
-							} else if len(fs2) == 1 {
-								col.Length, err = strconv.Atoi(fs2[0])
-								if err != nil {
-									engine.LogError(err)
+							} else {
+								fs2 := strings.Split(fs[1][0:len(fs[1])-1], ",")
+								if len(fs2) == 2 {
+									col.Length, err = strconv.Atoi(fs2[0])
+									if err != nil {
+										engine.LogError(err)
+									}
+									col.Length2, err = strconv.Atoi(fs2[1])
+									if err != nil {
+										engine.LogError(err)
+									}
+								} else if len(fs2) == 1 {
+									col.Length, err = strconv.Atoi(fs2[0])
+									if err != nil {
+										engine.LogError(err)
+									}
 								}
 							}
 						} else {
