@@ -94,7 +94,7 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 ## 文档
 
-* [快速开始](https://github.com/go-xorm/xorm/blob/master/docs/QuickStart.md)
+* [快速开始](https://github.com/go-xorm/xorm/blob/master/docs/QuickStartCN.md)
 
 * [GoWalker代码文档](http://gowalker.org/github.com/go-xorm/xorm)
 
