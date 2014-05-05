@@ -335,44 +335,43 @@ affected, err := engine.Insert(user, &questions)
 Notice: If you want to use transaction on inserting, you should use session.Begin() before calling Insert.
 
 <a name="60" id="60"></a>
-## 5.Query and count
-
-所有的查询条件不区分调用顺序，但必须在调用Get，Find，Count这三个函数之前调用。同时需要注意的一点是，在调用的参数中，所有的字符字段名均为映射后的数据库的字段名，而不是field的名字。
+## 5. Chainable APIs
 
 <a name="61" id="61"></a>
-### 5.1.查询条件方法
+### 5.1. Chainable APIs for Queries, Execusions and Aggregations
 
+Queries and Aggregations is basically formed by using `Get`, `Find`, `Count` methods, with conjunction of following chainable APIs to form conditions, grouping and ordering:
 查询和统计主要使用`Get`, `Find`, `Count`三个方法。在进行查询时可以使用多个方法来形成查询条件，条件函数如下：
 
-* Id(int64)
-传入一个PK字段的值，作为查询条件
+* Id([]interface{})
+Primary Key lookup
 
 * Where(string, …interface{})
-和Where语句中的条件基本相同，作为条件
+As SQL conditional WHERE clause
 
 * And(string, …interface{})
-和Where函数中的条件基本相同，作为条件
+Conditional AND 
 
 * Or(string, …interface{})
-和Where函数中的条件基本相同，作为条件
+Conditional OR
 
 * Sql(string, …interface{})
 执行指定的Sql语句，并把结果映射到结构体
 
 * Asc(…string)
-指定字段名正序排序
+Ascending ordering on 1 or more fields
 
 * Desc(…string)
-指定字段名逆序排序
+Descending ordering on 1 or more fields
 
 * OrderBy(string)
-按照指定的顺序进行排序
+Custom ordering
 
 * In(string, …interface{})
-某字段在一些值中
+Conditional IN
 
 * Cols(…string)
-只查询或更新某些指定的字段，默认是查询所有映射的字段或者根据Update的第一个参数来判断更新的字段。例如：
+Explicity specify query or update columns. e.g.,:
 ```Go
 engine.Cols("age", "name").Find(&users)
 // SELECT age, name FROM user
@@ -380,10 +379,8 @@ engine.Cols("age", "name").Update(&user)
 // UPDATE user SET age=? AND name=?
 ```
 
-其中的参数"age", "name"也可以写成"age, name"，两种写法均可
-
 * Omit(...string)
-和cols相反，此函数指定排除某些指定的字段。注意：此方法和Cols方法不可同时使用
+Inverse function to Cols, to exclude specify query or update columns. Warning: Don't use with Cols()
 ```Go
 engine.Omit("age").Update(&user)
 // UPDATE user SET name = ? AND department = ?
