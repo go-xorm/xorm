@@ -297,6 +297,7 @@ func (engine *Engine) DumpAll(w io.Writer) error {
 		if err != nil {
 			return err
 		}
+
 		cols, err := rows.Columns()
 		if err != nil {
 			return err
@@ -317,15 +318,17 @@ func (engine *Engine) DumpAll(w io.Writer) error {
 			}
 
 			var temp string
-			for _, d := range dest {
+			for i, d := range dest {
+				col := table.GetColumn(cols[i])
 				if d == nil {
 					temp += ", NULL"
-				} else if reflect.TypeOf(d).Kind() == reflect.String {
-					temp += ", '" + strings.Replace(d.(string), "'", "''", -1) + "'"
-				} else if reflect.TypeOf(d).Kind() == reflect.Slice {
+				} else if col.SQLType.IsText() || col.SQLType.IsTime() {
+					var v = fmt.Sprintf("%s", d)
+					temp += ", '" + strings.Replace(v, "'", "''", -1) + "'"
+				} else if col.SQLType.IsBlob() /*reflect.TypeOf(d).Kind() == reflect.Slice*/ {
 					temp += fmt.Sprintf(", %s", engine.dialect.FormatBytes(d.([]byte)))
 				} else {
-					temp += fmt.Sprintf(", %v", d)
+					temp += fmt.Sprintf(", %s", d)
 				}
 			}
 			_, err = io.WriteString(w, temp[2:]+");\n\n")
