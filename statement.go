@@ -297,6 +297,30 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			}
 		}
 
+		var val interface{}
+
+		if fieldValue.CanAddr() {
+			if structConvert, ok := fieldValue.Addr().Interface().(core.Conversion); ok {
+				data, err := structConvert.ToDB()
+				if err != nil {
+					engine.LogError(err)
+				} else {
+					val = data
+				}
+				continue
+			}
+		}
+
+		if structConvert, ok := fieldValue.Interface().(core.Conversion); ok {
+			data, err := structConvert.ToDB()
+			if err != nil {
+				engine.LogError(err)
+			} else {
+				val = data
+			}
+			continue
+		}
+
 		if fieldType.Kind() == reflect.Ptr {
 			if fieldValue.IsNil() {
 				if includeNil {
@@ -314,7 +338,6 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			}
 		}
 
-		var val interface{}
 		switch fieldType.Kind() {
 		case reflect.Bool:
 			if allUseBool || requiredField {
