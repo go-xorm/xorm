@@ -21,11 +21,11 @@ We appreciate any bug reports, but especially ones with self-contained
 further) test cases. It's especially helpful if you can submit a pull
 request with just the failing test case (you'll probably want to
 pattern it after the tests in
-[base_test.go](https://github.com/go-xorm/xorm/blob/master/base_test.go) AND
-[benchmark_base_test.go](https://github.com/go-xorm/xorm/blob/master/benchmark_base_test.go).
+[base.go](https://github.com/go-xorm/tests/blob/master/base.go) AND
+[benchmark.go](https://github.com/go-xorm/tests/blob/master/benchmark.go).
 
 If you implements a new database interface, you maybe need to add a <databasename>_test.go file.
-For example, [mysql_test.go](https://github.com/go-xorm/xorm/blob/master/mysql_test.go)
+For example, [mysql_test.go](https://github.com/go-xorm/tests/blob/master/mysql/mysql_test.go)
 
 ### New functionality
 
