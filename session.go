@@ -718,7 +718,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 		if err != nil {
 			return err
 		}
-		// 查询数目太大，采用缓存将不是一个很好的方式。
+		// æŸ¥è¯¢æ•°ç›®å¤ªå¤§ï¼Œé‡‡ç”¨ç¼“å­˜å°†ä¸æ˜¯ä¸€ä¸ªå¾ˆå¥½çš„æ–¹å¼ã€
 		if len(resultsSlice) > 500 {
 			session.Engine.LogDebug("[xorm:cacheFind] ids length %v > 500, no cache", len(resultsSlice))
 			return ErrCacheFailed
@@ -2484,15 +2484,15 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		return fieldValue.String(), nil
 	case reflect.Struct:
 		if fieldType == core.TimeType {
-			t := fieldValue.Interface().(time.Time)
-			if session.Engine.dialect.DBType() == core.MSSQL {
-				if t.IsZero() {
-					return nil, nil
-				}
-			}
 			switch fieldValue.Interface().(type) {
 			case time.Time:
-				tf := session.Engine.FormatTime(col.SQLType.Name, fieldValue.Interface().(time.Time))
+				t := fieldValue.Interface().(time.Time)
+				if session.Engine.dialect.DBType() == core.MSSQL {
+					if t.IsZero() {
+						return nil, nil
+					}
+				}
+				tf := session.Engine.FormatTime(col.SQLType.Name, t)
 				return tf, nil
 			default:
 				return fieldValue.Interface(), nil
