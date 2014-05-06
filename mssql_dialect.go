@@ -221,7 +221,7 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 		var indexType int
 		var indexName, colName, isUnique string
 
-		err = rows.Scan(&indexName, &colName, &isUnique, nil)
+		err = rows.Scan(&indexName, &colName, &isUnique)
 		if err != nil {
 			return nil, err
 		}
