@@ -784,13 +784,19 @@ func (engine *Engine) IsTableEmpty(bean interface{}) (bool, error) {
 // If a table is exist
 func (engine *Engine) IsTableExist(bean interface{}) (bool, error) {
 	v := rValue(bean)
-	if v.Type().Kind() != reflect.Struct {
+	var tableName string
+	if v.Type().Kind() == reflect.String {
+		tableName = bean.(string)
+	} else if v.Type().Kind() == reflect.Struct {
+		table := engine.autoMapType(v)
+		tableName = table.Name
+	} else {
 		return false, errors.New("bean should be a struct or struct's point")
 	}
-	table := engine.autoMapType(v)
+
 	session := engine.NewSession()
 	defer session.Close()
-	has, err := session.isTableExist(table.Name)
+	has, err := session.isTableExist(tableName)
 	return has, err
 }
 

@@ -88,6 +88,17 @@ func main() {
 		_, err = Orm.Insert(user)
 		if err != nil {
 			fmt.Println(err)
+			return
+		}
+
+		isexist, err := Orm.IsTableExist("sync_user2")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		if !isexist {
+			fmt.Println("sync_user2 is not exist")
+			return
 		}
 	}
 }
