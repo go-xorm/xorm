@@ -670,10 +670,22 @@ func (statement *Statement) getInc() map[string]incrParam {
 // Generate "Where column IN (?) " statment
 func (statement *Statement) In(column string, args ...interface{}) *Statement {
 	k := strings.ToLower(column)
-	if _, ok := statement.inColumns[k]; ok {
-		statement.inColumns[k].args = append(statement.inColumns[k].args, args...)
+	var newargs []interface{}
+	if len(args) == 1 &&
+		reflect.TypeOf(args[0]).Kind() == reflect.Slice {
+		newargs = make([]interface{}, 0)
+		v := reflect.ValueOf(args[0])
+		for i := 0; i < v.Len(); i++ {
+			newargs = append(newargs, v.Index(i).Interface())
+		}
 	} else {
-		statement.inColumns[k] = &inParam{column, args}
+		newargs = args
+	}
+
+	if _, ok := statement.inColumns[k]; ok {
+		statement.inColumns[k].args = append(statement.inColumns[k].args, newargs...)
+	} else {
+		statement.inColumns[k] = &inParam{column, newargs}
 	}
 	return statement
 }
