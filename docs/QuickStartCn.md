@@ -23,7 +23,7 @@ xorm 快速入门
 	* [5.6.Count方法](#66)
 	* [5.7.Rows方法](#67)
 * [6.更新数据](#70)
-* [6.1.乐观锁](#71)
+	* [6.1.乐观锁](#71)
 * [7.删除数据](#80)
 * [8.执行SQL查询](#90)
 * [9.执行SQL命令](#100)
@@ -62,7 +62,7 @@ engine, err = xorm.NewEngine("sqlite3", "./test.db")
 defer engine.Close()
 ```
 
-一般如果只针对一个数据库进行操作，只需要创建一个Engine即可。Engine支持在多GoRutine下使用。
+你可以创建一个或多个engine, 不过一般如果操作一个数据库，只需要创建一个Engine即可。Engine支持在多GoRutine下使用。
 
 xorm当前支持五种驱动四个数据库如下：
 
@@ -419,7 +419,7 @@ engine.Cols("age", "name").Update(&user)
 * Omit(...string)
 和cols相反，此函数指定排除某些指定的字段。注意：此方法和Cols方法不可同时使用
 ```Go
-engine.Cols("age").Update(&user)
+engine.Omit("age").Update(&user)
 // UPDATE user SET name = ? AND department = ?
 ```
 

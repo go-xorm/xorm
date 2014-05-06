@@ -223,19 +223,6 @@ func (db *oracle) GetIndexes(tableName string) (map[string]*core.Index, error) {
 	return indexes, nil
 }
 
-// PgSeqFilter filter SQL replace ?, ? ... to :1, :2 ...
-type OracleSeqFilter struct {
-}
-
-func (s *OracleSeqFilter) Do(sql string, dialect core.Dialect, table *core.Table) string {
-	counts := strings.Count(sql, "?")
-	for i := 1; i <= counts; i++ {
-		newstr := ":" + fmt.Sprintf("%v", i)
-		sql = strings.Replace(sql, "?", newstr, 1)
-	}
-	return sql
-}
-
 func (db *oracle) Filters() []core.Filter {
-	return []core.Filter{&core.QuoteFilter{}, &OracleSeqFilter{}, &core.IdFilter{}}
+	return []core.Filter{&core.QuoteFilter{}, &core.SeqFilter{":", 1}, &core.IdFilter{}}
 }
