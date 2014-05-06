@@ -996,7 +996,9 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 	}
 
 	if statement.Engine.dialect.DBType() == core.MSSQL {
-		top = fmt.Sprintf(" TOP %d", statement.LimitN)
+		if statement.LimitN > 0 {
+			top = fmt.Sprintf(" TOP %d ", statement.LimitN)
+		}
 		if statement.Start > 0 {
 			var column string = "(id)"
 			if len(statement.RefTable.PKColumns()) == 0 {
@@ -1019,7 +1021,11 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 	a = fmt.Sprintf("SELECT %v%v%v%v%v", top, distinct, columnStr,
 		fromStr, whereStr)
 	if mssqlCondi != "" {
-		a += " AND " + mssqlCondi
+		if whereStr != "" {
+			a += " AND " + mssqlCondi
+		} else {
+			a += " WHERE " + mssqlCondi
+		}
 	}
 
 	if statement.GroupByStr != "" {
