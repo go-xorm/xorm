@@ -53,6 +53,17 @@ func (db *mysql) SqlType(c *core.Column) string {
 	case core.TimeStampz:
 		res = core.Char
 		c.Length = 64
+	case core.Enum: //mysql enum
+		res = core.Enum
+		res += "("
+		for v, k := range c.EnumOptions {
+			if k > 0 {
+				res += fmt.Sprintf(",'%v'", v)
+			} else {
+				res += fmt.Sprintf("'%v'", v)
+			}
+		}
+		res += ")"
 	default:
 		res = t
 	}
@@ -140,26 +151,39 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 
 		if colDefault != nil {
 			col.Default = *colDefault
+			if col.Default == "" {
+				col.DefaultIsEmpty = true
+			}
 		}
 
 		cts := strings.Split(colType, "(")
+		colName := cts[0]
+		colType = strings.ToUpper(colName)
 		var len1, len2 int
 		if len(cts) == 2 {
 			idx := strings.Index(cts[1], ")")
-			lens := strings.Split(cts[1][0:idx], ",")
-			len1, err = strconv.Atoi(strings.TrimSpace(lens[0]))
-			if err != nil {
-				return nil, nil, err
-			}
-			if len(lens) == 2 {
-				len2, err = strconv.Atoi(lens[1])
+			if colType == core.Enum && cts[1][0] == '\'' { //enum
+				options := strings.Split(cts[1][0:idx], ",")
+				col.EnumOptions = make(map[string]int)
+				for k, v := range options {
+					v = strings.TrimSpace(v)
+					v = strings.Trim(v, "'")
+					col.EnumOptions[v] = k
+				}
+			} else {
+				lens := strings.Split(cts[1][0:idx], ",")
+				len1, err = strconv.Atoi(strings.TrimSpace(lens[0]))
 				if err != nil {
 					return nil, nil, err
 				}
+				if len(lens) == 2 {
+					len2, err = strconv.Atoi(lens[1])
+					if err != nil {
+						return nil, nil, err
+					}
+				}
 			}
 		}
-		colName := cts[0]
-		colType = strings.ToUpper(colName)
 		col.Length = len1
 		col.Length2 = len2
 		if _, ok := core.SqlTypes[colType]; ok {
@@ -182,6 +206,10 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 		if col.SQLType.IsText() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
+			} else {
+				if col.DefaultIsEmpty {
+					col.Default = "''"
+				}
 			}
 		}
 		cols[col.Name] = col
