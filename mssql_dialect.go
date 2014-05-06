@@ -203,10 +203,7 @@ func (db *mssql) GetIndexes(tableName string) (map[string]*core.Index, error) {
 	s := `SELECT
 IXS.NAME                    AS  [INDEX_NAME],
 C.NAME                      AS  [COLUMN_NAME],
-IXS.is_unique AS [IS_UNIQUE],
-CASE    IXCS.IS_INCLUDED_COLUMN
-WHEN    0   THEN    'NONE'
-ELSE    'INCLUDED'  END     AS  [IS_INCLUDED_COLUMN]
+IXS.is_unique AS [IS_UNIQUE]
 FROM SYS.INDEXES IXS
 INNER JOIN SYS.INDEX_COLUMNS   IXCS
 ON IXS.OBJECT_ID=IXCS.OBJECT_ID  AND IXS.INDEX_ID = IXCS.INDEX_ID
@@ -214,6 +211,7 @@ INNER   JOIN SYS.COLUMNS C  ON IXS.OBJECT_ID=C.OBJECT_ID
 AND IXCS.COLUMN_ID=C.COLUMN_ID
 WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 `
+
 	rows, err := db.DB().Query(s, args...)
 	if err != nil {
 		return nil, err
@@ -224,7 +222,7 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 		var indexType int
 		var indexName, colName, isUnique string
 
-		err = rows.Scan(&indexName, &colName, &isUnique, nil)
+		err = rows.Scan(&indexName, &colName, &isUnique)
 		if err != nil {
 			return nil, err
 		}
