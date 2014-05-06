@@ -211,6 +211,7 @@ INNER   JOIN SYS.COLUMNS C  ON IXS.OBJECT_ID=C.OBJECT_ID
 AND IXCS.COLUMN_ID=C.COLUMN_ID
 WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 `
+
 	rows, err := db.DB().Query(s, args...)
 	if err != nil {
 		return nil, err
