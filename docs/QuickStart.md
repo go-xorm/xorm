@@ -128,23 +128,23 @@ engine.SetColumnMapper(SnakeMapper{})
 <a name="22" id="22"></a>
 ### 2.2.Prefix mapping, Suffix Mapping and Cache Mapping
 
-* 通过`engine.NewPrefixMapper(SnakeMapper{}, "prefix")`可以在SnakeMapper的基础上在命名中添加统一的前缀，当然也可以把SnakeMapper{}换成SameMapper或者你自定义的Mapper。
-* 通过`engine.NewSufffixMapper(SnakeMapper{}, "suffix")`可以在SnakeMapper的基础上在命名中添加统一的后缀，当然也可以把SnakeMapper{}换成SameMapper或者你自定义的Mapper。
-* 通过`eneing.NewCacheMapper(SnakeMapper{})`可以起到在内存中缓存曾经映射过的命名映射。
+* `engine.NewPrefixMapper(SnakeMapper{}, "prefix")` can add prefix string when naming based on SnakeMapper or SameMapper, or you custom Mapper.
+* `engine.NewPrefixMapper(SnakeMapper{}, "suffix")` can add suffix string when naming based on SnakeMapper or SameMapper, or you custom Mapper.
+* `engine.NewCacheMapper(SnakeMapper{})` add naming Mapper for memory cache.
 
-当然，如果你使用了别的命名规则映射方案，也可以自己实现一个IMapper。
+Of course, you can implement IMapper to make custom naming strategy.
 
 <a name="22" id="22"></a>
 ### 2.3.Tag mapping
 
-如果所有的命名都是按照IMapper的映射来操作的，那当然是最理想的。但是如果碰到某个表名或者某个字段名跟映射规则不匹配时，我们就需要别的机制来改变。
+It's idealized of using IMapper for all naming. But if table or column is not in rule, we need new method to archive.
 
-通过`engine.Table()`方法可以改变struct对应的数据库表的名称，通过sturct中field对应的Tag中使用`xorm:"'table_name'"`可以使该field对应的Column名称为指定名称。这里使用两个单引号将Column名称括起来是为了防止名称冲突，因为我们在Tag中还可以对这个Column进行更多的定义。如果名称不冲突的情况，单引号也可以不使用。
+`engine.Table()` can change the database table name for struct. The struct tag `xorm:"'table_name'"` can set column name for struct field. Use a pair of single quotes to prevent confusion for column's definition in struct tag. If not in confusion, ignore single quotes.
 
 <a name="23" id="23"></a>
-### 2.4.Column defenition
+### 2.4.Column definition
 
-我们在field对应的Tag中对Column的一些属性进行定义，定义的方法基本和我们写SQL定义表结构类似，比如：
+Struct tag defines something for column as basic sql concepts, such as :
 
 ```
 type User struct {
@@ -153,9 +153,9 @@ type User struct {
 }
 ```
 
-For different DBMS, data types对于不同的数据库系统，数据类型其实是有些差异的。因此xorm中对数据类型有自己的定义，基本的原则是尽量兼容各种数据库的字段类型，具体的字段对应关系可以查看[字段类型对应表](https://github.com/go-xorm/xorm/blob/master/docs/COLUMNTYPE.md)。
+Data types are different in different DBMS. So xorm makes own data types definition to keep compatible. Details is in document [Column Types](https://github.com/go-xorm/xorm/blob/master/docs/COLUMNTYPE.md).
 
-具体的映射规则如下，另Tag中的关键字均不区分大小写，字段名区分大小写：
+The following table is field mapping rules, the keyword is not case sensitive except column name：
 
 <table>
     <tr>
@@ -165,7 +165,7 @@ For different DBMS, data types对于不同的数据库系统，数据类型其�
         <td>pk</td><td>If column is Primary Key</td>
     </tr>
     <tr>
-        <td>当前支持30多种字段类型，详情参见 [字段类型](https://github.com/go-xorm/xorm/blob/master/docs/COLUMNTYPE.md)</td><td>字段类型</td>
+        <td>support over 30 kinds of column types, details in [Column Types](https://github.com/go-xorm/xorm/blob/master/docs/COLUMNTYPE.md)</td><td>column type</td>
     </tr>
     <tr>
         <td>autoincr</td><td>If autoincrement column</td>
@@ -174,22 +174,22 @@ For different DBMS, data types对于不同的数据库系统，数据类型其�
         <td>[not ]null | notnull</td><td>if column could be blank</td>
     </tr>
     <tr>
-        <td>unique/unique(uniquename)</td><td>是否是唯一，如不加括号则该字段不允许重复；如加上括号，则括号中为联合唯一索引的名字，此时如果有另外一个或多个字段和本unique的uniquename相同，则这些uniquename相同的字段组成联合唯一索引</td>
+        <td>unique/unique(uniquename)</td><td>column is Unique index; if add (uniquename), the column is used for combined unique index with the field that defining same uniquename.</td>
     </tr>
     <tr>
-        <td>index/index(indexname)</td><td>是否是索引，如不加括号则该字段自身为索引，如加上括号，则括号中为联合索引的名字，此时如果有另外一个或多个字段和本index的indexname相同，则这些indexname相同的字段组成联合索引</td>
+        <td>index/index(indexname)</td><td>column is index. if add (indexname), the column is used for combined index with the field that defining same indexname.</td>
     </tr>
     <tr>
-    	<td>extends</td><td>应用于一个匿名结构体之上，表示此匿名结构体的成员也映射到数据库中</td>
+    	<td>extends</td><td>use for anonymous field, map the struct in anonymous field to database</td>
     </tr>
     <tr>
         <td>-</td><td>This field will not be mapping</td>
     </tr>
      <tr>
-        <td>-></td><td>这个Field将只写入到数据库而不从数据库读取</td>
+        <td>-></td><td>only write into database</td>
     </tr>
      <tr>
-        <td>&lt;-</td><td>这个Field将只从数据库读取，而不写入到数据库</td>
+        <td>&lt;-</td><td>only read from database</td>
     </tr>
      <tr>
         <td>created</td><td>This field will be filled in current time on insert</td>
@@ -205,16 +205,17 @@ For different DBMS, data types对于不同的数据库系统，数据类型其�
     </tr>
 </table>
 
-另外有如下几条自动映射的规则：
+Some default mapping rules：
 
-- 1.如果field名称为`Id`而且类型为`int64`的话，会被xorm视为主键，并且拥有自增属性。如果想用`Id`以外的名字做为主键名，可以在对应的Tag上加上`xorm:"pk"`来定义主键。
+- 1. If field is name of `Id` and type of `int64`, xorm makes it as auto increment primary key. If another field, use struct tag `xorm:"pk"`.
 
-- 2.string类型默认映射为varchar(255)，如果需要不同的定义，可以在tag中自定义
+- 2. String is corresponding to varchar(255).
 
-- 3.支持`type MyString string`等自定义的field，支持Slice, Map等field成员，这些成员默认存储为Text类型，并且默认将使用Json格式来序列化和反序列化。也支持数据库字段类型为Blob类型，如果是Blob类型，则先使用Json格式序列化再转成[]byte格式。当然[]byte或者[]uint8默认为Blob类型并且都以二进制方式存储。
+- 3. Support custom type as `type MyString string`，slice, map as field type. They are saving as Text column type and json-encode string. Support Blob column type with field type []byte or []uint8.
 
-- 4.实现了Conversion接口的类型或者结构体，将根据接口的转换方式在类型和数据库记录之间进行相互转换。
-```Go
+- 4. You can implement Conversion interface to define your custom mapping rule between field and database data.
+
+```
 type Conversion interface {
 	FromDB([]byte) error
 	ToDB() ([]byte, error)
@@ -222,55 +223,55 @@ type Conversion interface {
 ```
 
 <a name="30" id="30"></a>
-## 3.表结构操作
+## 3. database meta information
 
-xorm提供了一些动态获取和修改表结构的方法。对于一般的应用，很少动态修改表结构，则只需调用Sync()同步下表结构即可。
+xorm provides methods to getting and setting table schema. For less schema changing production, `engine.Sync()` is enough.
 
 <a name="31" id="31"></a>
 ## 3.1 retrieve database meta info
 
 * DBMetas()
-xorm支持获取表结构信息，通过调用`engine.DBMetas()`可以获取到所有的表的信息
+`engine.DBMetas()` returns all tables schema information.
 
 <a name="31" id="31"></a>
 ## 3.2.directly table operation
 
 * CreateTables()
-创建表使用`engine.CreateTables()`，参数为一个或多个空的对应Struct的指针。同时可用的方法有Charset()和StoreEngine()，如果对应的数据库支持，这两个方法可以在创建表时指定表的字符编码和使用的引擎。当前仅支持Mysql数据库。
+`engine.CreateTables(struct)` creates table with struct or struct pointer.
+`engine.Charset()` and `engine.StoreEngine()` can change charset or storage engine for **mysql** database.
 
 * IsTableEmpty()
-判断表是否为空，参数和CreateTables相同
+check table is empty or not.
 
 * IsTableExist()
-判断表是否存在
+check table is existed or not.
 
 * DropTables()
-删除表使用`engine.DropTables()`，参数为一个或多个空的对应Struct的指针或者表的名字。如果为string传入，则只删除对应的表，如果传入的为Struct，则删除表的同时还会删除对应的索引。
+`engine.DropTables(struct)` drops table and indexes with struct or struct pointer. `engine.DropTables(string)` only drops table except indexes.
 
 <a name="32" id="32"></a>
 ## 3.3.create indexes and uniques
 
 * CreateIndexes
-根据struct中的tag来创建索引
+create indexes with struct.
 
 * CreateUniques
-根据struct中的tag来创建唯一索引
+create unique indexes with struct.
 
 <a name="34" id="34"></a>
-## 3.4.同步数据库结构
+## 3.4.Synchronize database schema
 
-同步能够部分智能的根据结构体的变动检测表结构的变动，并自动同步。目前能够实现：
-1) 自动检测和创建表，这个检测是根据表的名字
-2）自动检测和新增表中的字段，这个检测是根据字段名
-3）自动检测和创建索引和唯一索引，这个检测是根据一个或多个字段名，而不根据索引名称
+xorm watches tables and indexes and sync schema:
+1) use table name to create or drop table
+2) use column name to alter column
+3) use the indexes definition in struct field tag to create or drop indexes.
 
-调用方法如下：
 ```Go
 err := engine.Sync(new(User))
 ```
 
 <a name="50" id="50"></a>
-## 4.插入数据
+## 4.Insert data
 
 Inserting records use Insert method. 
 
