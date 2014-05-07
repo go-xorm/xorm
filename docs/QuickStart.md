@@ -356,7 +356,7 @@ Conditional AND
 Conditional OR
 
 * Sql(string, …interface{})
-执行指定的Sql语句，并把结果映射到结构体
+Custom SQL query
 
 * Asc(…string)
 Ascending ordering on 1 or more fields
@@ -365,10 +365,10 @@ Ascending ordering on 1 or more fields
 Descending ordering on 1 or more fields
 
 * OrderBy(string)
-Custom ordering
+As SQL ORDER BY
 
 * In(string, …interface{})
-Conditional IN
+As SQL Conditional IN
 
 * Cols(…string)
 Explicity specify query or update columns. e.g.,:
@@ -387,45 +387,51 @@ engine.Omit("age").Update(&user)
 ```
 
 * Distinct(…string)
-按照参数中指定的字段归类结果
+As SQL DISTINCT
 ```Go
 engine.Distinct("age", "department").Find(&users)
 // SELECT DISTINCT age, department FROM user
 ```
-注意：当开启了缓存时，此方法的调用将在当前查询中禁用缓存。因为缓存系统当前依赖Id，而此时无法获得Id
+Caution: this method will not lookup from caching store
+
 
 * Table(nameOrStructPtr interface{})
-传入表名称或者结构体指针，如果传入的是结构体指针，则按照IMapper的规则提取出表名
+Specify table name, or if struct pointer is passed into the name is extract from struct type name by IMapper conversion policy
 
 * Limit(int, …int)
-限制获取的数目，第一个参数为条数，第二个参数为可选，表示开始位置
+As SQL LIMIT with optional second param for OFFSET
 
 * Top(int)
-相当于Limit(int, 0)
+As SQL LIMIT
 
-* Join(string,string,string)
-第一个参数为连接类型，当前支持INNER, LEFT OUTER, CROSS中的一个值，第二个参数为表名，第三个参数为连接条件
+* Join(type, tableName, criteria string)
+As SQL JOIN, support
+type: either of these values [INNER, LEFT OUTER, CROSS] are supported now
+tableName: joining table name
+criteria: join criteria
 
 * GroupBy(string)
-Groupby的参数字符串
+As SQL GROUP BY
 
 * Having(string)
-Having的参数字符串
+As SQL HAVING
 
 <a name="62" id="62"></a>
-### 5.2.临时开关方法
+### 5.2. Override default behavior APIs
 
 * NoAutoTime()
-如果此方法执行，则此次生成的语句中Created和Updated字段将不自动赋值为当前时间
+No auto timestamp for Created and Updated fields for INSERT and UPDATE
 
 * NoCache()
-如果此方法执行，则此次生成的语句则在非缓存模式下执行
+Disable cache lookup
+
 
 * UseBool(...string)
-当从一个struct来生成查询条件或更新字段时，xorm会判断struct的field是否为0,"",nil，如果为以上则不当做查询条件或者更新内容。因为bool类型只有true和false两种值，因此默认所有bool类型不会作为查询条件或者更新字段。如果可以使用此方法，如果默认不传参数，则所有的bool字段都将会被使用，如果参数不为空，则参数中指定的为字段名，则这些字段对应的bool值将被使用。
+xorm's default behavior is fields with 0, "", nil, false, will not be used during query or update, use this method to explicit specify bool type fields for query or update 
+
 
 * Cascade(bool)
-是否自动关联查询field中的数据，如果struct的field也是一个struct并且映射为某个Id，则可以在查询时自动调用Get方法查询出对应的数据。
+Do cascade lookup for associations
 
 <a name="50" id="50"></a>
 ### 5.3.Get one record
@@ -492,9 +498,9 @@ err := engine.Where("age > ? or name=?)", 30, "xlw").Iterate(new(Userinfo), func
 ```
 
 <a name="66" id="66"></a>
-### 5.6.Count方法
+### 5.6.Count method usage
 
-统计数据使用`Count`方法，Count方法的参数为struct的指针并且成为查询条件。
+An ORM pointer struct is required for Count method in order to determine which table to retrieve from.
 ```Go
 user := new(User)
 total, err := engine.Where("id >?", 1).Count(user)
@@ -617,7 +623,7 @@ if err != nil {
 ```
 
 <a name="120" id="120"></a>
-## 11.缓存
+## 11.Built-in LRU memory cache provider
 
 1. Global Cache
 Xorm implements cache support. Defaultly, it's disabled. If enable it, use below code.
@@ -658,15 +664,15 @@ Cache implement theory below:
 
 <a name="130" id="130"></a>
 ## 12.xorm tool
-xorm工具提供了xorm命令，能够帮助做很多事情。
+xorm commandl line tool
 
 ### 12.1.Reverse command
-Please visit [xorm tool](https://github.com/go-xorm/xorm/tree/master/xorm)
+Please visit [xorm tool](https://github.com/go-xorm/cmd/tree/master/xorm)
 
 <a name="140" id="140"></a>
 ## 13.Examples
 
-请访问[https://github.com/go-xorm/xorm/tree/master/examples](https://github.com/go-xorm/xorm/tree/master/examples)
+Please visit [https://github.com/go-xorm/xorm/tree/master/examples](https://github.com/go-xorm/xorm/tree/master/examples)
 
 <a name="150" id="150"></a>
 ## 14.Cases
