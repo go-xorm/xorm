@@ -227,7 +227,7 @@ func (session *Session) StoreEngine(storeEngine string) *Session {
 	return session
 }
 
-// Method StoreEngine is only avialble charset dialect currently
+// Method Charset is only avialble mysql dialect currently
 func (session *Session) Charset(charset string) *Session {
 	session.Statement.Charset = charset
 	return session
