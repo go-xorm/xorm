@@ -667,7 +667,7 @@ Cache implement theory below:
 xorm commandl line tool
 
 ### 12.1.Reverse command
-Please visit [xorm tool](https://github.com/go-xorm/cmd/tree/master/xorm)
+Please visit [xorm tool](https://github.com/go-xorm/cmd)
 
 <a name="140" id="140"></a>
 ## 13.Examples

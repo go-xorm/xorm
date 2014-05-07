@@ -767,7 +767,7 @@ xorm支持两种方式的事件，一种是在Struct中的特定方法来作为�
 xorm工具提供了xorm命令，能够帮助做很多事情。
 
 ### 13.1.反转命令
-参见 [xorm工具](https://github.com/go-xorm/xorm/tree/master/xorm)
+参见 [xorm工具](https://github.com/go-xorm/cmd)
 
 <a name="140" id="140"></a>
 ## 14.Examples
