@@ -718,7 +718,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 		if err != nil {
 			return err
 		}
-		// 查询数目太大，采用缓存将不是一个很好的方式。
+		// æŸ¥è¯¢æ•°ç›®å¤ªå¤§ï¼Œé‡‡ç”¨ç¼“å­˜å°†ä¸æ˜¯ä¸€ä¸ªå¾ˆå¥½çš„æ–¹å¼ã€
 		if len(resultsSlice) > 500 {
 			session.Engine.LogDebug("[xorm:cacheFind] ids length %v > 500, no cache", len(resultsSlice))
 			return ErrCacheFailed
@@ -883,7 +883,6 @@ func (session *Session) Rows(bean interface{}) (*Rows, error) {
 // are conditions. beans could be []Struct, []*Struct, map[int64]Struct
 // map[int64]*Struct
 func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
-
 	rows, err := session.Rows(bean)
 	if err != nil {
 		return err
@@ -982,24 +981,6 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	} else {
 		return false, nil
 	}
-
-	// resultsSlice, err := session.query(sqlStr, args...)
-	// if err != nil {
-	// 	return false, err
-	// }
-	// if len(resultsSlice) < 1 {
-	// 	return false, nil
-	// }
-
-	// err = session.scanMapIntoStruct(bean, resultsSlice[0])
-	// if err != nil {
-	// 	return true, err
-	// }
-	// if len(resultsSlice) == 1 {
-	// 	return true, nil
-	// } else {
-	// 	return true, errors.New("More than one record")
-	// }
 }
 
 // Count counts the records. bean's non-empty fields
@@ -1083,7 +1064,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	if len(condiBean) > 0 {
 		colNames, args := buildConditions(session.Engine, table, condiBean[0], true, true,
 			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-			session.Statement.mustColumnMap, false)
+			session.Statement.mustColumnMap)
 		session.Statement.ConditionStr = strings.Join(colNames, " AND ")
 		session.Statement.BeanArgs = args
 	}
@@ -1442,6 +1423,8 @@ func (session *Session) getField(dataStruct *reflect.Value, key string, table *c
 	return fieldValue
 }
 
+type Cell *interface{}
+
 func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount int, bean interface{}) error {
 	dataStruct := rValue(bean)
 	if dataStruct.Kind() != reflect.Struct {
@@ -1450,18 +1433,24 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 
 	table := session.Engine.autoMapType(dataStruct)
 
-	scanResultContainers := make([]interface{}, len(fields))
+	scanResults := make([]interface{}, len(fields))
 	for i := 0; i < len(fields); i++ {
-		var scanResultContainer interface{}
-		scanResultContainers[i] = &scanResultContainer
+		var cell interface{}
+		scanResults[i] = &cell
 	}
-	if err := rows.Scan(scanResultContainers...); err != nil {
+	if err := rows.Scan(scanResults...); err != nil {
 		return err
 	}
 
+	b, hasBeforeSet := bean.(BeforeSetProcessor)
+
 	for ii, key := range fields {
+		if hasBeforeSet {
+			b.BeforeSet(fields[ii], Cell(scanResults[ii].(*interface{})))
+		}
+
 		if fieldValue := session.getField(&dataStruct, key, table); fieldValue != nil {
-			rawValue := reflect.Indirect(reflect.ValueOf(scanResultContainers[ii]))
+			rawValue := reflect.Indirect(reflect.ValueOf(scanResults[ii]))
 
 			//if row is null then ignore
 			if rawValue.Interface() == nil {
@@ -1469,7 +1458,18 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 				continue
 			}
 
-			if structConvert, ok := fieldValue.Addr().Interface().(core.Conversion); ok {
+			if fieldValue.CanAddr() {
+				if structConvert, ok := fieldValue.Addr().Interface().(core.Conversion); ok {
+					if data, err := value2Bytes(&rawValue); err == nil {
+						structConvert.FromDB(data)
+					} else {
+						session.Engine.LogError(err)
+					}
+					continue
+				}
+			}
+
+			if structConvert, ok := fieldValue.Interface().(core.Conversion); ok {
 				if data, err := value2Bytes(&rawValue); err == nil {
 					structConvert.FromDB(data)
 				} else {
@@ -2452,6 +2452,16 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 			}
 		}
 	}
+
+	if fieldConvert, ok := fieldValue.Interface().(core.Conversion); ok {
+		data, err := fieldConvert.ToDB()
+		if err != nil {
+			return 0, err
+		} else {
+			return string(data), nil
+		}
+	}
+
 	fieldType := fieldValue.Type()
 	k := fieldType.Kind()
 	if k == reflect.Ptr {
@@ -2471,24 +2481,19 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 	switch k {
 	case reflect.Bool:
 		return fieldValue.Bool(), nil
-		/*if fieldValue.Bool() {
-			return 1, nil
-		} else {
-			return 0, nil
-		}*/
 	case reflect.String:
 		return fieldValue.String(), nil
 	case reflect.Struct:
 		if fieldType == core.TimeType {
-			t := fieldValue.Interface().(time.Time)
-			if session.Engine.dialect.DBType() == core.MSSQL {
-				if t.IsZero() {
-					return nil, nil
-				}
-			}
 			switch fieldValue.Interface().(type) {
 			case time.Time:
-				tf := session.Engine.FormatTime(col.SQLType.Name, fieldValue.Interface().(time.Time))
+				t := fieldValue.Interface().(time.Time)
+				if session.Engine.dialect.DBType() == core.MSSQL {
+					if t.IsZero() {
+						return nil, nil
+					}
+				}
+				tf := session.Engine.FormatTime(col.SQLType.Name, t)
 				return tf, nil
 			default:
 				return fieldValue.Interface(), nil
@@ -2948,7 +2953,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		session.Statement.RefTable = table
 
 		if session.Statement.ColumnStr == "" {
-			colNames, args = buildConditions(session.Engine, table, bean, false, false,
+			colNames, args = buildUpdates(session.Engine, table, bean, false, false,
 				false, false, session.Statement.allUseBool, session.Statement.useAllCols,
 				session.Statement.mustColumnMap, true)
 		} else {
@@ -2991,7 +2996,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	if len(condiBean) > 0 {
 		condiColNames, condiArgs = buildConditions(session.Engine, session.Statement.RefTable, condiBean[0], true, true,
 			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-			session.Statement.mustColumnMap, false)
+			session.Statement.mustColumnMap)
 	}
 
 	var condition = ""
@@ -3195,7 +3200,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	session.Statement.RefTable = table
 	colNames, args := buildConditions(session.Engine, table, bean, true, true,
 		false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-		session.Statement.mustColumnMap, false)
+		session.Statement.mustColumnMap)
 
 	var condition = ""
 	var andStr = session.Engine.dialect.AndStr()

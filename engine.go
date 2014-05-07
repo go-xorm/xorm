@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"reflect"
 	"strconv"
@@ -34,8 +35,7 @@ type Engine struct {
 	ShowErr   bool
 	ShowDebug bool
 	ShowWarn  bool
-	//Pool      IConnectPool
-	//Filters []core.Filter
+
 	Logger     ILogger // io.Writer
 	TZLocation *time.Location
 }
@@ -266,6 +266,80 @@ func (engine *Engine) DBMetas() ([]*core.Table, error) {
 	return tables, nil
 }
 
+func (engine *Engine) DumpAllToFile(fp string) error {
+	f, err := os.Create(fp)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return engine.DumpAll(f)
+}
+
+func (engine *Engine) DumpAll(w io.Writer) error {
+	tables, err := engine.DBMetas()
+	if err != nil {
+		return err
+	}
+
+	for _, table := range tables {
+		_, err = io.WriteString(w, engine.dialect.CreateTableSql(table, "", "", "")+"\n\n")
+		if err != nil {
+			return err
+		}
+		for _, index := range table.Indexes {
+			_, err = io.WriteString(w, engine.dialect.CreateIndexSql(table.Name, index)+"\n\n")
+			if err != nil {
+				return err
+			}
+		}
+
+		rows, err := engine.DB().Query("SELECT * FROM " + engine.Quote(table.Name))
+		if err != nil {
+			return err
+		}
+
+		cols, err := rows.Columns()
+		if err != nil {
+			return err
+		}
+		if len(cols) == 0 {
+			continue
+		}
+		for rows.Next() {
+			dest := make([]interface{}, len(cols))
+			err = rows.ScanSlice(&dest)
+			if err != nil {
+				return err
+			}
+
+			_, err = io.WriteString(w, "INSERT INTO "+engine.Quote(table.Name)+" ("+engine.Quote(strings.Join(cols, engine.Quote(", ")))+") VALUES (")
+			if err != nil {
+				return err
+			}
+
+			var temp string
+			for i, d := range dest {
+				col := table.GetColumn(cols[i])
+				if d == nil {
+					temp += ", NULL"
+				} else if col.SQLType.IsText() || col.SQLType.IsTime() {
+					var v = fmt.Sprintf("%s", d)
+					temp += ", '" + strings.Replace(v, "'", "''", -1) + "'"
+				} else if col.SQLType.IsBlob() /*reflect.TypeOf(d).Kind() == reflect.Slice*/ {
+					temp += fmt.Sprintf(", %s", engine.dialect.FormatBytes(d.([]byte)))
+				} else {
+					temp += fmt.Sprintf(", %s", d)
+				}
+			}
+			_, err = io.WriteString(w, temp[2:]+");\n\n")
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // use cascade or not
 func (engine *Engine) Cascade(trueOrFalse ...bool) *Session {
 	session := engine.NewSession()
@@ -456,15 +530,6 @@ func (engine *Engine) autoMap(bean interface{}) *core.Table {
 	return engine.autoMapType(v)
 }
 
-/*func (engine *Engine) mapType(t reflect.Type) *core.Table {
-	return mappingTable(t, engine.TableMapper, engine.ColumnMapper, engine.dialect, engine.TagIdentifier)
-}*/
-
-/*
-func mappingTable(t reflect.Type, tableMapper core.IMapper, colMapper core.IMapper, dialect core.Dialect, tagId string) *core.Table {
-	table := core.NewEmptyTable()
-	table.Name = tableMapper.Obj2Table(t.Name())
-*/
 func addIndex(indexName string, table *core.Table, col *core.Column, indexType int) {
 	if index, ok := table.Indexes[indexName]; ok {
 		index.AddColumn(col.Name)
@@ -524,17 +589,19 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 				if tags[0] == "-" {
 					continue
 				}
-				if (strings.ToUpper(tags[0]) == "EXTENDS") &&
-					(fieldType.Kind() == reflect.Struct) {
+				if strings.ToUpper(tags[0]) == "EXTENDS" {
+					fieldValue = reflect.Indirect(fieldValue)
+					if fieldValue.Kind() == reflect.Struct {
+						//parentTable := mappingTable(fieldType, tableMapper, colMapper, dialect, tagId)
+						parentTable := engine.mapType(fieldValue)
+						for _, col := range parentTable.Columns() {
+							col.FieldName = fmt.Sprintf("%v.%v", fieldValue.Type().Name(), col.FieldName)
+							table.AddColumn(col)
+						}
 
-					//parentTable := mappingTable(fieldType, tableMapper, colMapper, dialect, tagId)
-					parentTable := engine.mapType(fieldValue)
-					for _, col := range parentTable.Columns() {
-						col.FieldName = fmt.Sprintf("%v.%v", fieldType.Name(), col.FieldName)
-						table.AddColumn(col)
+						continue
 					}
-
-					continue
+					//TODO: warning
 				}
 
 				indexNames := make(map[string]int)
@@ -599,20 +666,30 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 								continue
 							}
 							col.SQLType = core.SQLType{fs[0], 0, 0}
-							fs2 := strings.Split(fs[1][0:len(fs[1])-1], ",")
-							if len(fs2) == 2 {
-								col.Length, err = strconv.Atoi(fs2[0])
-								if err != nil {
-									engine.LogError(err)
+							if fs[0] == core.Enum && fs[1][0] == '\'' { //enum
+								options := strings.Split(fs[1][0:len(fs[1])-1], ",")
+								col.EnumOptions = make(map[string]int)
+								for k, v := range options {
+									v = strings.TrimSpace(v)
+									v = strings.Trim(v, "'")
+									col.EnumOptions[v] = k
 								}
-								col.Length2, err = strconv.Atoi(fs2[1])
-								if err != nil {
-									engine.LogError(err)
-								}
-							} else if len(fs2) == 1 {
-								col.Length, err = strconv.Atoi(fs2[0])
-								if err != nil {
-									engine.LogError(err)
+							} else {
+								fs2 := strings.Split(fs[1][0:len(fs[1])-1], ",")
+								if len(fs2) == 2 {
+									col.Length, err = strconv.Atoi(fs2[0])
+									if err != nil {
+										engine.LogError(err)
+									}
+									col.Length2, err = strconv.Atoi(fs2[1])
+									if err != nil {
+										engine.LogError(err)
+									}
+								} else if len(fs2) == 1 {
+									col.Length, err = strconv.Atoi(fs2[0])
+									if err != nil {
+										engine.LogError(err)
+									}
 								}
 							}
 						} else {
@@ -701,19 +778,25 @@ func (engine *Engine) IsTableEmpty(bean interface{}) (bool, error) {
 	session := engine.NewSession()
 	defer session.Close()
 	rows, err := session.Count(bean)
-	return rows > 0, err
+	return rows == 0, err
 }
 
 // If a table is exist
 func (engine *Engine) IsTableExist(bean interface{}) (bool, error) {
 	v := rValue(bean)
-	if v.Type().Kind() != reflect.Struct {
+	var tableName string
+	if v.Type().Kind() == reflect.String {
+		tableName = bean.(string)
+	} else if v.Type().Kind() == reflect.Struct {
+		table := engine.autoMapType(v)
+		tableName = table.Name
+	} else {
 		return false, errors.New("bean should be a struct or struct's point")
 	}
-	table := engine.autoMapType(v)
+
 	session := engine.NewSession()
 	defer session.Close()
-	has, err := session.isTableExist(table.Name)
+	has, err := session.isTableExist(tableName)
 	return has, err
 }
 

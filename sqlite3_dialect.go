@@ -1,6 +1,7 @@
 package xorm
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/go-xorm/core"
@@ -42,6 +43,10 @@ func (db *sqlite3) SqlType(c *core.Column) string {
 	default:
 		return t
 	}
+}
+
+func (db *sqlite3) FormatBytes(bs []byte) string {
+	return fmt.Sprintf("X'%x'", bs)
 }
 
 func (db *sqlite3) SupportInsertMany() bool {
