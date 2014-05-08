@@ -590,12 +590,32 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 					continue
 				}
 				if strings.ToUpper(tags[0]) == "EXTENDS" {
-					fieldValue = reflect.Indirect(fieldValue)
+
+					//fieldValue = reflect.Indirect(fieldValue)
+					//fmt.Println("----", fieldValue.Kind())
 					if fieldValue.Kind() == reflect.Struct {
 						//parentTable := mappingTable(fieldType, tableMapper, colMapper, dialect, tagId)
 						parentTable := engine.mapType(fieldValue)
 						for _, col := range parentTable.Columns() {
-							col.FieldName = fmt.Sprintf("%v.%v", fieldValue.Type().Name(), col.FieldName)
+							col.FieldName = fmt.Sprintf("%v.%v", t.Field(i).Name, col.FieldName)
+							//fmt.Println("---", col.FieldName)
+							table.AddColumn(col)
+						}
+
+						continue
+					} else if fieldValue.Kind() == reflect.Ptr {
+						f := fieldValue.Type().Elem()
+						if f.Kind() == reflect.Struct {
+							fieldValue = fieldValue.Elem()
+							if !fieldValue.IsValid() || fieldValue.IsNil() {
+								fieldValue = reflect.New(f).Elem()
+							}
+							//fmt.Println("00000", fieldValue)
+						}
+
+						parentTable := engine.mapType(fieldValue)
+						for _, col := range parentTable.Columns() {
+							col.FieldName = fmt.Sprintf("%v.%v", t.Field(i).Name, col.FieldName)
 							table.AddColumn(col)
 						}
 
