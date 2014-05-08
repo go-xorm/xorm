@@ -128,6 +128,8 @@ where a.object_id=object_id('` + tableName + `')`
 	if err != nil {
 		return nil, nil, err
 	}
+	defer rows.Close()
+
 	cols := make(map[string]*core.Column)
 	colSeq := make([]string, 0)
 	for rows.Next() {
@@ -183,6 +185,7 @@ func (db *mssql) GetTables() ([]*core.Table, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	tables := make([]*core.Table, 0)
 	for rows.Next() {
@@ -216,6 +219,7 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	indexes := make(map[string]*core.Index, 0)
 	for rows.Next() {
@@ -263,7 +267,7 @@ func (db *mssql) CreateTableSql(table *core.Table, tableName, storeEngine, chars
 		tableName = table.Name
 	}
 
-	sql = "IF NOT EXISTS (SELECT [name] FROM sys.tables WHERE [name] = '" + tableName + "' ) CREATE TABLE"
+	sql = "IF NOT EXISTS (SELECT [name] FROM sys.tables WHERE [name] = '" + tableName + "' ) CREATE TABLE "
 
 	sql += db.QuoteStr() + tableName + db.QuoteStr() + " ("
 
