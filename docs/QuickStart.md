@@ -139,7 +139,9 @@ Of course, you can implement IMapper to make custom naming strategy.
 
 It's idealized of using IMapper for all naming. But if table or column is not in rule, we need new method to archive.
 
-`engine.Table()` can change the database table name for struct. The struct tag `xorm:"'table_name'"` can set column name for struct field. Use a pair of single quotes to prevent confusion for column's definition in struct tag. If not in confusion, ignore single quotes.
+* If struct or pointer of struct has `TableName() string` method, the return value will be the struct's table name.
+
+* `engine.Table()` can change the database table name for struct. The struct tag `xorm:"'table_name'"` can set column name for struct field. Use a pair of single quotes to prevent confusion for column's definition in struct tag. If not in confusion, ignore single quotes.
 
 <a name="23" id="23"></a>
 ### 2.4.Column definition
