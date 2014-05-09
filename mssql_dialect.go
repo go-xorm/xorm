@@ -112,6 +112,12 @@ func (db *mssql) IndexCheckSql(tableName, idxName string) (string, []interface{}
 	return sql, args
 }*/
 
+func (db *mssql) IsColumnExist(tableName string, col *core.Column) (bool, error) {
+	query := `SELECT "COLUMN_NAME" FROM "INFORMATION_SCHEMA"."COLUMNS" WHERE "TABLE_NAME" = ? AND "COLUMN_NAME" = ?`
+
+	return db.HasRecords(query, tableName, col.Name)
+}
+
 func (db *mssql) TableCheckSql(tableName string) (string, []interface{}) {
 	args := []interface{}{}
 	sql := "select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsUserTable') = 1"
