@@ -748,7 +748,17 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 				}
 			}
 		} else {
-			sqlType := core.Type2SQLType(fieldType)
+			var sqlType core.SQLType
+			if fieldValue.CanAddr() {
+				if _, ok := fieldValue.Addr().Interface().(core.Conversion); ok {
+					sqlType = core.SQLType{core.Text, 0, 0}
+				}
+			}
+			if _, ok := fieldValue.Interface().(core.Conversion); ok {
+				sqlType = core.SQLType{core.Text, 0, 0}
+			} else {
+				sqlType = core.Type2SQLType(fieldType)
+			}
 			col = core.NewColumn(engine.ColumnMapper.Obj2Table(t.Field(i).Name),
 				t.Field(i).Name, sqlType, sqlType.DefaultLength,
 				sqlType.DefaultLength2, true)

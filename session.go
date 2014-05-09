@@ -1469,9 +1469,12 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 				}
 			}
 
-			if structConvert, ok := fieldValue.Interface().(core.Conversion); ok {
+			if _, ok := fieldValue.Interface().(core.Conversion); ok {
 				if data, err := value2Bytes(&rawValue); err == nil {
-					structConvert.FromDB(data)
+					if fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
+						fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
+					}
+					fieldValue.Interface().(core.Conversion).FromDB(data)
 				} else {
 					session.Engine.LogError(err)
 				}
