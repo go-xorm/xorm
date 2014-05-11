@@ -960,7 +960,7 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 	if columnStr == "" {
 		columnStr = statement.genColumnStr()
 	}
-
+	statement.attachInSql() //[SWH|+]
 	return statement.genSelectSql(columnStr), append(statement.Params, statement.BeanArgs...)
 }
 
