@@ -960,7 +960,8 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 	if columnStr == "" {
 		columnStr = statement.genColumnStr()
 	}
-
+	
+	statement.attachInSql() // !admpub!  fix bug:Iterate func missing "... IN (...)"
 	return statement.genSelectSql(columnStr), append(statement.Params, statement.BeanArgs...)
 }
 
