@@ -3,6 +3,7 @@ package xorm
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -56,24 +57,20 @@ func structName(v reflect.Type) string {
 }
 
 func sliceEq(left, right []string) bool {
-	for _, l := range left {
-		var find bool
-		for _, r := range right {
-			if l == r {
-				find = true
-				break
-			}
-		}
-		if !find {
+	if len(left) != len(right) {
+		return false
+	}
+	sort.Sort(sort.StringSlice(left))
+	sort.Sort(sort.StringSlice(right))
+	for i := 0; i < len(left); i++ {
+		if left[i] != right[i] {
 			return false
 		}
 	}
-
 	return true
 }
 
 func value2Bytes(rawValue *reflect.Value) (data []byte, err error) {
-
 	aa := reflect.TypeOf((*rawValue).Interface())
 	vv := reflect.ValueOf((*rawValue).Interface())
 

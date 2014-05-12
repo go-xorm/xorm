@@ -1442,13 +1442,13 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 		return err
 	}
 
-	b, hasBeforeSet := bean.(BeforeSetProcessor)
+	if b, hasBeforeSet := bean.(BeforeSetProcessor); hasBeforeSet {
+		for ii, key := range fields {
+			b.BeforeSet(key, Cell(scanResults[ii].(*interface{})))
+		}
+	}
 
 	for ii, key := range fields {
-		if hasBeforeSet {
-			b.BeforeSet(fields[ii], Cell(scanResults[ii].(*interface{})))
-		}
-
 		if fieldValue := session.getField(&dataStruct, key, table); fieldValue != nil {
 			rawValue := reflect.Indirect(reflect.ValueOf(scanResults[ii]))
 
@@ -2058,6 +2058,10 @@ func (session *Session) byte2Time(col *core.Column, data []byte) (outTime time.T
 // convert a db data([]byte) to a field value
 func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value, data []byte) error {
 	if structConvert, ok := fieldValue.Addr().Interface().(core.Conversion); ok {
+		return structConvert.FromDB(data)
+	}
+
+	if structConvert, ok := fieldValue.Interface().(core.Conversion); ok {
 		return structConvert.FromDB(data)
 	}
 
