@@ -9,6 +9,15 @@ conventions when submitting patches.
 * [fork a repo](https://help.github.com/articles/fork-a-repo)
 * [creating a pull request ](https://help.github.com/articles/creating-a-pull-request)
 
+### Sign your codes with comments
+```
+// !<you github id>! your comments
+
+e.g.,
+
+// !lunny! this is comments made by lunny
+```
+
 ### Patch review
 
 Help review existing open [pull requests](https://help.github.com/articles/using-pull-requests) by commenting on the code or
