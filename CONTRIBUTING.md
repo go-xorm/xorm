@@ -17,7 +17,7 @@ proposed functionality.
 ### Bug reports
 
 We appreciate any bug reports, but especially ones with self-contained
-(doesn't depend on code outside of pq), minimal (can't be simplified
+(doesn't depend on code outside of xorm), minimal (can't be simplified
 further) test cases. It's especially helpful if you can submit a pull
 request with just the failing test case (you'll probably want to
 pattern it after the tests in
