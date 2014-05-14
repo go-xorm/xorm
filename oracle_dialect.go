@@ -106,7 +106,7 @@ func (db *oracle) IsColumnExist(tableName string, col *core.Column) (bool, error
 	if rows.Next() {
 		return true, nil
 	}
-	return false, ErrNotExist
+	return false, nil
 }
 
 func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {

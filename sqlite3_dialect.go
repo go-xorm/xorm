@@ -101,7 +101,7 @@ func (db *sqlite3) IsColumnExist(tableName string, col *core.Column) (bool, erro
 	if rows.Next() {
 		return true, nil
 	}
-	return false, ErrNotExist
+	return false, nil
 }
 
 func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
