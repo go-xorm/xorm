@@ -310,7 +310,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 				} else {
 					val = data
 				}
-				continue
+				goto APPEND
 			}
 		}
 
@@ -321,7 +321,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			} else {
 				val = data
 			}
-			continue
+			goto APPEND
 		}
 
 		if fieldType.Kind() == reflect.Ptr {
@@ -440,6 +440,8 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			val = fieldValue.Interface()
 		}
 
+	APPEND:
+		//fmt.Println("==", col.Name, "==", fmt.Sprintf("%v", val))
 		args = append(args, val)
 		if col.IsPrimaryKey && engine.dialect.DBType() == "ql" {
 			continue
@@ -960,7 +962,7 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 	if columnStr == "" {
 		columnStr = statement.genColumnStr()
 	}
-	
+
 	statement.attachInSql() // !admpub!  fix bug:Iterate func missing "... IN (...)"
 	return statement.genSelectSql(columnStr), append(statement.Params, statement.BeanArgs...)
 }
