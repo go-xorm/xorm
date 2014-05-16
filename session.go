@@ -227,7 +227,7 @@ func (session *Session) StoreEngine(storeEngine string) *Session {
 	return session
 }
 
-// Method StoreEngine is only avialble charset dialect currently
+// Method Charset is only avialble mysql dialect currently
 func (session *Session) Charset(charset string) *Session {
 	session.Statement.Charset = charset
 	return session
@@ -718,7 +718,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 		if err != nil {
 			return err
 		}
-		// 查询数目太大，采用缓存将不是一个很好的方式。
+		// æŸ¥è¯¢æ•°ç›®å¤ªå¤§ï¼Œé‡‡ç”¨ç¼“å­˜å°†ä¸æ˜¯ä¸€ä¸ªå¾ˆå¥½çš„æ–¹å¼ã€
 		if len(resultsSlice) > 500 {
 			session.Engine.LogDebug("[xorm:cacheFind] ids length %v > 500, no cache", len(resultsSlice))
 			return ErrCacheFailed
@@ -883,7 +883,6 @@ func (session *Session) Rows(bean interface{}) (*Rows, error) {
 // are conditions. beans could be []Struct, []*Struct, map[int64]Struct
 // map[int64]*Struct
 func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
-
 	rows, err := session.Rows(bean)
 	if err != nil {
 		return err
@@ -982,24 +981,6 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	} else {
 		return false, nil
 	}
-
-	// resultsSlice, err := session.query(sqlStr, args...)
-	// if err != nil {
-	// 	return false, err
-	// }
-	// if len(resultsSlice) < 1 {
-	// 	return false, nil
-	// }
-
-	// err = session.scanMapIntoStruct(bean, resultsSlice[0])
-	// if err != nil {
-	// 	return true, err
-	// }
-	// if len(resultsSlice) == 1 {
-	// 	return true, nil
-	// } else {
-	// 	return true, errors.New("More than one record")
-	// }
 }
 
 // Count counts the records. bean's non-empty fields
@@ -1253,7 +1234,7 @@ func (session *Session) Ping() error {
 	return session.Db.Ping()
 }
 
-func (session *Session) isColumnExist(tableName, colName string) (bool, error) {
+func (session *Session) isColumnExist(tableName string, col *core.Column) (bool, error) {
 	err := session.newDb()
 	if err != nil {
 		return false, err
@@ -1262,9 +1243,10 @@ func (session *Session) isColumnExist(tableName, colName string) (bool, error) {
 	if session.IsAutoClose {
 		defer session.Close()
 	}
-	sqlStr, args := session.Engine.dialect.ColumnCheckSql(tableName, colName)
-	results, err := session.query(sqlStr, args...)
-	return len(results) > 0, err
+	return session.Engine.dialect.IsColumnExist(tableName, col)
+	//sqlStr, args := session.Engine.dialect.ColumnCheckSql(tableName, colName)
+	//results, err := session.query(sqlStr, args...)
+	//return len(results) > 0, err
 }
 
 func (session *Session) isTableExist(tableName string) (bool, error) {
@@ -1441,6 +1423,8 @@ func (session *Session) getField(dataStruct *reflect.Value, key string, table *c
 	return fieldValue
 }
 
+type Cell *interface{}
+
 func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount int, bean interface{}) error {
 	dataStruct := rValue(bean)
 	if dataStruct.Kind() != reflect.Struct {
@@ -1449,18 +1433,24 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 
 	table := session.Engine.autoMapType(dataStruct)
 
-	scanResultContainers := make([]interface{}, len(fields))
+	scanResults := make([]interface{}, len(fields))
 	for i := 0; i < len(fields); i++ {
-		var scanResultContainer interface{}
-		scanResultContainers[i] = &scanResultContainer
+		var cell interface{}
+		scanResults[i] = &cell
 	}
-	if err := rows.Scan(scanResultContainers...); err != nil {
+	if err := rows.Scan(scanResults...); err != nil {
 		return err
+	}
+
+	if b, hasBeforeSet := bean.(BeforeSetProcessor); hasBeforeSet {
+		for ii, key := range fields {
+			b.BeforeSet(key, Cell(scanResults[ii].(*interface{})))
+		}
 	}
 
 	for ii, key := range fields {
 		if fieldValue := session.getField(&dataStruct, key, table); fieldValue != nil {
-			rawValue := reflect.Indirect(reflect.ValueOf(scanResultContainers[ii]))
+			rawValue := reflect.Indirect(reflect.ValueOf(scanResults[ii]))
 
 			//if row is null then ignore
 			if rawValue.Interface() == nil {
@@ -1468,9 +1458,23 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 				continue
 			}
 
-			if structConvert, ok := fieldValue.Addr().Interface().(core.Conversion); ok {
+			if fieldValue.CanAddr() {
+				if structConvert, ok := fieldValue.Addr().Interface().(core.Conversion); ok {
+					if data, err := value2Bytes(&rawValue); err == nil {
+						structConvert.FromDB(data)
+					} else {
+						session.Engine.LogError(err)
+					}
+					continue
+				}
+			}
+
+			if _, ok := fieldValue.Interface().(core.Conversion); ok {
 				if data, err := value2Bytes(&rawValue); err == nil {
-					structConvert.FromDB(data)
+					if fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
+						fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
+					}
+					fieldValue.Interface().(core.Conversion).FromDB(data)
 				} else {
 					session.Engine.LogError(err)
 				}
@@ -2057,6 +2061,10 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 		return structConvert.FromDB(data)
 	}
 
+	if structConvert, ok := fieldValue.Interface().(core.Conversion); ok {
+		return structConvert.FromDB(data)
+	}
+
 	var v interface{}
 	key := col.Name
 	fieldType := fieldValue.Type()
@@ -2451,6 +2459,16 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 			}
 		}
 	}
+
+	if fieldConvert, ok := fieldValue.Interface().(core.Conversion); ok {
+		data, err := fieldConvert.ToDB()
+		if err != nil {
+			return 0, err
+		} else {
+			return string(data), nil
+		}
+	}
+
 	fieldType := fieldValue.Type()
 	k := fieldType.Kind()
 	if k == reflect.Ptr {
@@ -2470,24 +2488,19 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 	switch k {
 	case reflect.Bool:
 		return fieldValue.Bool(), nil
-		/*if fieldValue.Bool() {
-			return 1, nil
-		} else {
-			return 0, nil
-		}*/
 	case reflect.String:
 		return fieldValue.String(), nil
 	case reflect.Struct:
 		if fieldType == core.TimeType {
-			t := fieldValue.Interface().(time.Time)
-			if session.Engine.dialect.DBType() == core.MSSQL {
-				if t.IsZero() {
-					return nil, nil
-				}
-			}
 			switch fieldValue.Interface().(type) {
 			case time.Time:
-				tf := session.Engine.FormatTime(col.SQLType.Name, fieldValue.Interface().(time.Time))
+				t := fieldValue.Interface().(time.Time)
+				if session.Engine.dialect.DBType() == core.MSSQL {
+					if t.IsZero() {
+						return nil, nil
+					}
+				}
+				tf := session.Engine.FormatTime(col.SQLType.Name, t)
 				return tf, nil
 			default:
 				return fieldValue.Interface(), nil
@@ -2947,9 +2960,9 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		session.Statement.RefTable = table
 
 		if session.Statement.ColumnStr == "" {
-			colNames, args = buildConditions(session.Engine, table, bean, false, false,
+			colNames, args = buildUpdates(session.Engine, table, bean, false, false,
 				false, false, session.Statement.allUseBool, session.Statement.useAllCols,
-				session.Statement.mustColumnMap)
+				session.Statement.mustColumnMap, true)
 		} else {
 			colNames, args, err = genCols(table, session, bean, true, true)
 			if err != nil {
@@ -3003,11 +3016,12 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	if condition == "" {
 		if len(condiColNames) > 0 {
-			condition = fmt.Sprintf("%v", strings.Join(condiColNames, " AND "))
+			condition = fmt.Sprintf("%v", strings.Join(condiColNames, " "+session.Engine.Dialect().AndStr()+" "))
 		}
 	} else {
 		if len(condiColNames) > 0 {
-			condition = fmt.Sprintf("(%v) AND (%v)", condition, strings.Join(condiColNames, " AND "))
+			condition = fmt.Sprintf("(%v) %v (%v)", condition,
+				session.Engine.Dialect().AndStr(), strings.Join(condiColNames, " "+session.Engine.Dialect().AndStr()+" "))
 		}
 	}
 
@@ -3017,7 +3031,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	var verValue *reflect.Value
 	if table.Version != "" && session.Statement.checkVersion {
 		if condition != "" {
-			condition = fmt.Sprintf("WHERE (%v) AND %v = ?", condition,
+			condition = fmt.Sprintf("WHERE (%v) %v %v = ?", condition, session.Engine.Dialect().AndStr(),
 				session.Engine.Quote(table.Version))
 		} else {
 			condition = fmt.Sprintf("WHERE %v = ?", session.Engine.Quote(table.Version))
@@ -3025,7 +3039,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		inSql, inArgs = session.Statement.genInSql()
 		if len(inSql) > 0 {
 			if condition != "" {
-				condition += " AND " + inSql
+				condition += " " + session.Engine.Dialect().AndStr() + " " + inSql
 			} else {
 				condition = "WHERE " + inSql
 			}
@@ -3051,7 +3065,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		inSql, inArgs = session.Statement.genInSql()
 		if len(inSql) > 0 {
 			if condition != "" {
-				condition += " AND " + inSql
+				condition += " " + session.Engine.Dialect().AndStr() + " " + inSql
 			} else {
 				condition = "WHERE " + inSql
 			}
@@ -3196,20 +3210,21 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		session.Statement.mustColumnMap)
 
 	var condition = ""
+	var andStr = session.Engine.dialect.AndStr()
 
 	session.Statement.processIdParam()
 	if session.Statement.WhereStr != "" {
 		condition = session.Statement.WhereStr
 		if len(colNames) > 0 {
-			condition += " AND " + strings.Join(colNames, " AND ")
+			condition += " " + andStr + " " + strings.Join(colNames, " "+andStr+" ")
 		}
 	} else {
-		condition = strings.Join(colNames, " AND ")
+		condition = strings.Join(colNames, " "+andStr+" ")
 	}
 	inSql, inArgs := session.Statement.genInSql()
 	if len(inSql) > 0 {
 		if len(condition) > 0 {
-			condition += " AND "
+			condition += " " + andStr + " "
 		}
 		condition += inSql
 		args = append(args, inArgs...)
@@ -3314,7 +3329,7 @@ func genCols(table *core.Table, session *Session, bean interface{}, useCol bool,
 		}
 
 		if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
-			args = append(args, time.Now())
+			args = append(args, session.Engine.NowTime(col.SQLType.Name))
 		} else if col.IsVersion && session.Statement.checkVersion {
 			args = append(args, 1)
 		} else {

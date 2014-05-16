@@ -9,6 +9,15 @@ conventions when submitting patches.
 * [fork a repo](https://help.github.com/articles/fork-a-repo)
 * [creating a pull request ](https://help.github.com/articles/creating-a-pull-request)
 
+### Sign your codes with comments
+```
+// !<you github id>! your comments
+
+e.g.,
+
+// !lunny! this is comments made by lunny
+```
+
 ### Patch review
 
 Help review existing open [pull requests](https://help.github.com/articles/using-pull-requests) by commenting on the code or
@@ -17,7 +26,7 @@ proposed functionality.
 ### Bug reports
 
 We appreciate any bug reports, but especially ones with self-contained
-(doesn't depend on code outside of pq), minimal (can't be simplified
+(doesn't depend on code outside of xorm), minimal (can't be simplified
 further) test cases. It's especially helpful if you can submit a pull
 request with just the failing test case (you'll probably want to
 pattern it after the tests in

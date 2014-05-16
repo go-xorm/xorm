@@ -58,7 +58,7 @@ engine, err = xorm.NewEngine("sqlite3", "./test.db")
 defer engine.Close()
 ```
 
-Generally, you can only create one engine. Engine supports run on go rutines.
+You can create many engines for different databases.Generally, you just need create only one engine. Engine supports run on go routines.
 
 xorm supports four drivers now:
 
@@ -128,23 +128,25 @@ engine.SetColumnMapper(SnakeMapper{})
 <a name="22" id="22"></a>
 ### 2.2.Prefix mapping, Suffix Mapping and Cache Mapping
 
-* 通过`engine.NewPrefixMapper(SnakeMapper{}, "prefix")`可以在SnakeMapper的基础上在命名中添加统一的前缀，当然也可以把SnakeMapper{}换成SameMapper或者你自定义的Mapper。
-* 通过`engine.NewSufffixMapper(SnakeMapper{}, "suffix")`可以在SnakeMapper的基础上在命名中添加统一的后缀，当然也可以把SnakeMapper{}换成SameMapper或者你自定义的Mapper。
-* 通过`eneing.NewCacheMapper(SnakeMapper{})`可以起到在内存中缓存曾经映射过的命名映射。
+* `engine.NewPrefixMapper(SnakeMapper{}, "prefix")` can add prefix string when naming based on SnakeMapper or SameMapper, or you custom Mapper.
+* `engine.NewPrefixMapper(SnakeMapper{}, "suffix")` can add suffix string when naming based on SnakeMapper or SameMapper, or you custom Mapper.
+* `engine.NewCacheMapper(SnakeMapper{})` add naming Mapper for memory cache.
 
-当然，如果你使用了别的命名规则映射方案，也可以自己实现一个IMapper。
+Of course, you can implement IMapper to make custom naming strategy.
 
 <a name="22" id="22"></a>
 ### 2.3.Tag mapping
 
-如果所有的命名都是按照IMapper的映射来操作的，那当然是最理想的。但是如果碰到某个表名或者某个字段名跟映射规则不匹配时，我们就需要别的机制来改变。
+It's idealized of using IMapper for all naming. But if table or column is not in rule, we need new method to archive.
 
-通过`engine.Table()`方法可以改变struct对应的数据库表的名称，通过sturct中field对应的Tag中使用`xorm:"'table_name'"`可以使该field对应的Column名称为指定名称。这里使用两个单引号将Column名称括起来是为了防止名称冲突，因为我们在Tag中还可以对这个Column进行更多的定义。如果名称不冲突的情况，单引号也可以不使用。
+* If struct or pointer of struct has `TableName() string` method, the return value will be the struct's table name.
+
+* `engine.Table()` can change the database table name for struct. The struct tag `xorm:"'table_name'"` can set column name for struct field. Use a pair of single quotes to prevent confusion for column's definition in struct tag. If not in confusion, ignore single quotes.
 
 <a name="23" id="23"></a>
-### 2.4.Column defenition
+### 2.4.Column definition
 
-我们在field对应的Tag中对Column的一些属性进行定义，定义的方法基本和我们写SQL定义表结构类似，比如：
+Struct tag defines something for column as basic sql concepts, such as :
 
 ```
 type User struct {
@@ -153,9 +155,9 @@ type User struct {
 }
 ```
 
-For different DBMS, data types对于不同的数据库系统，数据类型其实是有些差异的。因此xorm中对数据类型有自己的定义，基本的原则是尽量兼容各种数据库的字段类型，具体的字段对应关系可以查看[字段类型对应表](https://github.com/go-xorm/xorm/blob/master/docs/COLUMNTYPE.md)。
+Data types are different in different DBMS. So xorm makes own data types definition to keep compatible. Details is in document [Column Types](https://github.com/go-xorm/xorm/blob/master/docs/COLUMNTYPE.md).
 
-具体的映射规则如下，另Tag中的关键字均不区分大小写，字段名区分大小写：
+The following table is field mapping rules, the keyword is not case sensitive except column name：
 
 <table>
     <tr>
@@ -165,7 +167,7 @@ For different DBMS, data types对于不同的数据库系统，数据类型其�
         <td>pk</td><td>If column is Primary Key</td>
     </tr>
     <tr>
-        <td>当前支持30多种字段类型，详情参见 [字段类型](https://github.com/go-xorm/xorm/blob/master/docs/COLUMNTYPE.md)</td><td>字段类型</td>
+        <td>support over 30 kinds of column types, details in [Column Types](https://github.com/go-xorm/xorm/blob/master/docs/COLUMNTYPE.md)</td><td>column type</td>
     </tr>
     <tr>
         <td>autoincr</td><td>If autoincrement column</td>
@@ -174,22 +176,22 @@ For different DBMS, data types对于不同的数据库系统，数据类型其�
         <td>[not ]null | notnull</td><td>if column could be blank</td>
     </tr>
     <tr>
-        <td>unique/unique(uniquename)</td><td>是否是唯一，如不加括号则该字段不允许重复；如加上括号，则括号中为联合唯一索引的名字，此时如果有另外一个或多个字段和本unique的uniquename相同，则这些uniquename相同的字段组成联合唯一索引</td>
+        <td>unique/unique(uniquename)</td><td>column is Unique index; if add (uniquename), the column is used for combined unique index with the field that defining same uniquename.</td>
     </tr>
     <tr>
-        <td>index/index(indexname)</td><td>是否是索引，如不加括号则该字段自身为索引，如加上括号，则括号中为联合索引的名字，此时如果有另外一个或多个字段和本index的indexname相同，则这些indexname相同的字段组成联合索引</td>
+        <td>index/index(indexname)</td><td>column is index. if add (indexname), the column is used for combined index with the field that defining same indexname.</td>
     </tr>
     <tr>
-    	<td>extends</td><td>应用于一个匿名结构体之上，表示此匿名结构体的成员也映射到数据库中</td>
+    	<td>extends</td><td>use for anonymous field, map the struct in anonymous field to database</td>
     </tr>
     <tr>
         <td>-</td><td>This field will not be mapping</td>
     </tr>
      <tr>
-        <td>-></td><td>这个Field将只写入到数据库而不从数据库读取</td>
+        <td>-></td><td>only write into database</td>
     </tr>
      <tr>
-        <td>&lt;-</td><td>这个Field将只从数据库读取，而不写入到数据库</td>
+        <td>&lt;-</td><td>only read from database</td>
     </tr>
      <tr>
         <td>created</td><td>This field will be filled in current time on insert</td>
@@ -205,16 +207,17 @@ For different DBMS, data types对于不同的数据库系统，数据类型其�
     </tr>
 </table>
 
-另外有如下几条自动映射的规则：
+Some default mapping rules：
 
-- 1.如果field名称为`Id`而且类型为`int64`的话，会被xorm视为主键，并且拥有自增属性。如果想用`Id`以外的名字做为主键名，可以在对应的Tag上加上`xorm:"pk"`来定义主键。
+- 1. If field is name of `Id` and type of `int64`, xorm makes it as auto increment primary key. If another field, use struct tag `xorm:"pk"`.
 
-- 2.string类型默认映射为varchar(255)，如果需要不同的定义，可以在tag中自定义
+- 2. String is corresponding to varchar(255).
 
-- 3.支持`type MyString string`等自定义的field，支持Slice, Map等field成员，这些成员默认存储为Text类型，并且默认将使用Json格式来序列化和反序列化。也支持数据库字段类型为Blob类型，如果是Blob类型，则先使用Json格式序列化再转成[]byte格式。当然[]byte或者[]uint8默认为Blob类型并且都以二进制方式存储。
+- 3. Support custom type as `type MyString string`，slice, map as field type. They are saving as Text column type and json-encode string. Support Blob column type with field type []byte or []uint8.
 
-- 4.实现了Conversion接口的类型或者结构体，将根据接口的转换方式在类型和数据库记录之间进行相互转换。
-```Go
+- 4. You can implement Conversion interface to define your custom mapping rule between field and database data.
+
+```
 type Conversion interface {
 	FromDB([]byte) error
 	ToDB() ([]byte, error)
@@ -222,55 +225,55 @@ type Conversion interface {
 ```
 
 <a name="30" id="30"></a>
-## 3.表结构操作
+## 3. database meta information
 
-xorm提供了一些动态获取和修改表结构的方法。对于一般的应用，很少动态修改表结构，则只需调用Sync()同步下表结构即可。
+xorm provides methods to getting and setting table schema. For less schema changing production, `engine.Sync()` is enough.
 
 <a name="31" id="31"></a>
 ## 3.1 retrieve database meta info
 
 * DBMetas()
-xorm支持获取表结构信息，通过调用`engine.DBMetas()`可以获取到所有的表的信息
+`engine.DBMetas()` returns all tables schema information.
 
 <a name="31" id="31"></a>
 ## 3.2.directly table operation
 
 * CreateTables()
-创建表使用`engine.CreateTables()`，参数为一个或多个空的对应Struct的指针。同时可用的方法有Charset()和StoreEngine()，如果对应的数据库支持，这两个方法可以在创建表时指定表的字符编码和使用的引擎。当前仅支持Mysql数据库。
+`engine.CreateTables(struct)` creates table with struct or struct pointer.
+`engine.Charset()` and `engine.StoreEngine()` can change charset or storage engine for **mysql** database.
 
 * IsTableEmpty()
-判断表是否为空，参数和CreateTables相同
+check table is empty or not.
 
 * IsTableExist()
-判断表是否存在
+check table is existed or not.
 
 * DropTables()
-删除表使用`engine.DropTables()`，参数为一个或多个空的对应Struct的指针或者表的名字。如果为string传入，则只删除对应的表，如果传入的为Struct，则删除表的同时还会删除对应的索引。
+`engine.DropTables(struct)` drops table and indexes with struct or struct pointer. `engine.DropTables(string)` only drops table except indexes.
 
 <a name="32" id="32"></a>
 ## 3.3.create indexes and uniques
 
 * CreateIndexes
-根据struct中的tag来创建索引
+create indexes with struct.
 
 * CreateUniques
-根据struct中的tag来创建唯一索引
+create unique indexes with struct.
 
 <a name="34" id="34"></a>
-## 3.4.同步数据库结构
+## 3.4.Synchronize database schema
 
-同步能够部分智能的根据结构体的变动检测表结构的变动，并自动同步。目前能够实现：
-1) 自动检测和创建表，这个检测是根据表的名字
-2）自动检测和新增表中的字段，这个检测是根据字段名
-3）自动检测和创建索引和唯一索引，这个检测是根据一个或多个字段名，而不根据索引名称
+xorm watches tables and indexes and sync schema:
+1) use table name to create or drop table
+2) use column name to alter column
+3) use the indexes definition in struct field tag to create or drop indexes.
 
-调用方法如下：
 ```Go
 err := engine.Sync(new(User))
 ```
 
 <a name="50" id="50"></a>
-## 4.插入数据
+## 4.Insert data
 
 Inserting records use Insert method. 
 
@@ -335,44 +338,43 @@ affected, err := engine.Insert(user, &questions)
 Notice: If you want to use transaction on inserting, you should use session.Begin() before calling Insert.
 
 <a name="60" id="60"></a>
-## 5.Query and count
-
-所有的查询条件不区分调用顺序，但必须在调用Get，Find，Count这三个函数之前调用。同时需要注意的一点是，在调用的参数中，所有的字符字段名均为映射后的数据库的字段名，而不是field的名字。
+## 5. Chainable APIs
 
 <a name="61" id="61"></a>
-### 5.1.查询条件方法
+### 5.1. Chainable APIs for Queries, Execusions and Aggregations
 
+Queries and Aggregations is basically formed by using `Get`, `Find`, `Count` methods, with conjunction of following chainable APIs to form conditions, grouping and ordering:
 查询和统计主要使用`Get`, `Find`, `Count`三个方法。在进行查询时可以使用多个方法来形成查询条件，条件函数如下：
 
-* Id(int64)
-传入一个PK字段的值，作为查询条件
+* Id([]interface{})
+Primary Key lookup
 
 * Where(string, …interface{})
-和Where语句中的条件基本相同，作为条件
+As SQL conditional WHERE clause
 
 * And(string, …interface{})
-和Where函数中的条件基本相同，作为条件
+Conditional AND 
 
 * Or(string, …interface{})
-和Where函数中的条件基本相同，作为条件
+Conditional OR
 
 * Sql(string, …interface{})
-执行指定的Sql语句，并把结果映射到结构体
+Custom SQL query
 
 * Asc(…string)
-指定字段名正序排序
+Ascending ordering on 1 or more fields
 
 * Desc(…string)
-指定字段名逆序排序
+Descending ordering on 1 or more fields
 
 * OrderBy(string)
-按照指定的顺序进行排序
+As SQL ORDER BY
 
 * In(string, …interface{})
-某字段在一些值中
+As SQL Conditional IN
 
 * Cols(…string)
-只查询或更新某些指定的字段，默认是查询所有映射的字段或者根据Update的第一个参数来判断更新的字段。例如：
+Explicity specify query or update columns. e.g.,:
 ```Go
 engine.Cols("age", "name").Find(&users)
 // SELECT age, name FROM user
@@ -380,55 +382,59 @@ engine.Cols("age", "name").Update(&user)
 // UPDATE user SET age=? AND name=?
 ```
 
-其中的参数"age", "name"也可以写成"age, name"，两种写法均可
-
 * Omit(...string)
-和cols相反，此函数指定排除某些指定的字段。注意：此方法和Cols方法不可同时使用
+Inverse function to Cols, to exclude specify query or update columns. Warning: Don't use with Cols()
 ```Go
-engine.Cols("age").Update(&user)
+engine.Omit("age").Update(&user)
 // UPDATE user SET name = ? AND department = ?
 ```
 
 * Distinct(…string)
-按照参数中指定的字段归类结果
+As SQL DISTINCT
 ```Go
 engine.Distinct("age", "department").Find(&users)
 // SELECT DISTINCT age, department FROM user
 ```
-注意：当开启了缓存时，此方法的调用将在当前查询中禁用缓存。因为缓存系统当前依赖Id，而此时无法获得Id
+Caution: this method will not lookup from caching store
+
 
 * Table(nameOrStructPtr interface{})
-传入表名称或者结构体指针，如果传入的是结构体指针，则按照IMapper的规则提取出表名
+Specify table name, or if struct pointer is passed into the name is extract from struct type name by IMapper conversion policy
 
 * Limit(int, …int)
-限制获取的数目，第一个参数为条数，第二个参数为可选，表示开始位置
+As SQL LIMIT with optional second param for OFFSET
 
 * Top(int)
-相当于Limit(int, 0)
+As SQL LIMIT
 
-* Join(string,string,string)
-第一个参数为连接类型，当前支持INNER, LEFT OUTER, CROSS中的一个值，第二个参数为表名，第三个参数为连接条件
+* Join(type, tableName, criteria string)
+As SQL JOIN, support
+type: either of these values [INNER, LEFT OUTER, CROSS] are supported now
+tableName: joining table name
+criteria: join criteria
 
 * GroupBy(string)
-Groupby的参数字符串
+As SQL GROUP BY
 
 * Having(string)
-Having的参数字符串
+As SQL HAVING
 
 <a name="62" id="62"></a>
-### 5.2.临时开关方法
+### 5.2. Override default behavior APIs
 
 * NoAutoTime()
-如果此方法执行，则此次生成的语句中Created和Updated字段将不自动赋值为当前时间
+No auto timestamp for Created and Updated fields for INSERT and UPDATE
 
 * NoCache()
-如果此方法执行，则此次生成的语句则在非缓存模式下执行
+Disable cache lookup
+
 
 * UseBool(...string)
-当从一个struct来生成查询条件或更新字段时，xorm会判断struct的field是否为0,"",nil，如果为以上则不当做查询条件或者更新内容。因为bool类型只有true和false两种值，因此默认所有bool类型不会作为查询条件或者更新字段。如果可以使用此方法，如果默认不传参数，则所有的bool字段都将会被使用，如果参数不为空，则参数中指定的为字段名，则这些字段对应的bool值将被使用。
+xorm's default behavior is fields with 0, "", nil, false, will not be used during query or update, use this method to explicit specify bool type fields for query or update 
+
 
 * Cascade(bool)
-是否自动关联查询field中的数据，如果struct的field也是一个struct并且映射为某个Id，则可以在查询时自动调用Get方法查询出对应的数据。
+Do cascade lookup for associations
 
 <a name="50" id="50"></a>
 ### 5.3.Get one record
@@ -495,9 +501,9 @@ err := engine.Where("age > ? or name=?)", 30, "xlw").Iterate(new(Userinfo), func
 ```
 
 <a name="66" id="66"></a>
-### 5.6.Count方法
+### 5.6.Count method usage
 
-统计数据使用`Count`方法，Count方法的参数为struct的指针并且成为查询条件。
+An ORM pointer struct is required for Count method in order to determine which table to retrieve from.
 ```Go
 user := new(User)
 total, err := engine.Where("id >?", 1).Count(user)
@@ -620,7 +626,7 @@ if err != nil {
 ```
 
 <a name="120" id="120"></a>
-## 11.缓存
+## 11.Built-in LRU memory cache provider
 
 1. Global Cache
 Xorm implements cache support. Defaultly, it's disabled. If enable it, use below code.
@@ -661,15 +667,15 @@ Cache implement theory below:
 
 <a name="130" id="130"></a>
 ## 12.xorm tool
-xorm工具提供了xorm命令，能够帮助做很多事情。
+xorm commandl line tool
 
 ### 12.1.Reverse command
-Please visit [xorm tool](https://github.com/go-xorm/xorm/tree/master/xorm)
+Please visit [xorm tool](https://github.com/go-xorm/cmd)
 
 <a name="140" id="140"></a>
 ## 13.Examples
 
-请访问[https://github.com/go-xorm/xorm/tree/master/examples](https://github.com/go-xorm/xorm/tree/master/examples)
+Please visit [https://github.com/go-xorm/xorm/tree/master/examples](https://github.com/go-xorm/xorm/tree/master/examples)
 
 <a name="150" id="150"></a>
 ## 14.Cases

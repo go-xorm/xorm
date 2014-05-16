@@ -87,10 +87,26 @@ func (db *oracle) TableCheckSql(tableName string) (string, []interface{}) {
 	return `SELECT table_name FROM user_tables WHERE table_name = ?`, args
 }
 
-func (db *oracle) ColumnCheckSql(tableName, colName string) (string, []interface{}) {
+/*func (db *oracle) ColumnCheckSql(tableName, colName string) (string, []interface{}) {
 	args := []interface{}{strings.ToUpper(tableName), strings.ToUpper(colName)}
 	return "SELECT column_name FROM USER_TAB_COLUMNS WHERE table_name = ?" +
 		" AND column_name = ?", args
+}*/
+
+func (db *oracle) IsColumnExist(tableName string, col *core.Column) (bool, error) {
+	args := []interface{}{strings.ToUpper(tableName), strings.ToUpper(col.Name)}
+	query := "SELECT column_name FROM USER_TAB_COLUMNS WHERE table_name = ?" +
+		" AND column_name = ?"
+	rows, err := db.DB().Query(query, args...)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		return true, nil
+	}
+	return false, nil
 }
 
 func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {

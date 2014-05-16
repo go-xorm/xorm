@@ -106,10 +106,16 @@ func (db *mssql) IndexCheckSql(tableName, idxName string) (string, []interface{}
 	return sql, args
 }
 
-func (db *mssql) ColumnCheckSql(tableName, colName string) (string, []interface{}) {
+/*func (db *mssql) ColumnCheckSql(tableName, colName string) (string, []interface{}) {
 	args := []interface{}{tableName, colName}
 	sql := `SELECT "COLUMN_NAME" FROM "INFORMATION_SCHEMA"."COLUMNS" WHERE "TABLE_NAME" = ? AND "COLUMN_NAME" = ?`
 	return sql, args
+}*/
+
+func (db *mssql) IsColumnExist(tableName string, col *core.Column) (bool, error) {
+	query := `SELECT "COLUMN_NAME" FROM "INFORMATION_SCHEMA"."COLUMNS" WHERE "TABLE_NAME" = ? AND "COLUMN_NAME" = ?`
+
+	return db.HasRecords(query, tableName, col.Name)
 }
 
 func (db *mssql) TableCheckSql(tableName string) (string, []interface{}) {
@@ -128,6 +134,8 @@ where a.object_id=object_id('` + tableName + `')`
 	if err != nil {
 		return nil, nil, err
 	}
+	defer rows.Close()
+
 	cols := make(map[string]*core.Column)
 	colSeq := make([]string, 0)
 	for rows.Next() {
@@ -183,6 +191,7 @@ func (db *mssql) GetTables() ([]*core.Table, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	tables := make([]*core.Table, 0)
 	for rows.Next() {
@@ -211,17 +220,19 @@ INNER   JOIN SYS.COLUMNS C  ON IXS.OBJECT_ID=C.OBJECT_ID
 AND IXCS.COLUMN_ID=C.COLUMN_ID
 WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 `
+
 	rows, err := db.DB().Query(s, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	indexes := make(map[string]*core.Index, 0)
 	for rows.Next() {
 		var indexType int
 		var indexName, colName, isUnique string
 
-		err = rows.Scan(&indexName, &colName, &isUnique, nil)
+		err = rows.Scan(&indexName, &colName, &isUnique)
 		if err != nil {
 			return nil, err
 		}
@@ -262,7 +273,7 @@ func (db *mssql) CreateTableSql(table *core.Table, tableName, storeEngine, chars
 		tableName = table.Name
 	}
 
-	sql = "IF NOT EXISTS (SELECT [name] FROM sys.tables WHERE [name] = '" + tableName + "' ) CREATE TABLE"
+	sql = "IF NOT EXISTS (SELECT [name] FROM sys.tables WHERE [name] = '" + tableName + "' ) CREATE TABLE "
 
 	sql += db.QuoteStr() + tableName + db.QuoteStr() + " ("
 
