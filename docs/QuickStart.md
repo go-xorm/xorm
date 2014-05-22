@@ -224,6 +224,8 @@ type Conversion interface {
 }
 ```
 
+- 5. If one struct has a Conversion field, so we need set an implementation to the field before get data from database. We can implement `BeforeSet(name string, cell xorm.Cell)` on struct to do this. For example: [testConversion](https://github.com/go-xorm/tests/blob/master/base.go#L1826)
+
 <a name="30" id="30"></a>
 ## 3. database meta information
 
@@ -510,7 +512,7 @@ total, err := engine.Where("id >?", 1).Count(user)
 ```
 
 <a name="70" id="70"></a>
-## 6.更新数据
+## 6.Update
     
 更新数据使用`Update`方法，Update方法的第一个参数为需要更新的内容，可以为一个结构体指针或者一个Map[string]interface{}类型。当传入的为结构体指针时，只有非空和0的field才会被作为更新的字段。当传入的为Map类型时，key为数据库Column的名字，value为要更新的内容。
 

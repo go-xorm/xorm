@@ -224,6 +224,8 @@ type Conversion interface {
 }
 ```
 
+- 5.如果一个结构体包含一个Conversion的接口类型，那么在获取数据时，必须要预先设置一个实现此接口的struct或者struct的指针。此时可以在此struct中实现`BeforeSet(name string, cell xorm.Cell)`方法来进行预先给Conversion赋值。例子参见 [testConversion](https://github.com/go-xorm/tests/blob/master/base.go#L1826)
+
 <a name="24" id="24"></a>
 ### 2.4.Go与字段类型对应表
 
