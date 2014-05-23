@@ -590,15 +590,10 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 					continue
 				}
 				if strings.ToUpper(tags[0]) == "EXTENDS" {
-
-					//fieldValue = reflect.Indirect(fieldValue)
-					//fmt.Println("----", fieldValue.Kind())
 					if fieldValue.Kind() == reflect.Struct {
-						//parentTable := mappingTable(fieldType, tableMapper, colMapper, dialect, tagId)
 						parentTable := engine.mapType(fieldValue)
 						for _, col := range parentTable.Columns() {
 							col.FieldName = fmt.Sprintf("%v.%v", t.Field(i).Name, col.FieldName)
-							//fmt.Println("---", col.FieldName)
 							table.AddColumn(col)
 						}
 
@@ -610,7 +605,6 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 							if !fieldValue.IsValid() || fieldValue.IsNil() {
 								fieldValue = reflect.New(f).Elem()
 							}
-							//fmt.Println("00000", fieldValue)
 						}
 
 						parentTable := engine.mapType(fieldValue)
@@ -732,7 +726,7 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 				if col.Length2 == 0 {
 					col.Length2 = col.SQLType.DefaultLength2
 				}
-				//fmt.Println("======", col)
+
 				if col.Name == "" {
 					col.Name = engine.ColumnMapper.Obj2Table(t.Field(i).Name)
 				}
