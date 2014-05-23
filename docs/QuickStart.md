@@ -732,6 +732,8 @@ type User struct {
 
     //assert(User.Userinfo.Id != 0 && User.Userdetail.Id != 0)
 
+Please notice that Userinfo field on User should be before Userdetail because of the order on join SQL stsatement. If the order is wrong, the same name field may be set a wrong value.
+
 Of course, If join statment is very long, you could directly use Sql():
 
     err := engine.Sql("select * from userinfo, userdetail where userinfo.detail_id = userdetail.id").Find(&users)

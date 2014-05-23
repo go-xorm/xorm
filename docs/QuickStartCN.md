@@ -853,6 +853,8 @@ money float64 `xorm:"Numeric"`
 	var users = make([]User, 0)
 	err := engine.Table(&Userinfo{}).Join("LEFT", "userdetail", "userinfo.detail_id = userdetail.id").Find(&users)
 
+请注意这里的Userinfo在User中的位置必须在Userdetail的前面，因为他在join语句中的顺序在userdetail前面。如果顺序不对，那么对于同名的列，有可能会赋值出错。
+
 当然，如果Join语句比较复杂，我们也可以直接用Sql函数
 
 	err := engine.Sql("select * from userinfo, userdetail where userinfo.detail_id = userdetail.id").Find(&users)
