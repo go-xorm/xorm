@@ -31,6 +31,7 @@ type Engine struct {
 	mutex  *sync.RWMutex
 	Cacher core.Cacher
 
+	ShowInfo  bool
 	ShowSQL   bool
 	ShowErr   bool
 	ShowDebug bool
@@ -190,7 +191,9 @@ func (engine *Engine) LogError(contents ...interface{}) {
 
 // logging error
 func (engine *Engine) LogInfo(contents ...interface{}) {
-	engine.Logger.Info(fmt.Sprintln(contents...))
+	if engine.ShowInfo {
+		engine.Logger.Info(fmt.Sprintln(contents...))
+	}
 }
 
 // logging debug
@@ -325,10 +328,19 @@ func (engine *Engine) DumpAll(w io.Writer) error {
 				} else if col.SQLType.IsText() || col.SQLType.IsTime() {
 					var v = fmt.Sprintf("%s", d)
 					temp += ", '" + strings.Replace(v, "'", "''", -1) + "'"
-				} else if col.SQLType.IsBlob() /*reflect.TypeOf(d).Kind() == reflect.Slice*/ {
-					temp += fmt.Sprintf(", %s", engine.dialect.FormatBytes(d.([]byte)))
+				} else if col.SQLType.IsBlob() /**/ {
+					if reflect.TypeOf(d).Kind() == reflect.Slice {
+						temp += fmt.Sprintf(", %s", engine.dialect.FormatBytes(d.([]byte)))
+					} else if reflect.TypeOf(d).Kind() == reflect.String {
+						temp += fmt.Sprintf(", '%s'", d.(string))
+					}
 				} else {
-					temp += fmt.Sprintf(", %s", d)
+					s := fmt.Sprintf("%v", d)
+					if strings.Contains(s, ":") || strings.Contains(s, "-") {
+						temp += fmt.Sprintf(", '%s'", s)
+					} else {
+						temp += fmt.Sprintf(", %s", s)
+					}
 				}
 			}
 			_, err = io.WriteString(w, temp[2:]+");\n\n")
@@ -1160,17 +1172,20 @@ func (engine *Engine) Count(bean interface{}) (int64, error) {
 }
 
 // Import SQL DDL file
-func (engine *Engine) Import(ddlPath string) ([]sql.Result, error) {
-
+func (engine *Engine) ImportFile(ddlPath string) ([]sql.Result, error) {
 	file, err := os.Open(ddlPath)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
+	return engine.Import(file)
+}
 
+// Import SQL DDL file
+func (engine *Engine) Import(r io.Reader) ([]sql.Result, error) {
 	var results []sql.Result
 	var lastError error
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(r)
 
 	semiColSpliter := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		if atEOF && len(data) == 0 {
@@ -1191,7 +1206,7 @@ func (engine *Engine) Import(ddlPath string) ([]sql.Result, error) {
 
 	session := engine.NewSession()
 	defer session.Close()
-	err = session.newDb()
+	err := session.newDb()
 	if err != nil {
 		return results, err
 	}
