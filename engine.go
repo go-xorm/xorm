@@ -134,8 +134,8 @@ func (engine *Engine) NoCascade() *Session {
 // Set a table use a special cacher
 func (engine *Engine) MapCacher(bean interface{}, cacher core.Cacher) {
 	v := rValue(bean)
-	engine.autoMapType(v)
-	engine.Tables[v.Type()].Cacher = cacher
+	tb := engine.autoMapType(v)
+	tb.Cacher = cacher
 }
 
 // NewDB provides an interface to operate database directly
@@ -483,7 +483,7 @@ func (engine *Engine) Desc(colNames ...string) *Session {
 	return session.Desc(colNames...)
 }
 
-// Method Asc will generate "ORDER BY column1 DESC, column2 Asc"
+// Method Asc will generate "ORDER BY column1,column2 Asc"
 // This method can chainable use.
 //
 //        engine.Desc("name").Asc("age").Find(&users)
@@ -561,6 +561,7 @@ func (engine *Engine) newTable() *core.Table {
 }
 
 func (engine *Engine) mapType(v reflect.Value) *core.Table {
+	fmt.Println("has", v.NumField(), "fields")
 	t := v.Type()
 	table := engine.newTable()
 	method := v.MethodByName("TableName")
@@ -587,10 +588,12 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 
 	for i := 0; i < t.NumField(); i++ {
 		tag := t.Field(i).Tag
+
 		ormTagStr := tag.Get(engine.TagIdentifier)
 		var col *core.Column
 		fieldValue := v.Field(i)
 		fieldType := fieldValue.Type()
+		fmt.Println(table.Name, "===", t.Field(i).Name)
 
 		if ormTagStr != "" {
 			col = &core.Column{FieldName: t.Field(i).Name, Nullable: true, IsPrimaryKey: false,
@@ -764,6 +767,7 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 				sqlType = core.SQLType{core.Text, 0, 0}
 			} else {
 				sqlType = core.Type2SQLType(fieldType)
+				fmt.Println(t.Field(i).Name, "...", sqlType)
 			}
 			col = core.NewColumn(engine.ColumnMapper.Obj2Table(t.Field(i).Name),
 				t.Field(i).Name, sqlType, sqlType.DefaultLength,

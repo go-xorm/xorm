@@ -264,6 +264,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 
 	colNames := make([]string, 0)
 	var args = make([]interface{}, 0)
+	fmt.Println(table.ColumnsSeq())
 	for _, col := range table.Columns() {
 		if !includeVersion && col.IsVersion {
 			continue
@@ -281,6 +282,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 		if engine.dialect.DBType() == core.MSSQL && col.SQLType.Name == core.Text {
 			continue
 		}
+		fmt.Println("===", col.Name)
 		fieldValuePtr, err := col.ValueOf(bean)
 		if err != nil {
 			engine.LogError(err)
@@ -291,6 +293,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 		fieldType := reflect.TypeOf(fieldValue.Interface())
 
 		requiredField := useAllCols
+		includeNil := useAllCols
 		if b, ok := mustColumnMap[strings.ToLower(col.Name)]; ok {
 			if b {
 				requiredField = true
@@ -323,9 +326,11 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			goto APPEND
 		}
 
+		fmt.Println(col.Name, "is", fieldValue)
 		if fieldType.Kind() == reflect.Ptr {
 			if fieldValue.IsNil() {
 				if includeNil {
+					fmt.Println(col.Name, "is nil")
 					args = append(args, nil)
 					colNames = append(colNames, fmt.Sprintf("%v=?", engine.Quote(col.Name)))
 				}
