@@ -26,6 +26,10 @@ type Session struct {
 	TransType              string
 	IsAutoClose            bool
 
+	// Automatically reset the statement after operations that execute a SQL
+	// query such as Count(), Find(), Get(), ...
+	AutoResetStatement bool
+
 	// !nashtsai! storing these beans due to yet committed tx
 	afterInsertBeans map[interface{}]*[]func(interface{})
 	afterUpdateBeans map[interface{}]*[]func(interface{})
@@ -45,6 +49,7 @@ func (session *Session) Init() {
 	session.IsAutoCommit = true
 	session.IsCommitedOrRollbacked = false
 	session.IsAutoClose = false
+	session.AutoResetStatement = true
 
 	// !nashtsai! is lazy init better?
 	session.afterInsertBeans = make(map[interface{}]*[]func(interface{}), 0)
@@ -66,6 +71,12 @@ func (session *Session) Close() {
 		session.Tx = nil
 		session.stmtCache = nil
 		session.Init()
+	}
+}
+
+func (session *Session) resetStatement() {
+	if session.AutoResetStatement {
+		session.Statement.Init()
 	}
 }
 
@@ -445,7 +456,7 @@ func (session *Session) Exec(sqlStr string, args ...interface{}) (sql.Result, er
 	if err != nil {
 		return nil, err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -461,7 +472,7 @@ func (session *Session) CreateTable(bean interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -477,7 +488,7 @@ func (session *Session) CreateIndexes(bean interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -500,7 +511,7 @@ func (session *Session) CreateUniques(bean interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -528,7 +539,7 @@ func (session *Session) createAll() error {
 	if err != nil {
 		return err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -549,7 +560,7 @@ func (session *Session) DropIndexes(bean interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -571,13 +582,13 @@ func (session *Session) DropTable(bean interface{}) error {
 		return err
 	}
 
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
 
 	t := reflect.Indirect(reflect.ValueOf(bean)).Type()
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if t.Kind() == reflect.String {
 		session.Statement.AltTableName = bean.(string)
 	} else if t.Kind() == reflect.Struct {
@@ -928,7 +939,7 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 		return false, err
 	}
 
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -993,7 +1004,7 @@ func (session *Session) Count(bean interface{}) (int64, error) {
 		return 0, err
 	}
 
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -1032,7 +1043,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	if err != nil {
 		return err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -1228,7 +1239,7 @@ func (session *Session) Ping() error {
 	if err != nil {
 		return err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -1241,7 +1252,7 @@ func (session *Session) isColumnExist(tableName string, col *core.Column) (bool,
 	if err != nil {
 		return false, err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -1256,7 +1267,7 @@ func (session *Session) isTableExist(tableName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -1270,7 +1281,7 @@ func (session *Session) isIndexExist(tableName, idxName string, unique bool) (bo
 	if err != nil {
 		return false, err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -1309,7 +1320,7 @@ func (session *Session) addColumn(colName string) error {
 	if err != nil {
 		return err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -1325,7 +1336,7 @@ func (session *Session) addIndex(tableName, idxName string) error {
 	if err != nil {
 		return err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -1341,7 +1352,7 @@ func (session *Session) addUnique(tableName, uqeName string) error {
 	if err != nil {
 		return err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -1357,7 +1368,7 @@ func (session *Session) dropAll() error {
 	if err != nil {
 		return err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -1782,7 +1793,7 @@ func (session *Session) Query(sqlStr string, paramStr ...interface{}) (resultsSl
 	if err != nil {
 		return nil, err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -1798,7 +1809,7 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -1985,7 +1996,7 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -2749,7 +2760,7 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -2935,7 +2946,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	if err != nil {
 		return 0, err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
@@ -3010,7 +3021,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	var condition = ""
 	session.Statement.processIdParam()
 	st := session.Statement
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if st.WhereStr != "" {
 		condition = fmt.Sprintf("%v", st.WhereStr)
 	}
@@ -3188,7 +3199,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer session.Statement.Init()
+	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
