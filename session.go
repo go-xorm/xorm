@@ -3344,6 +3344,7 @@ func genCols(table *core.Table, session *Session, bean interface{}, useCol bool,
 			args = append(args, session.Engine.NowTime(col.SQLType.Name))
 		} else if col.IsVersion && session.Statement.checkVersion {
 			args = append(args, 1)
+			//} else if !col.DefaultIsEmpty {
 		} else {
 			arg, err := session.value2Interface(col, fieldValue)
 			if err != nil {

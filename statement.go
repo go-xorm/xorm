@@ -281,6 +281,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 		if engine.dialect.DBType() == core.MSSQL && col.SQLType.Name == core.Text {
 			continue
 		}
+
 		fieldValuePtr, err := col.ValueOf(bean)
 		if err != nil {
 			engine.LogError(err)
@@ -291,6 +292,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 		fieldType := reflect.TypeOf(fieldValue.Interface())
 
 		requiredField := useAllCols
+		includeNil := useAllCols
 		if b, ok := mustColumnMap[strings.ToLower(col.Name)]; ok {
 			if b {
 				requiredField = true

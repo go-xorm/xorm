@@ -134,8 +134,8 @@ func (engine *Engine) NoCascade() *Session {
 // Set a table use a special cacher
 func (engine *Engine) MapCacher(bean interface{}, cacher core.Cacher) {
 	v := rValue(bean)
-	engine.autoMapType(v)
-	engine.Tables[v.Type()].Cacher = cacher
+	tb := engine.autoMapType(v)
+	tb.Cacher = cacher
 }
 
 // NewDB provides an interface to operate database directly
@@ -483,7 +483,7 @@ func (engine *Engine) Desc(colNames ...string) *Session {
 	return session.Desc(colNames...)
 }
 
-// Method Asc will generate "ORDER BY column1 DESC, column2 Asc"
+// Method Asc will generate "ORDER BY column1,column2 Asc"
 // This method can chainable use.
 //
 //        engine.Desc("name").Asc("age").Find(&users)
@@ -587,6 +587,7 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 
 	for i := 0; i < t.NumField(); i++ {
 		tag := t.Field(i).Tag
+
 		ormTagStr := tag.Get(engine.TagIdentifier)
 		var col *core.Column
 		fieldValue := v.Field(i)
@@ -1005,6 +1006,138 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 					}
 				} else {
 					return errors.New("unknow index type")
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (engine *Engine) Sync2(beans ...interface{}) error {
+	tables, err := engine.DBMetas()
+	if err != nil {
+		return err
+	}
+
+	for _, bean := range beans {
+		table := engine.autoMap(bean)
+
+		var oriTable *core.Table
+		for _, tb := range tables {
+			if tb.Name == table.Name {
+				oriTable = tb
+				break
+			}
+		}
+
+		if oriTable == nil {
+			err = engine.CreateTables(bean)
+			if err != nil {
+				return err
+			}
+
+			err = engine.CreateUniques(bean)
+			if err != nil {
+				return err
+			}
+
+			err = engine.CreateIndexes(bean)
+			if err != nil {
+				return err
+			}
+		} else {
+			for _, col := range table.Columns() {
+				var oriCol *core.Column
+				for _, col2 := range oriTable.Columns() {
+					if col.Name == col2.Name {
+						oriCol = col2
+						break
+					}
+				}
+
+				if oriCol != nil {
+					if col.SQLType.Name != oriCol.SQLType.Name {
+						if col.SQLType.Name == core.Text &&
+							oriCol.SQLType.Name == core.Varchar {
+							// currently only support mysql
+							if engine.dialect.DBType() == core.MYSQL {
+								_, err = engine.Exec(engine.dialect.ModifyColumnSql(table.Name, col))
+							} else {
+								engine.LogWarn("Table %s Column %s Old data type is %s, new data type is %s",
+									table.Name, col.Name, oriCol.SQLType.Name, col.SQLType.Name)
+							}
+						} else {
+							engine.LogWarn("Table %s Column %s Old data type is %s, new data type is %s",
+								table.Name, col.Name, oriCol.SQLType.Name, col.SQLType.Name)
+						}
+					}
+					if col.Default != oriCol.Default {
+						engine.LogWarn("Table %s Column %s Old default is %s, new default is %s",
+							table.Name, col.Name, oriCol.Default, col.Default)
+					}
+					if col.Nullable != oriCol.Nullable {
+						engine.LogWarn("Table %s Column %s Old nullable is %v, new nullable is %v",
+							table.Name, col.Name, oriCol.Nullable, col.Nullable)
+					}
+				} else {
+					session := engine.NewSession()
+					session.Statement.RefTable = table
+					defer session.Close()
+					err = session.addColumn(col.Name)
+				}
+				if err != nil {
+					return err
+				}
+			}
+
+			var foundIndexNames = make(map[string]bool)
+
+			for name, index := range table.Indexes {
+				var oriIndex *core.Index
+				for name2, index2 := range oriTable.Indexes {
+					if index.Equal(index2) {
+						oriIndex = index2
+						foundIndexNames[name2] = true
+						break
+					}
+				}
+
+				if oriIndex != nil {
+					if oriIndex.Type != index.Type {
+						sql := engine.dialect.DropIndexSql(table.Name, oriIndex)
+						_, err = engine.Exec(sql)
+						if err != nil {
+							return err
+						}
+						oriIndex = nil
+					}
+				}
+
+				if oriIndex == nil {
+					if index.Type == core.UniqueType {
+						session := engine.NewSession()
+						session.Statement.RefTable = table
+						defer session.Close()
+						err = session.addUnique(table.Name, name)
+					} else if index.Type == core.IndexType {
+						session := engine.NewSession()
+						session.Statement.RefTable = table
+						defer session.Close()
+						err = session.addIndex(table.Name, name)
+					}
+					if err != nil {
+						return err
+					}
+				}
+			}
+
+			for name2, index2 := range oriTable.Indexes {
+				if _, ok := foundIndexNames[name2]; !ok {
+					sql := engine.dialect.DropIndexSql(table.Name, index2)
+					_, err = engine.Exec(sql)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		}

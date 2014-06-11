@@ -108,10 +108,28 @@ func (db *postgres) TableCheckSql(tableName string) (string, []interface{}) {
 		" AND column_name = ?", args
 }*/
 
+func (db *postgres) ModifyColumnSql(tableName string, col *core.Column) string {
+	return fmt.Sprintf("alter table %s ALTER COLUMN %s TYPE %s",
+		tableName, col.Name, db.SqlType(col))
+}
+
+func (db *postgres) DropIndexSql(tableName string, index *core.Index) string {
+	quote := db.Quote
+	//var unique string
+	var idxName string = index.Name
+	if !strings.HasPrefix(idxName, "UQE_") &&
+		!strings.HasPrefix(idxName, "IDX_") {
+		if index.Type == core.UniqueType {
+			idxName = fmt.Sprintf("UQE_%v_%v", tableName, index.Name)
+		} else {
+			idxName = fmt.Sprintf("IDX_%v_%v", tableName, index.Name)
+		}
+	}
+	return fmt.Sprintf("DROP INDEX %v", quote(idxName))
+}
+
 func (db *postgres) IsColumnExist(tableName string, col *core.Column) (bool, error) {
 	args := []interface{}{tableName, col.Name}
-
-	//query := "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = ? AND `TABLE_NAME` = ? AND `COLUMN_NAME` = ?"
 	query := "SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = $1" +
 		" AND column_name = $2"
 	rows, err := db.DB().Query(query, args...)
@@ -120,10 +138,7 @@ func (db *postgres) IsColumnExist(tableName string, col *core.Column) (bool, err
 	}
 	defer rows.Close()
 
-	if rows.Next() {
-		return true, nil
-	}
-	return false, nil
+	return rows.Next(), nil
 }
 
 func (db *postgres) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
@@ -169,11 +184,7 @@ func (db *postgres) GetColumns(tableName string) ([]string, map[string]*core.Col
 			}
 		}
 
-		if isNullable == "YES" {
-			col.Nullable = true
-		} else {
-			col.Nullable = false
-		}
+		col.Nullable = (isNullable == "YES")
 
 		switch dataType {
 		case "character varying", "character":
@@ -257,7 +268,9 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error)
 			return nil, err
 		}
 		indexName = strings.Trim(indexName, `" `)
-
+		if strings.HasSuffix(indexName, "_pkey") {
+			continue
+		}
 		if strings.HasPrefix(indexdef, "CREATE UNIQUE INDEX") {
 			indexType = core.UniqueType
 		} else {
@@ -266,9 +279,6 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error)
 		cs := strings.Split(indexdef, "(")
 		colNames = strings.Split(cs[1][0:len(cs[1])-1], ",")
 
-		if strings.HasSuffix(indexName, "_pkey") {
-			continue
-		}
 		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
 			newIdxName := indexName[5+len(tableName) : len(indexName)]
 			if newIdxName != "" {
