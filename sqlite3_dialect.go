@@ -1,6 +1,7 @@
 package xorm
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -120,6 +121,11 @@ func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Colu
 		if err != nil {
 			return nil, nil, err
 		}
+		break
+	}
+
+	if name == "" {
+		return nil, nil, errors.New("no table named " + tableName)
 	}
 
 	nStart := strings.Index(name, "(")

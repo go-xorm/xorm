@@ -31,6 +31,7 @@ type Engine struct {
 	mutex  *sync.RWMutex
 	Cacher core.Cacher
 
+	ShowInfo  bool
 	ShowSQL   bool
 	ShowErr   bool
 	ShowDebug bool
@@ -141,8 +142,8 @@ func (engine *Engine) NoCascade() *Session {
 // Set a table use a special cacher
 func (engine *Engine) MapCacher(bean interface{}, cacher core.Cacher) {
 	v := rValue(bean)
-	engine.autoMapType(v)
-	engine.Tables[v.Type()].Cacher = cacher
+	tb := engine.autoMapType(v)
+	tb.Cacher = cacher
 }
 
 // NewDB provides an interface to operate database directly
@@ -182,9 +183,9 @@ func (engine *Engine) Ping() error {
 func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
 	if engine.ShowSQL {
 		if len(sqlArgs) > 0 {
-			engine.LogInfo("[sql]", sqlStr, "[args]", sqlArgs)
+			engine.Logger.Info(fmt.Sprintln("[sql]", sqlStr, "[args]", sqlArgs))
 		} else {
-			engine.LogInfo("[sql]", sqlStr)
+			engine.Logger.Info(fmt.Sprintln("[sql]", sqlStr))
 		}
 	}
 }
@@ -198,7 +199,9 @@ func (engine *Engine) LogError(contents ...interface{}) {
 
 // logging error
 func (engine *Engine) LogInfo(contents ...interface{}) {
-	engine.Logger.Info(fmt.Sprintln(contents...))
+	if engine.ShowInfo {
+		engine.Logger.Info(fmt.Sprintln(contents...))
+	}
 }
 
 // logging debug
@@ -333,10 +336,19 @@ func (engine *Engine) DumpAll(w io.Writer) error {
 				} else if col.SQLType.IsText() || col.SQLType.IsTime() {
 					var v = fmt.Sprintf("%s", d)
 					temp += ", '" + strings.Replace(v, "'", "''", -1) + "'"
-				} else if col.SQLType.IsBlob() /*reflect.TypeOf(d).Kind() == reflect.Slice*/ {
-					temp += fmt.Sprintf(", %s", engine.dialect.FormatBytes(d.([]byte)))
+				} else if col.SQLType.IsBlob() /**/ {
+					if reflect.TypeOf(d).Kind() == reflect.Slice {
+						temp += fmt.Sprintf(", %s", engine.dialect.FormatBytes(d.([]byte)))
+					} else if reflect.TypeOf(d).Kind() == reflect.String {
+						temp += fmt.Sprintf(", '%s'", d.(string))
+					}
 				} else {
-					temp += fmt.Sprintf(", %s", d)
+					s := fmt.Sprintf("%v", d)
+					if strings.Contains(s, ":") || strings.Contains(s, "-") {
+						temp += fmt.Sprintf(", '%s'", s)
+					} else {
+						temp += fmt.Sprintf(", %s", s)
+					}
 				}
 			}
 			_, err = io.WriteString(w, temp[2:]+");\n\n")
@@ -479,7 +491,7 @@ func (engine *Engine) Desc(colNames ...string) *Session {
 	return session.Desc(colNames...)
 }
 
-// Method Asc will generate "ORDER BY column1 DESC, column2 Asc"
+// Method Asc will generate "ORDER BY column1,column2 Asc"
 // This method can chainable use.
 //
 //        engine.Desc("name").Asc("age").Find(&users)
@@ -614,6 +626,7 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 
 	for i := 0; i < t.NumField(); i++ {
 		tag := t.Field(i).Tag
+
 		ormTagStr := tag.Get(engine.TagIdentifier)
 		if !hasProcessedCacheTag {
 			cacheTagStr := tag.Get("xorm_cache")
@@ -637,15 +650,10 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 					continue
 				}
 				if strings.ToUpper(tags[0]) == "EXTENDS" {
-
-					//fieldValue = reflect.Indirect(fieldValue)
-					//fmt.Println("----", fieldValue.Kind())
 					if fieldValue.Kind() == reflect.Struct {
-						//parentTable := mappingTable(fieldType, tableMapper, colMapper, dialect, tagId)
 						parentTable := engine.mapType(fieldValue)
 						for _, col := range parentTable.Columns() {
 							col.FieldName = fmt.Sprintf("%v.%v", t.Field(i).Name, col.FieldName)
-							//fmt.Println("---", col.FieldName)
 							table.AddColumn(col)
 						}
 
@@ -657,7 +665,6 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 							if !fieldValue.IsValid() || fieldValue.IsNil() {
 								fieldValue = reflect.New(f).Elem()
 							}
-							//fmt.Println("00000", fieldValue)
 						}
 
 						parentTable := engine.mapType(fieldValue)
@@ -779,7 +786,7 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 				if col.Length2 == 0 {
 					col.Length2 = col.SQLType.DefaultLength2
 				}
-				//fmt.Println("======", col)
+
 				if col.Name == "" {
 					col.Name = engine.ColumnMapper.Obj2Table(t.Field(i).Name)
 				}
@@ -1053,6 +1060,138 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 	return nil
 }
 
+func (engine *Engine) Sync2(beans ...interface{}) error {
+	tables, err := engine.DBMetas()
+	if err != nil {
+		return err
+	}
+
+	for _, bean := range beans {
+		table := engine.autoMap(bean)
+
+		var oriTable *core.Table
+		for _, tb := range tables {
+			if tb.Name == table.Name {
+				oriTable = tb
+				break
+			}
+		}
+
+		if oriTable == nil {
+			err = engine.CreateTables(bean)
+			if err != nil {
+				return err
+			}
+
+			err = engine.CreateUniques(bean)
+			if err != nil {
+				return err
+			}
+
+			err = engine.CreateIndexes(bean)
+			if err != nil {
+				return err
+			}
+		} else {
+			for _, col := range table.Columns() {
+				var oriCol *core.Column
+				for _, col2 := range oriTable.Columns() {
+					if col.Name == col2.Name {
+						oriCol = col2
+						break
+					}
+				}
+
+				if oriCol != nil {
+					if col.SQLType.Name != oriCol.SQLType.Name {
+						if col.SQLType.Name == core.Text &&
+							oriCol.SQLType.Name == core.Varchar {
+							// currently only support mysql
+							if engine.dialect.DBType() == core.MYSQL {
+								_, err = engine.Exec(engine.dialect.ModifyColumnSql(table.Name, col))
+							} else {
+								engine.LogWarn("Table %s Column %s Old data type is %s, new data type is %s",
+									table.Name, col.Name, oriCol.SQLType.Name, col.SQLType.Name)
+							}
+						} else {
+							engine.LogWarn("Table %s Column %s Old data type is %s, new data type is %s",
+								table.Name, col.Name, oriCol.SQLType.Name, col.SQLType.Name)
+						}
+					}
+					if col.Default != oriCol.Default {
+						engine.LogWarn("Table %s Column %s Old default is %s, new default is %s",
+							table.Name, col.Name, oriCol.Default, col.Default)
+					}
+					if col.Nullable != oriCol.Nullable {
+						engine.LogWarn("Table %s Column %s Old nullable is %v, new nullable is %v",
+							table.Name, col.Name, oriCol.Nullable, col.Nullable)
+					}
+				} else {
+					session := engine.NewSession()
+					session.Statement.RefTable = table
+					defer session.Close()
+					err = session.addColumn(col.Name)
+				}
+				if err != nil {
+					return err
+				}
+			}
+
+			var foundIndexNames = make(map[string]bool)
+
+			for name, index := range table.Indexes {
+				var oriIndex *core.Index
+				for name2, index2 := range oriTable.Indexes {
+					if index.Equal(index2) {
+						oriIndex = index2
+						foundIndexNames[name2] = true
+						break
+					}
+				}
+
+				if oriIndex != nil {
+					if oriIndex.Type != index.Type {
+						sql := engine.dialect.DropIndexSql(table.Name, oriIndex)
+						_, err = engine.Exec(sql)
+						if err != nil {
+							return err
+						}
+						oriIndex = nil
+					}
+				}
+
+				if oriIndex == nil {
+					if index.Type == core.UniqueType {
+						session := engine.NewSession()
+						session.Statement.RefTable = table
+						defer session.Close()
+						err = session.addUnique(table.Name, name)
+					} else if index.Type == core.IndexType {
+						session := engine.NewSession()
+						session.Statement.RefTable = table
+						defer session.Close()
+						err = session.addIndex(table.Name, name)
+					}
+					if err != nil {
+						return err
+					}
+				}
+			}
+
+			for name2, index2 := range oriTable.Indexes {
+				if _, ok := foundIndexNames[name2]; !ok {
+					sql := engine.dialect.DropIndexSql(table.Name, index2)
+					_, err = engine.Exec(sql)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func (engine *Engine) unMap(beans ...interface{}) (e error) {
 	engine.mutex.Lock()
 	defer engine.mutex.Unlock()
@@ -1213,17 +1352,20 @@ func (engine *Engine) Count(bean interface{}) (int64, error) {
 }
 
 // Import SQL DDL file
-func (engine *Engine) Import(ddlPath string) ([]sql.Result, error) {
-
+func (engine *Engine) ImportFile(ddlPath string) ([]sql.Result, error) {
 	file, err := os.Open(ddlPath)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
+	return engine.Import(file)
+}
 
+// Import SQL DDL file
+func (engine *Engine) Import(r io.Reader) ([]sql.Result, error) {
 	var results []sql.Result
 	var lastError error
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(r)
 
 	semiColSpliter := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		if atEOF && len(data) == 0 {
@@ -1244,7 +1386,7 @@ func (engine *Engine) Import(ddlPath string) ([]sql.Result, error) {
 
 	session := engine.NewSession()
 	defer session.Close()
-	err = session.newDb()
+	err := session.newDb()
 	if err != nil {
 		return results, err
 	}

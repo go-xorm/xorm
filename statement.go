@@ -277,11 +277,11 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 		if !includeAutoIncr && col.IsAutoIncrement {
 			continue
 		}
-		//
-		//fmt.Println(engine.dialect.DBType(), Text)
+
 		if engine.dialect.DBType() == core.MSSQL && col.SQLType.Name == core.Text {
 			continue
 		}
+
 		fieldValuePtr, err := col.ValueOf(bean)
 		if err != nil {
 			engine.LogError(err)
@@ -292,6 +292,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 		fieldType := reflect.TypeOf(fieldValue.Interface())
 
 		requiredField := useAllCols
+		includeNil := useAllCols
 		if b, ok := mustColumnMap[strings.ToLower(col.Name)]; ok {
 			if b {
 				requiredField = true
@@ -382,7 +383,6 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 					continue
 				}
 				val = engine.FormatTime(col.SQLType.Name, t)
-				//fmt.Println("-------", t, val, col.Name)
 			} else {
 				engine.autoMapType(fieldValue)
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
@@ -470,8 +470,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 		if !includeAutoIncr && col.IsAutoIncrement {
 			continue
 		}
-		//
-		//fmt.Println(engine.dialect.DBType(), Text)
+
 		if engine.dialect.DBType() == core.MSSQL && col.SQLType.Name == core.Text {
 			continue
 		}
@@ -555,7 +554,6 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 					continue
 				}
 				val = engine.FormatTime(col.SQLType.Name, t)
-				//fmt.Println("-------", t, val, col.Name)
 			} else {
 				engine.autoMapType(fieldValue)
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
@@ -948,8 +946,13 @@ func (s *Statement) genDropSQL() string {
 }
 
 func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) {
-	table := statement.Engine.autoMap(bean)
-	statement.RefTable = table
+	var table *core.Table
+	if statement.RefTable == nil {
+		table = statement.Engine.autoMap(bean)
+		statement.RefTable = table
+	} else {
+		table = statement.RefTable
+	}
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true, true,
 		false, true, statement.allUseBool, statement.useAllCols,
@@ -959,8 +962,14 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 	statement.BeanArgs = args
 
 	var columnStr string = statement.ColumnStr
-	if columnStr == "" {
-		columnStr = statement.genColumnStr()
+	if statement.JoinStr == "" {
+		if columnStr == "" {
+			columnStr = statement.genColumnStr()
+		}
+	} else {
+		if columnStr == "" {
+			columnStr = "*"
+		}
 	}
 
 	statement.attachInSql() // !admpub!  fix bug:Iterate func missing "... IN (...)"

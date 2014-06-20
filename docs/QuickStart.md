@@ -224,6 +224,8 @@ type Conversion interface {
 }
 ```
 
+- 5. If one struct has a Conversion field, so we need set an implementation to the field before get data from database. We can implement `BeforeSet(name string, cell xorm.Cell)` on struct to do this. For example: [testConversion](https://github.com/go-xorm/tests/blob/master/base.go#L1826)
+
 <a name="30" id="30"></a>
 ## 3. database meta information
 
@@ -510,7 +512,7 @@ total, err := engine.Where("id >?", 1).Count(user)
 ```
 
 <a name="70" id="70"></a>
-## 6.更新数据
+## 6.Update
     
 更新数据使用`Update`方法，Update方法的第一个参数为需要更新的内容，可以为一个结构体指针或者一个Map[string]interface{}类型。当传入的为结构体指针时，只有非空和0的field才会被作为更新的字段。当传入的为Map类型时，key为数据库Column的名字，value为要更新的内容。
 
@@ -691,7 +693,7 @@ Please visit [https://github.com/go-xorm/xorm/tree/master/examples](https://gith
 <a name="160"></a>
 ## 15.FAQ 
 
-1.How the xorm tag use both with json?
+* How the xorm tag use both with json?
   
   Use space.
 
@@ -700,3 +702,40 @@ type User struct {
     Name string `json:"name" xorm:"name"`
 }
 ```
+
+* Does xorm support composite primary key?
+
+  Yes. You can use pk tag. All fields have tag will as one primary key by fields order on struct. When use, you can use xorm.PK{1, 2}. For example: `Id(xorm.PK{1, 2})`.
+
+* How to use join？
+
+  We can use Join() and extends tag to do join operation. For example:
+
+    type Userinfo struct {
+        Id int64
+        Name string
+        DetailId int64
+    }
+
+    type Userdetail struct {
+        Id int64
+        Gender int
+    }
+
+    type User struct {
+        Userinfo `xorm:"extends"`
+        Userdetail `xorm:"extends"`
+    }
+
+    var users = make([]User, 0)
+    err := engine.Table(&Userinfo{}).Join("LEFT", "userdetail", "userinfo.detail_id = userdetail.id").Find(&users)
+
+    //assert(User.Userinfo.Id != 0 && User.Userdetail.Id != 0)
+
+Please notice that Userinfo field on User should be before Userdetail because of the order on join SQL stsatement. If the order is wrong, the same name field may be set a wrong value.
+
+Of course, If join statment is very long, you could directly use Sql():
+
+    err := engine.Sql("select * from userinfo, userdetail where userinfo.detail_id = userdetail.id").Find(&users)
+
+    //assert(User.Userinfo.Id != 0 && User.Userdetail.Id != 0)

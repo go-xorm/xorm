@@ -224,6 +224,8 @@ type Conversion interface {
 }
 ```
 
+- 5.如果一个结构体包含一个Conversion的接口类型，那么在获取数据时，必须要预先设置一个实现此接口的struct或者struct的指针。此时可以在此struct中实现`BeforeSet(name string, cell xorm.Cell)`方法来进行预先给Conversion赋值。例子参见 [testConversion](https://github.com/go-xorm/tests/blob/master/base.go#L1826)
+
 <a name="24" id="24"></a>
 ### 2.4.Go与字段类型对应表
 
@@ -828,6 +830,34 @@ money float64 `xorm:"Numeric"`
 
 答：支持。在定义时，如果有多个字段标记了pk，则这些字段自动成为复合主键，顺序为在struct中出现的顺序。在使用Id方法时，可以用`Id(xorm.PK{1, 2})`的方式来用。
 
+* xorm如何使用Join？
+
+答：一般我们配合Join()和extends标记来进行，比如我们要对两个表进行Join操作，我们可以这样：
+
+	type Userinfo struct {
+		Id int64
+		Name string
+		DetailId int64
+	}
+
+	type Userdetail struct {
+		Id int64
+		Gender int
+	}
+
+	type User struct {
+		Userinfo `xorm:"extends"`
+		Userdetail `xorm:"extends"`
+	}
+
+	var users = make([]User, 0)
+	err := engine.Table(&Userinfo{}).Join("LEFT", "userdetail", "userinfo.detail_id = userdetail.id").Find(&users)
+
+请注意这里的Userinfo在User中的位置必须在Userdetail的前面，因为他在join语句中的顺序在userdetail前面。如果顺序不对，那么对于同名的列，有可能会赋值出错。
+
+当然，如果Join语句比较复杂，我们也可以直接用Sql函数
+
+	err := engine.Sql("select * from userinfo, userdetail where userinfo.detail_id = userdetail.id").Find(&users)
 
 <a name="170" id="170"></a>
 ## 17.讨论
