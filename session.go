@@ -389,7 +389,8 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 
 	for key, data := range objMap {
 		if col = table.GetColumn(key); col == nil {
-			session.Engine.LogWarn(fmt.Sprintf("table %v's has not column %v. %v", table.Name, key, table.Columns()))
+			session.Engine.LogWarn(fmt.Sprintf("struct %v's has not field %v. %v",
+				table.Type.Name(), key, table.ColumnsSeq()))
 			continue
 		}
 
