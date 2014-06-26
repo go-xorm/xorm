@@ -44,8 +44,10 @@ func (db *postgres) SqlType(c *core.Column) string {
 		return "timestamp with time zone"
 	case core.Float:
 		res = core.Real
-	case core.TinyText, core.MediumText, core.LongText, core.Uuid:
+	case core.TinyText, core.MediumText, core.LongText:
 		res = core.Text
+	case core.Uuid:
+		res = core.Uuid
 	case core.Blob, core.TinyBlob, core.MediumBlob, core.LongBlob:
 		return core.Bytea
 	case core.Double:
@@ -142,8 +144,8 @@ func (db *postgres) IsColumnExist(tableName string, col *core.Column) (bool, err
 }
 
 func (db *postgres) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
-    args := []interface{}{tableName}
-    s := `SELECT column_name, column_default, is_nullable, data_type, character_maximum_length, numeric_precision, numeric_precision_radix ,
+	args := []interface{}{tableName}
+	s := `SELECT column_name, column_default, is_nullable, data_type, character_maximum_length, numeric_precision, numeric_precision_radix ,
     CASE WHEN p.contype = 'p' THEN true ELSE false END AS primarykey,
     CASE WHEN p.contype = 'u' THEN true ELSE false END AS uniquekey
 FROM pg_attribute f
@@ -155,83 +157,83 @@ FROM pg_attribute f
     LEFT JOIN INFORMATION_SCHEMA.COLUMNS s ON s.column_name=f.attname AND c.relname=s.table_name
 WHERE c.relkind = 'r'::char AND c.relname = $1 AND f.attnum > 0 ORDER BY f.attnum;`
 
-    rows, err := db.DB().Query(s, args...)
-    if err != nil {
-        return nil, nil, err
-    }
-    defer rows.Close()
+	rows, err := db.DB().Query(s, args...)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
 
-    cols := make(map[string]*core.Column)
-    colSeq := make([]string, 0)
+	cols := make(map[string]*core.Column)
+	colSeq := make([]string, 0)
 
-    for rows.Next() {
-        col := new(core.Column)
-        col.Indexes = make(map[string]bool)
+	for rows.Next() {
+		col := new(core.Column)
+		col.Indexes = make(map[string]bool)
 
-        var colName, isNullable, dataType  string
-        var maxLenStr, colDefault, numPrecision, numRadix *string
-        var isPK ,isUnique bool
-        err = rows.Scan(&colName, &colDefault, &isNullable, &dataType, &maxLenStr, &numPrecision, &numRadix,&isPK,&isUnique)
-        if err != nil {
-            return nil, nil, err
-        }
-        //fmt.Println(args,colName, isNullable, dataType,maxLenStr, colDefault, numPrecision, numRadix,isPK ,isUnique)
-        var maxLen int
-        if maxLenStr != nil {
-            maxLen, err = strconv.Atoi(*maxLenStr)
-            if err != nil {
-                return nil, nil, err
-            }
-        }
+		var colName, isNullable, dataType string
+		var maxLenStr, colDefault, numPrecision, numRadix *string
+		var isPK, isUnique bool
+		err = rows.Scan(&colName, &colDefault, &isNullable, &dataType, &maxLenStr, &numPrecision, &numRadix, &isPK, &isUnique)
+		if err != nil {
+			return nil, nil, err
+		}
+		//fmt.Println(args,colName, isNullable, dataType,maxLenStr, colDefault, numPrecision, numRadix,isPK ,isUnique)
+		var maxLen int
+		if maxLenStr != nil {
+			maxLen, err = strconv.Atoi(*maxLenStr)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
 
-        col.Name = strings.Trim(colName, `" `)
+		col.Name = strings.Trim(colName, `" `)
 
-        if colDefault != nil || isPK {
-            if isPK {
-                col.IsPrimaryKey = true
-            } else {
-                col.Default = *colDefault
-            }
-        }
+		if colDefault != nil || isPK {
+			if isPK {
+				col.IsPrimaryKey = true
+			} else {
+				col.Default = *colDefault
+			}
+		}
 
-        col.Nullable = (isNullable == "YES")
+		col.Nullable = (isNullable == "YES")
 
-        switch dataType {
-        case "character varying", "character":
-            col.SQLType = core.SQLType{core.Varchar, 0, 0}
-        case "timestamp without time zone":
-            col.SQLType = core.SQLType{core.DateTime, 0, 0}
-        case "timestamp with time zone":
-            col.SQLType = core.SQLType{core.TimeStampz, 0, 0}
-        case "double precision":
-            col.SQLType = core.SQLType{core.Double, 0, 0}
-        case "boolean":
-            col.SQLType = core.SQLType{core.Bool, 0, 0}
-        case "time without time zone":
-            col.SQLType = core.SQLType{core.Time, 0, 0}
-        default:
-            col.SQLType = core.SQLType{strings.ToUpper(dataType), 0, 0}
-        }
-        if _, ok := core.SqlTypes[col.SQLType.Name]; !ok {
-            return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v", dataType))
-        }
+		switch dataType {
+		case "character varying", "character":
+			col.SQLType = core.SQLType{core.Varchar, 0, 0}
+		case "timestamp without time zone":
+			col.SQLType = core.SQLType{core.DateTime, 0, 0}
+		case "timestamp with time zone":
+			col.SQLType = core.SQLType{core.TimeStampz, 0, 0}
+		case "double precision":
+			col.SQLType = core.SQLType{core.Double, 0, 0}
+		case "boolean":
+			col.SQLType = core.SQLType{core.Bool, 0, 0}
+		case "time without time zone":
+			col.SQLType = core.SQLType{core.Time, 0, 0}
+		default:
+			col.SQLType = core.SQLType{strings.ToUpper(dataType), 0, 0}
+		}
+		if _, ok := core.SqlTypes[col.SQLType.Name]; !ok {
+			return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v", dataType))
+		}
 
-        col.Length = maxLen
+		col.Length = maxLen
 
-        if col.SQLType.IsText() {
-            if col.Default != "" {
-                col.Default = "'"+col.Default+"'"
-            } else {
-                if col.DefaultIsEmpty {
-                    col.Default = "''"
-                }
-            }
-        }
-        cols[col.Name] = col
-        colSeq = append(colSeq, col.Name)
-    }
+		if col.SQLType.IsText() {
+			if col.Default != "" {
+				col.Default = "'" + col.Default + "'"
+			} else {
+				if col.DefaultIsEmpty {
+					col.Default = "''"
+				}
+			}
+		}
+		cols[col.Name] = col
+		colSeq = append(colSeq, col.Name)
+	}
 
-    return colSeq, cols, nil
+	return colSeq, cols, nil
 }
 
 func (db *postgres) GetTables() ([]*core.Table, error) {
