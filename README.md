@@ -37,7 +37,11 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * Postgres: [github.com/lib/pq](https://github.com/lib/pq)
 
+* MsSql: [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
+
 * MsSql: [github.com/lunny/godbc](https://github.com/lunny/godbc)
+
+
 
 # Changelog
 
