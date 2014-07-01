@@ -1383,6 +1383,8 @@ func (engine *Engine) FormatTime(sqlTypeName string, t time.Time) (v interface{}
 	case core.TimeStampz:
 		if engine.dialect.DBType() == core.MSSQL {
 			v = engine.TZTime(t).Format("2006-01-02T15:04:05.9999999Z07:00")
+		} else if engine.DriverName() == "mssql" {
+			v = engine.TZTime(t)
 		} else {
 			v = engine.TZTime(t).Format(time.RFC3339Nano)
 		}
