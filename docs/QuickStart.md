@@ -91,7 +91,7 @@ f, err := os.Create("sql.log")
 		println(err.Error())
 		return
 	}
-engine.Logger = f
+engine.Logger = xorm.NewSimpleLogger(f)
 ```
 
 3.Engine provide DB connection pool settings.
