@@ -129,7 +129,7 @@ func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Colu
 	}
 
 	nStart := strings.Index(name, "(")
-	nEnd := strings.Index(name, ")")
+	nEnd := strings.LastIndex(name, ")")
 	colCreates := strings.Split(name[nStart+1:nEnd], ",")
 	cols := make(map[string]*core.Column)
 	colSeq := make([]string, 0)
