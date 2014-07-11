@@ -375,7 +375,8 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			if !requiredField && fieldValue.Uint() == 0 {
 				continue
 			}
-			val = fieldValue.Interface()
+			t := int64(fieldValue.Uint())
+			val = reflect.ValueOf(&t).Interface()
 		case reflect.Struct:
 			if fieldType == reflect.TypeOf(time.Now()) {
 				t := fieldValue.Interface().(time.Time)
@@ -546,7 +547,8 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 			if !requiredField && fieldValue.Uint() == 0 {
 				continue
 			}
-			val = fieldValue.Interface()
+			t := int64(fieldValue.Uint())
+			val = reflect.ValueOf(&t).Interface()
 		case reflect.Struct:
 			if fieldType == reflect.TypeOf(time.Now()) {
 				t := fieldValue.Interface().(time.Time)
