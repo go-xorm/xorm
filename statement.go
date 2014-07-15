@@ -20,6 +20,11 @@ type incrParam struct {
 	arg     interface{}
 }
 
+type decrParam struct {
+	colName string
+	arg     interface{}
+}
+
 // statement save all the sql info for executing SQL
 type Statement struct {
 	RefTable      *core.Table
@@ -54,6 +59,7 @@ type Statement struct {
 	mustColumnMap map[string]bool
 	inColumns     map[string]*inParam
 	incrColumns   map[string]incrParam
+	decrColumns   map[string]decrParam
 }
 
 // init
@@ -85,6 +91,7 @@ func (statement *Statement) Init() {
 	statement.checkVersion = true
 	statement.inColumns = make(map[string]*inParam)
 	statement.incrColumns = make(map[string]incrParam)
+	statement.decrColumns = make(map[string]decrParam)
 }
 
 // add the raw sql statement
@@ -676,9 +683,25 @@ func (statement *Statement) Incr(column string, arg ...interface{}) *Statement {
 	return statement
 }
 
+// Generate  "Update ... Set column = column - arg" statment
+func (statement *Statement) Decr(column string, arg ...interface{}) *Statement {
+	k := strings.ToLower(column)
+	if len(arg) > 0 {
+		statement.decrColumns[k] = decrParam{column, arg[0]}
+	} else {
+		statement.decrColumns[k] = decrParam{column, 1}
+	}
+	return statement
+}
+
 // Generate  "Update ... Set column = column + arg" statment
 func (statement *Statement) getInc() map[string]incrParam {
 	return statement.incrColumns
+}
+
+// Generate  "Update ... Set column = column - arg" statment
+func (statement *Statement) getDec() map[string]decrParam {
+	return statement.decrColumns
 }
 
 // Generate "Where column IN (?) " statment
