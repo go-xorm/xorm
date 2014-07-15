@@ -461,7 +461,7 @@ func (engine *Engine) Incr(column string, arg ...interface{}) *Session {
 	return session.Incr(column, arg...)
 }
 
-// Method Inc provides a update string like "column = column - ?"
+// Method Decr provides a update string like "column = column - ?"
 func (engine *Engine) Decr(column string, arg ...interface{}) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true

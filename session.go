@@ -146,7 +146,7 @@ func (session *Session) Incr(column string, arg ...interface{}) *Session {
 	return session
 }
 
-// Method In provides a query string like "count = count - 1"
+// Method Decr provides a query string like "count = count - 1"
 func (session *Session) Decr(column string, arg ...interface{}) *Session {
 	session.Statement.Decr(column, arg...)
 	return session
