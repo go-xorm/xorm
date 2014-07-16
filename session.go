@@ -146,6 +146,12 @@ func (session *Session) Incr(column string, arg ...interface{}) *Session {
 	return session
 }
 
+// Method Decr provides a query string like "count = count - 1"
+func (session *Session) Decr(column string, arg ...interface{}) *Session {
+	session.Statement.Decr(column, arg...)
+	return session
+}
+
 // Method Cols provides some columns to special
 func (session *Session) Cols(columns ...string) *Session {
 	session.Statement.Cols(columns...)
@@ -3043,6 +3049,13 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		colNames = append(colNames, session.Engine.Quote(v.colName)+" = "+session.Engine.Quote(v.colName)+" + ?")
 		args = append(args, v.arg)
 	}
+	//for update action to like "column = column - ?"
+	decColumns := session.Statement.getDec()
+	for _, v := range decColumns {
+		colNames = append(colNames, session.Engine.Quote(v.colName)+" = "+session.Engine.Quote(v.colName)+" - ?")
+		args = append(args, v.arg)
+	}
+
 	var condiColNames []string
 	var condiArgs []interface{}
 

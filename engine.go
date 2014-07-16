@@ -461,6 +461,13 @@ func (engine *Engine) Incr(column string, arg ...interface{}) *Session {
 	return session.Incr(column, arg...)
 }
 
+// Method Decr provides a update string like "column = column - ?"
+func (engine *Engine) Decr(column string, arg ...interface{}) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.Decr(column, arg...)
+}
+
 // Temporarily change the Get, Find, Update's table
 func (engine *Engine) Table(tableNameOrBean interface{}) *Session {
 	session := engine.NewSession()
