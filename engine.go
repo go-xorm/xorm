@@ -1070,21 +1070,21 @@ func (engine *Engine) Sync2(beans ...interface{}) error {
 							if engine.dialect.DBType() == core.MYSQL {
 								_, err = engine.Exec(engine.dialect.ModifyColumnSql(table.Name, col))
 							} else {
-								engine.LogWarn("Table %s Column %s Old data type is %s, new data type is %s",
-									table.Name, col.Name, oriCol.SQLType.Name, col.SQLType.Name)
+								engine.LogWarn(fmt.Sprintf("Table %s Column %s db type is %s, struct type is %s\n",
+									table.Name, col.Name, oriCol.SQLType.Name, col.SQLType.Name))
 							}
 						} else {
-							engine.LogWarn("Table %s Column %s Old data type is %s, new data type is %s",
-								table.Name, col.Name, oriCol.SQLType.Name, col.SQLType.Name)
+							engine.LogWarn(fmt.Sprintf("Table %s Column %s db type is %s, struct type is %s",
+								table.Name, col.Name, oriCol.SQLType.Name, col.SQLType.Name))
 						}
 					}
 					if col.Default != oriCol.Default {
-						engine.LogWarn("Table %s Column %s Old default is %s, new default is %s",
-							table.Name, col.Name, oriCol.Default, col.Default)
+						engine.LogWarn(fmt.Sprintf("Table %s Column %s db default is %s, struct default is %s",
+							table.Name, col.Name, oriCol.Default, col.Default))
 					}
 					if col.Nullable != oriCol.Nullable {
-						engine.LogWarn("Table %s Column %s Old nullable is %v, new nullable is %v",
-							table.Name, col.Name, oriCol.Nullable, col.Nullable)
+						engine.LogWarn(fmt.Sprintf("Table %s Column %s db nullable is %v, struct nullable is %v",
+							table.Name, col.Name, oriCol.Nullable, col.Nullable))
 					}
 				} else {
 					session := engine.NewSession()
