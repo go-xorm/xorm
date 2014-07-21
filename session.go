@@ -452,10 +452,12 @@ func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, er
 
 	session.Engine.logSQL(sqlStr, args...)
 
-	if session.IsAutoCommit {
-		return session.innerExec(sqlStr, args...)
-	}
-	return session.Tx.Exec(sqlStr, args...)
+	return session.Engine.LogSQLExecutionTime(sqlStr, args, func() (sql.Result, error) {
+		if session.IsAutoCommit {
+			return session.innerExec(sqlStr, args...)
+		}
+		return session.Tx.Exec(sqlStr, args...)
+	})
 }
 
 // Exec raw sql
@@ -1761,15 +1763,16 @@ func (session *Session) queryPreprocess(sqlStr *string, paramStr ...interface{})
 }
 
 func (session *Session) query(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
+
 	session.queryPreprocess(&sqlStr, paramStr...)
 
 	if session.IsAutoCommit {
-		return query(session.Db, sqlStr, paramStr...)
+		return session.innerQuery(session.Db, sqlStr, paramStr...)
 	}
-	return txQuery(session.Tx, sqlStr, paramStr...)
+	return session.txQuery(session.Tx, sqlStr, paramStr...)
 }
 
-func txQuery(tx *core.Tx, sqlStr string, params ...interface{}) (resultsSlice []map[string][]byte, err error) {
+func (session *Session) txQuery(tx *core.Tx, sqlStr string, params ...interface{}) (resultsSlice []map[string][]byte, err error) {
 	rows, err := tx.Query(sqlStr, params...)
 	if err != nil {
 		return nil, err
@@ -1779,17 +1782,26 @@ func txQuery(tx *core.Tx, sqlStr string, params ...interface{}) (resultsSlice []
 	return rows2maps(rows)
 }
 
-func query(db *core.DB, sqlStr string, params ...interface{}) (resultsSlice []map[string][]byte, err error) {
-	s, err := db.Prepare(sqlStr)
+func (session *Session) innerQuery(db *core.DB, sqlStr string, params ...interface{}) (resultsSlice []map[string][]byte, err error) {
+
+	stmt, rows, err := session.Engine.LogSQLQueryTime(sqlStr, params, func() (*core.Stmt, *core.Rows, error) {
+		stmt, err := db.Prepare(sqlStr)
+		if err != nil {
+			return stmt, nil, err
+		}
+		rows, err := stmt.Query(params...)
+
+		return stmt, rows, err
+	})
+	if rows != nil {
+		defer rows.Close()
+	}
+	if stmt != nil {
+		defer stmt.Close()
+	}
 	if err != nil {
 		return nil, err
 	}
-	defer s.Close()
-	rows, err := s.Query(params...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
 	return rows2maps(rows)
 }
 
@@ -1955,6 +1967,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 		strings.Join(colMultiPlaces, "),("))
 
 	res, err := session.exec(statement, args...)
+
 	if err != nil {
 		return 0, err
 	}

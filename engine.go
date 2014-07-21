@@ -183,10 +183,34 @@ func (engine *Engine) Ping() error {
 func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
 	if engine.ShowSQL {
 		if len(sqlArgs) > 0 {
-			engine.Logger.Info(fmt.Sprintln("[sql]", sqlStr, "[args]", sqlArgs))
+			engine.Logger.Info(fmt.Sprintf("[sql]", sqlStr, "[args]", sqlArgs))
 		} else {
-			engine.Logger.Info(fmt.Sprintln("[sql]", sqlStr))
+			engine.Logger.Info(fmt.Sprintf("[sql]", sqlStr))
 		}
+	}
+}
+
+func (engine *Engine) LogSQLQueryTime(sqlStr string, args interface{}, executionBlock func() (*core.Stmt, *core.Rows, error)) (*core.Stmt, *core.Rows, error) {
+	if engine.ShowDebug {
+		b4ExecTime := time.Now()
+		stmt, res, err := executionBlock()
+		execDuration := time.Since(b4ExecTime)
+		engine.LogDebugf("sql [%s] - args [%v] - query took: %vns", sqlStr, args, execDuration.Nanoseconds())
+		return stmt, res, err
+	} else {
+		return executionBlock()
+	}
+}
+
+func (engine *Engine) LogSQLExecutionTime(sqlStr string, args interface{}, executionBlock func() (sql.Result, error)) (sql.Result, error) {
+	if engine.ShowDebug {
+		b4ExecTime := time.Now()
+		res, err := executionBlock()
+		execDuration := time.Since(b4ExecTime)
+		engine.LogDebugf("sql [%s] - args [%v] - execution took: %vns", sqlStr, args, execDuration.Nanoseconds())
+		return res, err
+	} else {
+		return executionBlock()
 	}
 }
 
