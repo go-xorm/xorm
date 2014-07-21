@@ -1103,11 +1103,11 @@ func (engine *Engine) Sync2(beans ...interface{}) error {
 						}
 					}
 					if col.Default != oriCol.Default {
-						engine.LogWarn("Table %s Column %s db default is %s, struct default is %s",
+						engine.LogWarnf("Table %s Column %s db default is %s, struct default is %s",
 							table.Name, col.Name, oriCol.Default, col.Default)
 					}
 					if col.Nullable != oriCol.Nullable {
-						engine.LogWarn("Table %s Column %s db nullable is %v, struct nullable is %v",
+						engine.LogWarnf("Table %s Column %s db nullable is %v, struct nullable is %v",
 							table.Name, col.Name, oriCol.Nullable, col.Nullable)
 					}
 				} else {
