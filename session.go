@@ -39,7 +39,8 @@ type Session struct {
 	beforeClosures []func(interface{})
 	afterClosures  []func(interface{})
 
-	stmtCache map[uint32]*core.Stmt //key: hash.Hash32 of (queryStr, len(queryStr))
+	stmtCache   map[uint32]*core.Stmt //key: hash.Hash32 of (queryStr, len(queryStr))
+	cascadeDeep int
 }
 
 // Method Init reset the session as the init status.
@@ -142,6 +143,12 @@ func (session *Session) In(column string, args ...interface{}) *Session {
 // Method In provides a query string like "count = count + 1"
 func (session *Session) Incr(column string, arg ...interface{}) *Session {
 	session.Statement.Incr(column, arg...)
+	return session
+}
+
+// Method Decr provides a query string like "count = count - 1"
+func (session *Session) Decr(column string, arg ...interface{}) *Session {
+	session.Statement.Decr(column, arg...)
 	return session
 }
 
@@ -389,7 +396,8 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 
 	for key, data := range objMap {
 		if col = table.GetColumn(key); col == nil {
-			session.Engine.LogWarn(fmt.Sprintf("table %v's has not column %v. %v", table.Name, key, table.Columns()))
+			session.Engine.LogWarn(fmt.Sprintf("struct %v's has not field %v. %v",
+				table.Type.Name(), key, table.ColumnsSeq()))
 			continue
 		}
 
@@ -895,25 +903,23 @@ func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
 	rows, err := session.Rows(bean)
 	if err != nil {
 		return err
-	} else {
-		defer rows.Close()
-		//b := reflect.New(iterator.beanType).Interface()
-		i := 0
-		for rows.Next() {
-			b := reflect.New(rows.beanType).Interface()
-			err = rows.Scan(b)
-			if err != nil {
-				return err
-			}
-			err = fun(i, b)
-			if err != nil {
-				return err
-			}
-			i++
-		}
-		return err
 	}
-	return nil
+	defer rows.Close()
+	//b := reflect.New(iterator.beanType).Interface()
+	i := 0
+	for rows.Next() {
+		b := reflect.New(rows.beanType).Interface()
+		err = rows.Scan(b)
+		if err != nil {
+			return err
+		}
+		err = fun(i, b)
+		if err != nil {
+			return err
+		}
+		i++
+	}
+	return err
 }
 
 func (session *Session) doPrepare(sqlStr string) (stmt *core.Stmt, err error) {
@@ -2451,6 +2457,38 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			}
 			fieldValue.Set(reflect.ValueOf(&x))
 		default:
+			if fieldType.Elem().Kind() == reflect.Struct {
+				if session.Statement.UseCascade {
+					structInter := reflect.New(fieldType.Elem())
+					fmt.Println(structInter, fieldType.Elem())
+					table := session.Engine.autoMapType(structInter.Elem())
+					if table != nil {
+						x, err := strconv.ParseInt(string(data), 10, 64)
+						if err != nil {
+							return fmt.Errorf("arg %v as int: %s", key, err.Error())
+						}
+						if x != 0 {
+							// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
+							// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
+							// property to be fetched lazily
+							newsession := session.Engine.NewSession()
+							defer newsession.Close()
+							has, err := newsession.Id(x).Get(structInter.Interface())
+							if err != nil {
+								return err
+							}
+							if has {
+								v = structInter.Interface()
+								fieldValue.Set(reflect.ValueOf(v))
+							} else {
+								return errors.New("cascade obj is not exist!")
+							}
+						}
+					}
+				} else {
+					return fmt.Errorf("unsupported struct type in Scan: %s", fieldValue.Type().String())
+				}
+			}
 			return fmt.Errorf("unsupported type in Scan: %s", reflect.TypeOf(v).String())
 		}
 	default:
@@ -2565,6 +2603,8 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		} else {
 			return nil, ErrUnSupportedType
 		}
+	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+		return int64(fieldValue.Uint()), nil
 	default:
 		return fieldValue.Interface(), nil
 	}
@@ -3009,6 +3049,13 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		colNames = append(colNames, session.Engine.Quote(v.colName)+" = "+session.Engine.Quote(v.colName)+" + ?")
 		args = append(args, v.arg)
 	}
+	//for update action to like "column = column - ?"
+	decColumns := session.Statement.getDec()
+	for _, v := range decColumns {
+		colNames = append(colNames, session.Engine.Quote(v.colName)+" = "+session.Engine.Quote(v.colName)+" - ?")
+		args = append(args, v.arg)
+	}
+
 	var condiColNames []string
 	var condiArgs []interface{}
 

@@ -46,6 +46,8 @@ func (db *postgres) SqlType(c *core.Column) string {
 		res = core.Real
 	case core.TinyText, core.MediumText, core.LongText:
 		res = core.Text
+	case core.Uuid:
+		res = core.Uuid
 	case core.Blob, core.TinyBlob, core.MediumBlob, core.LongBlob:
 		return core.Bytea
 	case core.Double:
@@ -143,8 +145,17 @@ func (db *postgres) IsColumnExist(tableName string, col *core.Column) (bool, err
 
 func (db *postgres) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{tableName}
-	s := "SELECT column_name, column_default, is_nullable, data_type, character_maximum_length" +
-		", numeric_precision, numeric_precision_radix FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = $1"
+	s := `SELECT column_name, column_default, is_nullable, data_type, character_maximum_length, numeric_precision, numeric_precision_radix ,
+    CASE WHEN p.contype = 'p' THEN true ELSE false END AS primarykey,
+    CASE WHEN p.contype = 'u' THEN true ELSE false END AS uniquekey
+FROM pg_attribute f
+    JOIN pg_class c ON c.oid = f.attrelid JOIN pg_type t ON t.oid = f.atttypid
+    LEFT JOIN pg_attrdef d ON d.adrelid = c.oid AND d.adnum = f.attnum
+    LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
+    LEFT JOIN pg_constraint p ON p.conrelid = c.oid AND f.attnum = ANY (p.conkey)
+    LEFT JOIN pg_class AS g ON p.confrelid = g.oid
+    LEFT JOIN INFORMATION_SCHEMA.COLUMNS s ON s.column_name=f.attname AND c.relname=s.table_name
+WHERE c.relkind = 'r'::char AND c.relname = $1 AND f.attnum > 0 ORDER BY f.attnum;`
 
 	rows, err := db.DB().Query(s, args...)
 	if err != nil {
@@ -161,11 +172,12 @@ func (db *postgres) GetColumns(tableName string) ([]string, map[string]*core.Col
 
 		var colName, isNullable, dataType string
 		var maxLenStr, colDefault, numPrecision, numRadix *string
-		err = rows.Scan(&colName, &colDefault, &isNullable, &dataType, &maxLenStr, &numPrecision, &numRadix)
+		var isPK, isUnique bool
+		err = rows.Scan(&colName, &colDefault, &isNullable, &dataType, &maxLenStr, &numPrecision, &numRadix, &isPK, &isUnique)
 		if err != nil {
 			return nil, nil, err
 		}
-
+		//fmt.Println(args,colName, isNullable, dataType,maxLenStr, colDefault, numPrecision, numRadix,isPK ,isUnique)
 		var maxLen int
 		if maxLenStr != nil {
 			maxLen, err = strconv.Atoi(*maxLenStr)
@@ -176,8 +188,8 @@ func (db *postgres) GetColumns(tableName string) ([]string, map[string]*core.Col
 
 		col.Name = strings.Trim(colName, `" `)
 
-		if colDefault != nil {
-			if strings.HasPrefix(*colDefault, "nextval") {
+		if colDefault != nil || isPK {
+			if isPK {
 				col.IsPrimaryKey = true
 			} else {
 				col.Default = *colDefault

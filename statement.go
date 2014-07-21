@@ -20,6 +20,11 @@ type incrParam struct {
 	arg     interface{}
 }
 
+type decrParam struct {
+	colName string
+	arg     interface{}
+}
+
 // statement save all the sql info for executing SQL
 type Statement struct {
 	RefTable      *core.Table
@@ -54,6 +59,7 @@ type Statement struct {
 	mustColumnMap map[string]bool
 	inColumns     map[string]*inParam
 	incrColumns   map[string]incrParam
+	decrColumns   map[string]decrParam
 }
 
 // init
@@ -85,6 +91,7 @@ func (statement *Statement) Init() {
 	statement.checkVersion = true
 	statement.inColumns = make(map[string]*inParam)
 	statement.incrColumns = make(map[string]incrParam)
+	statement.decrColumns = make(map[string]decrParam)
 }
 
 // add the raw sql statement
@@ -375,7 +382,8 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			if !requiredField && fieldValue.Uint() == 0 {
 				continue
 			}
-			val = fieldValue.Interface()
+			t := int64(fieldValue.Uint())
+			val = reflect.ValueOf(&t).Interface()
 		case reflect.Struct:
 			if fieldType == reflect.TypeOf(time.Now()) {
 				t := fieldValue.Interface().(time.Time)
@@ -546,7 +554,8 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 			if !requiredField && fieldValue.Uint() == 0 {
 				continue
 			}
-			val = fieldValue.Interface()
+			t := int64(fieldValue.Uint())
+			val = reflect.ValueOf(&t).Interface()
 		case reflect.Struct:
 			if fieldType == reflect.TypeOf(time.Now()) {
 				t := fieldValue.Interface().(time.Time)
@@ -674,9 +683,25 @@ func (statement *Statement) Incr(column string, arg ...interface{}) *Statement {
 	return statement
 }
 
+// Generate  "Update ... Set column = column - arg" statment
+func (statement *Statement) Decr(column string, arg ...interface{}) *Statement {
+	k := strings.ToLower(column)
+	if len(arg) > 0 {
+		statement.decrColumns[k] = decrParam{column, arg[0]}
+	} else {
+		statement.decrColumns[k] = decrParam{column, 1}
+	}
+	return statement
+}
+
 // Generate  "Update ... Set column = column + arg" statment
 func (statement *Statement) getInc() map[string]incrParam {
 	return statement.incrColumns
+}
+
+// Generate  "Update ... Set column = column - arg" statment
+func (statement *Statement) getDec() map[string]decrParam {
+	return statement.decrColumns
 }
 
 // Generate "Where column IN (?) " statment
@@ -833,7 +858,7 @@ func (statement *Statement) OrderBy(order string) *Statement {
 //The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
 func (statement *Statement) Join(join_operator, tablename, condition string) *Statement {
 	if statement.JoinStr != "" {
-		statement.JoinStr = statement.JoinStr + fmt.Sprintf("%v JOIN %v ON %v", join_operator, tablename, condition)
+		statement.JoinStr = statement.JoinStr + fmt.Sprintf(" %v JOIN %v ON %v", join_operator, tablename, condition)
 	} else {
 		statement.JoinStr = fmt.Sprintf("%v JOIN %v ON %v", join_operator, tablename, condition)
 	}

@@ -469,6 +469,13 @@ func (engine *Engine) Incr(column string, arg ...interface{}) *Session {
 	return session.Incr(column, arg...)
 }
 
+// Method Decr provides a update string like "column = column - ?"
+func (engine *Engine) Decr(column string, arg ...interface{}) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.Decr(column, arg...)
+}
+
 // Temporarily change the Get, Find, Update's table
 func (engine *Engine) Table(tableNameOrBean interface{}) *Session {
 	session := engine.NewSession()
@@ -1110,21 +1117,21 @@ func (engine *Engine) Sync2(beans ...interface{}) error {
 							if engine.dialect.DBType() == core.MYSQL {
 								_, err = engine.Exec(engine.dialect.ModifyColumnSql(table.Name, col))
 							} else {
-								engine.LogWarn("Table %s Column %s Old data type is %s, new data type is %s",
-									table.Name, col.Name, oriCol.SQLType.Name, col.SQLType.Name)
+								engine.LogWarn(fmt.Sprintf("Table %s Column %s db type is %s, struct type is %s\n",
+									table.Name, col.Name, oriCol.SQLType.Name, col.SQLType.Name))
 							}
 						} else {
-							engine.LogWarn("Table %s Column %s Old data type is %s, new data type is %s",
-								table.Name, col.Name, oriCol.SQLType.Name, col.SQLType.Name)
+							engine.LogWarn(fmt.Sprintf("Table %s Column %s db type is %s, struct type is %s",
+								table.Name, col.Name, oriCol.SQLType.Name, col.SQLType.Name))
 						}
 					}
 					if col.Default != oriCol.Default {
-						engine.LogWarn("Table %s Column %s Old default is %s, new default is %s",
-							table.Name, col.Name, oriCol.Default, col.Default)
+						engine.LogWarn(fmt.Sprintf("Table %s Column %s db default is %s, struct default is %s",
+							table.Name, col.Name, oriCol.Default, col.Default))
 					}
 					if col.Nullable != oriCol.Nullable {
-						engine.LogWarn("Table %s Column %s Old nullable is %v, new nullable is %v",
-							table.Name, col.Name, oriCol.Nullable, col.Nullable)
+						engine.LogWarn(fmt.Sprintf("Table %s Column %s db nullable is %v, struct nullable is %v",
+							table.Name, col.Name, oriCol.Nullable, col.Nullable))
 					}
 				} else {
 					session := engine.NewSession()
@@ -1430,6 +1437,8 @@ func (engine *Engine) FormatTime(sqlTypeName string, t time.Time) (v interface{}
 	case core.TimeStampz:
 		if engine.dialect.DBType() == core.MSSQL {
 			v = engine.TZTime(t).Format("2006-01-02T15:04:05.9999999Z07:00")
+		} else if engine.DriverName() == "mssql" {
+			v = engine.TZTime(t)
 		} else {
 			v = engine.TZTime(t).Format(time.RFC3339Nano)
 		}

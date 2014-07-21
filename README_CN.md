@@ -4,7 +4,7 @@
 
 xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作非常简便。
 
-[![Build Status](https://drone.io/github.com/go-xorm/xorm/status.png)](https://drone.io/github.com/go-xorm/xorm/latest)  [![Go Walker](http://gowalker.org/api/v1/badge)](http://gowalker.org/github.com/go-xorm/xorm)
+[![Build Status](https://drone.io/github.com/go-xorm/tests/status.png)](https://drone.io/github.com/go-xorm/xorm/latest)  [![Go Walker](http://gowalker.org/api/v1/badge)](http://gowalker.org/github.com/go-xorm/xorm)
 
 ## 特性
 
@@ -37,6 +37,8 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 * SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 
 * Postgres: [github.com/lib/pq](https://github.com/lib/pq)
+
+* MsSql: [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
 * MsSql: [github.com/lunny/godbc](https://github.com/lunny/godbc)
 
