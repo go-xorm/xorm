@@ -983,6 +983,9 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 		}
 		// defer stmt.Close() // !nashtsai! don't close due to stmt is cached and bounded to this session
 		rawRows, err = stmt.Query(args...)
+		if err != nil {
+			return false, err
+		}
 	} else {
 		rawRows, err = session.Tx.Query(sqlStr, args...)
 	}
