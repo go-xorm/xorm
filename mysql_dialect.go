@@ -64,6 +64,17 @@ func (db *mysql) SqlType(c *core.Column) string {
 			}
 		}
 		res += ")"
+	case core.Set: //mysql set
+		res = core.Set
+		res += "("
+		for v, k := range c.SetOptions {
+			if k > 0 {
+				res += fmt.Sprintf(",'%v'", v)
+			} else {
+				res += fmt.Sprintf("'%v'", v)
+			}
+		}
+		res += ")"
 	default:
 		res = t
 	}
@@ -145,6 +156,7 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 		if err != nil {
 			return nil, nil, err
 		}
+		//fmt.Println(columnName, isNullable, colType, colKey, extra, colDefault)
 		col.Name = strings.Trim(columnName, "` ")
 		if "YES" == isNullable {
 			col.Nullable = true
@@ -171,6 +183,14 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 					v = strings.Trim(v, "'")
 					col.EnumOptions[v] = k
 				}
+			} else if colType == core.Set && cts[1][0] == '\'' {
+				options := strings.Split(cts[1][0:idx], ",")
+				col.SetOptions = make(map[string]int)
+				for k, v := range options {
+					v = strings.TrimSpace(v)
+					v = strings.Trim(v, "'")
+					col.SetOptions[v] = k
+				}
 			} else {
 				lens := strings.Split(cts[1][0:idx], ",")
 				len1, err = strconv.Atoi(strings.TrimSpace(lens[0]))
@@ -184,6 +204,9 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 					}
 				}
 			}
+		}
+		if colType == "FLOAT UNSIGNED" {
+			colType = "FLOAT"
 		}
 		col.Length = len1
 		col.Length2 = len2
