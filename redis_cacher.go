@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/garyburd/redigo/redis"
 	//"github.com/go-xorm/core"
+	"log"
 	"reflect"
 	"strconv"
 	"time"
@@ -86,11 +87,15 @@ func (c *RedisCacher) getObject(key string) interface{} {
 	if raw == nil {
 		return nil
 	}
-	_, err = redis.Bytes(raw, err) // TODO: item, err := redis.Bytes(raw, err)
+	item, err := redis.Bytes(raw, err)
 	if err != nil {
-		return err
+		log.Fatalf("xorm/cache: redis.Bytes failed: %s", err)
+		return nil
 	}
-	return nil //Deserialize(item, ptrValue) // TODO
+
+	value, err := Deserialize(item)
+
+	return value
 }
 
 func (c *RedisCacher) GetIds(tableName, sql string) interface{} {
@@ -197,10 +202,12 @@ func Serialize(value interface{}) ([]byte, error) {
 		return []byte(strconv.FormatUint(v.Uint(), 10)), nil
 	}
 
+	RegisterGobConcreteType(value)
+
 	var b bytes.Buffer
 	encoder := gob.NewEncoder(&b)
-	if err := encoder.Encode(value); err != nil {
-		// revel.ERROR.Printf("revel/cache: gob encoding '%s' failed: %s", value, err)
+	if err := interfaceEncode(encoder, value); err != nil {
+		log.Fatalf("xorm/cache: gob encoding '%s' failed: %s", value, err)
 		return nil, err
 	}
 	return b.Bytes(), nil
@@ -208,7 +215,7 @@ func Serialize(value interface{}) ([]byte, error) {
 
 // Deserialize transforms bytes produced by Serialize back into a Go object,
 // storing it into "ptr", which must be a pointer to the value type.
-func Deserialize(byt []byte, ptr interface{}) (err error) {
+func Deserialize(byt []byte) (ptr interface{}, err error) {
 	if bytes, ok := ptr.(*[]byte); ok {
 		*bytes = byt
 		return
@@ -220,7 +227,7 @@ func Deserialize(byt []byte, ptr interface{}) (err error) {
 			var i int64
 			i, err = strconv.ParseInt(string(byt), 10, 64)
 			if err != nil {
-				// revel.ERROR.Printf("revel/cache: failed to parse int '%s': %s", string(byt), err)
+				log.Fatalf("xorm/cache: failed to parse int '%s': %s", string(byt), err)
 			} else {
 				p.SetInt(i)
 			}
@@ -230,7 +237,7 @@ func Deserialize(byt []byte, ptr interface{}) (err error) {
 			var i uint64
 			i, err = strconv.ParseUint(string(byt), 10, 64)
 			if err != nil {
-				// revel.ERROR.Printf("revel/cache: failed to parse uint '%s': %s", string(byt), err)
+				log.Fatalf("xorm/cache: failed to parse uint '%s': %s", string(byt), err)
 			} else {
 				p.SetUint(i)
 			}
@@ -240,9 +247,57 @@ func Deserialize(byt []byte, ptr interface{}) (err error) {
 
 	b := bytes.NewBuffer(byt)
 	decoder := gob.NewDecoder(b)
-	if err = decoder.Decode(ptr); err != nil {
-		// revel.ERROR.Printf("revel/cache: gob decoding failed: %s", err)
+
+	if ptr, err = interfaceDecode(decoder); err != nil {
+		log.Fatalf("xorm/cache: gob decoding failed: %s", err)
 		return
 	}
 	return
+}
+
+func RegisterGobConcreteType(value interface{}) {
+
+	t := reflect.TypeOf(value)
+
+	switch t.Kind() {
+	case reflect.Ptr:
+		v := reflect.ValueOf(value)
+		i := v.Elem().Interface()
+		gob.Register(i)
+	case reflect.Struct:
+		gob.Register(value)
+	case reflect.Slice:
+		fallthrough
+	case reflect.Map:
+		fallthrough
+	default:
+		panic(fmt.Errorf("unhandled type: %v", t))
+	}
+}
+
+// interfaceEncode encodes the interface value into the encoder.
+func interfaceEncode(enc *gob.Encoder, p interface{}) error {
+	// The encode will fail unless the concrete type has been
+	// registered. We registered it in the calling function.
+
+	// Pass pointer to interface so Encode sees (and hence sends) a value of
+	// interface type.  If we passed p directly it would see the concrete type instead.
+	// See the blog post, "The Laws of Reflection" for background.
+	err := enc.Encode(&p)
+	if err != nil {
+		log.Fatal("encode:", err)
+	}
+	return err
+}
+
+// interfaceDecode decodes the next interface value from the stream and returns it.
+func interfaceDecode(dec *gob.Decoder) (interface{}, error) {
+	// The decode will fail unless the concrete type on the wire has been
+	// registered. We registered it in the calling function.
+	var p interface{}
+	err := dec.Decode(&p)
+	if err != nil {
+		log.Fatal("decode:", err)
+	}
+	return p, err
 }
