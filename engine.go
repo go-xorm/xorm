@@ -175,9 +175,9 @@ func (engine *Engine) Ping() error {
 func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
 	if engine.ShowSQL {
 		if len(sqlArgs) > 0 {
-			engine.Logger.Info(fmt.Sprintln("[sql]", sqlStr, "[args]", sqlArgs))
+			engine.Logger.Info(fmt.Sprintf("[sql] %v [args] %v", sqlStr, sqlArgs))
 		} else {
-			engine.Logger.Info(fmt.Sprintln("[sql]", sqlStr))
+			engine.Logger.Info(fmt.Sprintf("[sql] %v", sqlStr))
 		}
 	}
 }

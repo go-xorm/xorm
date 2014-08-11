@@ -3,7 +3,6 @@ package xorm
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 )
 
@@ -24,19 +23,19 @@ type SimpleLogger struct {
 
 func NewSimpleLogger(out io.Writer) *SimpleLogger {
 	return &SimpleLogger{
-		DEBUG: log.New(ioutil.Discard, "[xorm] [debug] ", log.Ldate|log.Lmicroseconds),
-		ERR:   log.New(ioutil.Discard, "[xorm] [error] ", log.Ldate|log.Lmicroseconds),
-		INFO:  log.New(ioutil.Discard, "[xorm] [info]  ", log.Ldate|log.Lmicroseconds),
-		WARN:  log.New(ioutil.Discard, "[xorm] [warn]  ", log.Ldate|log.Lmicroseconds),
+		DEBUG: log.New(out, "[xorm] [debug] ", log.Ldate|log.Lmicroseconds),
+		ERR:   log.New(out, "[xorm] [error] ", log.Ldate|log.Lmicroseconds),
+		INFO:  log.New(out, "[xorm] [info]  ", log.Ldate|log.Lmicroseconds),
+		WARN:  log.New(out, "[xorm] [warn]  ", log.Ldate|log.Lmicroseconds),
 	}
 }
 
 func NewSimpleLogger2(out io.Writer, prefix string, flag int) *SimpleLogger {
 	return &SimpleLogger{
-		DEBUG: log.New(ioutil.Discard, fmt.Sprintf("%s [debug] ", prefix), log.Ldate|log.Lmicroseconds),
-		ERR:   log.New(ioutil.Discard, fmt.Sprintf("%s [error] ", prefix), log.Ldate|log.Lmicroseconds),
-		INFO:  log.New(ioutil.Discard, fmt.Sprintf("%s [info]  ", prefix), log.Ldate|log.Lmicroseconds),
-		WARN:  log.New(ioutil.Discard, fmt.Sprintf("%s [warn]  ", prefix), log.Ldate|log.Lmicroseconds),
+		DEBUG: log.New(out, fmt.Sprintf("%s [debug] ", prefix), log.Ldate|log.Lmicroseconds),
+		ERR:   log.New(out, fmt.Sprintf("%s [error] ", prefix), log.Ldate|log.Lmicroseconds),
+		INFO:  log.New(out, fmt.Sprintf("%s [info]  ", prefix), log.Ldate|log.Lmicroseconds),
+		WARN:  log.New(out, fmt.Sprintf("%s [warn]  ", prefix), log.Ldate|log.Lmicroseconds),
 	}
 }
 
