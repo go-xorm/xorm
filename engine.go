@@ -183,9 +183,9 @@ func (engine *Engine) Ping() error {
 func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
 	if engine.ShowSQL {
 		if len(sqlArgs) > 0 {
-			engine.Logger.Info(fmt.Sprintf("[sql]", sqlStr, "[args]", sqlArgs))
+			engine.Logger.Info(fmt.Sprintf("[sql] %v [args] %v", sqlStr, sqlArgs))
 		} else {
-			engine.Logger.Info(fmt.Sprintf("[sql]", sqlStr))
+			engine.Logger.Info(fmt.Sprintf("[sql] %v", sqlStr))
 		}
 	}
 }
@@ -305,7 +305,6 @@ func (engine *Engine) DBMetas() ([]*core.Table, error) {
 		}
 		//table.Columns = cols
 		//table.ColumnsSeq = colSeq
-
 		indexes, err := engine.dialect.GetIndexes(table.Name)
 		if err != nil {
 			return nil, err
@@ -802,6 +801,14 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 									v = strings.TrimSpace(v)
 									v = strings.Trim(v, "'")
 									col.EnumOptions[v] = k
+								}
+							} else if fs[0] == core.Set && fs[1][0] == '\'' { //set
+								options := strings.Split(fs[1][0:len(fs[1])-1], ",")
+								col.SetOptions = make(map[string]int)
+								for k, v := range options {
+									v = strings.TrimSpace(v)
+									v = strings.Trim(v, "'")
+									col.SetOptions[v] = k
 								}
 							} else {
 								fs2 := strings.Split(fs[1][0:len(fs[1])-1], ",")

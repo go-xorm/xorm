@@ -1037,6 +1037,7 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 	if statement.Engine.Dialect().DBType() == "ql" {
 		id = ""
 	}
+	statement.attachInSql()
 	return statement.genSelectSql(fmt.Sprintf("count(%v) AS %v", id, statement.Engine.Quote("total"))), append(statement.Params, statement.BeanArgs...)
 }
 
