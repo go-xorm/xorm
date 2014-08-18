@@ -848,8 +848,9 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 	for j := 0; j < len(temps); j++ {
 		bean := temps[j]
 		if bean == nil {
-			session.Engine.LogError("[xorm:cacheFind] cache error:", tableName, ides[j], bean)
-			return errors.New("cache error")
+			session.Engine.LogWarn("[xorm:cacheFind] cache no hit:", tableName, ides[j])
+			// return errors.New("cache error") // !nashtsai! no need to return error, but continue instead
+			continue
 		}
 		if sliceValue.Kind() == reflect.Slice {
 			if t.Kind() == reflect.Ptr {
