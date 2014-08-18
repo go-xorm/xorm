@@ -219,12 +219,7 @@ func (session *Session) OrderBy(order string) *Session {
 
 // Method Desc provide desc order by query condition, the input parameters are columns.
 func (session *Session) Desc(colNames ...string) *Session {
-	if session.Statement.OrderStr != "" {
-		session.Statement.OrderStr += ", "
-	}
-	newColNames := col2NewCols(colNames...)
-	sqlStr := strings.Join(newColNames, session.Engine.Quote(" DESC, "))
-	session.Statement.OrderStr += session.Engine.Quote(sqlStr) + " DESC"
+	session.Statement.Desc(colNames...)
 	return session
 }
 
