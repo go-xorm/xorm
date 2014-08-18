@@ -24,7 +24,7 @@ type LRUCacher struct {
 }
 
 func NewLRUCacher(store core.CacheStore, maxElementSize int) *LRUCacher {
-	return NewLRUCacher2(store, 0, maxElementSize)
+	return NewLRUCacher2(store, 3600*time.Second, maxElementSize)
 }
 
 func NewLRUCacher2(store core.CacheStore, expired time.Duration, maxElementSize int) *LRUCacher {
