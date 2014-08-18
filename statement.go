@@ -88,6 +88,7 @@ func (statement *Statement) Init() {
 	statement.UseAutoTime = true
 	statement.IsDistinct = false
 	statement.allUseBool = false
+	statement.useAllCols = false
 	statement.mustColumnMap = make(map[string]bool)
 	statement.checkVersion = true
 	statement.inColumns = make(map[string]*inParam)
