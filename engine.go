@@ -1396,8 +1396,16 @@ func (engine *Engine) Import(r io.Reader) ([]sql.Result, error) {
 	return results, lastError
 }
 
+var (
+	NULL_TIME time.Time
+)
+
 func (engine *Engine) TZTime(t time.Time) time.Time {
-	return t.In(engine.TZLocation)
+
+	if NULL_TIME != t { // if time is not initialized it's not suitable for Time.In()
+		return t.In(engine.TZLocation)
+	}
+	return t
 }
 
 func (engine *Engine) NowTime(sqlTypeName string) interface{} {
