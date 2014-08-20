@@ -37,7 +37,7 @@ type Engine struct {
 	ShowDebug bool
 	ShowWarn  bool
 
-	Logger     ILogger // io.Writer
+	Logger     core.ILogger
 	TZLocation *time.Location
 }
 
