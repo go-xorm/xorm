@@ -18,7 +18,7 @@ const (
 const (
 	DEFAULT_LOG_PREFIX = "[xorm]"
 	DEFAULT_LOG_FLAG   = log.Ldate | log.Lmicroseconds
-	DEFAULT_LOG_LEVEL  = LOG_INFO
+	DEFAULT_LOG_LEVEL  = LOG_DEBUG
 )
 
 type SimpleLogger struct {
@@ -43,7 +43,7 @@ func NewSimpleLogger3(out io.Writer, prefix string, flag int, logLevel LogLevel)
 		ERR:      log.New(out, fmt.Sprintf("%s [error] ", prefix), flag),
 		INFO:     log.New(out, fmt.Sprintf("%s [info]  ", prefix), flag),
 		WARN:     log.New(out, fmt.Sprintf("%s [warn]  ", prefix), flag),
-		LogLevel: LOG_INFO,
+		LogLevel: logLevel,
 	}
 }
 
