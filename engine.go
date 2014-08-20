@@ -188,7 +188,7 @@ func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
 // logging error
 func (engine *Engine) LogError(contents ...interface{}) {
 	if engine.ShowErr {
-		engine.Logger.Err(fmt.Sprint(contents...))
+		engine.Logger.Err(contents...)
 	}
 }
 
@@ -201,39 +201,39 @@ func (engine *Engine) LogErrorf(format string, contents ...interface{}) {
 // logging info
 func (engine *Engine) LogInfo(contents ...interface{}) {
 	if engine.ShowInfo {
-		engine.Logger.Info(fmt.Sprint(contents...))
+		engine.Logger.Info(contents...)
 	}
 }
 
 func (engine *Engine) LogInfof(format string, contents ...interface{}) {
 	if engine.ShowErr {
-		engine.Logger.Info(fmt.Sprintf(format, contents...))
+		engine.Logger.Infof(format, contents...)
 	}
 }
 
 // logging debug
 func (engine *Engine) LogDebug(contents ...interface{}) {
 	if engine.ShowDebug {
-		engine.Logger.Debug(fmt.Sprint(contents...))
+		engine.Logger.Debug(contents...)
 	}
 }
 
 func (engine *Engine) LogDebugf(format string, contents ...interface{}) {
 	if engine.ShowDebug {
-		engine.Logger.Debug(fmt.Sprintf(format, contents...))
+		engine.Logger.Debugf(format, contents...)
 	}
 }
 
 // logging warn
 func (engine *Engine) LogWarn(contents ...interface{}) {
 	if engine.ShowWarn {
-		engine.Logger.Warning(fmt.Sprint(contents...))
+		engine.Logger.Warning(contents...)
 	}
 }
 
 func (engine *Engine) LogWarnf(format string, contents ...interface{}) {
 	if engine.ShowWarn {
-		engine.Logger.Warning(fmt.Sprintf(format, contents...))
+		engine.Logger.Warningf(format, contents...)
 	}
 }
 
