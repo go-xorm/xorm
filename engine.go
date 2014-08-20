@@ -31,11 +31,14 @@ type Engine struct {
 	mutex  *sync.RWMutex
 	Cacher core.Cacher
 
+	ShowSQL bool
+
+	// !nashtsai! TODO ought to deprecate these but having logger to control its log level
 	ShowInfo  bool
-	ShowSQL   bool
 	ShowErr   bool
 	ShowDebug bool
 	ShowWarn  bool
+	// --
 
 	Logger     core.ILogger
 	TZLocation *time.Location
