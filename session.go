@@ -1180,16 +1180,15 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 			}
 		}
 
-		for rawRows.Next() {
-			var newValue reflect.Value = newElemFunc()
-			if sliceValueSetFunc != nil {
-				err := session.row2Bean(rawRows, fields, fieldsCount, newValue.Interface())
-				if err != nil {
-					return err
-				}
-				sliceValueSetFunc(&newValue)
-			}
+		var newValue reflect.Value = newElemFunc()
+		dataStruct := rValue(newValue.Interface())
+		if dataStruct.Kind() != reflect.Struct {
+			return errors.New("Expected a pointer to a struct")
 		}
+
+		table := session.Engine.autoMapType(dataStruct)
+
+		return session.rows2Beans(rawRows, fields, fieldsCount, table, newElemFunc, sliceValueSetFunc)
 	} else {
 		resultsSlice, err := session.query(sqlStr, args...)
 		if err != nil {
@@ -1446,6 +1445,24 @@ func (session *Session) getField(dataStruct *reflect.Value, key string, table *c
 
 type Cell *interface{}
 
+func (session *Session) rows2Beans(rows *core.Rows, fields []string, fieldsCount int,
+	table *core.Table, newElemFunc func() reflect.Value,
+	sliceValueSetFunc func(*reflect.Value)) error {
+
+	for rows.Next() {
+		var newValue reflect.Value = newElemFunc()
+		bean := newValue.Interface()
+		dataStruct := rValue(bean)
+		err := session._row2Bean(rows, fields, fieldsCount, bean, &dataStruct, table)
+		if err != nil {
+			return err
+		}
+		sliceValueSetFunc(&newValue)
+
+	}
+	return nil
+}
+
 func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount int, bean interface{}) error {
 	dataStruct := rValue(bean)
 	if dataStruct.Kind() != reflect.Struct {
@@ -1453,8 +1470,12 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 	}
 
 	table := session.Engine.autoMapType(dataStruct)
+	return session._row2Bean(rows, fields, fieldsCount, bean, &dataStruct, table)
+}
 
-	scanResults := make([]interface{}, len(fields))
+func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount int, bean interface{}, dataStruct *reflect.Value, table *core.Table) error {
+
+	scanResults := make([]interface{}, fieldsCount)
 	for i := 0; i < len(fields); i++ {
 		var cell interface{}
 		scanResults[i] = &cell
@@ -1480,7 +1501,7 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 		}
 		tempMap[strings.ToLower(key)] = idx
 
-		if fieldValue := session.getField(&dataStruct, key, table, idx); fieldValue != nil {
+		if fieldValue := session.getField(dataStruct, key, table, idx); fieldValue != nil {
 			rawValue := reflect.Indirect(reflect.ValueOf(scanResults[ii]))
 
 			//if row is null then ignore
