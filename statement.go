@@ -2,6 +2,7 @@ package xorm
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -87,6 +88,7 @@ func (statement *Statement) Init() {
 	statement.UseAutoTime = true
 	statement.IsDistinct = false
 	statement.allUseBool = false
+	statement.useAllCols = false
 	statement.mustColumnMap = make(map[string]bool)
 	statement.checkVersion = true
 	statement.inColumns = make(map[string]*inParam)
@@ -771,6 +773,27 @@ func col2NewCols(columns ...string) []string {
 	return newColumns
 }
 
+func (statement *Statement) col2NewColsWithQuote(columns ...string) []string {
+	newColumns := make([]string, 0)
+	for _, col := range columns {
+		strings.Replace(col, "`", "", -1)
+		strings.Replace(col, statement.Engine.QuoteStr(), "", -1)
+		ccols := strings.Split(col, ",")
+		for _, c := range ccols {
+			fields := strings.Split(strings.TrimSpace(c), ".")
+			if len(fields) == 1 {
+				newColumns = append(newColumns, statement.Engine.Quote(fields[0]))
+			} else if len(fields) == 2 {
+				newColumns = append(newColumns, statement.Engine.Quote(fields[0])+"."+
+					statement.Engine.Quote(fields[1]))
+			} else {
+				panic(errors.New("unwanted colnames"))
+			}
+		}
+	}
+	return newColumns
+}
+
 // Generate "Distince col1, col2 " statment
 func (statement *Statement) Distinct(columns ...string) *Statement {
 	statement.IsDistinct = true
@@ -851,7 +874,31 @@ func (statement *Statement) Limit(limit int, start ...int) *Statement {
 
 // Generate "Order By order" statement
 func (statement *Statement) OrderBy(order string) *Statement {
+	if statement.OrderStr != "" {
+		statement.OrderStr += ", "
+	}
 	statement.OrderStr = order
+	return statement
+}
+
+func (statement *Statement) Desc(colNames ...string) *Statement {
+	if statement.OrderStr != "" {
+		statement.OrderStr += ", "
+	}
+	newColNames := statement.col2NewColsWithQuote(colNames...)
+	sqlStr := strings.Join(newColNames, " DESC, ")
+	statement.OrderStr += sqlStr + " DESC"
+	return statement
+}
+
+// Method Asc provide asc order by query condition, the input parameters are columns.
+func (statement *Statement) Asc(colNames ...string) *Statement {
+	if statement.OrderStr != "" {
+		statement.OrderStr += ", "
+	}
+	newColNames := statement.col2NewColsWithQuote(colNames...)
+	sqlStr := strings.Join(newColNames, " ASC, ")
+	statement.OrderStr += sqlStr + " ASC"
 	return statement
 }
 
