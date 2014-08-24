@@ -220,7 +220,7 @@ WHERE c.relkind = 'r'::char AND c.relname = $1 AND f.attnum > 0 ORDER BY f.attnu
 
 		col.Length = maxLen
 
-		if col.SQLType.IsText() {
+		if col.SQLType.IsText() || col.SQLType.IsTime() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
 			} else {

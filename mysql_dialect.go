@@ -60,7 +60,7 @@ func (db *mysql) SqlType(c *core.Column) string {
 		for v, _ := range c.EnumOptions {
 			opts += fmt.Sprintf(",'%v'", v)
 		}
-		res += strings.TrimLeft(opts,",")
+		res += strings.TrimLeft(opts, ",")
 		res += ")"
 	case core.Set: //mysql set
 		res = core.Set
@@ -69,7 +69,7 @@ func (db *mysql) SqlType(c *core.Column) string {
 		for v, _ := range c.SetOptions {
 			opts += fmt.Sprintf(",'%v'", v)
 		}
-		res += strings.TrimLeft(opts,",")
+		res += strings.TrimLeft(opts, ",")
 		res += ")"
 	default:
 		res = t
@@ -223,7 +223,7 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 			col.IsAutoIncrement = true
 		}
 
-		if col.SQLType.IsText() {
+		if col.SQLType.IsText() || col.SQLType.IsTime() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
 			} else {

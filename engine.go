@@ -373,12 +373,14 @@ func (engine *Engine) DumpAll(w io.Writer) error {
 				} else if col.SQLType.IsText() || col.SQLType.IsTime() {
 					var v = fmt.Sprintf("%s", d)
 					temp += ", '" + strings.Replace(v, "'", "''", -1) + "'"
-				} else if col.SQLType.IsBlob() /**/ {
+				} else if col.SQLType.IsBlob() {
 					if reflect.TypeOf(d).Kind() == reflect.Slice {
 						temp += fmt.Sprintf(", %s", engine.dialect.FormatBytes(d.([]byte)))
 					} else if reflect.TypeOf(d).Kind() == reflect.String {
 						temp += fmt.Sprintf(", '%s'", d.(string))
 					}
+				} else if col.SQLType.IsNumeric() {
+					temp += fmt.Sprintf(", %s", string(d.([]byte)))
 				} else {
 					s := fmt.Sprintf("%v", d)
 					if strings.Contains(s, ":") || strings.Contains(s, "-") {
