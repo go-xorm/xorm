@@ -471,7 +471,7 @@ func (session *Session) Exec(sqlStr string, args ...interface{}) (sql.Result, er
 
 // this function create a table according a bean
 func (session *Session) CreateTable(bean interface{}) error {
-	session.Statement.RefTable = session.Engine.autoMap(bean)
+	session.Statement.RefTable = session.Engine.TableInfo(bean)
 
 	err := session.newDb()
 	if err != nil {
@@ -487,7 +487,7 @@ func (session *Session) CreateTable(bean interface{}) error {
 
 // create indexes
 func (session *Session) CreateIndexes(bean interface{}) error {
-	session.Statement.RefTable = session.Engine.autoMap(bean)
+	session.Statement.RefTable = session.Engine.TableInfo(bean)
 
 	err := session.newDb()
 	if err != nil {
@@ -510,7 +510,7 @@ func (session *Session) CreateIndexes(bean interface{}) error {
 
 // create uniques
 func (session *Session) CreateUniques(bean interface{}) error {
-	session.Statement.RefTable = session.Engine.autoMap(bean)
+	session.Statement.RefTable = session.Engine.TableInfo(bean)
 
 	err := session.newDb()
 	if err != nil {
@@ -597,7 +597,7 @@ func (session *Session) DropTable(bean interface{}) error {
 	if t.Kind() == reflect.String {
 		session.Statement.AltTableName = bean.(string)
 	} else if t.Kind() == reflect.Struct {
-		session.Statement.RefTable = session.Engine.autoMap(bean)
+		session.Statement.RefTable = session.Engine.TableInfo(bean)
 	} else {
 		return errors.New("Unsupported type")
 	}
@@ -954,7 +954,7 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	var args []interface{}
 
 	if session.Statement.RefTable == nil {
-		session.Statement.RefTable = session.Engine.autoMap(bean)
+		session.Statement.RefTable = session.Engine.TableInfo(bean)
 	}
 
 	if session.Statement.RawSQL == "" {
@@ -2649,7 +2649,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 }
 
 func (session *Session) innerInsert(bean interface{}) (int64, error) {
-	table := session.Engine.autoMap(bean)
+	table := session.Engine.TableInfo(bean)
 	session.Statement.RefTable = table
 
 	// handle BeforeInsertProcessor
@@ -3046,7 +3046,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	// --
 
 	if t.Kind() == reflect.Struct {
-		table = session.Engine.autoMap(bean)
+		table = session.Engine.TableInfo(bean)
 		session.Statement.RefTable = table
 
 		if session.Statement.ColumnStr == "" {
@@ -3300,7 +3300,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	}
 	// --
 
-	table := session.Engine.autoMap(bean)
+	table := session.Engine.TableInfo(bean)
 	session.Statement.RefTable = table
 	colNames, args := buildConditions(session.Engine, table, bean, true, true,
 		false, true, session.Statement.allUseBool, session.Statement.useAllCols,
