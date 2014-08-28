@@ -228,7 +228,7 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 			col.IsAutoIncrement = true
 		}
 
-		if col.SQLType.IsText() {
+		if col.SQLType.IsText() || col.SQLType.IsTime() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
 			} else {
