@@ -197,6 +197,10 @@ WHERE c.relkind = 'r'::char AND c.relname = $1 AND f.attnum > 0 ORDER BY f.attnu
 			}
 		}
 
+		if colDefault != nil && strings.HasPrefix(*colDefault, "nextval(") {
+			col.IsAutoIncrement = true
+		}
+
 		col.Nullable = (isNullable == "YES")
 
 		switch dataType {
