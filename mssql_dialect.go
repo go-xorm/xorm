@@ -168,7 +168,7 @@ where a.object_id=object_id('` + tableName + `')`
 			}
 		}
 
-		if col.SQLType.IsText() {
+		if col.SQLType.IsText() || col.SQLType.IsTime() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
 			} else {

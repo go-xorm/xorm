@@ -653,6 +653,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 			if v, ok := data[session.Statement.RefTable.PrimaryKeys[0]]; !ok {
 				return false, ErrCacheFailed
 			} else {
+				// TODO https://github.com/go-xorm/xorm/issues/144, PK may not always be int64
 				id, err = strconv.ParseInt(string(v), 10, 64)
 				if err != nil {
 					return false, err
@@ -998,9 +999,8 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 			err = session.row2Bean(rawRows, fields, len(fields), bean)
 		}
 		return true, err
-	} else {
-		return false, nil
 	}
+	return false, nil
 }
 
 // Count counts the records. bean's non-empty fields

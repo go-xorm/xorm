@@ -405,12 +405,14 @@ func (engine *Engine) DumpAll(w io.Writer) error {
 				} else if col.SQLType.IsText() || col.SQLType.IsTime() {
 					var v = fmt.Sprintf("%s", d)
 					temp += ", '" + strings.Replace(v, "'", "''", -1) + "'"
-				} else if col.SQLType.IsBlob() /**/ {
+				} else if col.SQLType.IsBlob() {
 					if reflect.TypeOf(d).Kind() == reflect.Slice {
 						temp += fmt.Sprintf(", %s", engine.dialect.FormatBytes(d.([]byte)))
 					} else if reflect.TypeOf(d).Kind() == reflect.String {
 						temp += fmt.Sprintf(", '%s'", d.(string))
 					}
+				} else if col.SQLType.IsNumeric() {
+					temp += fmt.Sprintf(", %s", string(d.([]byte)))
 				} else {
 					s := fmt.Sprintf("%v", d)
 					if strings.Contains(s, ":") || strings.Contains(s, "-") {
@@ -1187,19 +1189,22 @@ func (engine *Engine) Sync2(beans ...interface{}) error {
 				}
 
 				if oriCol != nil {
-					if col.SQLType.Name != oriCol.SQLType.Name {
-						if col.SQLType.Name == core.Text &&
-							oriCol.SQLType.Name == core.Varchar {
+					expectedType := engine.dialect.SqlType(col)
+					//curType := oriCol.SQLType.Name
+					curType := engine.dialect.SqlType(oriCol)
+					if expectedType != curType {
+						if expectedType == core.Text &&
+							curType == core.Varchar {
 							// currently only support mysql
 							if engine.dialect.DBType() == core.MYSQL {
 								_, err = engine.Exec(engine.dialect.ModifyColumnSql(table.Name, col))
 							} else {
 								engine.LogWarnf("Table %s Column %s db type is %s, struct type is %s\n",
-									table.Name, col.Name, oriCol.SQLType.Name, col.SQLType.Name)
+									table.Name, col.Name, curType, expectedType)
 							}
 						} else {
 							engine.LogWarnf("Table %s Column %s db type is %s, struct type is %s",
-								table.Name, col.Name, oriCol.SQLType.Name, col.SQLType.Name)
+								table.Name, col.Name, curType, expectedType)
 						}
 					}
 					if col.Default != oriCol.Default {

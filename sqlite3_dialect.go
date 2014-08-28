@@ -84,6 +84,21 @@ func (db *sqlite3) TableCheckSql(tableName string) (string, []interface{}) {
 	return "SELECT name FROM sqlite_master WHERE type='table' and name = ?", args
 }
 
+func (db *sqlite3) DropIndexSql(tableName string, index *core.Index) string {
+	quote := db.Quote
+	//var unique string
+	var idxName string = index.Name
+	if !strings.HasPrefix(idxName, "UQE_") &&
+		!strings.HasPrefix(idxName, "IDX_") {
+		if index.Type == core.UniqueType {
+			idxName = fmt.Sprintf("UQE_%v_%v", tableName, index.Name)
+		} else {
+			idxName = fmt.Sprintf("IDX_%v_%v", tableName, index.Name)
+		}
+	}
+	return fmt.Sprintf("DROP INDEX %v", quote(idxName))
+}
+
 /*func (db *sqlite3) ColumnCheckSql(tableName, colName string) (string, []interface{}) {
 	args := []interface{}{tableName}
 	sql := "SELECT name FROM sqlite_master WHERE type='table' and name = ? and ((sql like '%`" + colName + "`%') or (sql like '%[" + colName + "]%'))"

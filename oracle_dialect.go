@@ -158,7 +158,7 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Colum
 
 		col.Length = dataLen
 
-		if col.SQLType.IsText() {
+		if col.SQLType.IsText() || col.SQLType.IsTime() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
 			} else {
