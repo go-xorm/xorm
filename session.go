@@ -996,9 +996,8 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 			err = session.row2Bean(rawRows, fields, len(fields), bean)
 		}
 		return true, err
-	} else {
-		return false, nil
 	}
+	return false, nil
 }
 
 // Count counts the records. bean's non-empty fields

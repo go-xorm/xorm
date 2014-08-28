@@ -1116,19 +1116,22 @@ func (engine *Engine) Sync2(beans ...interface{}) error {
 				}
 
 				if oriCol != nil {
-					if col.SQLType.Name != oriCol.SQLType.Name {
-						if col.SQLType.Name == core.Text &&
-							oriCol.SQLType.Name == core.Varchar {
+					expectedType := engine.dialect.SqlType(col)
+					//curType := oriCol.SQLType.Name
+					curType := engine.dialect.SqlType(oriCol)
+					if expectedType != curType {
+						if expectedType == core.Text &&
+							curType == core.Varchar {
 							// currently only support mysql
 							if engine.dialect.DBType() == core.MYSQL {
 								_, err = engine.Exec(engine.dialect.ModifyColumnSql(table.Name, col))
 							} else {
 								engine.LogWarnf("Table %s Column %s db type is %s, struct type is %s\n",
-									table.Name, col.Name, oriCol.SQLType.Name, col.SQLType.Name)
+									table.Name, col.Name, curType, expectedType)
 							}
 						} else {
 							engine.LogWarnf("Table %s Column %s db type is %s, struct type is %s",
-								table.Name, col.Name, oriCol.SQLType.Name, col.SQLType.Name)
+								table.Name, col.Name, curType, expectedType)
 						}
 					}
 					if col.Default != oriCol.Default {
