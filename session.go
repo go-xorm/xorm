@@ -1393,6 +1393,34 @@ func (session *Session) dropAll() error {
 	return nil
 }
 
+func row2mapStr(rows *core.Rows, fields []string) (resultsMap map[string]string, err error) {
+	result := make(map[string]string)
+	scanResultContainers := make([]interface{}, len(fields))
+	for i := 0; i < len(fields); i++ {
+		var scanResultContainer interface{}
+		scanResultContainers[i] = &scanResultContainer
+	}
+	if err := rows.Scan(scanResultContainers...); err != nil {
+		return nil, err
+	}
+
+	for ii, key := range fields {
+		rawValue := reflect.Indirect(reflect.ValueOf(scanResultContainers[ii]))
+		//if row is null then ignore
+		if rawValue.Interface() == nil {
+			//fmt.Println("ignore ...", key, rawValue)
+			continue
+		}
+
+		if data, err := value2String(&rawValue); err == nil {
+			result[key] = data
+		} else {
+			return nil, err // !nashtsai! REVIEW, should return err or just error log?
+		}
+	}
+	return result, nil
+}
+
 func row2map(rows *core.Rows, fields []string) (resultsMap map[string][]byte, err error) {
 	result := make(map[string][]byte)
 	scanResultContainers := make([]interface{}, len(fields))
@@ -1830,6 +1858,62 @@ func (session *Session) Query(sqlStr string, paramStr ...interface{}) (resultsSl
 
 	return session.query(sqlStr, paramStr...)
 }
+
+
+
+
+
+// =============================
+// for string
+// =============================
+func (session *Session) query2(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string]string, err error) {
+	session.queryPreprocess(&sqlStr, paramStr...)
+
+	if session.IsAutoCommit {
+		return query2(session.Db, sqlStr, paramStr...)
+	}
+	return txQuery2(session.Tx, sqlStr, paramStr...)
+}
+
+func txQuery2(tx *core.Tx, sqlStr string, params ...interface{}) (resultsSlice []map[string]string, err error) {
+	rows, err := tx.Query(sqlStr, params...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return rows2Strings(rows)
+}
+
+func query2(db *core.DB, sqlStr string, params ...interface{}) (resultsSlice []map[string]string, err error) {
+	s, err := db.Prepare(sqlStr)
+	if err != nil {
+		return nil, err
+	}
+	defer s.Close()
+	rows, err := s.Query(params...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return rows2Strings(rows)
+}
+
+// Exec a raw sql and return records as []map[string]string
+func (session *Session) Q(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string]string, err error) {
+	err = session.newDb()
+	if err != nil {
+		return nil, err
+	}
+	defer session.resetStatement()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+	return session.query2(sqlStr, paramStr...)
+}
+
+
+
 
 // insert one or more beans
 func (session *Session) Insert(beans ...interface{}) (int64, error) {

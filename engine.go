@@ -330,7 +330,7 @@ func (engine *Engine) DumpAll(w io.Writer) error {
 	}
 
 	for _, table := range tables {
-		_, err = io.WriteString(w, engine.dialect.CreateTableSql(table, "", "", "")+"\n\n")
+		_, err = io.WriteString(w, engine.dialect.CreateTableSql(table, "", table.StoreEngine, "")+"\n\n")
 		if err != nil {
 			return err
 		}
