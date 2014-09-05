@@ -70,28 +70,23 @@ func sliceEq(left, right []string) bool {
 	return true
 }
 
-func value2Bytes(rawValue *reflect.Value) (data []byte, err error) {
+func reflect2value(rawValue *reflect.Value) (str string, err error) {
 	aa := reflect.TypeOf((*rawValue).Interface())
 	vv := reflect.ValueOf((*rawValue).Interface())
-
-	var str string
 	switch aa.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		str = strconv.FormatInt(vv.Int(), 10)
-		data = []byte(str)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		str = strconv.FormatUint(vv.Uint(), 10)
-		data = []byte(str)
 	case reflect.Float32, reflect.Float64:
 		str = strconv.FormatFloat(vv.Float(), 'f', -1, 64)
-		data = []byte(str)
 	case reflect.String:
 		str = vv.String()
-		data = []byte(str)
 	case reflect.Array, reflect.Slice:
 		switch aa.Elem().Kind() {
 		case reflect.Uint8:
-			data = rawValue.Interface().([]byte)
+			data := rawValue.Interface().([]byte)
+			str = string(data)
 		default:
 			err = fmt.Errorf("Unsupported struct type %v", vv.Type().Name())
 		}
@@ -99,16 +94,13 @@ func value2Bytes(rawValue *reflect.Value) (data []byte, err error) {
 	case reflect.Struct:
 		if aa == core.TimeType {
 			str = rawValue.Interface().(time.Time).Format(time.RFC3339Nano)
-			data = []byte(str)
 		} else {
 			err = fmt.Errorf("Unsupported struct type %v", vv.Type().Name())
 		}
 	case reflect.Bool:
 		str = strconv.FormatBool(vv.Bool())
-		data = []byte(str)
 	case reflect.Complex128, reflect.Complex64:
 		str = fmt.Sprintf("%v", vv.Complex())
-		data = []byte(str)
 	/* TODO: unsupported types below
 	   case reflect.Map:
 	   case reflect.Ptr:
@@ -120,6 +112,40 @@ func value2Bytes(rawValue *reflect.Value) (data []byte, err error) {
 		err = fmt.Errorf("Unsupported struct type %v", vv.Type().Name())
 	}
 	return
+}
+
+func value2Bytes(rawValue *reflect.Value) (data []byte, err error) {
+	var str string
+	str, err = reflect2value(rawValue)
+	if err != nil {
+		return
+	}
+	data = []byte(str)
+	return
+}
+
+func value2String(rawValue *reflect.Value) (data string, err error) {
+	data, err = reflect2value(rawValue)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func rows2Strings(rows *core.Rows) (resultsSlice []map[string]string, err error) {
+	fields, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		result, err := row2mapStr(rows, fields)
+		if err != nil {
+			return nil, err
+		}
+		resultsSlice = append(resultsSlice, result)
+	}
+
+	return resultsSlice, nil
 }
 
 func rows2maps(rows *core.Rows) (resultsSlice []map[string][]byte, err error) {
