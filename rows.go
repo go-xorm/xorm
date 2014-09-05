@@ -34,7 +34,7 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 
 	var sqlStr string
 	var args []interface{}
-	rows.session.Statement.RefTable = rows.session.Engine.autoMap(bean)
+	rows.session.Statement.RefTable = rows.session.Engine.TableInfo(bean)
 	if rows.session.Statement.RawSQL == "" {
 		sqlStr, args = rows.session.Statement.genGetSql(bean)
 	} else {
