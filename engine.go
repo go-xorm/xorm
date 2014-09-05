@@ -412,7 +412,12 @@ func (engine *Engine) DumpAll(w io.Writer) error {
 						temp += fmt.Sprintf(", '%s'", d.(string))
 					}
 				} else if col.SQLType.IsNumeric() {
-					temp += fmt.Sprintf(", %s", string(d.([]byte)))
+					switch reflect.TypeOf(d).Kind() {
+					case reflect.Slice:
+						temp += fmt.Sprintf(", %s", string(d.([]byte)))
+					default:
+						temp += fmt.Sprintf(", %v", d)
+					}
 				} else {
 					s := fmt.Sprintf("%v", d)
 					if strings.Contains(s, ":") || strings.Contains(s, "-") {
