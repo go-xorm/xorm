@@ -12,6 +12,9 @@ import (
 // func init() {
 // 	RegisterDialect("postgres", &postgres{})
 // }
+var (
+	postgresReservedWords = map[string]bool{}
+)
 
 type postgres struct {
 	core.Base
@@ -71,6 +74,15 @@ func (db *postgres) SqlType(c *core.Column) string {
 
 func (db *postgres) SupportInsertMany() bool {
 	return true
+}
+
+func (db *postgres) IsReserved(name string) bool {
+	_, ok := postgresReservedWords[name]
+	return ok
+}
+
+func (db *postgres) Quote(name string) string {
+	return "\"" + name + "\""
 }
 
 func (db *postgres) QuoteStr() string {
