@@ -418,6 +418,7 @@ func (db *mysql) GetTables() ([]*core.Table, error) {
 		}
 
 		table.Name = name
+		table.StoreEngine = engine
 		tables = append(tables, table)
 	}
 	return tables, nil

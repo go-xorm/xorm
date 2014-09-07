@@ -42,6 +42,14 @@ type Engine struct {
 
 	Logger     core.ILogger
 	TZLocation *time.Location
+
+	disableGlobalCache bool
+}
+
+func (engine *Engine) SetDisableGlobalCache(disable bool) {
+	if engine.disableGlobalCache != disable {
+		engine.disableGlobalCache = disable
+	}
 }
 
 func (engine *Engine) DriverName() string {
@@ -183,6 +191,30 @@ func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
 		} else {
 			engine.Logger.Info(fmt.Sprintf("[sql] %v", sqlStr))
 		}
+	}
+}
+
+func (engine *Engine) LogSQLQueryTime(sqlStr string, args interface{}, executionBlock func() (*core.Stmt, *core.Rows, error)) (*core.Stmt, *core.Rows, error) {
+	if engine.ShowDebug {
+		b4ExecTime := time.Now()
+		stmt, res, err := executionBlock()
+		execDuration := time.Since(b4ExecTime)
+		engine.LogDebugf("sql [%s] - args [%v] - query took: %vns", sqlStr, args, execDuration.Nanoseconds())
+		return stmt, res, err
+	} else {
+		return executionBlock()
+	}
+}
+
+func (engine *Engine) LogSQLExecutionTime(sqlStr string, args interface{}, executionBlock func() (sql.Result, error)) (sql.Result, error) {
+	if engine.ShowDebug {
+		b4ExecTime := time.Now()
+		res, err := executionBlock()
+		execDuration := time.Since(b4ExecTime)
+		engine.LogDebugf("sql [%s] - args [%v] - execution took: %vns", sqlStr, args, execDuration.Nanoseconds())
+		return res, err
+	} else {
+		return executionBlock()
 	}
 }
 
@@ -330,7 +362,7 @@ func (engine *Engine) DumpAll(w io.Writer) error {
 	}
 
 	for _, table := range tables {
-		_, err = io.WriteString(w, engine.dialect.CreateTableSql(table, "", "", "")+"\n\n")
+		_, err = io.WriteString(w, engine.dialect.CreateTableSql(table, "", table.StoreEngine, "")+"\n\n")
 		if err != nil {
 			return err
 		}
@@ -380,7 +412,12 @@ func (engine *Engine) DumpAll(w io.Writer) error {
 						temp += fmt.Sprintf(", '%s'", d.(string))
 					}
 				} else if col.SQLType.IsNumeric() {
-					temp += fmt.Sprintf(", %s", string(d.([]byte)))
+					switch reflect.TypeOf(d).Kind() {
+					case reflect.Slice:
+						temp += fmt.Sprintf(", %s", string(d.([]byte)))
+					default:
+						temp += fmt.Sprintf(", %v", d)
+					}
 				} else {
 					s := fmt.Sprintf("%v", d)
 					if strings.Contains(s, ":") || strings.Contains(s, "-") {
@@ -591,7 +628,7 @@ func (engine *Engine) autoMapType(v reflect.Value) *core.Table {
 	return table
 }
 
-func (engine *Engine) autoMap(bean interface{}) *core.Table {
+func (engine *Engine) TableInfo(bean interface{}) *core.Table {
 	v := rValue(bean)
 	return engine.autoMapType(v)
 }
@@ -610,7 +647,10 @@ func addIndex(indexName string, table *core.Table, col *core.Column, indexType i
 
 func (engine *Engine) newTable() *core.Table {
 	table := core.NewEmptyTable()
-	table.Cacher = engine.Cacher
+
+	if !engine.disableGlobalCache {
+		table.Cacher = engine.Cacher
+	}
 	return table
 }
 
@@ -638,6 +678,9 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 
 	var idFieldColName string
 	var err error
+
+	hasCacheTag := false
+	hasNoCacheTag := false
 
 	for i := 0; i < t.NumField(); i++ {
 		tag := t.Field(i).Tag
@@ -733,6 +776,14 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 						isUnique = true
 					case k == "NOTNULL":
 						col.Nullable = false
+					case k == "CACHE":
+						if !hasCacheTag {
+							hasCacheTag = true
+						}
+					case k == "NOCACHE":
+						if !hasNoCacheTag {
+							hasNoCacheTag = true
+						}
 					case k == "NOT":
 					default:
 						if strings.HasPrefix(k, "'") && strings.HasSuffix(k, "'") {
@@ -841,7 +892,7 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 		if fieldType.Kind() == reflect.Int64 && (col.FieldName == "Id" || strings.HasSuffix(col.FieldName, ".Id")) {
 			idFieldColName = col.Name
 		}
-	}
+	} // end for
 
 	if idFieldColName != "" && len(table.PrimaryKeys) == 0 {
 		col := table.GetColumn(idFieldColName)
@@ -850,6 +901,20 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 		col.Nullable = false
 		table.PrimaryKeys = append(table.PrimaryKeys, col.Name)
 		table.AutoIncrement = col.Name
+	}
+
+	if hasCacheTag {
+		if engine.Cacher != nil { // !nash! use engine's cacher if provided
+			engine.Logger.Info("enable cache on table:", table.Name)
+			table.Cacher = engine.Cacher
+		} else {
+			engine.Logger.Info("enable LRU cache on table:", table.Name)
+			table.Cacher = NewLRUCacher2(NewMemoryStore(), time.Hour, 10000) // !nashtsai! HACK use LRU cacher for now
+		}
+	}
+	if hasNoCacheTag {
+		engine.Logger.Info("no cache on table:", table.Name)
+		table.Cacher = nil
 	}
 
 	return table
@@ -900,7 +965,7 @@ func (engine *Engine) IsTableExist(bean interface{}) (bool, error) {
 }
 
 func (engine *Engine) IdOf(bean interface{}) core.PK {
-	table := engine.autoMap(bean)
+	table := engine.TableInfo(bean)
 	v := reflect.Indirect(reflect.ValueOf(bean))
 	pk := make([]interface{}, len(table.PrimaryKeys))
 	for i, col := range table.PKColumns() {
@@ -948,7 +1013,7 @@ func (engine *Engine) ClearCacheBean(bean interface{}, id string) error {
 	if t.Kind() != reflect.Struct {
 		return errors.New("error params")
 	}
-	table := engine.autoMap(bean)
+	table := engine.TableInfo(bean)
 	cacher := table.Cacher
 	if cacher == nil {
 		cacher = engine.Cacher
@@ -967,7 +1032,7 @@ func (engine *Engine) ClearCache(beans ...interface{}) error {
 		if t.Kind() != reflect.Struct {
 			return errors.New("error params")
 		}
-		table := engine.autoMap(bean)
+		table := engine.TableInfo(bean)
 		cacher := table.Cacher
 		if cacher == nil {
 			cacher = engine.Cacher
@@ -985,7 +1050,7 @@ func (engine *Engine) ClearCache(beans ...interface{}) error {
 // If you change some field, you should change the database manually.
 func (engine *Engine) Sync(beans ...interface{}) error {
 	for _, bean := range beans {
-		table := engine.autoMap(bean)
+		table := engine.TableInfo(bean)
 
 		s := engine.NewSession()
 		defer s.Close()
@@ -1084,7 +1149,7 @@ func (engine *Engine) Sync2(beans ...interface{}) error {
 	structTables := make([]*core.Table, 0)
 
 	for _, bean := range beans {
-		table := engine.autoMap(bean)
+		table := engine.TableInfo(bean)
 		structTables = append(structTables, table)
 
 		var oriTable *core.Table

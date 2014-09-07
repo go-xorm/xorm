@@ -346,7 +346,6 @@ Notice: If you want to use transaction on inserting, you should use session.Begi
 ### 5.1. Chainable APIs for Queries, Execusions and Aggregations
 
 Queries and Aggregations is basically formed by using `Get`, `Find`, `Count` methods, with conjunction of following chainable APIs to form conditions, grouping and ordering:
-查询和统计主要使用`Get`, `Find`, `Count`三个方法。在进行查询时可以使用多个方法来形成查询条件，条件函数如下：
 
 * Id([]interface{})
 Primary Key lookup
@@ -535,16 +534,16 @@ affected, err := engine.Table(new(User)).Id(id).Update(map[string]interface{}{"a
 ```
 
 
-### 6.1.乐观锁
+### 6.1.Optimistic Lock
 
-要使用乐观锁，需要使用version标记
+To enable object optimistic lock, add 'version' tag value:
 type User struct {
 	Id int64
 	Name string
 	Version int `xorm:"version"`
 }
 
-在Insert时，version标记的字段将会被设置为1，在Update时，Update的内容必须包含version原来的值。
+The version starts with 1 when inserted to DB. For updating make sure originated version value is used for optimistic lock check.
 
 ```Go
 var user User
