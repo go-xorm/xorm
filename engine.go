@@ -1191,16 +1191,19 @@ func (engine *Engine) Sync2(beans ...interface{}) error {
 					curType := engine.dialect.SqlType(oriCol)
 					if expectedType != curType {
 						if expectedType == core.Text &&
-							curType == core.Varchar {
+							strings.HasPrefix(curType, core.Varchar) {
 							// currently only support mysql
-							if engine.dialect.DBType() == core.MYSQL {
+							if engine.dialect.DBType() == core.MYSQL ||
+								engine.dialect.DBType() == core.POSTGRES {
+								engine.LogInfof("Table %s column %s change type from %s to %s\n",
+									table.Name, col.Name, curType, expectedType)
 								_, err = engine.Exec(engine.dialect.ModifyColumnSql(table.Name, col))
 							} else {
-								engine.LogWarnf("Table %s Column %s db type is %s, struct type is %s\n",
+								engine.LogWarnf("Table %s column %s db type is %s, struct type is %s\n",
 									table.Name, col.Name, curType, expectedType)
 							}
 						} else {
-							engine.LogWarnf("Table %s Column %s db type is %s, struct type is %s",
+							engine.LogWarnf("Table %s column %s db type is %s, struct type is %s",
 								table.Name, col.Name, curType, expectedType)
 						}
 					}
