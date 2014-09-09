@@ -19,17 +19,17 @@ Firstly, we should new an engine for a database
 
 Method NewEngine's parameters is the same as sql.Open. It depends
 drivers' implementation.
-Generally, one engine is enough. You can set it as package variable.
+Generally, one engine for an application is enough. You can set it as package variable.
 
 Raw Methods
 
 Xorm also support raw sql execution:
 
-1. query sql, the returned results is []map[string][]byte
+1. query a SQL string, the returned results is []map[string][]byte
 
     results, err := engine.Query("select * from user")
 
-2. exec sql, the returned results
+2. execute a SQL string, the returned results
 
     affected, err := engine.Exec("update user set .... where ...")
 
@@ -57,29 +57,31 @@ There are 7 major ORM methods and many helpful methods to use to operate databas
 
 3. Query multiple records from database
 
-    err := engine.Find(...)
+    sliceOfStructs := new(Struct)
+    err := engine.Find(sliceOfStructs)
     // SELECT * FROM user
 
 4. Query multiple records and record by record handle, there two methods, one is Iterate,
 another is Raws
 
-    raws, err := engine.Raws(...)
-    // SELECT * FROM user
-    for raws.Next() {
-        raws.Scan(bean)
-    }
-
     err := engine.Iterate(...)
     // SELECT * FROM user
+
+    raws, err := engine.Raws(...)
+    // SELECT * FROM user
+    bean := new(Struct)
+    for raws.Next() {
+        err = raws.Scan(bean)
+    }
 
 5. Update one or more records
 
     affected, err := engine.Update(&user)
-    // UPDATE user SET
+    // UPDATE user SET ...
 
-6. Delete one or more records
+6. Delete one or more records, Delete MUST has conditon
 
-    affected, err := engine.Delete(&user)
+    affected, err := engine.Where(...).Delete(&user)
     // DELETE FROM user Where ...
 
 7. Count records
@@ -89,13 +91,18 @@ another is Raws
 
 Conditions
 
-The above 7 methods could use with condition methods.
+The above 7 methods could use with condition methods chainable.
+Attention: the above 7 methods should be the last chainable method.
 
 1. Id, In
 
-    engine.Id(1).Get(&user)
+    engine.Id(1).Get(&user) // for single primary key
     // SELECT * FROM user WHERE id = 1
+    engine.Id(core.PK{1, 2}).Get(&user) // for composite primary keys
+    // SELECT * FROM user WHERE id1 = 1 AND id2 = 2
     engine.In("id", 1, 2, 3).Find(&users)
+    // SELECT * FROM user WHERE id IN (1, 2, 3)
+    engine.In("id", []int{1, 2, 3})
     // SELECT * FROM user WHERE id IN (1, 2, 3)
 
 2. Where, And, Or
@@ -114,10 +121,11 @@ The above 7 methods could use with condition methods.
 
     engine.Limit().Find()
     // SELECT * FROM user LIMIT .. OFFSET ..
-    engine.Top().Find()
-    // SELECT * FROM user LIMIT ..
+    engine.Top(5).Find()
+    // SELECT TOP 5 * FROM user // for mssql
+    // SELECT * FROM user LIMIT .. OFFSET 0 //for other databases
 
-5. Sql
+5. Sql, let you custom SQL
 
     engine.Sql("select * from user").Find()
 
@@ -125,8 +133,12 @@ The above 7 methods could use with condition methods.
 
     engine.Cols("col1, col2").Find()
     // SELECT col1, col2 FROM user
+    engine.Cols("col1", "col2").Where().Update(user)
+    // UPDATE user set col1 = ?, col2 = ? Where ...
     engine.Omit("col1").Find()
     // SELECT col2, col3 FROM user
+    engine.Omit("col1").Insert()
+    // INSERT INTO table (non-col1) VALUES ()
     engine.Distinct("col1").Find()
     // SELECT DISTINCT col1 FROM user
 

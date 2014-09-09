@@ -151,7 +151,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 
 /*func (statement *Statement) genFields(bean interface{}) map[string]interface{} {
     results := make(map[string]interface{})
-    table := statement.Engine.autoMap(bean)
+    table := statement.Engine.TableInfo(bean)
     for _, col := range table.Columns {
         fieldValue := col.ValueOf(bean)
         fieldType := reflect.TypeOf(fieldValue.Interface())
@@ -905,9 +905,11 @@ func (statement *Statement) Asc(colNames ...string) *Statement {
 //The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
 func (statement *Statement) Join(join_operator, tablename, condition string) *Statement {
 	if statement.JoinStr != "" {
-		statement.JoinStr = statement.JoinStr + fmt.Sprintf(" %v JOIN %v ON %v", join_operator, tablename, condition)
+		statement.JoinStr = statement.JoinStr + fmt.Sprintf(" %v JOIN %v ON %v", join_operator,
+			statement.Engine.Quote(tablename), condition)
 	} else {
-		statement.JoinStr = fmt.Sprintf("%v JOIN %v ON %v", join_operator, tablename, condition)
+		statement.JoinStr = fmt.Sprintf("%v JOIN %v ON %v", join_operator,
+			statement.Engine.Quote(tablename), condition)
 	}
 	return statement
 }
@@ -1020,7 +1022,7 @@ func (s *Statement) genDropSQL() string {
 func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) {
 	var table *core.Table
 	if statement.RefTable == nil {
-		table = statement.Engine.autoMap(bean)
+		table = statement.Engine.TableInfo(bean)
 		statement.RefTable = table
 	} else {
 		table = statement.RefTable
@@ -1070,7 +1072,7 @@ func (s *Statement) genAddUniqueStr(uqeName string, cols []string) (string, []in
 }*/
 
 func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}) {
-	table := statement.Engine.autoMap(bean)
+	table := statement.Engine.TableInfo(bean)
 	statement.RefTable = table
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true, true, false,
