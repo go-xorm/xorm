@@ -68,7 +68,7 @@ xorm当前支持五种驱动四个数据库如下：
 
 * Mysql: [github.com/Go-SQL-Driver/MySQL](https://github.com/Go-SQL-Driver/MySQL)
 
-* MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
+* MyMysql: [github.com/ziutek/mymysql](https://github.com/ziutek/mymysql)
 
 * SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 
