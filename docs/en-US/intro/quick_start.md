@@ -1,3 +1,8 @@
+---
+name: Quick Start
+sort: 2
+---
+
 Quick Start
 =====
 
@@ -26,12 +31,7 @@ Quick Start
 * [9.Execute SQL query](#100)
 * [10.Transaction](#110)
 * [11.Cache](#120)
-* [12.Xorm Tool](#130)
-	* [12.1.Reverse command](#131)
 * [13.Examples](#140)
-* [14.Cases](#150)
-* [15.FAQ](#160)
-* [16.Discuss](#170)
 
 <a name="10" id="10"></a>
 ## 1.Create ORM Engine 
@@ -54,7 +54,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/go-xorm/xorm"
 	)
-engine, err := xorm.NewEngine("sqlite3", "./test.db")
+engine, err = xorm.NewEngine("sqlite3", "./test.db")
 defer engine.Close()
 ```
 
@@ -346,6 +346,7 @@ Notice: If you want to use transaction on inserting, you should use session.Begi
 ### 5.1. Chainable APIs for Queries, Execusions and Aggregations
 
 Queries and Aggregations is basically formed by using `Get`, `Find`, `Count` methods, with conjunction of following chainable APIs to form conditions, grouping and ordering:
+查询和统计主要使用`Get`, `Find`, `Count`三个方法。在进行查询时可以使用多个方法来形成查询条件，条件函数如下：
 
 * Id([]interface{})
 Primary Key lookup
@@ -537,12 +538,13 @@ affected, err := engine.Table(new(User)).Id(id).Update(map[string]interface{}{"a
 ### 6.1.Optimistic Lock
 
 To enable object optimistic lock, add 'version' tag value:
+```Go
 type User struct {
 	Id int64
 	Name string
 	Version int `xorm:"version"`
 }
-
+```
 The version starts with 1 when inserted to DB. For updating make sure originated version value is used for optimistic lock check.
 
 ```Go
@@ -666,75 +668,8 @@ Cache implement theory below:
 
 ![cache design](https://raw.github.com/go-xorm/xorm/master/docs/cache_design.png)
 
-<a name="130" id="130"></a>
-## 12.xorm tool
-xorm commandl line tool
-
-### 12.1.Reverse command
-Please visit [xorm tool](https://github.com/go-xorm/cmd)
-
 <a name="140" id="140"></a>
 ## 13.Examples
 
 Please visit [https://github.com/go-xorm/xorm/tree/master/examples](https://github.com/go-xorm/xorm/tree/master/examples)
 
-<a name="150" id="150"></a>
-## 14.Cases
-
-* [Gowalker](http://gowalker.org)，source [github.com/Unknwon/gowalker](http://github.com/Unknwon/gowalker)
-
-* [GoDaily](http://godaily.org)，source [github.com/govc/godaily](http://github.com/govc/godaily)
-
-* [Sudochina](http://sudochina.com) source [github.com/insionng/toropress](http://github.com/insionng/toropress)
-
-* [VeryHour](http://veryhour.com)
-
-<a name="160"></a>
-## 15.FAQ 
-
-* How the xorm tag use both with json?
-  
-  Use space.
-
-```Go
-type User struct {
-    Name string `json:"name" xorm:"name"`
-}
-```
-
-* Does xorm support composite primary key?
-
-  Yes. You can use pk tag. All fields have tag will as one primary key by fields order on struct. When use, you can use xorm.PK{1, 2}. For example: `Id(xorm.PK{1, 2})`.
-
-* How to use join？
-
-  We can use Join() and extends tag to do join operation. For example:
-
-    type Userinfo struct {
-        Id int64
-        Name string
-        DetailId int64
-    }
-
-    type Userdetail struct {
-        Id int64
-        Gender int
-    }
-
-    type User struct {
-        Userinfo `xorm:"extends"`
-        Userdetail `xorm:"extends"`
-    }
-
-    var users = make([]User, 0)
-    err := engine.Table(&Userinfo{}).Join("LEFT", "userdetail", "userinfo.detail_id = userdetail.id").Find(&users)
-
-    //assert(User.Userinfo.Id != 0 && User.Userdetail.Id != 0)
-
-Please notice that Userinfo field on User should be before Userdetail because of the order on join SQL stsatement. If the order is wrong, the same name field may be set a wrong value.
-
-Of course, If join statment is very long, you could directly use Sql():
-
-    err := engine.Sql("select * from userinfo, userdetail where userinfo.detail_id = userdetail.id").Find(&users)
-
-    //assert(User.Userinfo.Id != 0 && User.Userdetail.Id != 0)

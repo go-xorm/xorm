@@ -1,3 +1,8 @@
+---
+name: Changelog
+sort: 1
+---
+
 ## Changelog
 
 * **v0.4.0 RC1** 
@@ -52,3 +57,4 @@
 * **v0.1.2** : Insert function now supports both struct and slice pointer parameters, batch inserting and auto transaction
 * **v0.1.1** : Add Id, In functions and improved README
 * **v0.1.0** : Initial release.
+

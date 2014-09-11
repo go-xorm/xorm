@@ -1,3 +1,8 @@
+---
+name: 快速开始
+sort: 2
+---
+
 xorm 快速入门
 =====
 
@@ -30,12 +35,7 @@ xorm 快速入门
 * [10.事务处理](#110)
 * [11.缓存](#120)
 * [12.事件](#125)
-* [13.xorm工具](#130)
-	* [13.1.反转命令](#131)
 * [14.Examples](#140)
-* [15.案例](#150)
-* [16.那些年我们踩过的坑](#160)
-* [17.讨论](#170)
 
 <a name="10" id="10"></a>
 ## 1.创建Orm引擎
@@ -58,7 +58,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/go-xorm/xorm"
 	)
-engine, err := xorm.NewEngine("sqlite3", "./test.db")
+engine, err = xorm.NewEngine("sqlite3", "./test.db")
 defer engine.Close()
 ```
 
@@ -764,101 +764,7 @@ xorm支持两种方式的事件，一种是在Struct中的特定方法来作为�
 
 其中beforeFunc和afterFunc的原型为func(bean interface{}).
 
-<a name="130" id="130"></a>
-## 13.xorm工具
-xorm工具提供了xorm命令，能够帮助做很多事情。
-
-### 13.1.反转命令
-参见 [xorm工具](https://github.com/go-xorm/cmd)
-
 <a name="140" id="140"></a>
 ## 14.Examples
 
 请访问[https://github.com/go-xorm/xorm/tree/master/examples](https://github.com/go-xorm/xorm/tree/master/examples)
-
-<a name="150" id="150"></a>
-## 15.案例
-
-* [Gowalker](http://gowalker.org)，源代码 [github.com/Unknwon/gowalker](http://github.com/Unknwon/gowalker)
-
-* [GoDaily Go语言学习网站](http://godaily.org)，源代码 [github.com/govc/godaily](http://github.com/govc/godaily)
-
-* [Sudochina](http://sudochina.com) 和对应的源代码[github.com/insionng/toropress](http://github.com/insionng/toropress)
-
-* [VeryHour](http://veryhour.com)
-
-<a name="160" id="160"></a>
-## 16.那些年我们踩过的坑
-* 怎么同时使用xorm的tag和json的tag？
-  
-答：使用空格
-
-```Go
-type User struct {
-    Name string `json:"name" xorm:"name"`
-}
-```
-
-* 我的struct里面包含bool类型，为什么它不能作为条件也没法用Update更新？
-
-答：默认bool类型因为无法判断是否为空，所以不会自动作为条件也不会作为Update的内容。可以使用UseBool函数，也可以使用Cols函数
-
-```Go
-engine.Cols("bool_field").Update(&Struct{BoolField:true})
-// UPDATE struct SET bool_field = true
-```
-
-* 我的struct里面包含float64和float32类型，为什么用他们作为查询条件总是不正确？
-
-答：默认float32和float64映射到数据库中为float,real,double这几种类型，这几种数据库类型数据库的实现一般都是非精确的。因此作为相等条件查询有可能不会返回正确的结果。如果一定要作为查询条件，请将数据库中的类型定义为Numeric或者Decimal。
-
-```Go
-type account struct {
-money float64 `xorm:"Numeric"`
-}
-```
-
-* 为什么Update时Sqlite3返回的affected和其它数据库不一样？
-
-答：Sqlite3默认Update时返回的是update的查询条件的记录数条数，不管记录是否真的有更新。而Mysql和Postgres默认情况下都是只返回记录中有字段改变的记录数。
-
-* xorm有几种命名映射规则？
-
-答：目前支持SnakeMapper和SameMapper两种。SnakeMapper支持结构体和成员以驼峰式命名而数据库表和字段以下划线连接命名；SameMapper支持结构体和数据库的命名保持一致的映射。
-
-* xorm支持复合主键吗？
-
-答：支持。在定义时，如果有多个字段标记了pk，则这些字段自动成为复合主键，顺序为在struct中出现的顺序。在使用Id方法时，可以用`Id(xorm.PK{1, 2})`的方式来用。
-
-* xorm如何使用Join？
-
-答：一般我们配合Join()和extends标记来进行，比如我们要对两个表进行Join操作，我们可以这样：
-
-	type Userinfo struct {
-		Id int64
-		Name string
-		DetailId int64
-	}
-
-	type Userdetail struct {
-		Id int64
-		Gender int
-	}
-
-	type User struct {
-		Userinfo `xorm:"extends"`
-		Userdetail `xorm:"extends"`
-	}
-
-	var users = make([]User, 0)
-	err := engine.Table(&Userinfo{}).Join("LEFT", "userdetail", "userinfo.detail_id = userdetail.id").Find(&users)
-
-请注意这里的Userinfo在User中的位置必须在Userdetail的前面，因为他在join语句中的顺序在userdetail前面。如果顺序不对，那么对于同名的列，有可能会赋值出错。
-
-当然，如果Join语句比较复杂，我们也可以直接用Sql函数
-
-	err := engine.Sql("select * from userinfo, userdetail where userinfo.detail_id = userdetail.id").Find(&users)
-
-<a name="170" id="170"></a>
-## 17.讨论
-请加入QQ群：280360085 进行讨论。
