@@ -82,7 +82,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 	* Allowed int/int32/int64/uint/uint32/uint64/string as Primary Key type
 	* Performance improvement for Get()/Find()/Iterate()
 
-[More changelogs ...](https://github.com/go-xorm/xorm/blob/master/docs/Changelog.md)
+[More changelogs ...](http://xorm.io/docs/intro/change_log.md)
 
 # Installation
 
