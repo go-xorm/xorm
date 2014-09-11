@@ -82,7 +82,7 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 	* 查询函数 Get()/Find()/Iterate() 在性能上的改进
 
 
-[更多更新日志...](https://github.com/go-xorm/xorm/blob/master/docs/ChangelogCN.md)
+[更多更新日志...](http://xorm.io/docs/intro/change_log.md)
 
 ## 安装
 
@@ -96,7 +96,7 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 ## 文档
 
-* [快速开始](https://github.com/go-xorm/xorm/blob/master/docs/QuickStartCN.md)
+* [快速开始](http://xorm.io/docs/intro/quick_start.md)
 
 * [GoWalker代码文档](http://gowalker.org/github.com/go-xorm/xorm)
 

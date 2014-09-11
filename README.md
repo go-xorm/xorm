@@ -100,7 +100,7 @@ Or
 
 * [GoWalker](http://gowalker.org/github.com/go-xorm/xorm)
 
-* [Quick Start](https://github.com/go-xorm/xorm/blob/master/docs/QuickStart.md)
+* [Quick Start](http://xorm.io/docs/intro/quick_start.md)
 
 # Cases
 
