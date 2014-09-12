@@ -1,3 +1,8 @@
+---
+name: AutoMap
+sort: 100
+---
+
 When a struct auto mapping to a database's table, the below table describes how they change to each other:
 
 <table>

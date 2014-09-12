@@ -1,3 +1,8 @@
+---
+name: 标记字段类型
+sort: 110
+---
+
 <table>
     <tr>
     <td>xorm

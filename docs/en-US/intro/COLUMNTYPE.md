@@ -1,3 +1,8 @@
+---
+name: ColumnType
+sort: 110
+---
+
 <table>
     <tr>
     <td>xorm

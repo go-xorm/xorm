@@ -1,3 +1,8 @@
+---
+name: 自动映射
+sort: 100
+---
+
 When a struct auto mapping to a database's table, the below table describes how they change to each other:
 
 <table>
