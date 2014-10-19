@@ -96,11 +96,11 @@ Or
 
 # Documents
 
+* [Manual](http://xorm.io/docs)
+
 * [GoDoc](http://godoc.org/github.com/go-xorm/xorm)
 
 * [GoWalker](http://gowalker.org/github.com/go-xorm/xorm)
-
-* [Quick Start](http://xorm.io/docs/intro/quick_start.md)
 
 # Cases
 
