@@ -216,6 +216,8 @@ func (db *mysql) SqlType(c *core.Column) string {
 		}
 		res += strings.TrimLeft(opts, ",")
 		res += ")"
+	case core.NVarchar:
+		res = core.Varchar
 	default:
 		res = t
 	}

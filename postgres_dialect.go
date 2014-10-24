@@ -797,6 +797,8 @@ func (db *postgres) SqlType(c *core.Column) string {
 		res = core.Real
 	case core.TinyText, core.MediumText, core.LongText:
 		res = core.Text
+	case core.NVarchar:
+		res = core.Varchar
 	case core.Uuid:
 		res = core.Uuid
 	case core.Blob, core.TinyBlob, core.MediumBlob, core.LongBlob:
