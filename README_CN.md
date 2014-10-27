@@ -115,7 +115,7 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * [Godaily](http://godaily.org) - [github.com/govc/godaily](http://github.com/govc/godaily)
 
-* [Very Hour](http://veryhour.com/)
+* [YouGam](http://www.yougam.com/)
 
 * [GoCMS - github.com/zzboy/GoCMS](https://github.com/zzdboy/GoCMS)
 
