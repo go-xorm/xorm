@@ -116,7 +116,7 @@ Or
 
 * [Godaily](http://godaily.org) - [github.com/govc/godaily](http://github.com/govc/godaily)
 
-* [Very Hour](http://veryhour.com/)
+* [YouGam](http://www.yougam.com/)
 
 * [GoCMS - github.com/zzboy/GoCMS](https://github.com/zzdboy/GoCMS)
 
