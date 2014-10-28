@@ -1872,10 +1872,6 @@ func (session *Session) Query(sqlStr string, paramStr ...interface{}) (resultsSl
 	return session.query(sqlStr, paramStr...)
 }
 
-
-
-
-
 // =============================
 // for string
 // =============================
@@ -1924,9 +1920,6 @@ func (session *Session) Q(sqlStr string, paramStr ...interface{}) (resultsSlice 
 	}
 	return session.query2(sqlStr, paramStr...)
 }
-
-
-
 
 // insert one or more beans
 func (session *Session) Insert(beans ...interface{}) (int64, error) {
@@ -3457,6 +3450,171 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	// --
 
 	return res.RowsAffected()
+}
+
+func (s *Session) Sync2(beans ...interface{}) error {
+	engine := s.Engine
+
+	tables, err := engine.DBMetas()
+	if err != nil {
+		return err
+	}
+
+	structTables := make([]*core.Table, 0)
+
+	for _, bean := range beans {
+		table := engine.TableInfo(bean)
+		structTables = append(structTables, table)
+
+		var oriTable *core.Table
+		for _, tb := range tables {
+			if tb.Name == table.Name {
+				oriTable = tb
+				break
+			}
+		}
+
+		if oriTable == nil {
+			err = engine.StoreEngine(s.Statement.StoreEngine).CreateTable(bean)
+			if err != nil {
+				return err
+			}
+
+			err = engine.CreateUniques(bean)
+			if err != nil {
+				return err
+			}
+
+			err = engine.CreateIndexes(bean)
+			if err != nil {
+				return err
+			}
+		} else {
+			for _, col := range table.Columns() {
+				var oriCol *core.Column
+				for _, col2 := range oriTable.Columns() {
+					if col.Name == col2.Name {
+						oriCol = col2
+						break
+					}
+				}
+
+				if oriCol != nil {
+					expectedType := engine.dialect.SqlType(col)
+					//curType := oriCol.SQLType.Name
+					curType := engine.dialect.SqlType(oriCol)
+					if expectedType != curType {
+						if expectedType == core.Text &&
+							strings.HasPrefix(curType, core.Varchar) {
+							// currently only support mysql
+							if engine.dialect.DBType() == core.MYSQL ||
+								engine.dialect.DBType() == core.POSTGRES {
+								engine.LogInfof("Table %s column %s change type from %s to %s\n",
+									table.Name, col.Name, curType, expectedType)
+								_, err = engine.Exec(engine.dialect.ModifyColumnSql(table.Name, col))
+							} else {
+								engine.LogWarnf("Table %s column %s db type is %s, struct type is %s\n",
+									table.Name, col.Name, curType, expectedType)
+							}
+						} else {
+							engine.LogWarnf("Table %s column %s db type is %s, struct type is %s",
+								table.Name, col.Name, curType, expectedType)
+						}
+					}
+					if col.Default != oriCol.Default {
+						engine.LogWarnf("Table %s Column %s db default is %s, struct default is %s",
+							table.Name, col.Name, oriCol.Default, col.Default)
+					}
+					if col.Nullable != oriCol.Nullable {
+						engine.LogWarnf("Table %s Column %s db nullable is %v, struct nullable is %v",
+							table.Name, col.Name, oriCol.Nullable, col.Nullable)
+					}
+				} else {
+					session := engine.NewSession()
+					session.Statement.RefTable = table
+					defer session.Close()
+					err = session.addColumn(col.Name)
+				}
+				if err != nil {
+					return err
+				}
+			}
+
+			var foundIndexNames = make(map[string]bool)
+
+			for name, index := range table.Indexes {
+				var oriIndex *core.Index
+				for name2, index2 := range oriTable.Indexes {
+					if index.Equal(index2) {
+						oriIndex = index2
+						foundIndexNames[name2] = true
+						break
+					}
+				}
+
+				if oriIndex != nil {
+					if oriIndex.Type != index.Type {
+						sql := engine.dialect.DropIndexSql(table.Name, oriIndex)
+						_, err = engine.Exec(sql)
+						if err != nil {
+							return err
+						}
+						oriIndex = nil
+					}
+				}
+
+				if oriIndex == nil {
+					if index.Type == core.UniqueType {
+						session := engine.NewSession()
+						session.Statement.RefTable = table
+						defer session.Close()
+						err = session.addUnique(table.Name, name)
+					} else if index.Type == core.IndexType {
+						session := engine.NewSession()
+						session.Statement.RefTable = table
+						defer session.Close()
+						err = session.addIndex(table.Name, name)
+					}
+					if err != nil {
+						return err
+					}
+				}
+			}
+
+			for name2, index2 := range oriTable.Indexes {
+				if _, ok := foundIndexNames[name2]; !ok {
+					sql := engine.dialect.DropIndexSql(table.Name, index2)
+					_, err = engine.Exec(sql)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+
+	for _, table := range tables {
+		var oriTable *core.Table
+		for _, structTable := range structTables {
+			if table.Name == structTable.Name {
+				oriTable = structTable
+				break
+			}
+		}
+
+		if oriTable == nil {
+			//engine.LogWarnf("Table %s has no struct to mapping it", table.Name)
+			continue
+		}
+
+		for _, colName := range table.ColumnsSeq() {
+			if oriTable.GetColumn(colName) == nil {
+				engine.LogWarnf("Table %s has column %s but struct has not related field",
+					table.Name, colName)
+			}
+		}
+	}
+	return nil
 }
 
 func genCols(table *core.Table, session *Session, bean interface{}, useCol bool, includeQuote bool) ([]string, []interface{}, error) {
