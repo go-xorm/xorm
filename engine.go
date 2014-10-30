@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"database/sql"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"io"
@@ -623,9 +624,20 @@ func (engine *Engine) autoMapType(v reflect.Value) *core.Table {
 		table = engine.mapType(v)
 		engine.mutex.Lock()
 		engine.Tables[t] = table
+		if v.CanAddr() {
+			engine.GobRegister(v.Addr().Interface())
+		} else {
+			engine.GobRegister(v.Interface())
+		}
 		engine.mutex.Unlock()
 	}
 	return table
+}
+
+func (engine *Engine) GobRegister(v interface{}) *Engine {
+	//fmt.Printf("Type: %[1]T => Data: %[1]#v\n", v)
+	gob.Register(v)
+	return engine
 }
 
 func (engine *Engine) TableInfo(bean interface{}) *core.Table {
