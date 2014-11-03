@@ -225,12 +225,7 @@ func (session *Session) Desc(colNames ...string) *Session {
 
 // Method Asc provide asc order by query condition, the input parameters are columns.
 func (session *Session) Asc(colNames ...string) *Session {
-	if session.Statement.OrderStr != "" {
-		session.Statement.OrderStr += ", "
-	}
-	newColNames := col2NewCols(colNames...)
-	sqlStr := strings.Join(newColNames, session.Engine.Quote(" ASC, "))
-	session.Statement.OrderStr += session.Engine.Quote(sqlStr) + " ASC"
+	session.Statement.Asc(colNames...)
 	return session
 }
 
