@@ -45,6 +45,7 @@ type Engine struct {
 	TZLocation *time.Location
 
 	disableGlobalCache bool
+	unscoped           bool
 }
 
 func (engine *Engine) SetDisableGlobalCache(disable bool) {
@@ -796,6 +797,8 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 						if !hasNoCacheTag {
 							hasNoCacheTag = true
 						}
+					case k == "SOFTDELETE":
+						col.IsSoftDelete = true
 					case k == "NOT":
 					default:
 						if strings.HasPrefix(k, "'") && strings.HasSuffix(k, "'") {
@@ -1413,4 +1416,10 @@ func (engine *Engine) FormatTime(sqlTypeName string, t time.Time) (v interface{}
 		v = engine.TZTime(t)
 	}
 	return
+}
+
+// Disable soft delete
+func (engine *Engine) Unscoped() *Engine {
+	engine.unscoped = true
+	return engine
 }

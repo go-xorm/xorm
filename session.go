@@ -3402,13 +3402,39 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		return 0, ErrNeedDeletedCond
 	}
 
-	sqlStr := fmt.Sprintf("DELETE FROM %v WHERE %v",
-		session.Engine.Quote(session.Statement.TableName()), condition)
+	sqlStr, sqlStrForCache := "", ""
+	argsForCache := make([]interface{}, 0, len(args) * 2)
+	if session.Engine.unscoped || table.SoftDeleteColumn() == nil { // softdelete is disabled
+		sqlStr = fmt.Sprintf("DELETE FROM %v WHERE %v",
+			session.Engine.Quote(session.Statement.TableName()), condition)
+
+		sqlStrForCache = sqlStr
+		copy(argsForCache, args)
+		argsForCache = append(session.Statement.Params, argsForCache...)
+	} else {
+		// !oinume! sqlStrForCache and argsForCache is needed to behave as executing "DELETE FROM ..." for cache.
+		sqlStrForCache = fmt.Sprintf("DELETE FROM %v WHERE %v",
+			session.Engine.Quote(session.Statement.TableName()), condition)
+		copy(argsForCache, args)
+		argsForCache = append(session.Statement.Params, argsForCache...)
+
+		softDeleteCol := table.SoftDeleteColumn()
+		sqlStr = fmt.Sprintf("UPDATE %v SET %v = ? WHERE %v",
+			session.Engine.Quote(session.Statement.TableName()),
+			session.Engine.Quote(softDeleteCol.Name),
+			condition)
+
+		// !oinume! Insert NowTime to the head of session.Statement.Params
+		session.Statement.Params = append(session.Statement.Params, "")
+		paramsLen := len(session.Statement.Params)
+		copy(session.Statement.Params[1:paramsLen], session.Statement.Params[0:paramsLen-1])
+		session.Statement.Params[0] = session.Engine.NowTime(softDeleteCol.SQLType.Name)
+	}
 
 	args = append(session.Statement.Params, args...)
 
 	if cacher := session.Engine.getCacher2(session.Statement.RefTable); cacher != nil && session.Statement.UseCache {
-		session.cacheDelete(sqlStr, args...)
+		session.cacheDelete(sqlStrForCache, argsForCache...)
 	}
 
 	res, err := session.exec(sqlStr, args...)
@@ -3649,6 +3675,10 @@ func genCols(table *core.Table, session *Session, bean interface{}, useCol bool,
 					continue
 				}
 			}
+		}
+
+		if col.IsSoftDelete {
+			continue
 		}
 
 		if session.Statement.ColumnStr != "" {

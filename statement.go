@@ -286,6 +286,9 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 		if !includeAutoIncr && col.IsAutoIncrement {
 			continue
 		}
+		if col.IsSoftDelete {
+			continue
+		}
 
 		if engine.dialect.DBType() == core.MSSQL && col.SQLType.Name == core.Text {
 			continue
@@ -488,6 +491,10 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 		if err != nil {
 			engine.LogError(err)
 			continue
+		}
+
+		if col.IsSoftDelete && !engine.unscoped { // softdelete enabled
+			colNames = append(colNames, fmt.Sprintf("%v IS NULL", engine.Quote(col.Name)))
 		}
 
 		fieldValue := *fieldValuePtr
