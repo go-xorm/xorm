@@ -776,6 +776,8 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 						col.Default = "1"
 					case k == "UPDATED":
 						col.IsUpdated = true
+					case k == "DELETED":
+						col.IsDeleted = true
 					case strings.HasPrefix(k, "INDEX(") && strings.HasSuffix(k, ")"):
 						indexName := k[len("INDEX")+1 : len(k)-1]
 						indexNames[indexName] = core.IndexType
@@ -1413,4 +1415,11 @@ func (engine *Engine) FormatTime(sqlTypeName string, t time.Time) (v interface{}
 		v = engine.TZTime(t)
 	}
 	return
+}
+
+// Always disable struct tag "deleted"
+func (engine *Engine) Unscoped() *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.Unscoped()
 }
