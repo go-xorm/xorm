@@ -1420,6 +1420,6 @@ func (engine *Engine) FormatTime(sqlTypeName string, t time.Time) (v interface{}
 // Always disable struct tag "deleted"
 func (engine *Engine) Unscoped() *Session {
 	session := engine.NewSession()
-	defer session.Close()
+	session.IsAutoClose = true
 	return session.Unscoped()
 }
