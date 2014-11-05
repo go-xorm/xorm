@@ -286,7 +286,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 		if !includeAutoIncr && col.IsAutoIncrement {
 			continue
 		}
-		if col.IsSoftDelete {
+		if col.IsDeleted {
 			continue
 		}
 
@@ -493,7 +493,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 			continue
 		}
 
-		if col.IsSoftDelete && !engine.unscoped { // softdelete enabled
+		if col.IsDeleted && !engine.unscoped { // deleted enabled
 			colNames = append(colNames, fmt.Sprintf("%v IS NULL", engine.Quote(col.Name)))
 		}
 

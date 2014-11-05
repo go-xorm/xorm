@@ -3404,7 +3404,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 
 	sqlStr, sqlStrForCache := "", ""
 	argsForCache := make([]interface{}, 0, len(args) * 2)
-	if session.Engine.unscoped || table.SoftDeleteColumn() == nil { // softdelete is disabled
+	if session.Engine.unscoped || table.DeletedColumn() == nil { // deleted is disabled
 		sqlStr = fmt.Sprintf("DELETE FROM %v WHERE %v",
 			session.Engine.Quote(session.Statement.TableName()), condition)
 
@@ -3418,17 +3418,17 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		copy(argsForCache, args)
 		argsForCache = append(session.Statement.Params, argsForCache...)
 
-		softDeleteCol := table.SoftDeleteColumn()
+		deletedColumn := table.DeletedColumn()
 		sqlStr = fmt.Sprintf("UPDATE %v SET %v = ? WHERE %v",
 			session.Engine.Quote(session.Statement.TableName()),
-			session.Engine.Quote(softDeleteCol.Name),
+			session.Engine.Quote(deletedColumn.Name),
 			condition)
 
 		// !oinume! Insert NowTime to the head of session.Statement.Params
 		session.Statement.Params = append(session.Statement.Params, "")
 		paramsLen := len(session.Statement.Params)
 		copy(session.Statement.Params[1:paramsLen], session.Statement.Params[0:paramsLen-1])
-		session.Statement.Params[0] = session.Engine.NowTime(softDeleteCol.SQLType.Name)
+		session.Statement.Params[0] = session.Engine.NowTime(deletedColumn.SQLType.Name)
 	}
 
 	args = append(session.Statement.Params, args...)
@@ -3677,7 +3677,7 @@ func genCols(table *core.Table, session *Session, bean interface{}, useCol bool,
 			}
 		}
 
-		if col.IsSoftDelete {
+		if col.IsDeleted {
 			continue
 		}
 
