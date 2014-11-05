@@ -1079,7 +1079,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	if len(condiBean) > 0 {
 		colNames, args := buildConditions(session.Engine, table, condiBean[0], true, true,
 			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-			session.Statement.mustColumnMap)
+			session.Statement.unscoped, session.Statement.mustColumnMap)
 		session.Statement.ConditionStr = strings.Join(colNames, " AND ")
 		session.Statement.BeanArgs = args
 	}
@@ -3172,7 +3172,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	if len(condiBean) > 0 {
 		condiColNames, condiArgs = buildConditions(session.Engine, session.Statement.RefTable, condiBean[0], true, true,
 			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-			session.Statement.mustColumnMap)
+			session.Statement.unscoped, session.Statement.mustColumnMap)
 	}
 
 	var condition = ""
@@ -3376,7 +3376,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	session.Statement.RefTable = table
 	colNames, args := buildConditions(session.Engine, table, bean, true, true,
 		false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-		session.Statement.mustColumnMap)
+		session.Statement.unscoped, session.Statement.mustColumnMap)
 
 	var condition = ""
 	var andStr = session.Engine.dialect.AndStr()
@@ -3404,7 +3404,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 
 	sqlStr, sqlStrForCache := "", ""
 	argsForCache := make([]interface{}, 0, len(args) * 2)
-	if session.Engine.unscoped || table.DeletedColumn() == nil { // deleted is disabled
+	if session.Statement.unscoped || table.DeletedColumn() == nil { // tag "deleted" is disabled
 		sqlStr = fmt.Sprintf("DELETE FROM %v WHERE %v",
 			session.Engine.Quote(session.Statement.TableName()), condition)
 
@@ -3636,6 +3636,12 @@ func (s *Session) Sync2(beans ...interface{}) error {
 		}
 	}
 	return nil
+}
+
+// Always disable struct tag "deleted"
+func (session *Session) Unscoped() *Session {
+	session.Statement.Unscoped()
+	return session
 }
 
 func genCols(table *core.Table, session *Session, bean interface{}, useCol bool, includeQuote bool) ([]string, []interface{}, error) {

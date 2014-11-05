@@ -57,6 +57,7 @@ type Statement struct {
 	IsDistinct    bool
 	allUseBool    bool
 	checkVersion  bool
+	unscoped      bool
 	mustColumnMap map[string]bool
 	inColumns     map[string]*inParam
 	incrColumns   map[string]incrParam
@@ -91,6 +92,7 @@ func (statement *Statement) Init() {
 	statement.useAllCols = false
 	statement.mustColumnMap = make(map[string]bool)
 	statement.checkVersion = true
+	statement.unscoped = false
 	statement.inColumns = make(map[string]*inParam)
 	statement.incrColumns = make(map[string]incrParam)
 	statement.decrColumns = make(map[string]decrParam)
@@ -468,7 +470,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 // Auto generating conditions according a struct
 func buildConditions(engine *Engine, table *core.Table, bean interface{},
 	includeVersion bool, includeUpdated bool, includeNil bool,
-	includeAutoIncr bool, allUseBool bool, useAllCols bool,
+	includeAutoIncr bool, allUseBool bool, useAllCols bool, unscoped bool,
 	mustColumnMap map[string]bool) ([]string, []interface{}) {
 
 	colNames := make([]string, 0)
@@ -493,7 +495,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 			continue
 		}
 
-		if col.IsDeleted && !engine.unscoped { // deleted enabled
+		if col.IsDeleted && !unscoped { // tag "deleted" is enabled
 			colNames = append(colNames, fmt.Sprintf("%v IS NULL", engine.Quote(col.Name)))
 		}
 
@@ -933,6 +935,12 @@ func (statement *Statement) Having(conditions string) *Statement {
 	return statement
 }
 
+// Always disable struct tag "deleted"
+func (statement *Statement) Unscoped() *Statement {
+	statement.unscoped = true
+	return statement
+}
+
 func (statement *Statement) genColumnStr() string {
 	table := statement.RefTable
 	colNames := make([]string, 0)
@@ -1037,7 +1045,7 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true, true,
 		false, true, statement.allUseBool, statement.useAllCols,
-		statement.mustColumnMap)
+		statement.unscoped, statement.mustColumnMap)
 
 	statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.dialect.AndStr()+" ")
 	statement.BeanArgs = args
@@ -1083,7 +1091,8 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 	statement.RefTable = table
 
 	colNames, args := buildConditions(statement.Engine, table, bean, true, true, false,
-		true, statement.allUseBool, statement.useAllCols, statement.mustColumnMap)
+		true, statement.allUseBool, statement.useAllCols,
+		statement.unscoped, statement.mustColumnMap)
 
 	statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.Dialect().AndStr()+" ")
 	statement.BeanArgs = args

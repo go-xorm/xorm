@@ -45,7 +45,6 @@ type Engine struct {
 	TZLocation *time.Location
 
 	disableGlobalCache bool
-	unscoped           bool
 }
 
 func (engine *Engine) SetDisableGlobalCache(disable bool) {
@@ -1418,8 +1417,9 @@ func (engine *Engine) FormatTime(sqlTypeName string, t time.Time) (v interface{}
 	return
 }
 
-// Disable soft delete
-func (engine *Engine) Unscoped() *Engine {
-	engine.unscoped = true
-	return engine
+// Always disable struct tag "deleted"
+func (engine *Engine) Unscoped() *Session {
+	session := engine.NewSession()
+	defer session.Close()
+	return session.Unscoped()
 }
