@@ -636,10 +636,16 @@ func (statement *Statement) convertIdSql(sqlStr string) string {
 }
 
 func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interface{}) (has bool, err error) {
-	// if has no reftable or number of pks is not equal to 1, then don't use cache currently
-	if session.Statement.RefTable == nil || len(session.Statement.RefTable.PrimaryKeys) != 1 {
+	// if has no reftable, then don't use cache currently
+	if session.Statement.RefTable == nil {
 		return false, ErrCacheFailed
 	}
+
+	// TODO: remove this after support multi pk cache
+	if len(session.Statement.RefTable.PrimaryKeys) != 1 {
+		return false, ErrCacheFailed
+	}
+
 	for _, filter := range session.Engine.dialect.Filters() {
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
@@ -652,8 +658,9 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 	tableName := session.Statement.TableName()
 	session.Engine.LogDebug("[xorm:cacheGet] find sql:", newsql, args)
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args)
+	table := session.Statement.RefTable
 	if err != nil {
-		var res core.PK = make([]interface{}, len(session.Statement.RefTable.PrimaryKeys))
+		var res = make([]string, len(table.PrimaryKeys))
 		rows, err := session.Db.Query(newsql, args...)
 		if err != nil {
 			return false, err
@@ -669,7 +676,22 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 			return false, ErrCacheFailed
 		}
 
-		ids = []core.PK{res}
+		var pk core.PK = make([]interface{}, len(table.PrimaryKeys))
+		for i, col := range table.PKColumns() {
+			if col.SQLType.IsText() {
+				pk[i] = res[i]
+			} else if col.SQLType.IsNumeric() {
+				n, err := strconv.ParseInt(res[i], 10, 64)
+				if err != nil {
+					return false, err
+				}
+				pk[i] = n
+			} else {
+				return false, errors.New("unsupported")
+			}
+		}
+
+		ids = []core.PK{pk}
 		session.Engine.LogDebug("[xorm:cacheGet] cache ids:", newsql, ids)
 		err = core.PutCacheSql(cacher, ids, tableName, newsql, args)
 		if err != nil {
@@ -717,7 +739,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 	return false, nil
 }
 
-func (session *Session) cacheFind(v reflect.Value, t reflect.Type, sqlStr string, rowsSlicePtr interface{}, args ...interface{}) (err error) {
+func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr interface{}, args ...interface{}) (err error) {
 	if session.Statement.RefTable == nil ||
 		len(session.Statement.RefTable.PrimaryKeys) != 1 ||
 		indexNoCase(sqlStr, "having") != -1 ||
@@ -752,15 +774,28 @@ func (session *Session) cacheFind(v reflect.Value, t reflect.Type, sqlStr string
 				session.Engine.LogDebug("[xorm:cacheFind] ids length > 500, no cache")
 				return ErrCacheFailed
 			}
-			fmt.Println("v.interface", v.Interface())
-			var res = session.Engine.IdOf(v.Interface())
-			fmt.Println("!!!!!", res)
+			var res = make([]string, len(table.PrimaryKeys))
 			err = rows.ScanSlice(&res)
-			fmt.Println("-----", res)
 			if err != nil {
 				return err
 			}
-			ids = append(ids, res)
+
+			var pk core.PK = make([]interface{}, len(table.PrimaryKeys))
+			for i, col := range table.PKColumns() {
+				if col.SQLType.IsNumeric() {
+					n, err := strconv.ParseInt(res[i], 10, 64)
+					if err != nil {
+						return err
+					}
+					pk[i] = n
+				} else if col.SQLType.IsText() {
+					pk[i] = res[i]
+				} else {
+					return errors.New("not supported")
+				}
+			}
+
+			ids = append(ids, pk)
 		}
 
 		tableName := session.Statement.TableName()
@@ -881,6 +916,8 @@ func (session *Session) cacheFind(v reflect.Value, t reflect.Type, sqlStr string
 				} else {
 					sliceValue.SetMapIndex(reflect.ValueOf(ikey), reflect.Indirect(reflect.ValueOf(bean)))
 				}
+			} else {
+				return errors.New("table have multiple primary keys")
 			}
 		}
 		/*} else {
@@ -1071,17 +1108,16 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 
 	sliceElementType := sliceValue.Type().Elem()
 	var table *core.Table
-	var pv reflect.Value
 	if session.Statement.RefTable == nil {
 		if sliceElementType.Kind() == reflect.Ptr {
 			if sliceElementType.Elem().Kind() == reflect.Struct {
-				pv = reflect.New(sliceElementType.Elem())
+				pv := reflect.New(sliceElementType.Elem())
 				table = session.Engine.autoMapType(pv.Elem())
 			} else {
 				return errors.New("slice type")
 			}
 		} else if sliceElementType.Kind() == reflect.Struct {
-			pv = reflect.New(sliceElementType)
+			pv := reflect.New(sliceElementType)
 			table = session.Engine.autoMapType(pv.Elem())
 		} else {
 			return errors.New("slice type")
@@ -1089,10 +1125,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		session.Statement.RefTable = table
 	} else {
 		table = session.Statement.RefTable
-		pv = reflect.New(sliceElementType)
 	}
-
-	fmt.Println("xxxxxxx", pv.Interface())
 
 	if len(condiBean) > 0 {
 		colNames, args := buildConditions(session.Engine, table, condiBean[0], true, true,
@@ -1134,8 +1167,8 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		if cacher := session.Engine.getCacher2(table); cacher != nil &&
 			session.Statement.UseCache &&
 			!session.Statement.IsDistinct {
-			fmt.Println("......", pv.Interface())
-			err = session.cacheFind(pv, sliceElementType, sqlStr, rowsSlicePtr, args...)
+
+			err = session.cacheFind(sliceElementType, sqlStr, rowsSlicePtr, args...)
 			if err != ErrCacheFailed {
 				return err
 			}
@@ -2083,7 +2116,6 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 		strings.Join(colMultiPlaces, "),("))
 
 	res, err := session.exec(statement, args...)
-
 	if err != nil {
 		return 0, err
 	}
@@ -2113,7 +2145,6 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 					copy(afterClosures, session.afterClosures)
 					session.afterInsertBeans[elemValue] = &afterClosures
 				}
-
 			} else {
 				if _, ok := interface{}(elemValue).(AfterInsertProcessor); ok {
 					session.afterInsertBeans[elemValue] = nil
@@ -2589,7 +2620,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			if fieldType.Elem().Kind() == reflect.Struct {
 				if session.Statement.UseCascade {
 					structInter := reflect.New(fieldType.Elem())
-					fmt.Println(structInter, fieldType.Elem())
+					//fmt.Println(structInter, fieldType.Elem())
 					table := session.Engine.autoMapType(structInter.Elem())
 					if table != nil {
 						x, err := strconv.ParseInt(string(data), 10, 64)
@@ -2994,7 +3025,7 @@ func (session *Session) cacheInsert(tables ...string) error {
 	return nil
 }
 
-func (session *Session) cacheUpdate(v reflect.Value, sqlStr string, args ...interface{}) error {
+func (session *Session) cacheUpdate(sqlStr string, args ...interface{}) error {
 	if session.Statement.RefTable == nil || len(session.Statement.RefTable.PrimaryKeys) != 1 {
 		return ErrCacheFailed
 	}
@@ -3031,13 +3062,27 @@ func (session *Session) cacheUpdate(v reflect.Value, sqlStr string, args ...inte
 
 		ids = make([]core.PK, 0)
 		for rows.Next() {
-			var res = session.Engine.IdOf(v.Interface())
-			fmt.Println("00000000", res)
+			var res = make([]string, len(table.PrimaryKeys))
 			err = rows.ScanSlice(&res)
 			if err != nil {
 				return err
 			}
-			ids = append(ids, res)
+			var pk core.PK = make([]interface{}, len(table.PrimaryKeys))
+			for i, col := range table.PKColumns() {
+				if col.SQLType.IsNumeric() {
+					n, err := strconv.ParseInt(res[i], 10, 64)
+					if err != nil {
+						return err
+					}
+					pk[i] = n
+				} else if col.SQLType.IsText() {
+					pk[i] = res[i]
+				} else {
+					return errors.New("not supported")
+				}
+			}
+
+			ids = append(ids, pk)
 		}
 		session.Engine.LogDebug("[xorm:cacheUpdate] find updated id", ids)
 	} /*else {
