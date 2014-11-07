@@ -602,18 +602,35 @@ func (session *Session) DropTable(bean interface{}) error {
 	return err
 }
 
+func (statement *Statement) JoinColumns(cols []*core.Column) string {
+	var colnames = make([]string, len(cols))
+	for i, col := range cols {
+		colnames[i] = statement.Engine.Quote(statement.TableName()) +
+			"." + statement.Engine.Quote(col.Name)
+	}
+	return strings.Join(colnames, ", ")
+}
+
 func (statement *Statement) convertIdSql(sqlStr string) string {
 	if statement.RefTable != nil {
-		col := statement.RefTable.PKColumns()[0]
-		if col != nil {
-			sqls := splitNNoCase(sqlStr, "from", 2)
-			if len(sqls) != 2 {
-				return ""
-			}
-			newsql := fmt.Sprintf("SELECT %v.%v FROM %v", statement.Engine.Quote(statement.TableName()),
-				statement.Engine.Quote(col.Name), sqls[1])
-			return newsql
+		cols := statement.RefTable.PKColumns()
+		if len(cols) == 0 {
+			return ""
 		}
+
+		// *******
+		// TODO: this codes should be removed after multi primary key cache be supported
+		if len(cols) > 1 {
+			return ""
+		}
+		// *******
+
+		colstrs := statement.JoinColumns(cols)
+		sqls := splitNNoCase(sqlStr, "from", 2)
+		if len(sqls) != 2 {
+			return ""
+		}
+		return fmt.Sprintf("SELECT %s FROM %v", colstrs, sqls[1])
 	}
 	return ""
 }
@@ -636,26 +653,23 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 	session.Engine.LogDebug("[xorm:cacheGet] find sql:", newsql, args)
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args)
 	if err != nil {
-		resultsSlice, err := session.query(newsql, args...)
+		var res core.PK = make([]interface{}, len(session.Statement.RefTable.PrimaryKeys))
+		rows, err := session.Db.Query(newsql, args...)
 		if err != nil {
 			return false, err
 		}
-		session.Engine.LogDebug("[xorm:cacheGet] query ids:", resultsSlice)
-		ids = make([]core.PK, 0)
-		if len(resultsSlice) > 0 {
-			data := resultsSlice[0]
-			var id int64
-			if v, ok := data[session.Statement.RefTable.PrimaryKeys[0]]; !ok {
-				return false, ErrCacheFailed
-			} else {
-				// TODO https://github.com/go-xorm/xorm/issues/144, PK may not always be int64
-				id, err = strconv.ParseInt(string(v), 10, 64)
-				if err != nil {
-					return false, err
-				}
+		defer rows.Close()
+
+		if rows.Next() {
+			err = rows.ScanSlice(&res)
+			if err != nil {
+				return false, err
 			}
-			ids = append(ids, core.PK{id})
+		} else {
+			return false, ErrCacheFailed
 		}
+
+		ids = []core.PK{res}
 		session.Engine.LogDebug("[xorm:cacheGet] cache ids:", newsql, ids)
 		err = core.PutCacheSql(cacher, ids, tableName, newsql, args)
 		if err != nil {
@@ -703,7 +717,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 	return false, nil
 }
 
-func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr interface{}, args ...interface{}) (err error) {
+func (session *Session) cacheFind(v reflect.Value, t reflect.Type, sqlStr string, rowsSlicePtr interface{}, args ...interface{}) (err error) {
 	if session.Statement.RefTable == nil ||
 		len(session.Statement.RefTable.PrimaryKeys) != 1 ||
 		indexNoCase(sqlStr, "having") != -1 ||
@@ -724,33 +738,33 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 	cacher := session.Engine.getCacher2(table)
 	ids, err := core.GetCacheSql(cacher, session.Statement.TableName(), newsql, args)
 	if err != nil {
-		//session.Engine.LogError(err)
-		resultsSlice, err := session.query(newsql, args...)
+		rows, err := session.Db.Query(newsql, args...)
 		if err != nil {
 			return err
 		}
-		// æŸ¥è¯¢æ•°ç›®å¤ªå¤§ï¼Œé‡‡ç”¨ç¼“å­˜å°†ä¸æ˜¯ä¸€ä¸ªå¾ˆå¥½çš„æ–¹å¼ã€
-		if len(resultsSlice) > 500 {
-			session.Engine.LogDebug("[xorm:cacheFind] ids length %v > 500, no cache", len(resultsSlice))
-			return ErrCacheFailed
+		defer rows.Close()
+
+		var i int
+		ids = make([]core.PK, 0)
+		for rows.Next() {
+			i++
+			if i > 500 {
+				session.Engine.LogDebug("[xorm:cacheFind] ids length > 500, no cache")
+				return ErrCacheFailed
+			}
+			fmt.Println("v.interface", v.Interface())
+			var res = session.Engine.IdOf(v.Interface())
+			fmt.Println("!!!!!", res)
+			err = rows.ScanSlice(&res)
+			fmt.Println("-----", res)
+			if err != nil {
+				return err
+			}
+			ids = append(ids, res)
 		}
 
 		tableName := session.Statement.TableName()
-		ids = make([]core.PK, 0)
-		if len(resultsSlice) > 0 {
-			for _, data := range resultsSlice {
-				var id int64
-				if v, ok := data[session.Statement.RefTable.PrimaryKeys[0]]; !ok {
-					return errors.New("no id")
-				} else {
-					id, err = strconv.ParseInt(string(v), 10, 64)
-					if err != nil {
-						return err
-					}
-				}
-				ids = append(ids, core.PK{id})
-			}
-		}
+
 		session.Engine.LogDebug("[xorm:cacheFind] cache ids:", ids, tableName, newsql, args)
 		err = core.PutCacheSql(cacher, ids, tableName, newsql, args)
 		if err != nil {
@@ -1057,16 +1071,17 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 
 	sliceElementType := sliceValue.Type().Elem()
 	var table *core.Table
+	var pv reflect.Value
 	if session.Statement.RefTable == nil {
 		if sliceElementType.Kind() == reflect.Ptr {
 			if sliceElementType.Elem().Kind() == reflect.Struct {
-				pv := reflect.New(sliceElementType.Elem())
+				pv = reflect.New(sliceElementType.Elem())
 				table = session.Engine.autoMapType(pv.Elem())
 			} else {
 				return errors.New("slice type")
 			}
 		} else if sliceElementType.Kind() == reflect.Struct {
-			pv := reflect.New(sliceElementType)
+			pv = reflect.New(sliceElementType)
 			table = session.Engine.autoMapType(pv.Elem())
 		} else {
 			return errors.New("slice type")
@@ -1074,7 +1089,10 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		session.Statement.RefTable = table
 	} else {
 		table = session.Statement.RefTable
+		pv = reflect.New(sliceElementType)
 	}
+
+	fmt.Println("xxxxxxx", pv.Interface())
 
 	if len(condiBean) > 0 {
 		colNames, args := buildConditions(session.Engine, table, condiBean[0], true, true,
@@ -1116,7 +1134,8 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		if cacher := session.Engine.getCacher2(table); cacher != nil &&
 			session.Statement.UseCache &&
 			!session.Statement.IsDistinct {
-			err = session.cacheFind(sliceElementType, sqlStr, rowsSlicePtr, args...)
+			fmt.Println("......", pv.Interface())
+			err = session.cacheFind(pv, sliceElementType, sqlStr, rowsSlicePtr, args...)
 			if err != ErrCacheFailed {
 				return err
 			}
@@ -2136,29 +2155,29 @@ func (session *Session) byte2Time(col *core.Column, data []byte) (outTime time.T
 			x = x.In(time.UTC)
 			x = time.Date(x.Year(), x.Month(), x.Day(), x.Hour(),
 				x.Minute(), x.Second(), x.Nanosecond(), session.Engine.TZLocation)
-			session.Engine.LogDebug("time(0) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+			session.Engine.LogDebugf("time(0) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		} else {
-			session.Engine.LogDebug("time(0) err key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+			session.Engine.LogDebugf("time(0) err key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		}
 	} else if len(sdata) > 19 {
 
 		x, err = time.ParseInLocation(time.RFC3339Nano, sdata, session.Engine.TZLocation)
-		session.Engine.LogDebug("time(1) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+		session.Engine.LogDebugf("time(1) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		if err != nil {
 			x, err = time.ParseInLocation("2006-01-02 15:04:05.999999999", sdata, session.Engine.TZLocation)
-			session.Engine.LogDebug("time(2) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+			session.Engine.LogDebugf("time(2) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		}
 		if err != nil {
 			x, err = time.ParseInLocation("2006-01-02 15:04:05.9999999 Z07:00", sdata, session.Engine.TZLocation)
-			session.Engine.LogDebug("time(3) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+			session.Engine.LogDebugf("time(3) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		}
 
 	} else if len(sdata) == 19 {
 		x, err = time.ParseInLocation("2006-01-02 15:04:05", sdata, session.Engine.TZLocation)
-		session.Engine.LogDebug("time(4) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+		session.Engine.LogDebugf("time(4) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 	} else if len(sdata) == 10 && sdata[4] == '-' && sdata[7] == '-' {
 		x, err = time.ParseInLocation("2006-01-02", sdata, session.Engine.TZLocation)
-		session.Engine.LogDebug("time(5) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+		session.Engine.LogDebugf("time(5) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 	} else if col.SQLType.Name == core.Time {
 		if strings.Contains(sdata, " ") {
 			ssd := strings.Split(sdata, " ")
@@ -2172,7 +2191,7 @@ func (session *Session) byte2Time(col *core.Column, data []byte) (outTime time.T
 
 		st := fmt.Sprintf("2006-01-02 %v", sdata)
 		x, err = time.ParseInLocation("2006-01-02 15:04:05", st, session.Engine.TZLocation)
-		session.Engine.LogDebug("time(6) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+		session.Engine.LogDebugf("time(6) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 	} else {
 		outErr = errors.New(fmt.Sprintf("unsupported time format %v", sdata))
 		return
@@ -2922,12 +2941,13 @@ func (statement *Statement) convertUpdateSql(sqlStr string) (string, string) {
 	if statement.RefTable == nil || len(statement.RefTable.PrimaryKeys) != 1 {
 		return "", ""
 	}
+
+	colstrs := statement.JoinColumns(statement.RefTable.PKColumns())
 	sqls := splitNNoCase(sqlStr, "where", 2)
 	if len(sqls) != 2 {
 		if len(sqls) == 1 {
 			return sqls[0], fmt.Sprintf("SELECT %v FROM %v",
-				statement.Engine.Quote(statement.RefTable.PrimaryKeys[0]),
-				statement.Engine.Quote(statement.RefTable.Name))
+				colstrs, statement.Engine.Quote(statement.TableName()))
 		}
 		return "", ""
 	}
@@ -2954,7 +2974,7 @@ func (statement *Statement) convertUpdateSql(sqlStr string) (string, string) {
 	}
 
 	return sqls[0], fmt.Sprintf("SELECT %v FROM %v WHERE %v",
-		statement.Engine.Quote(statement.RefTable.PrimaryKeys[0]), statement.Engine.Quote(statement.TableName()),
+		colstrs, statement.Engine.Quote(statement.TableName()),
 		whereStr)
 }
 
@@ -2974,7 +2994,7 @@ func (session *Session) cacheInsert(tables ...string) error {
 	return nil
 }
 
-func (session *Session) cacheUpdate(sqlStr string, args ...interface{}) error {
+func (session *Session) cacheUpdate(v reflect.Value, sqlStr string, args ...interface{}) error {
 	if session.Statement.RefTable == nil || len(session.Statement.RefTable.PrimaryKeys) != 1 {
 		return ErrCacheFailed
 	}
@@ -3003,27 +3023,23 @@ func (session *Session) cacheUpdate(sqlStr string, args ...interface{}) error {
 	session.Engine.LogDebug("[xorm:cacheUpdate] get cache sql", newsql, args[nStart:])
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args[nStart:])
 	if err != nil {
-		resultsSlice, err := session.query(newsql, args[nStart:]...)
+		rows, err := session.Db.Query(newsql, args[nStart:]...)
 		if err != nil {
 			return err
 		}
-		session.Engine.LogDebug("[xorm:cacheUpdate] find updated id", resultsSlice)
+		defer rows.Close()
 
 		ids = make([]core.PK, 0)
-		if len(resultsSlice) > 0 {
-			for _, data := range resultsSlice {
-				var id int64
-				if v, ok := data[session.Statement.RefTable.PrimaryKeys[0]]; !ok {
-					return errors.New("no id")
-				} else {
-					id, err = strconv.ParseInt(string(v), 10, 64)
-					if err != nil {
-						return err
-					}
-				}
-				ids = append(ids, core.PK{id})
+		for rows.Next() {
+			var res = session.Engine.IdOf(v.Interface())
+			fmt.Println("00000000", res)
+			err = rows.ScanSlice(&res)
+			if err != nil {
+				return err
 			}
+			ids = append(ids, res)
 		}
+		session.Engine.LogDebug("[xorm:cacheUpdate] find updated id", ids)
 	} /*else {
 	    session.Engine.LogDebug("[xorm:cacheUpdate] del cached sql:", tableName, newsql, args)
 	    cacher.DelIds(tableName, genSqlKey(newsql, args))
@@ -3403,7 +3419,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	}
 
 	sqlStr, sqlStrForCache := "", ""
-	argsForCache := make([]interface{}, 0, len(args) * 2)
+	argsForCache := make([]interface{}, 0, len(args)*2)
 	if session.Statement.unscoped || table.DeletedColumn() == nil { // tag "deleted" is disabled
 		sqlStr = fmt.Sprintf("DELETE FROM %v WHERE %v",
 			session.Engine.Quote(session.Statement.TableName()), condition)

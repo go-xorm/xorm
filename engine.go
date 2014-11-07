@@ -188,9 +188,9 @@ func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
 	if engine.ShowSQL {
 		engine.overrideLogLevel(core.LOG_INFO)
 		if len(sqlArgs) > 0 {
-			engine.Logger.Info(fmt.Sprintf("[sql] %v [args] %v", sqlStr, sqlArgs))
+			engine.Logger.Infof("[sql] %v [args] %v", sqlStr, sqlArgs)
 		} else {
-			engine.Logger.Info(fmt.Sprintf("[sql] %v", sqlStr))
+			engine.Logger.Infof("[sql] %v", sqlStr)
 		}
 	}
 }

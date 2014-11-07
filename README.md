@@ -45,6 +45,10 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 # Changelog
 
+* **v0.4.1**
+	Features:
+	* Add deleted xorm tag for soft delete and add unscoped
+
 * **v0.4.0 RC1** 
 	Changes:
 	* moved xorm cmd to [github.com/go-xorm/cmd](github.com/go-xorm/cmd)
@@ -63,7 +67,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 If you have [gopm](https://github.com/gpmgo/gopm) installed, 
 
 	gopm get github.com/go-xorm/xorm
-	
+
 Or
 
 	go get github.com/go-xorm/xorm
