@@ -591,6 +591,9 @@ func (db *oracle) IsColumnExist(tableName string, col *core.Column) (bool, error
 	query := "SELECT column_name FROM USER_TAB_COLUMNS WHERE table_name = ?" +
 		" AND column_name = ?"
 	rows, err := db.DB().Query(query, args...)
+	if db.Logger != nil {
+		db.Logger.Info("[sql]", query, args)
+	}
 	if err != nil {
 		return false, err
 	}
@@ -608,6 +611,9 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Colum
 		"nullable FROM USER_TAB_COLUMNS WHERE table_name = :1"
 
 	rows, err := db.DB().Query(s, args...)
+	if db.Logger != nil {
+		db.Logger.Info("[sql]", s, args)
+	}
 	if err != nil {
 		return nil, nil, err
 	}
@@ -672,6 +678,9 @@ func (db *oracle) GetTables() ([]*core.Table, error) {
 	s := "SELECT table_name FROM user_tables"
 
 	rows, err := db.DB().Query(s, args...)
+	if db.Logger != nil {
+		db.Logger.Info("[sql]", s, args)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -696,6 +705,9 @@ func (db *oracle) GetIndexes(tableName string) (map[string]*core.Index, error) {
 		"WHERE t.index_name = i.index_name and t.table_name = i.table_name and t.table_name =:1"
 
 	rows, err := db.DB().Query(s, args...)
+	if db.Logger != nil {
+		db.Logger.Info("[sql]", s, args)
+	}
 	if err != nil {
 		return nil, err
 	}

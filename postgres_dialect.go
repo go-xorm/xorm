@@ -897,6 +897,9 @@ func (db *postgres) IsColumnExist(tableName string, col *core.Column) (bool, err
 	query := "SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = $1" +
 		" AND column_name = $2"
 	rows, err := db.DB().Query(query, args...)
+	if db.Logger != nil {
+		db.Logger.Info("[sql]", query, args)
+	}
 	if err != nil {
 		return false, err
 	}
@@ -920,6 +923,9 @@ FROM pg_attribute f
 WHERE c.relkind = 'r'::char AND c.relname = $1 AND f.attnum > 0 ORDER BY f.attnum;`
 
 	rows, err := db.DB().Query(s, args...)
+	if db.Logger != nil {
+		db.Logger.Info("[sql]", s, args)
+	}
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1008,6 +1014,9 @@ func (db *postgres) GetTables() ([]*core.Table, error) {
 	s := "SELECT tablename FROM pg_tables where schemaname = 'public'"
 
 	rows, err := db.DB().Query(s, args...)
+	if db.Logger != nil {
+		db.Logger.Info("[sql]", s, args)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -1032,6 +1041,9 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error)
 	s := "SELECT indexname, indexdef FROM pg_indexes WHERE schemaname='public' AND tablename=$1"
 
 	rows, err := db.DB().Query(s, args...)
+	if db.Logger != nil {
+		db.Logger.Info("[sql]", s, args)
+	}
 	if err != nil {
 		return nil, err
 	}
