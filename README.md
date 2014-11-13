@@ -56,7 +56,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 	* Add Incr API
 	* Specify Timezone Location
 
-[More changelogs ...](http://xorm.io/docs/intro/change_log.md)
+[More changelogs ...](https://github.com/go-xorm/manual-en-US/tree/master/chapter-15)
 
 # Installation
 
