@@ -560,6 +560,13 @@ func (engine *Engine) Table(tableNameOrBean interface{}) *Session {
 	return session.Table(tableNameOrBean)
 }
 
+// set the table alias
+func (engine *Engine) Alias(alias string) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.Alias(alias)
+}
+
 // This method will generate "LIMIT start, limit"
 func (engine *Engine) Limit(limit int, start ...int) *Session {
 	session := engine.NewSession()
@@ -595,7 +602,7 @@ func (engine *Engine) OrderBy(order string) *Session {
 }
 
 // The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
-func (engine *Engine) Join(join_operator, tablename, condition string) *Session {
+func (engine *Engine) Join(join_operator string, tablename interface{}, condition string) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
 	return session.Join(join_operator, tablename, condition)
@@ -1244,6 +1251,13 @@ func (engine *Engine) Query(sql string, paramStr ...interface{}) (resultsSlice [
 	session := engine.NewSession()
 	defer session.Close()
 	return session.Query(sql, paramStr...)
+}
+
+// Exec a raw sql and return records as []map[string]string
+func (engine *Engine) Q(sql string, paramStr ...interface{}) (resultsSlice []map[string]string, err error) {
+	session := engine.NewSession()
+	defer session.Close()
+	return session.Q(sql, paramStr...)
 }
 
 // Insert one or more records
