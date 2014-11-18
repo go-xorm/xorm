@@ -960,7 +960,9 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	}
 
 	if session.Statement.JoinStr == "" {
-		if cacher := session.Engine.getCacher2(session.Statement.RefTable); cacher != nil && session.Statement.UseCache {
+		if cacher := session.Engine.getCacher2(session.Statement.RefTable); cacher != nil &&
+			session.Statement.UseCache &&
+			!session.Statement.unscoped {
 			has, err := session.cacheGet(bean, sqlStr, args...)
 			if err != ErrCacheFailed {
 				return has, err
@@ -1082,6 +1084,14 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 			session.Statement.unscoped, session.Statement.mustColumnMap)
 		session.Statement.ConditionStr = strings.Join(colNames, " AND ")
 		session.Statement.BeanArgs = args
+	} else {
+		// !oinume! Add "<col> IS NULL" to WHERE whatever condiBean is given.
+		// See https://github.com/go-xorm/xorm/issues/179
+		for _, col := range table.Columns() {
+			if col.IsDeleted && !session.Statement.unscoped { // tag "deleted" is enabled
+				session.Statement.ConditionStr = fmt.Sprintf("%v IS NULL", session.Engine.Quote(col.Name))
+			}
+		}
 	}
 
 	var sqlStr string
@@ -1115,7 +1125,8 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	if session.Statement.JoinStr == "" {
 		if cacher := session.Engine.getCacher2(table); cacher != nil &&
 			session.Statement.UseCache &&
-			!session.Statement.IsDistinct {
+			!session.Statement.IsDistinct &&
+			!session.Statement.unscoped {
 			err = session.cacheFind(sliceElementType, sqlStr, rowsSlicePtr, args...)
 			if err != ErrCacheFailed {
 				return err
@@ -3403,7 +3414,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	}
 
 	sqlStr, sqlStrForCache := "", ""
-	argsForCache := make([]interface{}, 0, len(args) * 2)
+	argsForCache := make([]interface{}, 0, len(args)*2)
 	if session.Statement.unscoped || table.DeletedColumn() == nil { // tag "deleted" is disabled
 		sqlStr = fmt.Sprintf("DELETE FROM %v WHERE %v",
 			session.Engine.Quote(session.Statement.TableName()), condition)
