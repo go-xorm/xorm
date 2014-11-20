@@ -355,7 +355,7 @@ where a.object_id=object_id('` + tableName + `')`
 		case "DATETIMEOFFSET":
 			col.SQLType = core.SQLType{core.TimeStampz, 0, 0}
 		case "NVARCHAR":
-			col.SQLType = core.SQLType{core.Varchar, 0, 0}
+			col.SQLType = core.SQLType{core.NVarchar, 0, 0}
 		case "IMAGE":
 			col.SQLType = core.SQLType{core.VarBinary, 0, 0}
 		default:
