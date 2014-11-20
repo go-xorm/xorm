@@ -55,6 +55,7 @@ type Statement struct {
 	UseCache      bool
 	UseAutoTime   bool
 	IsDistinct    bool
+	TableAlias    string
 	allUseBool    bool
 	checkVersion  bool
 	unscoped      bool
@@ -88,6 +89,7 @@ func (statement *Statement) Init() {
 	statement.UseCache = true
 	statement.UseAutoTime = true
 	statement.IsDistinct = false
+	statement.TableAlias = ""
 	statement.allUseBool = false
 	statement.useAllCols = false
 	statement.mustColumnMap = make(map[string]bool)
@@ -102,6 +104,12 @@ func (statement *Statement) Init() {
 func (statement *Statement) Sql(querystring string, args ...interface{}) *Statement {
 	statement.RawSQL = querystring
 	statement.RawParams = args
+	return statement
+}
+
+// set the table alias
+func (statement *Statement) Alias(alias string) *Statement {
+	statement.TableAlias = alias
 	return statement
 }
 
@@ -145,6 +153,9 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 	t := v.Type()
 	if t.Kind() == reflect.String {
 		statement.AltTableName = tableNameOrBean.(string)
+		if statement.AltTableName[0] == '~' {
+			statement.AltTableName = statement.Engine.TableMapper.TableName(statement.AltTableName[1:])
+		}
 	} else if t.Kind() == reflect.Struct {
 		statement.RefTable = statement.Engine.autoMapType(v)
 	}
@@ -912,13 +923,61 @@ func (statement *Statement) Asc(colNames ...string) *Statement {
 }
 
 //The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
-func (statement *Statement) Join(join_operator, tablename, condition string) *Statement {
+func (statement *Statement) Join(join_operator string, tablename interface{}, condition string) *Statement {
+	var joinTable string
+	switch tablename.(type) {
+	case []string:
+		t := tablename.([]string)
+		l := len(t)
+		if l > 1 {
+			table := t[0]
+			if table[0] == '~' {
+				table = statement.Engine.TableMapper.TableName(table[1:])
+			}
+			joinTable = statement.Engine.Quote(table) + " AS " + statement.Engine.Quote(t[1])
+		} else if l == 1 {
+			table := t[0]
+			if table[0] == '~' {
+				table = statement.Engine.TableMapper.TableName(table[1:])
+			}
+			joinTable = statement.Engine.Quote(table)
+		}
+	case []interface{}:
+		t := tablename.([]interface{})
+		l := len(t)
+		table := ""
+		if l > 0 {
+			f := t[0]
+			v := rValue(f)
+			t := v.Type()
+			if t.Kind() == reflect.String {
+				table = f.(string)
+				if table[0] == '~' {
+					table = statement.Engine.TableMapper.TableName(table[1:])
+				}
+			} else if t.Kind() == reflect.Struct {
+				r := statement.Engine.autoMapType(v)
+				table = r.Name
+			}
+		}
+		if l > 1 {
+			joinTable = statement.Engine.Quote(table) + " AS " + statement.Engine.Quote(fmt.Sprintf("%v", t[1]))
+		} else if l == 1 {
+			joinTable = statement.Engine.Quote(table)
+		}
+	default:
+		t := fmt.Sprintf("%v", tablename)
+		if t[0] == '~' {
+			t = statement.Engine.TableMapper.TableName(t[1:])
+		}
+		joinTable = statement.Engine.Quote(t)
+	}
 	if statement.JoinStr != "" {
 		statement.JoinStr = statement.JoinStr + fmt.Sprintf(" %v JOIN %v ON %v", join_operator,
-			statement.Engine.Quote(tablename), condition)
+			joinTable, condition)
 	} else {
 		statement.JoinStr = fmt.Sprintf("%v JOIN %v ON %v", join_operator,
-			statement.Engine.Quote(tablename), condition)
+			joinTable, condition)
 	}
 	return statement
 }
@@ -955,16 +1014,22 @@ func (statement *Statement) genColumnStr() string {
 		}
 
 		if statement.JoinStr != "" {
-			name := statement.Engine.Quote(statement.TableName()) + "." + statement.Engine.Quote(col.Name)
+			var name string
+			if statement.TableAlias != "" {
+				name = statement.Engine.Quote(statement.TableAlias)
+			} else {
+				name = statement.Engine.Quote(statement.TableName())
+			}
+			name += "." + statement.Engine.Quote(col.Name)
 			if col.IsPrimaryKey && statement.Engine.Dialect().DBType() == "ql" {
-				colNames = append(colNames, "id() as "+name)
+				colNames = append(colNames, "id() AS "+name)
 			} else {
 				colNames = append(colNames, name)
 			}
 		} else {
 			name := statement.Engine.Quote(col.Name)
 			if col.IsPrimaryKey && statement.Engine.Dialect().DBType() == "ql" {
-				colNames = append(colNames, "id() as "+name)
+				colNames = append(colNames, "id() AS "+name)
 			} else {
 				colNames = append(colNames, name)
 			}
@@ -1134,6 +1199,9 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 		whereStr = fmt.Sprintf(" WHERE %v", statement.ConditionStr)
 	}
 	var fromStr string = " FROM " + statement.Engine.Quote(statement.TableName())
+	if statement.TableAlias != "" {
+		fromStr += " AS " + statement.Engine.Quote(statement.TableAlias)
+	}
 	if statement.JoinStr != "" {
 		fromStr = fmt.Sprintf("%v %v", fromStr, statement.JoinStr)
 	}

@@ -134,6 +134,12 @@ func (session *Session) Table(tableNameOrBean interface{}) *Session {
 	return session
 }
 
+// set the table alias
+func (session *Session) Alias(alias string) *Session {
+	session.Statement.Alias(alias)
+	return session
+}
+
 // Method In provides a query string like "id in (1, 2, 3)"
 func (session *Session) In(column string, args ...interface{}) *Session {
 	session.Statement.In(column, args...)
@@ -257,7 +263,7 @@ func (session *Session) NoCache() *Session {
 }
 
 //The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
-func (session *Session) Join(join_operator, tablename, condition string) *Session {
+func (session *Session) Join(join_operator string, tablename interface{}, condition string) *Session {
 	session.Statement.Join(join_operator, tablename, condition)
 	return session
 }

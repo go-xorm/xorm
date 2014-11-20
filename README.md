@@ -60,7 +60,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 	* Add Incr API
 	* Specify Timezone Location
 
-[More changelogs ...](http://xorm.io/docs/intro/change_log.md)
+[More changelogs ...](https://github.com/go-xorm/manual-en-US/tree/master/chapter-15)
 
 # Installation
 
@@ -82,9 +82,11 @@ Or
 
 # Cases
 
-* [Gorevel](http://http://gorevel.cn/) - [github.com/goofcc/gorevel](http://github.com/goofcc/gorevel)
+* [Docker.cn](https://docker.cn/)
 
 * [Gogs](http://try.gogits.org) - [github.com/gogits/gogs](http://github.com/gogits/gogs)
+
+* [Gorevel](http://http://gorevel.cn/) - [github.com/goofcc/gorevel](http://github.com/goofcc/gorevel)
 
 * [Gowalker](http://gowalker.org) - [github.com/Unknwon/gowalker](http://github.com/Unknwon/gowalker)
 

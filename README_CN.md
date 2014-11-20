@@ -55,7 +55,7 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 	* 添加 Incr API
 	* 指定时区位置
 
-[更多更新日志...](http://xorm.io/docs/intro/change_log.md)
+[更多更新日志...](https://github.com/go-xorm/manual-zh-CN/tree/master/chapter-16)
 
 ## 安装
 
@@ -77,6 +77,8 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 
 ## 案例
+
+* [Docker.cn](https://docker.cn/)
 
 * [Gogs](http://try.gogits.org) - [github.com/gogits/gogs](http://github.com/gogits/gogs)
 
