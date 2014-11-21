@@ -758,7 +758,7 @@ func (statement *Statement) genInSql() (string, []interface{}) {
 	args := make([]interface{}, 0)
 	for _, params := range statement.inColumns {
 		inStrs = append(inStrs, fmt.Sprintf("(%v IN (%v))",
-			statement.Engine.Quote(params.colName),
+			statement.Engine.autoQuote(params.colName),
 			strings.Join(makeArray("?", len(params.args)), ",")))
 		args = append(args, params.args...)
 	}
@@ -783,8 +783,8 @@ func (statement *Statement) attachInSql() {
 func col2NewCols(columns ...string) []string {
 	newColumns := make([]string, 0)
 	for _, col := range columns {
-		strings.Replace(col, "`", "", -1)
-		strings.Replace(col, `"`, "", -1)
+		col = strings.Replace(col, "`", "", -1)
+		col = strings.Replace(col, `"`, "", -1)
 		ccols := strings.Split(col, ",")
 		for _, c := range ccols {
 			newColumns = append(newColumns, strings.TrimSpace(c))
@@ -793,11 +793,21 @@ func col2NewCols(columns ...string) []string {
 	return newColumns
 }
 
+func (engine *Engine) autoQuote(col string) string {
+	col = strings.Replace(col, "`", "", -1)
+	col = strings.Replace(col, engine.QuoteStr(), "", -1)
+	fields := strings.Split(strings.TrimSpace(col), ".")
+	for i, field := range fields {
+		fields[i] = engine.Quote(field)
+	}
+	return strings.Join(fields, ".")
+}
+
 func (statement *Statement) col2NewColsWithQuote(columns ...string) []string {
 	newColumns := make([]string, 0)
 	for _, col := range columns {
-		strings.Replace(col, "`", "", -1)
-		strings.Replace(col, statement.Engine.QuoteStr(), "", -1)
+		col = strings.Replace(col, "`", "", -1)
+		col = strings.Replace(col, statement.Engine.QuoteStr(), "", -1)
 		ccols := strings.Split(col, ",")
 		for _, c := range ccols {
 			fields := strings.Split(strings.TrimSpace(c), ".")
