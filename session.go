@@ -1145,7 +1145,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		// See https://github.com/go-xorm/xorm/issues/179
 		for _, col := range table.Columns() {
 			if col.IsDeleted && !session.Statement.unscoped { // tag "deleted" is enabled
-				session.Statement.ConditionStr = fmt.Sprintf("%v IS NULL", session.Engine.Quote(col.Name))
+				session.Statement.ConditionStr = fmt.Sprintf("(%v IS NULL or %v = '0001-01-01 00:00:00') ", session.Engine.Quote(col.Name), session.Engine.Quote(col.Name))
 			}
 		}
 	}
