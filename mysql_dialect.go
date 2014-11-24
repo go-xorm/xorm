@@ -405,7 +405,8 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 
 func (db *mysql) GetTables() ([]*core.Table, error) {
 	args := []interface{}{db.DbName}
-	s := "SELECT `TABLE_NAME`, `ENGINE`, `TABLE_ROWS`, `AUTO_INCREMENT` from `INFORMATION_SCHEMA`.`TABLES` WHERE `TABLE_SCHEMA`=?"
+	s := "SELECT `TABLE_NAME`, `ENGINE`, `TABLE_ROWS`, `AUTO_INCREMENT` from " +
+		"`INFORMATION_SCHEMA`.`TABLES` WHERE `TABLE_SCHEMA`=? AND (`ENGINE`='MyISAM' OR `ENGINE` = 'InnoDB')"
 
 	rows, err := db.DB().Query(s, args...)
 	if db.Logger != nil {
