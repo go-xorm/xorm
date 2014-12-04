@@ -1419,6 +1419,8 @@ func (engine *Engine) FormatTime(sqlTypeName string, t time.Time) (v interface{}
 	case core.DateTime, core.TimeStamp:
 		if engine.dialect.DBType() == "ql" {
 			v = engine.TZTime(t)
+		} else if engine.dialect.DBType() == "sqlite3" {
+			v = engine.TZTime(t).UTC().Format("2006-01-02 15:04:05")
 		} else {
 			v = engine.TZTime(t).Format("2006-01-02 15:04:05")
 		}
