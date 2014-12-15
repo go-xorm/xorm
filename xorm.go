@@ -86,12 +86,9 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 
 	engine.SetMapper(core.NewCacheMapper(new(core.SnakeMapper)))
 
-	//engine.Filters = dialect.Filters()
-	//engine.Cacher = NewLRUCacher()
-	//err = engine.SetPool(NewSysConnectPool())
-
 	runtime.SetFinalizer(engine, close)
-	return engine, err
+
+	return engine, nil
 }
 
 // clone an engine
