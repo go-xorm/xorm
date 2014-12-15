@@ -152,7 +152,7 @@ func (db *sqlite3) Init(d *core.DB, uri *core.Uri, drivername, dataSourceName st
 func (db *sqlite3) SqlType(c *core.Column) string {
 	switch t := c.SQLType.Name; t {
 	case core.Date, core.DateTime, core.TimeStamp, core.Time:
-		return core.Numeric
+		return core.DateTime
 	case core.TimeStampz:
 		return core.Text
 	case core.Char, core.Varchar, core.NVarchar, core.TinyText, core.Text, core.MediumText, core.LongText:
