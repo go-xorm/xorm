@@ -1970,19 +1970,6 @@ func query2(db *core.DB, sqlStr string, params ...interface{}) (resultsSlice []m
 	return rows2Strings(rows)
 }
 
-// Exec a raw sql and return records as []map[string]string
-func (session *Session) Q(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string]string, err error) {
-	err = session.newDb()
-	if err != nil {
-		return nil, err
-	}
-	defer session.resetStatement()
-	if session.IsAutoClose {
-		defer session.Close()
-	}
-	return session.query2(sqlStr, paramStr...)
-}
-
 // insert one or more beans
 func (session *Session) Insert(beans ...interface{}) (int64, error) {
 	var affected int64 = 0
