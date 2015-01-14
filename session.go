@@ -2058,8 +2058,16 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 				if col.MapType == core.ONLYFROMDB {
 					continue
 				}
+				if col.IsDeleted {
+					continue
+				}
 				if session.Statement.ColumnStr != "" {
 					if _, ok := session.Statement.columnMap[col.Name]; !ok {
+						continue
+					}
+				}
+				if session.Statement.OmitStr != "" {
+					if _, ok := session.Statement.columnMap[col.Name]; ok {
 						continue
 					}
 				}
@@ -2086,8 +2094,16 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 				if col.MapType == core.ONLYFROMDB {
 					continue
 				}
+				if col.IsDeleted {
+					continue
+				}
 				if session.Statement.ColumnStr != "" {
 					if _, ok := session.Statement.columnMap[col.Name]; !ok {
+						continue
+					}
+				}
+				if session.Statement.OmitStr != "" {
+					if _, ok := session.Statement.columnMap[col.Name]; ok {
 						continue
 					}
 				}
