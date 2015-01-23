@@ -1239,8 +1239,12 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 			if len(statement.OrderStr) > 0 {
 				orderStr = " ORDER BY " + statement.OrderStr
 			}
-			mssqlCondi = fmt.Sprintf("(%s NOT IN (SELECT TOP %d %s%s%s%s))",
-				column, statement.Start, column, fromStr, whereStr, orderStr)
+			var groupStr string
+			if len(statement.GroupByStr) > 0 {
+				groupStr = " GROUP BY " + statement.GroupByStr
+			}
+			mssqlCondi = fmt.Sprintf("(%s NOT IN (SELECT TOP %d %s%s%s%s%s))",
+				column, statement.Start, column, fromStr, whereStr, orderStr, groupStr)
 		}
 	}
 
