@@ -1183,7 +1183,9 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 
 func (statement *Statement) genSelectSql(columnStr string) (a string) {
 	if statement.GroupByStr != "" {
-		columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
+		if columnStr == "" {
+			columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
+		}
 		statement.GroupByStr = columnStr
 	}
 	var distinct string

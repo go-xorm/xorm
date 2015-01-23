@@ -747,11 +747,6 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 		return ErrCacheFailed
 	}
 
-	// TODO: remove this after multi pk supported
-	/*if len(session.Statement.RefTable.PrimaryKeys) != 1 {
-		return ErrCacheFailed
-	}*/
-
 	for _, filter := range session.Engine.dialect.Filters() {
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
@@ -1143,10 +1138,9 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	} else {
 		// !oinume! Add "<col> IS NULL" to WHERE whatever condiBean is given.
 		// See https://github.com/go-xorm/xorm/issues/179
-		for _, col := range table.Columns() {
-			if col.IsDeleted && !session.Statement.unscoped { // tag "deleted" is enabled
-				session.Statement.ConditionStr = fmt.Sprintf("(%v IS NULL or %v = '0001-01-01 00:00:00') ", session.Engine.Quote(col.Name), session.Engine.Quote(col.Name))
-			}
+		if col := table.DeletedColumn(); col != nil && !session.Statement.unscoped { // tag "deleted" is enabled
+			session.Statement.ConditionStr = fmt.Sprintf("(%v IS NULL or %v = '0001-01-01 00:00:00') ",
+				session.Engine.Quote(col.Name), session.Engine.Quote(col.Name))
 		}
 	}
 
