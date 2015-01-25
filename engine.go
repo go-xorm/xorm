@@ -915,7 +915,7 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 
 		table.AddColumn(col)
 
-		if fieldType.Kind() == reflect.Int64 && (col.FieldName == "Id" || strings.HasSuffix(col.FieldName, ".Id")) {
+		if fieldType.Kind() == reflect.Int64 && (col.FieldName == "ID" || col.FieldName == "Id" || strings.HasSuffix(col.FieldName, ".Id") || strings.HasSuffix(col.FieldName, ".ID")) {
 			idFieldColName = col.Name
 		}
 	} // end for
