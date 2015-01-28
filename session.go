@@ -158,6 +158,12 @@ func (session *Session) Decr(column string, arg ...interface{}) *Session {
 	return session
 }
 
+// Method Expr provides a query string like "column = {expression}"
+func (session *Session) Expr(column string, expression string) *Session {
+	session.Statement.Expr(column, expression)
+	return session
+}
+
 // Method Cols provides some columns to special
 func (session *Session) Cols(columns ...string) *Session {
 	session.Statement.Cols(columns...)
@@ -3236,6 +3242,11 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	for _, v := range decColumns {
 		colNames = append(colNames, session.Engine.Quote(v.colName)+" = "+session.Engine.Quote(v.colName)+" - ?")
 		args = append(args, v.arg)
+	}
+	//for update action to like "column = expression"
+	exprColumns := session.Statement.getExpr()
+	for _, v := range exprColumns {
+		colNames = append(colNames, session.Engine.Quote(v.colName)+" = "+v.expr)
 	}
 
 	var condiColNames []string

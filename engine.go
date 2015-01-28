@@ -558,6 +558,13 @@ func (engine *Engine) Decr(column string, arg ...interface{}) *Session {
 	return session.Decr(column, arg...)
 }
 
+// Method Expr provides a update string like "column = {expression}"
+func (engine *Engine) Expr(column string, expression string) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.Expr(column, expression)
+}
+
 // Temporarily change the Get, Find, Update's table
 func (engine *Engine) Table(tableNameOrBean interface{}) *Session {
 	session := engine.NewSession()

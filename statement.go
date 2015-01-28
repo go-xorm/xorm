@@ -26,6 +26,11 @@ type decrParam struct {
 	arg     interface{}
 }
 
+type exprParam struct {
+	colName string
+	expr    string
+}
+
 // statement save all the sql info for executing SQL
 type Statement struct {
 	RefTable      *core.Table
@@ -63,6 +68,7 @@ type Statement struct {
 	inColumns     map[string]*inParam
 	incrColumns   map[string]incrParam
 	decrColumns   map[string]decrParam
+	exprColumns   map[string]exprParam
 }
 
 // init
@@ -98,6 +104,7 @@ func (statement *Statement) Init() {
 	statement.inColumns = make(map[string]*inParam)
 	statement.incrColumns = make(map[string]incrParam)
 	statement.decrColumns = make(map[string]decrParam)
+	statement.exprColumns = make(map[string]exprParam)
 }
 
 // add the raw sql statement
@@ -716,6 +723,13 @@ func (statement *Statement) Decr(column string, arg ...interface{}) *Statement {
 	return statement
 }
 
+// Generate  "Update ... Set column = {expression}" statment
+func (statement *Statement) Expr(column string, expression string) *Statement {
+	k := strings.ToLower(column)
+	statement.exprColumns[k] = exprParam{column, expression}
+	return statement
+}
+
 // Generate  "Update ... Set column = column + arg" statment
 func (statement *Statement) getInc() map[string]incrParam {
 	return statement.incrColumns
@@ -724,6 +738,11 @@ func (statement *Statement) getInc() map[string]incrParam {
 // Generate  "Update ... Set column = column - arg" statment
 func (statement *Statement) getDec() map[string]decrParam {
 	return statement.decrColumns
+}
+
+// Generate  "Update ... Set column = {expression}" statment
+func (statement *Statement) getExpr() map[string]exprParam {
+	return statement.exprColumns
 }
 
 // Generate "Where column IN (?) " statment
