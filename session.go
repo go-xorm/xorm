@@ -2807,8 +2807,29 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		return 0, err
 	}
 
-	colPlaces := strings.Repeat("?, ", len(colNames))
-	colPlaces = colPlaces[0 : len(colPlaces)-2]
+	// insert expr columns, override if exists
+	exprColumns := session.Statement.getExpr()
+	exprColVals := make([]string, 0, len(exprColumns))
+	for _, v := range exprColumns {
+		// remove the expr columns
+		for i, colName := range colNames {
+			if colName == v.colName {
+				colNames = append(colNames[:i], colNames[i+1:]...)
+				args = append(args[:i], args[i+1:]...)
+			}
+		}
+
+		// append expr column to the end
+		colNames = append(colNames, v.colName)
+		exprColVals = append(exprColVals, v.expr)
+	}
+
+	colPlaces := strings.Repeat("?, ", len(colNames)-len(exprColumns))
+	if len(exprColVals) > 0 {
+		colPlaces = colPlaces + strings.Join(exprColVals, ", ")
+	} else {
+		colPlaces = colPlaces[0 : len(colPlaces)-2]
+	}
 
 	sqlStr := fmt.Sprintf("INSERT INTO %v%v%v (%v%v%v) VALUES (%v)",
 		session.Engine.QuoteStr(),
