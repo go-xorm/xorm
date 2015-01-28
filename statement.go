@@ -724,7 +724,7 @@ func (statement *Statement) Decr(column string, arg ...interface{}) *Statement {
 }
 
 // Generate  "Update ... Set column = {expression}" statment
-func (statement *Statement) Expr(column string, expression string) *Statement {
+func (statement *Statement) SetExpr(column string, expression string) *Statement {
 	k := strings.ToLower(column)
 	statement.exprColumns[k] = exprParam{column, expression}
 	return statement

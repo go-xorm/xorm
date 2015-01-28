@@ -158,9 +158,9 @@ func (session *Session) Decr(column string, arg ...interface{}) *Session {
 	return session
 }
 
-// Method Expr provides a query string like "column = {expression}"
-func (session *Session) Expr(column string, expression string) *Session {
-	session.Statement.Expr(column, expression)
+// Method SetExpr provides a query string like "column = {expression}"
+func (session *Session) SetExpr(column string, expression string) *Session {
+	session.Statement.SetExpr(column, expression)
 	return session
 }
 
