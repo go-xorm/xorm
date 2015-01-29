@@ -1986,20 +1986,22 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 	for _, bean := range beans {
 		sliceValue := reflect.Indirect(reflect.ValueOf(bean))
 		if sliceValue.Kind() == reflect.Slice {
-			if session.Engine.SupportInsertMany() {
-				cnt, err := session.innerInsertMulti(bean)
-				if err != nil {
-					return affected, err
-				}
-				affected += cnt
-			} else {
-				size := sliceValue.Len()
-				for i := 0; i < size; i++ {
-					cnt, err := session.innerInsert(sliceValue.Index(i).Interface())
+			size := sliceValue.Len()
+			if size > 0 {
+				if session.Engine.SupportInsertMany() {
+					cnt, err := session.innerInsertMulti(bean)
 					if err != nil {
 						return affected, err
 					}
 					affected += cnt
+				} else {
+					for i := 0; i < size; i++ {
+						cnt, err := session.innerInsert(sliceValue.Index(i).Interface())
+						if err != nil {
+							return affected, err
+						}
+						affected += cnt
+					}
 				}
 			}
 		} else {
@@ -2176,16 +2178,24 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 
 // Insert multiple records
 func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
-	err := session.newDb()
-	if err != nil {
-		return 0, err
+	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
+	if sliceValue.Kind() == reflect.Slice {
+		if sliceValue.Len() > 0 {
+			err := session.newDb()
+			if err != nil {
+				return 0, err
+			}
+			defer session.resetStatement()
+			if session.IsAutoClose {
+				defer session.Close()
+			}
+			return session.innerInsertMulti(rowsSlicePtr)
+		} else {
+			return 0, nil
+		}
+	} else {
+		return 0, ErrParamsType
 	}
-	defer session.resetStatement()
-	if session.IsAutoClose {
-		defer session.Close()
-	}
-
-	return session.innerInsertMulti(rowsSlicePtr)
 }
 
 func (session *Session) byte2Time(col *core.Column, data []byte) (outTime time.Time, outErr error) {
