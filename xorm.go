@@ -93,5 +93,5 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 
 // clone an engine
 func (engine *Engine) Clone() (*Engine, error) {
-	return NewEngine(engine.dialect.DriverName(), engine.dialect.DataSourceName())
+	return NewEngine(engine.DriverName(), engine.DataSourceName())
 }
