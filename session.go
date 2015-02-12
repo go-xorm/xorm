@@ -1397,6 +1397,7 @@ func (session *Session) Ping() error {
 	return session.Db.Ping()
 }
 
+/*
 func (session *Session) isColumnExist(tableName string, col *core.Column) (bool, error) {
 	err := session.newDb()
 	if err != nil {
@@ -1410,6 +1411,21 @@ func (session *Session) isColumnExist(tableName string, col *core.Column) (bool,
 	//sqlStr, args := session.Engine.dialect.ColumnCheckSql(tableName, colName)
 	//results, err := session.query(sqlStr, args...)
 	//return len(results) > 0, err
+}*/
+
+func (session *Session) IsTableExist(beanOrTableName interface{}) (bool, error) {
+	v := rValue(beanOrTableName)
+	var tableName string
+	if v.Type().Kind() == reflect.String {
+		tableName = beanOrTableName.(string)
+	} else if v.Type().Kind() == reflect.Struct {
+		table := session.Engine.autoMapType(v)
+		tableName = table.Name
+	} else {
+		return false, errors.New("bean should be a struct or struct's point")
+	}
+
+	return session.isTableExist(tableName)
 }
 
 func (session *Session) isTableExist(tableName string) (bool, error) {
@@ -1424,6 +1440,34 @@ func (session *Session) isTableExist(tableName string) (bool, error) {
 	sqlStr, args := session.Engine.dialect.TableCheckSql(tableName)
 	results, err := session.query(sqlStr, args...)
 	return len(results) > 0, err
+}
+
+func (session *Session) IsTableEmpty(bean interface{}) (bool, error) {
+	v := rValue(bean)
+	t := v.Type()
+
+	if t.Kind() == reflect.String {
+		return session.isTableEmpty(bean.(string))
+	} else if t.Kind() == reflect.Struct {
+		session.Engine.autoMapType(v)
+		rows, err := session.Count(bean)
+		return rows == 0, err
+	}
+	return false, errors.New("bean should be a struct or struct's point")
+}
+
+func (session *Session) isTableEmpty(tableName string) (bool, error) {
+	session.newDb()
+
+	row := session.Db.QueryRow(fmt.Sprintf("select count(*) from %s", tableName))
+
+	var total int64
+	err := row.Scan(&total)
+	if err != nil {
+		return true, err
+	}
+
+	return total == 0, nil
 }
 
 func (session *Session) isIndexExist(tableName, idxName string, unique bool) (bool, error) {
@@ -1919,7 +1963,6 @@ func (session *Session) txQuery(tx *core.Tx, sqlStr string, params ...interface{
 }
 
 func (session *Session) innerQuery(db *core.DB, sqlStr string, params ...interface{}) (resultsSlice []map[string][]byte, err error) {
-
 	stmt, rows, err := session.Engine.LogSQLQueryTime(sqlStr, params, func() (*core.Stmt, *core.Rows, error) {
 		stmt, err := db.Prepare(sqlStr)
 		if err != nil {
