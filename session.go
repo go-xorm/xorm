@@ -3408,7 +3408,9 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	if err != nil {
 		return 0, err
 	} else if doIncVer {
-		verValue.SetInt(verValue.Int() + 1)
+		if verValue != nil && verValue.IsValid() && verValue.CanSet() {
+			verValue.SetInt(verValue.Int() + 1)
+		}
 	}
 
 	if cacher := session.Engine.getCacher2(table); cacher != nil && session.Statement.UseCache {
