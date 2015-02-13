@@ -1190,7 +1190,7 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 		if columnStr == "" {
 			columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
 		}
-		statement.GroupByStr = columnStr
+		//statement.GroupByStr = columnStr
 	}
 	var distinct string
 	if statement.IsDistinct {
