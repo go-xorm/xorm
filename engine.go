@@ -773,7 +773,11 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 						col.IsPrimaryKey = true
 						col.Nullable = false
 					case k == "NULL":
-						col.Nullable = (strings.ToUpper(tags[j-1]) != "NOT")
+						if j == 0 {
+							col.Nullable = true
+						} else {
+							col.Nullable = (strings.ToUpper(tags[j-1]) != "NOT")
+						}
 					/*case strings.HasPrefix(k, "AUTOINCR(") && strings.HasSuffix(k, ")"):
 					col.IsAutoIncrement = true
 
