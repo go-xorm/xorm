@@ -317,7 +317,6 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 		if err != nil {
 			return nil, nil, err
 		}
-		//fmt.Println(columnName, isNullable, colType, colKey, extra, colDefault)
 		col.Name = strings.Trim(columnName, "` ")
 		if "YES" == isNullable {
 			col.Nullable = true
@@ -467,15 +466,17 @@ func (db *mysql) GetIndexes(tableName string) (map[string]*core.Index, error) {
 		}
 
 		colName = strings.Trim(colName, "` ")
-
+		var isRegular bool
 		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
 			indexName = indexName[5+len(tableName) : len(indexName)]
+			isRegular = true
 		}
 
 		var index *core.Index
 		var ok bool
 		if index, ok = indexes[indexName]; !ok {
 			index = new(core.Index)
+			index.IsRegular = isRegular
 			index.Type = indexType
 			index.Name = indexName
 			indexes[indexName] = index
