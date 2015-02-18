@@ -72,6 +72,8 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 ## 案例
 
+* [Wego](http://github.com/go-tango/wego)
+
 * [Docker.cn](https://docker.cn/)
 
 * [Gogs](http://try.gogits.org) - [github.com/gogits/gogs](http://github.com/gogits/gogs)
