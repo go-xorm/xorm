@@ -352,6 +352,9 @@ func (engine *Engine) DBMetas() ([]*core.Table, error) {
 	return tables, nil
 }
 
+/*
+dump database all table structs and data to a file
+*/
 func (engine *Engine) DumpAllToFile(fp string) error {
 	f, err := os.Create(fp)
 	if err != nil {
@@ -361,6 +364,9 @@ func (engine *Engine) DumpAllToFile(fp string) error {
 	return engine.DumpAll(f)
 }
 
+/*
+dump database all table structs and data to w
+*/
 func (engine *Engine) DumpAll(w io.Writer) error {
 	tables, err := engine.DBMetas()
 	if err != nil {
@@ -778,6 +784,7 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 						} else {
 							col.Nullable = (strings.ToUpper(tags[j-1]) != "NOT")
 						}
+					// TODO: for postgres how add autoincr?
 					/*case strings.HasPrefix(k, "AUTOINCR(") && strings.HasSuffix(k, ")"):
 					col.IsAutoIncrement = true
 
@@ -1417,6 +1424,8 @@ func (engine *Engine) FormatTime(sqlTypeName string, t time.Time) (v interface{}
 		} else {
 			v = engine.TZTime(t).Format(time.RFC3339Nano)
 		}
+	case core.BigInt, core.Int:
+		v = engine.TZTime(t).Unix()
 	default:
 		v = engine.TZTime(t)
 	}
