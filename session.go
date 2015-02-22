@@ -648,11 +648,6 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 		return false, ErrCacheFailed
 	}
 
-	// TODO: remove this after support multi pk cache
-	/*if len(session.Statement.RefTable.PrimaryKeys) != 1 {
-		return false, ErrCacheFailed
-	}*/
-
 	for _, filter := range session.Engine.dialect.Filters() {
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
@@ -1775,18 +1770,45 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 				} else if session.Statement.UseCascade {
 					table := session.Engine.autoMapType(*fieldValue)
 					if table != nil {
-						var x int64
-						if rawValueType.Kind() == reflect.Int64 {
-							x = vv.Int()
+						if len(table.PrimaryKeys) > 1 {
+							panic("unsupported composited primary key cascade")
 						}
-						if x != 0 {
+						var pk = make(core.PK, len(table.PrimaryKeys))
+						switch rawValueType.Kind() {
+						case reflect.Int64:
+							pk[0] = vv.Int()
+						case reflect.Int:
+							pk[0] = int(vv.Int())
+						case reflect.Int32:
+							pk[0] = int32(vv.Int())
+						case reflect.Int16:
+							pk[0] = int16(vv.Int())
+						case reflect.Int8:
+							pk[0] = int8(vv.Int())
+						case reflect.Uint64:
+							pk[0] = vv.Uint()
+						case reflect.Uint:
+							pk[0] = uint(vv.Uint())
+						case reflect.Uint32:
+							pk[0] = uint32(vv.Uint())
+						case reflect.Uint16:
+							pk[0] = uint16(vv.Uint())
+						case reflect.Uint8:
+							pk[0] = uint8(vv.Uint())
+						case reflect.String:
+							pk[0] = vv.String()
+						default:
+							panic("unsupported primary key type cascade")
+						}
+
+						if !isPKZero(pk) {
 							// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
 							// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
 							// property to be fetched lazily
 							structInter := reflect.New(fieldValue.Type())
 							newsession := session.Engine.NewSession()
 							defer newsession.Close()
-							has, err := newsession.Id(x).Get(structInter.Interface())
+							has, err := newsession.Id(pk).NoCascade().Get(structInter.Interface())
 							if err != nil {
 								return err
 							}
@@ -2415,18 +2437,86 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 		} else if session.Statement.UseCascade {
 			table := session.Engine.autoMapType(*fieldValue)
 			if table != nil {
-				x, err := strconv.ParseInt(string(data), 10, 64)
-				if err != nil {
-					return fmt.Errorf("arg %v as int: %s", key, err.Error())
+				if len(table.PrimaryKeys) > 1 {
+					panic("unsupported composited primary key cascade")
 				}
-				if x != 0 {
+				var pk = make(core.PK, len(table.PrimaryKeys))
+				rawValueType := table.ColumnType(table.PKColumns()[0].FieldName)
+				switch rawValueType.Kind() {
+				case reflect.Int64:
+					x, err := strconv.ParseInt(string(data), 10, 64)
+					if err != nil {
+						return fmt.Errorf("arg %v as int: %s", key, err.Error())
+					}
+					pk[0] = x
+				case reflect.Int:
+					x, err := strconv.ParseInt(string(data), 10, 64)
+					if err != nil {
+						return fmt.Errorf("arg %v as int: %s", key, err.Error())
+					}
+					pk[0] = int(x)
+				case reflect.Int32:
+					x, err := strconv.ParseInt(string(data), 10, 64)
+					if err != nil {
+						return fmt.Errorf("arg %v as int: %s", key, err.Error())
+					}
+					pk[0] = int32(x)
+				case reflect.Int16:
+					x, err := strconv.ParseInt(string(data), 10, 64)
+					if err != nil {
+						return fmt.Errorf("arg %v as int: %s", key, err.Error())
+					}
+					pk[0] = int16(x)
+				case reflect.Int8:
+					x, err := strconv.ParseInt(string(data), 10, 64)
+					if err != nil {
+						return fmt.Errorf("arg %v as int: %s", key, err.Error())
+					}
+					pk[0] = int8(x)
+				case reflect.Uint64:
+					x, err := strconv.ParseUint(string(data), 10, 64)
+					if err != nil {
+						return fmt.Errorf("arg %v as int: %s", key, err.Error())
+					}
+					pk[0] = x
+				case reflect.Uint:
+					x, err := strconv.ParseUint(string(data), 10, 64)
+					if err != nil {
+						return fmt.Errorf("arg %v as int: %s", key, err.Error())
+					}
+					pk[0] = uint(x)
+				case reflect.Uint32:
+					x, err := strconv.ParseUint(string(data), 10, 64)
+					if err != nil {
+						return fmt.Errorf("arg %v as int: %s", key, err.Error())
+					}
+					pk[0] = uint32(x)
+				case reflect.Uint16:
+					x, err := strconv.ParseUint(string(data), 10, 64)
+					if err != nil {
+						return fmt.Errorf("arg %v as int: %s", key, err.Error())
+					}
+					pk[0] = uint16(x)
+				case reflect.Uint8:
+					x, err := strconv.ParseUint(string(data), 10, 64)
+					if err != nil {
+						return fmt.Errorf("arg %v as int: %s", key, err.Error())
+					}
+					pk[0] = uint8(x)
+				case reflect.String:
+					pk[0] = string(data)
+				default:
+					panic("unsupported primary key type cascade")
+				}
+
+				if !isPKZero(pk) {
 					// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
 					// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
 					// property to be fetched lazily
 					structInter := reflect.New(fieldValue.Type())
 					newsession := session.Engine.NewSession()
 					defer newsession.Close()
-					has, err := newsession.Id(x).Get(structInter.Interface())
+					has, err := newsession.Id(pk).NoCascade().Get(structInter.Interface())
 					if err != nil {
 						return err
 					}
@@ -2690,17 +2780,95 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 					structInter := reflect.New(fieldType.Elem())
 					table := session.Engine.autoMapType(structInter.Elem())
 					if table != nil {
-						x, err := strconv.ParseInt(string(data), 10, 64)
-						if err != nil {
-							return fmt.Errorf("arg %v as int: %s", key, err.Error())
+						if len(table.PrimaryKeys) > 1 {
+							panic("unsupported composited primary key cascade")
 						}
-						if x != 0 {
+						var pk = make(core.PK, len(table.PrimaryKeys))
+						rawValueType := table.ColumnType(table.PKColumns()[0].FieldName)
+						switch rawValueType.Kind() {
+						case reflect.Int64:
+							x, err := strconv.ParseInt(string(data), 10, 64)
+							if err != nil {
+								return fmt.Errorf("arg %v as int: %s", key, err.Error())
+							}
+
+							pk[0] = x
+						case reflect.Int:
+							x, err := strconv.ParseInt(string(data), 10, 64)
+							if err != nil {
+								return fmt.Errorf("arg %v as int: %s", key, err.Error())
+							}
+
+							pk[0] = int(x)
+						case reflect.Int32:
+							x, err := strconv.ParseInt(string(data), 10, 64)
+							if err != nil {
+								return fmt.Errorf("arg %v as int: %s", key, err.Error())
+							}
+
+							pk[0] = int32(x)
+						case reflect.Int16:
+							x, err := strconv.ParseInt(string(data), 10, 64)
+							if err != nil {
+								return fmt.Errorf("arg %v as int: %s", key, err.Error())
+							}
+
+							pk[0] = int16(x)
+						case reflect.Int8:
+							x, err := strconv.ParseInt(string(data), 10, 64)
+							if err != nil {
+								return fmt.Errorf("arg %v as int: %s", key, err.Error())
+							}
+
+							pk[0] = x
+						case reflect.Uint64:
+							x, err := strconv.ParseUint(string(data), 10, 64)
+							if err != nil {
+								return fmt.Errorf("arg %v as int: %s", key, err.Error())
+							}
+
+							pk[0] = x
+						case reflect.Uint:
+							x, err := strconv.ParseUint(string(data), 10, 64)
+							if err != nil {
+								return fmt.Errorf("arg %v as int: %s", key, err.Error())
+							}
+
+							pk[0] = uint(x)
+						case reflect.Uint32:
+							x, err := strconv.ParseUint(string(data), 10, 64)
+							if err != nil {
+								return fmt.Errorf("arg %v as int: %s", key, err.Error())
+							}
+
+							pk[0] = uint32(x)
+						case reflect.Uint16:
+							x, err := strconv.ParseUint(string(data), 10, 64)
+							if err != nil {
+								return fmt.Errorf("arg %v as int: %s", key, err.Error())
+							}
+
+							pk[0] = uint16(x)
+						case reflect.Uint8:
+							x, err := strconv.ParseUint(string(data), 10, 64)
+							if err != nil {
+								return fmt.Errorf("arg %v as int: %s", key, err.Error())
+							}
+
+							pk[0] = uint8(x)
+						case reflect.String:
+							pk[0] = string(data)
+						default:
+							panic("unsupported primary key type cascade")
+						}
+
+						if !isPKZero(pk) {
 							// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
 							// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
 							// property to be fetched lazily
 							newsession := session.Engine.NewSession()
 							defer newsession.Close()
-							has, err := newsession.Id(x).Get(structInter.Interface())
+							has, err := newsession.Id(pk).NoCascade().Get(structInter.Interface())
 							if err != nil {
 								return err
 							}

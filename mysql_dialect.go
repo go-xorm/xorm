@@ -218,6 +218,9 @@ func (db *mysql) SqlType(c *core.Column) string {
 		res += ")"
 	case core.NVarchar:
 		res = core.Varchar
+	case core.Uuid:
+		res = core.Varchar
+		c.Length = 40
 	default:
 		res = t
 	}

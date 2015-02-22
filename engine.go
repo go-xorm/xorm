@@ -990,8 +990,12 @@ func (engine *Engine) IsTableExist(beanOrTableName interface{}) (bool, error) {
 }
 
 func (engine *Engine) IdOf(bean interface{}) core.PK {
-	table := engine.TableInfo(bean)
-	v := reflect.Indirect(reflect.ValueOf(bean))
+	return engine.IdOfV(reflect.ValueOf(bean))
+}
+
+func (engine *Engine) IdOfV(rv reflect.Value) core.PK {
+	v := reflect.Indirect(rv)
+	table := engine.autoMapType(v)
 	pk := make([]interface{}, len(table.PrimaryKeys))
 	for i, col := range table.PKColumns() {
 		pkField := v.FieldByName(col.FieldName)
