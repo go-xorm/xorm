@@ -336,10 +336,21 @@ func genCols(table *core.Table, session *Session, bean interface{}, useCol bool,
 		}
 
 		if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
-			args = append(args, session.Engine.NowTime(col.SQLType.Name))
+			val, t := session.Engine.NowTime2(col.SQLType.Name)
+			args = append(args, val)
+			session.afterClosures = append(session.afterClosures, func(bean interface{}) {
+				v, _ := col.ValueOf(bean)
+				switch v.Type().Kind() {
+				case reflect.Struct:
+					v.Set(reflect.ValueOf(t))
+				case reflect.Int, reflect.Int64, reflect.Int32:
+					v.SetInt(t.Unix())
+				case reflect.Uint, reflect.Uint64, reflect.Uint32:
+					v.SetUint(uint64(t.Unix()))
+				}
+			})
 		} else if col.IsVersion && session.Statement.checkVersion {
 			args = append(args, 1)
-			//} else if !col.DefaultIsEmpty {
 		} else {
 			arg, err := session.value2Interface(col, fieldValue)
 			if err != nil {

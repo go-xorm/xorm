@@ -1405,6 +1405,11 @@ func (engine *Engine) NowTime(sqlTypeName string) interface{} {
 	return engine.FormatTime(sqlTypeName, t)
 }
 
+func (engine *Engine) NowTime2(sqlTypeName string) (interface{}, time.Time) {
+	t := time.Now()
+	return engine.FormatTime(sqlTypeName, t), t
+}
+
 func (engine *Engine) FormatTime(sqlTypeName string, t time.Time) (v interface{}) {
 	switch sqlTypeName {
 	case core.Time:

@@ -1626,7 +1626,6 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 }
 
 func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount int, bean interface{}, dataStruct *reflect.Value, table *core.Table) error {
-
 	scanResults := make([]interface{}, fieldsCount)
 	for i := 0; i < len(fields); i++ {
 		var cell interface{}
@@ -1766,6 +1765,12 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 						// t = fieldValue.Interface().(time.Time)
 						// z, _ = t.Zone()
 						// session.Engine.LogDebug("fieldValue key[%v]: %v | zone: %v | location: %+v\n", key, t, z, *t.Location())
+					} else if rawValueType == core.IntType || rawValueType == core.Int64Type ||
+						rawValueType == core.Int32Type {
+						hasAssigned = true
+						t := time.Unix(vv.Int(), 0).In(session.Engine.TZLocation)
+						vv = reflect.ValueOf(t)
+						fieldValue.Set(vv)
 					}
 				} else if session.Statement.UseCascade {
 					table := session.Engine.autoMapType(*fieldValue)
@@ -3783,7 +3788,6 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 				copy(afterClosures, session.afterClosures)
 				session.afterDeleteBeans[bean] = &afterClosures
 			}
-
 		} else {
 			if _, ok := interface{}(bean).(AfterInsertProcessor); ok {
 				session.afterDeleteBeans[bean] = nil
