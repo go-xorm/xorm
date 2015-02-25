@@ -17,7 +17,7 @@ import (
 // Struct Session keep a pointer to sql.DB and provides all execution of all
 // kind of database operations.
 type Session struct {
-	Db                     *core.DB
+	db                     *core.DB
 	Engine                 *Engine
 	Tx                     *core.Tx
 	Statement              Statement
@@ -66,9 +66,9 @@ func (session *Session) Close() {
 		v.Close()
 	}
 
-	if session.Db != nil {
+	if session.db != nil {
 		//session.Engine.Pool.ReleaseDB(session.Engine, session.Db)
-		session.Db = nil
+		session.db = nil
 		session.Tx = nil
 		session.stmtCache = nil
 		session.Init()
@@ -286,26 +286,18 @@ func (session *Session) Having(conditions string) *Session {
 	return session
 }
 
-func (session *Session) newDb() error {
-	if session.Db == nil {
-		/*db, err := session.Engine.Pool.RetrieveDB(session.Engine)
-		if err != nil {
-			return err
-		}*/
-		session.Db = session.Engine.db
+func (session *Session) DB() *core.DB {
+	if session.db == nil {
+		session.db = session.Engine.db
 		session.stmtCache = make(map[uint32]*core.Stmt, 0)
 	}
-	return nil
+	return session.db
 }
 
 // Begin a transaction
 func (session *Session) Begin() error {
-	err := session.newDb()
-	if err != nil {
-		return err
-	}
 	if session.IsAutoCommit {
-		tx, err := session.Db.Begin()
+		tx, err := session.DB().Begin()
 		if err != nil {
 			return err
 		}
@@ -464,10 +456,6 @@ func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, er
 
 // Exec raw sql
 func (session *Session) Exec(sqlStr string, args ...interface{}) (sql.Result, error) {
-	err := session.newDb()
-	if err != nil {
-		return nil, err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -480,10 +468,6 @@ func (session *Session) Exec(sqlStr string, args ...interface{}) (sql.Result, er
 func (session *Session) CreateTable(bean interface{}) error {
 	session.Statement.RefTable = session.Engine.TableInfo(bean)
 
-	err := session.newDb()
-	if err != nil {
-		return err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -496,10 +480,6 @@ func (session *Session) CreateTable(bean interface{}) error {
 func (session *Session) CreateIndexes(bean interface{}) error {
 	session.Statement.RefTable = session.Engine.TableInfo(bean)
 
-	err := session.newDb()
-	if err != nil {
-		return err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -507,7 +487,7 @@ func (session *Session) CreateIndexes(bean interface{}) error {
 
 	sqls := session.Statement.genIndexSQL()
 	for _, sqlStr := range sqls {
-		_, err = session.exec(sqlStr)
+		_, err := session.exec(sqlStr)
 		if err != nil {
 			return err
 		}
@@ -519,10 +499,6 @@ func (session *Session) CreateIndexes(bean interface{}) error {
 func (session *Session) CreateUniques(bean interface{}) error {
 	session.Statement.RefTable = session.Engine.TableInfo(bean)
 
-	err := session.newDb()
-	if err != nil {
-		return err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -530,7 +506,7 @@ func (session *Session) CreateUniques(bean interface{}) error {
 
 	sqls := session.Statement.genUniqueSQL()
 	for _, sqlStr := range sqls {
-		_, err = session.exec(sqlStr)
+		_, err := session.exec(sqlStr)
 		if err != nil {
 			return err
 		}
@@ -547,10 +523,6 @@ func (session *Session) createOneTable() error {
 
 // to be deleted
 func (session *Session) createAll() error {
-	err := session.newDb()
-	if err != nil {
-		return err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -568,10 +540,6 @@ func (session *Session) createAll() error {
 
 // drop indexes
 func (session *Session) DropIndexes(bean interface{}) error {
-	err := session.newDb()
-	if err != nil {
-		return err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -579,7 +547,7 @@ func (session *Session) DropIndexes(bean interface{}) error {
 
 	sqls := session.Statement.genDelIndexSQL()
 	for _, sqlStr := range sqls {
-		_, err = session.exec(sqlStr)
+		_, err := session.exec(sqlStr)
 		if err != nil {
 			return err
 		}
@@ -589,11 +557,6 @@ func (session *Session) DropIndexes(bean interface{}) error {
 
 // DropTable drop a table and all indexes of the table
 func (session *Session) DropTable(bean interface{}) error {
-	err := session.newDb()
-	if err != nil {
-		return err
-	}
-
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -610,7 +573,7 @@ func (session *Session) DropTable(bean interface{}) error {
 	}
 
 	sqlStr := session.Statement.genDropSQL()
-	_, err = session.exec(sqlStr)
+	_, err := session.exec(sqlStr)
 	return err
 }
 
@@ -663,7 +626,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 	table := session.Statement.RefTable
 	if err != nil {
 		var res = make([]string, len(table.PrimaryKeys))
-		rows, err := session.Db.Query(newsql, args...)
+		rows, err := session.DB().Query(newsql, args...)
 		if err != nil {
 			return false, err
 		}
@@ -761,7 +724,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 	cacher := session.Engine.getCacher2(table)
 	ids, err := core.GetCacheSql(cacher, session.Statement.TableName(), newsql, args)
 	if err != nil {
-		rows, err := session.Db.Query(newsql, args...)
+		rows, err := session.DB().Query(newsql, args...)
 		if err != nil {
 			return err
 		}
@@ -972,7 +935,7 @@ func (session *Session) doPrepare(sqlStr string) (stmt *core.Stmt, err error) {
 	var has bool
 	stmt, has = session.stmtCache[crc]
 	if !has {
-		stmt, err = session.Db.Prepare(sqlStr)
+		stmt, err = session.DB().Prepare(sqlStr)
 		if err != nil {
 			return nil, err
 		}
@@ -984,11 +947,6 @@ func (session *Session) doPrepare(sqlStr string) (stmt *core.Stmt, err error) {
 // get retrieve one record from database, bean's non-empty fields
 // will be as conditions
 func (session *Session) Get(bean interface{}) (bool, error) {
-	err := session.newDb()
-	if err != nil {
-		return false, err
-	}
-
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -1021,6 +979,7 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	}
 
 	var rawRows *core.Rows
+	var err error
 	session.queryPreprocess(&sqlStr, args...)
 	if session.IsAutoCommit {
 		stmt, err := session.doPrepare(sqlStr)
@@ -1050,11 +1009,6 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 // Count counts the records. bean's non-empty fields
 // are conditions.
 func (session *Session) Count(bean interface{}) (int64, error) {
-	err := session.newDb()
-	if err != nil {
-		return 0, err
-	}
-
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -1159,10 +1113,6 @@ func Atot(s string, tp reflect.Type) (interface{}, error) {
 // are conditions. beans could be []Struct, []*Struct, map[int64]Struct
 // map[int64]*Struct
 func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{}) error {
-	err := session.newDb()
-	if err != nil {
-		return err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -1237,6 +1187,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		args = session.Statement.RawParams
 	}
 
+	var err error
 	if session.Statement.JoinStr == "" {
 		if cacher := session.Engine.getCacher2(table); cacher != nil &&
 			session.Statement.UseCache &&
@@ -1380,24 +1331,16 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 
 // Test if database is ok
 func (session *Session) Ping() error {
-	err := session.newDb()
-	if err != nil {
-		return err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
 
-	return session.Db.Ping()
+	return session.DB().Ping()
 }
 
 /*
 func (session *Session) isColumnExist(tableName string, col *core.Column) (bool, error) {
-	err := session.newDb()
-	if err != nil {
-		return false, err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -1424,10 +1367,6 @@ func (session *Session) IsTableExist(beanOrTableName interface{}) (bool, error) 
 }
 
 func (session *Session) isTableExist(tableName string) (bool, error) {
-	err := session.newDb()
-	if err != nil {
-		return false, err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -1452,12 +1391,14 @@ func (session *Session) IsTableEmpty(bean interface{}) (bool, error) {
 }
 
 func (session *Session) isTableEmpty(tableName string) (bool, error) {
-	session.newDb()
-
-	row := session.Db.QueryRow(fmt.Sprintf("select count(*) from %s", tableName))
+	defer session.resetStatement()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
 
 	var total int64
-	err := row.Scan(&total)
+	err := session.DB().QueryRow(fmt.Sprintf("select count(*) from %s", tableName)).
+		Scan(&total)
 	if err != nil {
 		return true, err
 	}
@@ -1466,10 +1407,6 @@ func (session *Session) isTableEmpty(tableName string) (bool, error) {
 }
 
 func (session *Session) isIndexExist(tableName, idxName string, unique bool) (bool, error) {
-	err := session.newDb()
-	if err != nil {
-		return false, err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -1487,6 +1424,11 @@ func (session *Session) isIndexExist(tableName, idxName string, unique bool) (bo
 
 // find if index is exist according cols
 func (session *Session) isIndexExist2(tableName string, cols []string, unique bool) (bool, error) {
+	defer session.resetStatement()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+
 	indexes, err := session.Engine.dialect.GetIndexes(tableName)
 	if err != nil {
 		return false, err
@@ -1505,10 +1447,6 @@ func (session *Session) isIndexExist2(tableName string, cols []string, unique bo
 }
 
 func (session *Session) addColumn(colName string) error {
-	err := session.newDb()
-	if err != nil {
-		return err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -1516,47 +1454,35 @@ func (session *Session) addColumn(colName string) error {
 
 	col := session.Statement.RefTable.GetColumn(colName)
 	sql, args := session.Statement.genAddColumnStr(col)
-	_, err = session.exec(sql, args...)
+	_, err := session.exec(sql, args...)
 	return err
 }
 
 func (session *Session) addIndex(tableName, idxName string) error {
-	err := session.newDb()
-	if err != nil {
-		return err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
 	index := session.Statement.RefTable.Indexes[idxName]
 	sqlStr := session.Engine.dialect.CreateIndexSql(tableName, index)
-	//genAddIndexStr(indexName(tableName, idxName), cols)
-	_, err = session.exec(sqlStr)
+
+	_, err := session.exec(sqlStr)
 	return err
 }
 
 func (session *Session) addUnique(tableName, uqeName string) error {
-	err := session.newDb()
-	if err != nil {
-		return err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
 	}
 	index := session.Statement.RefTable.Indexes[uqeName]
 	sqlStr := session.Engine.dialect.CreateIndexSql(tableName, index)
-	_, err = session.exec(sqlStr)
+	_, err := session.exec(sqlStr)
 	return err
 }
 
 // To be deleted
 func (session *Session) dropAll() error {
-	err := session.newDb()
-	if err != nil {
-		return err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -1974,7 +1900,7 @@ func (session *Session) query(sqlStr string, paramStr ...interface{}) (resultsSl
 	session.queryPreprocess(&sqlStr, paramStr...)
 
 	if session.IsAutoCommit {
-		return session.innerQuery(session.Db, sqlStr, paramStr...)
+		return session.innerQuery(session.DB(), sqlStr, paramStr...)
 	}
 	return session.txQuery(session.Tx, sqlStr, paramStr...)
 }
@@ -2013,10 +1939,6 @@ func (session *Session) innerQuery(db *core.DB, sqlStr string, params ...interfa
 
 // Exec a raw sql and return records as []map[string][]byte
 func (session *Session) Query(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
-	err = session.newDb()
-	if err != nil {
-		return nil, err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -2032,7 +1954,7 @@ func (session *Session) query2(sqlStr string, paramStr ...interface{}) (resultsS
 	session.queryPreprocess(&sqlStr, paramStr...)
 
 	if session.IsAutoCommit {
-		return query2(session.Db, sqlStr, paramStr...)
+		return query2(session.DB(), sqlStr, paramStr...)
 	}
 	return txQuery2(session.Tx, sqlStr, paramStr...)
 }
@@ -2040,11 +1962,7 @@ func (session *Session) query2(sqlStr string, paramStr ...interface{}) (resultsS
 // insert one or more beans
 func (session *Session) Insert(beans ...interface{}) (int64, error) {
 	var affected int64 = 0
-	var err error = nil
-	err = session.newDb()
-	if err != nil {
-		return 0, err
-	}
+	var err error
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -2248,10 +2166,6 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
 	if sliceValue.Kind() == reflect.Slice {
 		if sliceValue.Len() > 0 {
-			err := session.newDb()
-			if err != nil {
-				return 0, err
-			}
 			defer session.resetStatement()
 			if session.IsAutoClose {
 				defer session.Close()
@@ -3217,10 +3131,6 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 // The in parameter bean must a struct or a point to struct. The return
 // parameter is inserted and error
 func (session *Session) InsertOne(bean interface{}) (int64, error) {
-	err := session.newDb()
-	if err != nil {
-		return 0, err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -3315,7 +3225,7 @@ func (session *Session) cacheUpdate(sqlStr string, args ...interface{}) error {
 	session.Engine.LogDebug("[cacheUpdate] get cache sql", newsql, args[nStart:])
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args[nStart:])
 	if err != nil {
-		rows, err := session.Db.Query(newsql, args[nStart:]...)
+		rows, err := session.DB().Query(newsql, args[nStart:]...)
 		if err != nil {
 			return err
 		}
@@ -3414,10 +3324,6 @@ func (session *Session) cacheUpdate(sqlStr string, args ...interface{}) error {
 //         You should call UseBool if you have bool to use.
 //        2.float32 & float64 may be not inexact as conditions
 func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int64, error) {
-	err := session.newDb()
-	if err != nil {
-		return 0, err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -3439,6 +3345,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	}
 	// --
 
+	var err error
 	if t.Kind() == reflect.Struct {
 		table = session.Engine.TableInfo(bean)
 		session.Statement.RefTable = table
@@ -3680,10 +3587,6 @@ func (session *Session) cacheDelete(sqlStr string, args ...interface{}) error {
 
 // Delete records, bean's non-empty fields are conditions
 func (session *Session) Delete(bean interface{}) (int64, error) {
-	err := session.newDb()
-	if err != nil {
-		return 0, err
-	}
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
