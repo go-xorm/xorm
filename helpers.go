@@ -338,7 +338,10 @@ func genCols(table *core.Table, session *Session, bean interface{}, useCol bool,
 		if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
 			val, t := session.Engine.NowTime2(col.SQLType.Name)
 			args = append(args, val)
+
+			var colName = col.Name
 			session.afterClosures = append(session.afterClosures, func(bean interface{}) {
+				col := table.GetColumn(colName)
 				v, _ := col.ValueOf(bean)
 				switch v.Type().Kind() {
 				case reflect.Struct:
