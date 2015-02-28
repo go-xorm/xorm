@@ -2059,7 +2059,14 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 					}
 				}
 				if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
-					args = append(args, session.Engine.NowTime(col.SQLType.Name))
+					val, t := session.Engine.NowTime2(col.SQLType.Name)
+					args = append(args, val)
+
+					var colName = col.Name
+					session.afterClosures = append(session.afterClosures, func(bean interface{}) {
+						col := table.GetColumn(colName)
+						setColumnTime(bean, col, t)
+					})
 				} else {
 					arg, err := session.value2Interface(col, fieldValue)
 					if err != nil {
@@ -2095,7 +2102,14 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 					}
 				}
 				if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
-					args = append(args, session.Engine.NowTime(col.SQLType.Name))
+					val, t := session.Engine.NowTime2(col.SQLType.Name)
+					args = append(args, val)
+
+					var colName = col.Name
+					session.afterClosures = append(session.afterClosures, func(bean interface{}) {
+						col := table.GetColumn(colName)
+						setColumnTime(bean, col, t)
+					})
 				} else {
 					arg, err := session.value2Interface(col, fieldValue)
 					if err != nil {
@@ -3379,7 +3393,15 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	if session.Statement.UseAutoTime && table.Updated != "" {
 		colNames = append(colNames, session.Engine.Quote(table.Updated)+" = ?")
-		args = append(args, session.Engine.NowTime(table.UpdatedColumn().SQLType.Name))
+		col := table.UpdatedColumn()
+		val, t := session.Engine.NowTime2(col.SQLType.Name)
+		args = append(args, val)
+
+		var colName = col.Name
+		session.afterClosures = append(session.afterClosures, func(bean interface{}) {
+			col := table.GetColumn(colName)
+			setColumnTime(bean, col, t)
+		})
 	}
 
 	//for update action to like "column = column + ?"
@@ -3659,7 +3681,15 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		session.Statement.Params = append(session.Statement.Params, "")
 		paramsLen := len(session.Statement.Params)
 		copy(session.Statement.Params[1:paramsLen], session.Statement.Params[0:paramsLen-1])
-		session.Statement.Params[0] = session.Engine.NowTime(deletedColumn.SQLType.Name)
+
+		val, t := session.Engine.NowTime2(deletedColumn.SQLType.Name)
+		session.Statement.Params[0] = val
+
+		var colName = deletedColumn.Name
+		session.afterClosures = append(session.afterClosures, func(bean interface{}) {
+			col := table.GetColumn(colName)
+			setColumnTime(bean, col, t)
+		})
 	}
 
 	args = append(session.Statement.Params, args...)
