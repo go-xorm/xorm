@@ -1671,11 +1671,11 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 					fieldValue.SetUint(uint64(vv.Int()))
 				}
 			case reflect.Struct:
-				if fieldType == core.TimeType {
+				if fieldType.ConvertibleTo(core.TimeType) {
 					if rawValueType == core.TimeType {
 						hasAssigned = true
 
-						t := vv.Interface().(time.Time)
+						t := vv.Convert(core.TimeType).Interface().(time.Time)
 						z, _ := t.Zone()
 						if len(z) == 0 || t.Year() == 0 { // !nashtsai! HACK tmp work around for lib/pq doesn't properly time with location
 							session.Engine.LogDebug("empty zone key[%v] : %v | zone: %v | location: %+v\n", key, t, z, *t.Location())
@@ -1684,7 +1684,7 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 							vv = reflect.ValueOf(tt)
 						}
 						// !nashtsai! convert to engine location
-						t = vv.Interface().(time.Time).In(session.Engine.TZLocation)
+						t = vv.Convert(core.TimeType).Interface().(time.Time).In(session.Engine.TZLocation)
 						vv = reflect.ValueOf(t)
 						fieldValue.Set(vv)
 
@@ -2360,13 +2360,13 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 		fieldValue.SetUint(x)
 	//Currently only support Time type
 	case reflect.Struct:
-		if fieldType == core.TimeType {
+		if fieldType.ConvertibleTo(core.TimeType) {
 			x, err := session.byte2Time(col, data)
 			if err != nil {
 				return err
 			}
 			v = x
-			fieldValue.Set(reflect.ValueOf(v))
+			fieldValue.Set(reflect.ValueOf(v).Convert(fieldType))
 		} else if session.Statement.UseCascade {
 			table := session.Engine.autoMapType(*fieldValue)
 			if table != nil {

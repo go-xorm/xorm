@@ -286,7 +286,7 @@ func setColumnTime(bean interface{}, col *core.Column, t time.Time) {
 	if v.CanSet() {
 		switch v.Type().Kind() {
 		case reflect.Struct:
-			v.Set(reflect.ValueOf(t))
+			v.Set(reflect.ValueOf(t).Convert(v.Type()))
 		case reflect.Int, reflect.Int64, reflect.Int32:
 			v.SetInt(t.Unix())
 		case reflect.Uint, reflect.Uint64, reflect.Uint32:
