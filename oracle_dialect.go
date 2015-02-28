@@ -625,7 +625,7 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Colum
 		col := new(core.Column)
 		col.Indexes = make(map[string]bool)
 
-		var colName, colDefault, nullable, dataType, dataPrecision, dataScale string
+		var colName, colDefault, nullable, dataType, dataPrecision, dataScale *string
 		var dataLen int
 
 		err = rows.Scan(&colName, &colDefault, &dataType, &dataLen, &dataPrecision,
@@ -634,36 +634,52 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Colum
 			return nil, nil, err
 		}
 
-		col.Name = strings.Trim(colName, `" `)
-		col.Default = colDefault
+		col.Name = strings.Trim(*colName, `" `)
+		if colDefault != nil {
+			col.Default = *colDefault
+			col.DefaultIsEmpty = false
+		}
 
-		if nullable == "Y" {
+		if *nullable == "Y" {
 			col.Nullable = true
 		} else {
 			col.Nullable = false
 		}
 
-		switch dataType {
+		var ignore bool
+
+		switch *dataType {
 		case "VARCHAR2":
 			col.SQLType = core.SQLType{core.Varchar, 0, 0}
 		case "TIMESTAMP WITH TIME ZONE":
 			col.SQLType = core.SQLType{core.TimeStampz, 0, 0}
+		case "NUMBER":
+			col.SQLType = core.SQLType{core.Double, 0, 0}
+		case "LONG", "LONG RAW":
+			col.SQLType = core.SQLType{core.Text, 0, 0}
+		case "RAW":
+			col.SQLType = core.SQLType{core.Binary, 0, 0}
+		case "ROWID":
+			col.SQLType = core.SQLType{core.Varchar, 18, 0}
+		case "AQ$_SUBSCRIBERS":
+			ignore = true
 		default:
-			col.SQLType = core.SQLType{strings.ToUpper(dataType), 0, 0}
+			col.SQLType = core.SQLType{strings.ToUpper(*dataType), 0, 0}
 		}
+		fmt.Println(tableName, ":", col.Name)
+		if ignore {
+			continue
+		}
+
 		if _, ok := core.SqlTypes[col.SQLType.Name]; !ok {
-			return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v", dataType))
+			return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v", *dataType))
 		}
 
 		col.Length = dataLen
 
 		if col.SQLType.IsText() || col.SQLType.IsTime() {
-			if col.Default != "" {
+			if !col.DefaultIsEmpty {
 				col.Default = "'" + col.Default + "'"
-			} else {
-				if col.DefaultIsEmpty {
-					col.Default = "''"
-				}
 			}
 		}
 		cols[col.Name] = col
