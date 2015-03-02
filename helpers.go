@@ -281,6 +281,20 @@ func query2(db *core.DB, sqlStr string, params ...interface{}) (resultsSlice []m
 	return rows2Strings(rows)
 }
 
+func setColumnTime(bean interface{}, col *core.Column, t time.Time) {
+	v, _ := col.ValueOf(bean)
+	if v.CanSet() {
+		switch v.Type().Kind() {
+		case reflect.Struct:
+			v.Set(reflect.ValueOf(t).Convert(v.Type()))
+		case reflect.Int, reflect.Int64, reflect.Int32:
+			v.SetInt(t.Unix())
+		case reflect.Uint, reflect.Uint64, reflect.Uint32:
+			v.SetUint(uint64(t.Unix()))
+		}
+	}
+}
+
 func genCols(table *core.Table, session *Session, bean interface{}, useCol bool, includeQuote bool) ([]string, []interface{}, error) {
 	colNames := make([]string, 0)
 	args := make([]interface{}, 0)
@@ -338,16 +352,11 @@ func genCols(table *core.Table, session *Session, bean interface{}, useCol bool,
 		if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime {
 			val, t := session.Engine.NowTime2(col.SQLType.Name)
 			args = append(args, val)
+
+			var colName = col.Name
 			session.afterClosures = append(session.afterClosures, func(bean interface{}) {
-				v, _ := col.ValueOf(bean)
-				switch v.Type().Kind() {
-				case reflect.Struct:
-					v.Set(reflect.ValueOf(t))
-				case reflect.Int, reflect.Int64, reflect.Int32:
-					v.SetInt(t.Unix())
-				case reflect.Uint, reflect.Uint64, reflect.Uint32:
-					v.SetUint(uint64(t.Unix()))
-				}
+				col := table.GetColumn(colName)
+				setColumnTime(bean, col, t)
 			})
 		} else if col.IsVersion && session.Statement.checkVersion {
 			args = append(args, 1)
