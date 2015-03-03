@@ -286,7 +286,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 	includeVersion bool, includeUpdated bool, includeNil bool,
 	includeAutoIncr bool, allUseBool bool, useAllCols bool,
-	mustColumnMap map[string]bool, update bool) ([]string, []interface{}) {
+	mustColumnMap map[string]bool, columnMap map[string]bool, update bool) ([]string, []interface{}) {
 
 	colNames := make([]string, 0)
 	var args = make([]interface{}, 0)
@@ -304,6 +304,9 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			continue
 		}
 		if col.IsDeleted {
+			continue
+		}
+		if use, ok := columnMap[col.Name]; ok && !use {
 			continue
 		}
 
