@@ -572,9 +572,10 @@ func (session *Session) DropTable(bean interface{}) error {
 		return errors.New("Unsupported type")
 	}
 
-	sqlStr := session.Statement.genDropSQL()
+	return session.Engine.Dialect().MustDropTable(session.Statement.TableName())
+	/*sqlStr := session.Statement.genDropSQL()
 	_, err := session.exec(sqlStr)
-	return err
+	return err*/
 }
 
 func (statement *Statement) JoinColumns(cols []*core.Column) string {
@@ -1491,8 +1492,9 @@ func (session *Session) dropAll() error {
 	for _, table := range session.Engine.Tables {
 		session.Statement.Init()
 		session.Statement.RefTable = table
-		sqlStr := session.Statement.genDropSQL()
-		_, err := session.exec(sqlStr)
+		err := session.Engine.Dialect().MustDropTable(session.Statement.TableName())
+		//sqlStr := session.Statement.genDropSQL()
+		//_, err := session.exec(sqlStr)
 		if err != nil {
 			return err
 		}

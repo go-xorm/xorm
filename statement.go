@@ -1111,9 +1111,10 @@ func (s *Statement) genDelIndexSQL() []string {
 	return sqls
 }
 
+/*
 func (s *Statement) genDropSQL() string {
-	return s.Engine.dialect.DropTableSql(s.TableName()) + ";"
-}
+	return s.Engine.dialect.MustDropTa(s.TableName()) + ";"
+}*/
 
 func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) {
 	var table *core.Table

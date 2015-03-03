@@ -509,7 +509,7 @@ func (db *oracle) SqlType(c *core.Column) string {
 	var res string
 	switch t := c.SQLType.Name; t {
 	case core.Bit, core.TinyInt, core.SmallInt, core.MediumInt, core.Int, core.Integer, core.BigInt, core.Bool, core.Serial, core.BigSerial:
-		return "NUMBER"
+		res = "NUMBER"
 	case core.Binary, core.VarBinary, core.Blob, core.TinyBlob, core.MediumBlob, core.LongBlob, core.Bytea:
 		return core.Blob
 	case core.Time, core.DateTime, core.TimeStamp:
@@ -521,7 +521,7 @@ func (db *oracle) SqlType(c *core.Column) string {
 	case core.Text, core.MediumText, core.LongText:
 		res = "CLOB"
 	case core.Char, core.Varchar, core.TinyText:
-		return "VARCHAR2"
+		res = "VARCHAR2"
 	default:
 		res = t
 	}
@@ -534,6 +534,10 @@ func (db *oracle) SqlType(c *core.Column) string {
 		res += "(" + strconv.Itoa(c.Length) + ")"
 	}
 	return res
+}
+
+func (db *oracle) AutoIncrStr() string {
+	return "AUTO_INCREMENT"
 }
 
 func (db *oracle) SupportInsertMany() bool {
@@ -553,10 +557,6 @@ func (db *oracle) QuoteStr() string {
 	return "\""
 }
 
-func (db *oracle) AutoIncrStr() string {
-	return ""
-}
-
 func (db *oracle) SupportEngine() bool {
 	return false
 }
@@ -569,6 +569,50 @@ func (db *oracle) IndexOnTable() bool {
 	return false
 }
 
+func (b *oracle) CreateTableSql(table *core.Table, tableName, storeEngine, charset string) string {
+	var sql string
+	sql = "CREATE TABLE IF NOT EXISTS "
+	if tableName == "" {
+		tableName = table.Name
+	}
+
+	sql += b.Quote(tableName) + " ("
+
+	pkList := table.PrimaryKeys
+
+	for _, colName := range table.ColumnsSeq() {
+		col := table.GetColumn(colName)
+		/*if col.IsPrimaryKey && len(pkList) == 1 {
+			sql += col.String(b.dialect)
+		} else {*/
+		sql += col.StringNoPk(b)
+		//}
+		sql = strings.TrimSpace(sql)
+		sql += ", "
+	}
+
+	if len(pkList) > 0 {
+		sql += "PRIMARY KEY ( "
+		sql += b.Quote(strings.Join(pkList, b.Quote(",")))
+		sql += " ), "
+	}
+
+	sql = sql[:len(sql)-2] + ")"
+	if b.SupportEngine() && storeEngine != "" {
+		sql += " ENGINE=" + storeEngine
+	}
+	if b.SupportCharset() {
+		if len(charset) == 0 {
+			charset = b.URI().Charset
+		}
+		if len(charset) > 0 {
+			sql += " DEFAULT CHARSET " + charset
+		}
+	}
+	sql += ";"
+	return sql
+}
+
 func (db *oracle) IndexCheckSql(tableName, idxName string) (string, []interface{}) {
 	args := []interface{}{strings.ToUpper(tableName), strings.ToUpper(idxName)}
 	return `SELECT INDEX_NAME FROM USER_INDEXES ` +
@@ -577,7 +621,31 @@ func (db *oracle) IndexCheckSql(tableName, idxName string) (string, []interface{
 
 func (db *oracle) TableCheckSql(tableName string) (string, []interface{}) {
 	args := []interface{}{strings.ToUpper(tableName)}
-	return `SELECT table_name FROM user_tables WHERE table_name = ?`, args
+	return `SELECT table_name FROM user_tables WHERE table_name = :1`, args
+}
+
+func (db *oracle) MustDropTable(tableName string) error {
+	sql, args := db.TableCheckSql(tableName)
+	if db.Logger != nil {
+		db.Logger.Info("[sql]", sql, args)
+	}
+
+	rows, err := db.DB().Query(sql, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil
+	}
+
+	sql = "Drop Table \"" + tableName + "\";"
+	if db.Logger != nil {
+		db.Logger.Info("[sql]", sql)
+	}
+	_, err = db.DB().Exec(sql)
+	return err
 }
 
 /*func (db *oracle) ColumnCheckSql(tableName, colName string) (string, []interface{}) {
@@ -666,7 +734,7 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Colum
 		default:
 			col.SQLType = core.SQLType{strings.ToUpper(*dataType), 0, 0}
 		}
-		fmt.Println(tableName, ":", col.Name)
+		//fmt.Println(tableName, ":", col.Name)
 		if ignore {
 			continue
 		}
