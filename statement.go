@@ -1221,7 +1221,11 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 	}
 	var fromStr string = " FROM " + statement.Engine.Quote(statement.TableName())
 	if statement.TableAlias != "" {
-		fromStr += " AS " + statement.Engine.Quote(statement.TableAlias)
+		if statement.Engine.dialect.DBType() == core.ORACLE {
+			fromStr += " " + statement.Engine.Quote(statement.TableAlias)
+		} else {
+			fromStr += " AS " + statement.Engine.Quote(statement.TableAlias)
+		}
 	}
 	if statement.JoinStr != "" {
 		fromStr = fmt.Sprintf("%v %v", fromStr, statement.JoinStr)
@@ -1277,11 +1281,15 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 	if statement.OrderStr != "" {
 		a = fmt.Sprintf("%v ORDER BY %v", a, statement.OrderStr)
 	}
-	if statement.Engine.dialect.DBType() != core.MSSQL {
+	if statement.Engine.dialect.DBType() != core.MSSQL && statement.Engine.dialect.DBType() != core.ORACLE {
 		if statement.Start > 0 {
 			a = fmt.Sprintf("%v LIMIT %v OFFSET %v", a, statement.LimitN, statement.Start)
 		} else if statement.LimitN > 0 {
 			a = fmt.Sprintf("%v LIMIT %v", a, statement.LimitN)
+		}
+	} else if statement.Engine.dialect.DBType() == core.ORACLE {
+		if statement.Start != 0 || statement.LimitN != 0 {
+			a = fmt.Sprintf("SELECT %v FROM (SELECT %v,ROWNUM RN FROM (%v) at WHERE ROWNUM <= %d) aat WHERE RN > %d", columnStr, columnStr, a, statement.Start+statement.LimitN, statement.Start)
 		}
 	}
 

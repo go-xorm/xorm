@@ -1404,6 +1404,9 @@ func (engine *Engine) NowTime2(sqlTypeName string) (interface{}, time.Time) {
 }
 
 func (engine *Engine) FormatTime(sqlTypeName string, t time.Time) (v interface{}) {
+	if engine.dialect.DBType() == core.ORACLE {
+		return t
+	}
 	switch sqlTypeName {
 	case core.Time:
 		s := engine.TZTime(t).Format("2006-01-02 15:04:05") //time.RFC3339
