@@ -282,7 +282,10 @@ func query2(db *core.DB, sqlStr string, params ...interface{}) (resultsSlice []m
 }
 
 func setColumnTime(bean interface{}, col *core.Column, t time.Time) {
-	v, _ := col.ValueOf(bean)
+	v, err := col.ValueOf(bean)
+	if err != nil {
+		return
+	}
 	if v.CanSet() {
 		switch v.Type().Kind() {
 		case reflect.Struct:
