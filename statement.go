@@ -421,7 +421,9 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
 					if len(table.PrimaryKeys) == 1 {
 						pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)
-						if pkField.Int() != 0 {
+						// fix non-int pk issues
+						//if pkField.Int() != 0 {
+						if pkField.IsValid() {
 							val = pkField.Interface()
 						} else {
 							continue
