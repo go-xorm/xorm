@@ -1142,13 +1142,21 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 	statement.BeanArgs = args
 
 	var columnStr string = statement.ColumnStr
-	if statement.JoinStr == "" {
-		if columnStr == "" {
-			columnStr = statement.genColumnStr()
+	if len(statement.JoinStr) == 0 {
+		if len(columnStr) == 0 {
+			if statement.GroupByStr != "" {
+				columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
+			} else {
+				columnStr = statement.genColumnStr()
+			}
 		}
 	} else {
-		if columnStr == "" {
-			columnStr = "*"
+		if len(columnStr) == 0 {
+			if statement.GroupByStr != "" {
+				columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
+			} else {
+				columnStr = "*"
+			}
 		}
 	}
 
@@ -1198,12 +1206,12 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 }
 
 func (statement *Statement) genSelectSql(columnStr string) (a string) {
-	if statement.GroupByStr != "" {
+	/*if statement.GroupByStr != "" {
 		if columnStr == "" {
 			columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
 		}
 		//statement.GroupByStr = columnStr
-	}
+	}*/
 	var distinct string
 	if statement.IsDistinct {
 		distinct = "DISTINCT "

@@ -1173,11 +1173,19 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		var columnStr string = session.Statement.ColumnStr
 		if session.Statement.JoinStr == "" {
 			if columnStr == "" {
-				columnStr = session.Statement.genColumnStr()
+				if session.Statement.GroupByStr != "" {
+					columnStr = session.Statement.Engine.Quote(strings.Replace(session.Statement.GroupByStr, ",", session.Engine.Quote(","), -1))
+				} else {
+					columnStr = session.Statement.genColumnStr()
+				}
 			}
 		} else {
 			if columnStr == "" {
-				columnStr = "*"
+				if session.Statement.GroupByStr != "" {
+					columnStr = session.Statement.Engine.Quote(strings.Replace(session.Statement.GroupByStr, ",", session.Engine.Quote(","), -1))
+				} else {
+					columnStr = "*"
+				}
 			}
 		}
 
