@@ -570,7 +570,7 @@ func (session *Session) DropTable(bean interface{}) error {
 	}
 
 	t := reflect.Indirect(reflect.ValueOf(bean)).Type()
-	defer session.resetStatement()
+
 	if t.Kind() == reflect.String {
 		session.Statement.AltTableName = bean.(string)
 	} else if t.Kind() == reflect.Struct {
@@ -579,10 +579,10 @@ func (session *Session) DropTable(bean interface{}) error {
 		return errors.New("Unsupported type")
 	}
 
-	return session.Engine.Dialect().MustDropTable(session.Statement.TableName())
-	/*sqlStr := session.Statement.genDropSQL()
+	//return session.Engine.Dialect().MustDropTable(session.Statement.TableName())
+	sqlStr := session.Engine.Dialect().DropTableSql(session.Statement.TableName())
 	_, err := session.exec(sqlStr)
-	return err*/
+	return err
 }
 
 func (statement *Statement) JoinColumns(cols []*core.Column) string {
@@ -1688,14 +1688,12 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 						z, _ := t.Zone()
 						if len(z) == 0 || t.Year() == 0 { // !nashtsai! HACK tmp work around for lib/pq doesn't properly time with location
 							session.Engine.LogDebug("empty zone key[%v] : %v | zone: %v | location: %+v\n", key, t, z, *t.Location())
-							tt := time.Date(t.Year(), t.Month(), t.Day(), t.Hour(),
+							t = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(),
 								t.Minute(), t.Second(), t.Nanosecond(), time.Local)
-							vv = reflect.ValueOf(tt)
 						}
 						// !nashtsai! convert to engine location
-						t = vv.Convert(core.TimeType).Interface().(time.Time).In(session.Engine.TZLocation)
-						vv = reflect.ValueOf(t)
-						fieldValue.Set(vv)
+						t = t.In(session.Engine.TZLocation)
+						fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
 
 						// t = fieldValue.Interface().(time.Time)
 						// z, _ = t.Zone()

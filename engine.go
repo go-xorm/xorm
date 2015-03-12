@@ -1225,8 +1225,9 @@ func (engine *Engine) CreateTables(beans ...interface{}) error {
 
 func (engine *Engine) DropTables(beans ...interface{}) error {
 	session := engine.NewSession()
-	err := session.Begin()
 	defer session.Close()
+
+	err := session.Begin()
 	if err != nil {
 		return err
 	}
