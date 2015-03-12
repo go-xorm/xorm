@@ -1185,7 +1185,7 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 		id = ""
 	}
 	statement.attachInSql()
-	return statement.genSelectSql(fmt.Sprintf("count(%v) AS %v", id, statement.Engine.Quote("total"))), append(statement.Params, statement.BeanArgs...)
+	return statement.genSelectSql(fmt.Sprintf("count(%v)", id)), append(statement.Params, statement.BeanArgs...)
 }
 
 func (statement *Statement) genSelectSql(columnStr string) (a string) {
