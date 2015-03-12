@@ -423,13 +423,14 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 						pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)
 						// fix non-int pk issues
 						//if pkField.Int() != 0 {
-						if pkField.IsValid() {
+						if pkField.IsValid() && !isZero(pkField.Interface()) {
 							val = pkField.Interface()
 						} else {
 							continue
 						}
 					} else {
 						//TODO: how to handler?
+						panic("not supported")
 					}
 				} else {
 					val = fieldValue.Interface()
@@ -603,13 +604,14 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 						pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)
 						// fix non-int pk issues
 						//if pkField.Int() != 0 {
-						if pkField.IsValid() {
+						if pkField.IsValid() && !isZero(pkField.Interface()) {
 							val = pkField.Interface()
 						} else {
 							continue
 						}
 					} else {
 						//TODO: how to handler?
+						panic("not supported")
 					}
 				} else {
 					val = fieldValue.Interface()

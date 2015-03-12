@@ -3477,6 +3477,10 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			}
 		}
 
+		if st.LimitN > 0 {
+			condition = condition + fmt.Sprintf(" LIMIT %d", st.LimitN)
+		}
+
 		sqlStr = fmt.Sprintf("UPDATE %v SET %v, %v %v",
 			session.Engine.Quote(session.Statement.TableName()),
 			strings.Join(colNames, ", "),
@@ -3501,6 +3505,10 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			} else {
 				condition = "WHERE " + inSql
 			}
+		}
+
+		if st.LimitN > 0 {
+			condition = condition + fmt.Sprintf(" LIMIT %d", st.LimitN)
 		}
 
 		sqlStr = fmt.Sprintf("UPDATE %v SET %v %v",
