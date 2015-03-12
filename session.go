@@ -448,6 +448,13 @@ func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, er
 
 	return session.Engine.LogSQLExecutionTime(sqlStr, args, func() (sql.Result, error) {
 		if session.IsAutoCommit {
+			//oci8 can not auto commit (github.com/mattn/go-oci8)
+			if session.Engine.dialect.DBType() == core.ORACLE {
+				session.Begin()
+				r, err := session.Tx.Exec(sqlStr, args...)
+				session.Commit()
+				return r, err
+			}
 			return session.innerExec(sqlStr, args...)
 		}
 		return session.Tx.Exec(sqlStr, args...)
@@ -3369,7 +3376,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		if session.Statement.ColumnStr == "" {
 			colNames, args = buildUpdates(session.Engine, table, bean, false, false,
 				false, false, session.Statement.allUseBool, session.Statement.useAllCols,
-				session.Statement.mustColumnMap, true)
+				session.Statement.mustColumnMap, session.Statement.columnMap, true)
 		} else {
 			colNames, args, err = genCols(table, session, bean, true, true)
 			if err != nil {
@@ -3472,6 +3479,10 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			}
 		}
 
+		if st.LimitN > 0 {
+			condition = condition + fmt.Sprintf(" LIMIT %d", st.LimitN)
+		}
+
 		sqlStr = fmt.Sprintf("UPDATE %v SET %v, %v %v",
 			session.Engine.Quote(session.Statement.TableName()),
 			strings.Join(colNames, ", "),
@@ -3496,6 +3507,10 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			} else {
 				condition = "WHERE " + inSql
 			}
+		}
+
+		if st.LimitN > 0 {
+			condition = condition + fmt.Sprintf(" LIMIT %d", st.LimitN)
 		}
 
 		sqlStr = fmt.Sprintf("UPDATE %v SET %v %v",

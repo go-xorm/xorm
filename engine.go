@@ -933,7 +933,7 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 
 		table.AddColumn(col)
 
-		if fieldType.Kind() == reflect.Int64 && (col.FieldName == "Id" || strings.HasSuffix(col.FieldName, ".Id")) {
+		if fieldType.Kind() == reflect.Int64 && (strings.ToUpper(col.FieldName) == "ID" || strings.HasSuffix(strings.ToUpper(col.FieldName), ".ID")) {
 			idFieldColName = col.Name
 		}
 	} // end for
@@ -1404,6 +1404,9 @@ func (engine *Engine) NowTime2(sqlTypeName string) (interface{}, time.Time) {
 }
 
 func (engine *Engine) FormatTime(sqlTypeName string, t time.Time) (v interface{}) {
+	if engine.dialect.DBType() == core.ORACLE {
+		return t
+	}
 	switch sqlTypeName {
 	case core.Time:
 		s := engine.TZTime(t).Format("2006-01-02 15:04:05") //time.RFC3339

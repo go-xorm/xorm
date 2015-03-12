@@ -286,7 +286,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 	includeVersion bool, includeUpdated bool, includeNil bool,
 	includeAutoIncr bool, allUseBool bool, useAllCols bool,
-	mustColumnMap map[string]bool, update bool) ([]string, []interface{}) {
+	mustColumnMap map[string]bool, columnMap map[string]bool, update bool) ([]string, []interface{}) {
 
 	colNames := make([]string, 0)
 	var args = make([]interface{}, 0)
@@ -304,6 +304,9 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			continue
 		}
 		if col.IsDeleted {
+			continue
+		}
+		if use, ok := columnMap[col.Name]; ok && !use {
 			continue
 		}
 
@@ -418,13 +421,16 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
 					if len(table.PrimaryKeys) == 1 {
 						pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)
-						if pkField.Int() != 0 {
+						// fix non-int pk issues
+						//if pkField.Int() != 0 {
+						if pkField.IsValid() && !isZero(pkField.Interface()) {
 							val = pkField.Interface()
 						} else {
 							continue
 						}
 					} else {
 						//TODO: how to handler?
+						panic("not supported")
 					}
 				} else {
 					val = fieldValue.Interface()
@@ -596,13 +602,16 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
 					if len(table.PrimaryKeys) == 1 {
 						pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)
-						if pkField.Int() != 0 {
+						// fix non-int pk issues
+						//if pkField.Int() != 0 {
+						if pkField.IsValid() && !isZero(pkField.Interface()) {
 							val = pkField.Interface()
 						} else {
 							continue
 						}
 					} else {
 						//TODO: how to handler?
+						panic("not supported")
 					}
 				} else {
 					val = fieldValue.Interface()
@@ -1219,7 +1228,11 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 	}
 	var fromStr string = " FROM " + statement.Engine.Quote(statement.TableName())
 	if statement.TableAlias != "" {
-		fromStr += " AS " + statement.Engine.Quote(statement.TableAlias)
+		if statement.Engine.dialect.DBType() == core.ORACLE {
+			fromStr += " " + statement.Engine.Quote(statement.TableAlias)
+		} else {
+			fromStr += " AS " + statement.Engine.Quote(statement.TableAlias)
+		}
 	}
 	if statement.JoinStr != "" {
 		fromStr = fmt.Sprintf("%v %v", fromStr, statement.JoinStr)
@@ -1275,11 +1288,15 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 	if statement.OrderStr != "" {
 		a = fmt.Sprintf("%v ORDER BY %v", a, statement.OrderStr)
 	}
-	if statement.Engine.dialect.DBType() != core.MSSQL {
+	if statement.Engine.dialect.DBType() != core.MSSQL && statement.Engine.dialect.DBType() != core.ORACLE {
 		if statement.Start > 0 {
 			a = fmt.Sprintf("%v LIMIT %v OFFSET %v", a, statement.LimitN, statement.Start)
 		} else if statement.LimitN > 0 {
 			a = fmt.Sprintf("%v LIMIT %v", a, statement.LimitN)
+		}
+	} else if statement.Engine.dialect.DBType() == core.ORACLE {
+		if statement.Start != 0 || statement.LimitN != 0 {
+			a = fmt.Sprintf("SELECT %v FROM (SELECT %v,ROWNUM RN FROM (%v) at WHERE ROWNUM <= %d) aat WHERE RN > %d", columnStr, columnStr, a, statement.Start+statement.LimitN, statement.Start)
 		}
 	}
 
