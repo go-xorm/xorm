@@ -565,8 +565,16 @@ func (db *oracle) SupportCharset() bool {
 	return false
 }
 
+func (db *oracle) SupportDropIfExists() bool {
+	return false
+}
+
 func (db *oracle) IndexOnTable() bool {
 	return false
+}
+
+func (db *oracle) DropTableSql(tableName string) string {
+	return fmt.Sprintf("DROP TABLE `%s`", tableName)
 }
 
 func (b *oracle) CreateTableSql(table *core.Table, tableName, storeEngine, charset string) string {
