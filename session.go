@@ -562,29 +562,7 @@ func (session *Session) DropIndexes(bean interface{}) error {
 	return nil
 }
 
-// DropTable drop a table and all indexes of the table
-/*func (session *Session) DropTable(bean interface{}) error {
-	defer session.resetStatement()
-	if session.IsAutoClose {
-		defer session.Close()
-	}
-
-	t := reflect.Indirect(reflect.ValueOf(bean)).Type()
-
-	if t.Kind() == reflect.String {
-		session.Statement.AltTableName = bean.(string)
-	} else if t.Kind() == reflect.Struct {
-		session.Statement.RefTable = session.Engine.TableInfo(bean)
-	} else {
-		return errors.New("Unsupported type")
-	}
-
-	//return session.Engine.Dialect().MustDropTable(session.Statement.TableName())
-	sqlStr := session.Engine.Dialect().DropTableSql(session.Statement.TableName())
-	_, err := session.exec(sqlStr)
-	return err
-}*/
-
+// drop table will drop table if exist, if drop failed, it will return error
 func (session *Session) DropTable(beanOrTableName interface{}) error {
 	tableName, err := session.Engine.tableName(beanOrTableName)
 	if err != nil {
@@ -1442,8 +1420,9 @@ func (session *Session) isTableEmpty(tableName string) (bool, error) {
 	}
 
 	var total int64
-	err := session.DB().QueryRow(fmt.Sprintf("select count(*) from %s", tableName)).
-		Scan(&total)
+	sql := fmt.Sprintf("select count(*) from %s", session.Engine.Quote(tableName))
+	err := session.DB().QueryRow(sql).Scan(&total)
+	session.Engine.logSQL(sql)
 	if err != nil {
 		return true, err
 	}
