@@ -45,8 +45,8 @@ type Session struct {
 
 // Method Init reset the session as the init status.
 func (session *Session) Init() {
-	session.Statement = Statement{Engine: session.Engine}
 	session.Statement.Init()
+	session.Statement.Engine = session.Engine
 	session.IsAutoCommit = true
 	session.IsCommitedOrRollbacked = false
 	session.IsAutoClose = false
@@ -67,11 +67,15 @@ func (session *Session) Close() {
 	}
 
 	if session.db != nil {
-		//session.Engine.Pool.ReleaseDB(session.Engine, session.Db)
-		session.db = nil
+		// When Close be called, if session is a transaction and do not call
+		// Commit or Rollback, then call Rollback.
+		if session.Tx != nil && !session.IsCommitedOrRollbacked {
+			session.Rollback()
+		}
 		session.Tx = nil
 		session.stmtCache = nil
 		session.Init()
+		session.db = nil
 	}
 }
 
