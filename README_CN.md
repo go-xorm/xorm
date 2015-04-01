@@ -44,10 +44,15 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 ## 更新日志
 
+* **v0.4.3**
+    * Json 字段类型支持
+    * oracle实验性支持
+    * bug修正
+
 * **v0.4.2**
-	新特性：
-	* deleted标记
-	* bug fixed
+    * 事物如未Rollback或Commit，在关闭时会自动Rollback
+    * Gonic 映射支持
+    * bug修正
 
 [更多更新日志...](https://github.com/go-xorm/manual-zh-CN/tree/master/chapter-16)
 

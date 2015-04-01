@@ -621,7 +621,8 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 	// if has no reftable, then don't use cache currently
 	if session.Statement.RefTable == nil ||
 		session.Statement.JoinStr != "" ||
-		session.Statement.RawSQL != "" {
+		session.Statement.RawSQL != "" ||
+		session.Tx != nil {
 		return false, ErrCacheFailed
 	}
 
@@ -721,7 +722,8 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr interface{}, args ...interface{}) (err error) {
 	if session.Statement.RefTable == nil ||
 		indexNoCase(sqlStr, "having") != -1 ||
-		indexNoCase(sqlStr, "group by") != -1 {
+		indexNoCase(sqlStr, "group by") != -1  ||
+		session.Tx != nil {
 		return ErrCacheFailed
 	}
 
@@ -863,7 +865,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 			}
 
 			temps[ididxes[sid]] = bean
-			session.Engine.LogDebug("[cacheFind] cache bean:", tableName, id, bean)
+			session.Engine.LogDebug("[cacheFind] cache bean:", tableName, id, bean, temps)
 			cacher.PutBean(tableName, sid, bean)
 		}
 	}
@@ -871,7 +873,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 	for j := 0; j < len(temps); j++ {
 		bean := temps[j]
 		if bean == nil {
-			session.Engine.LogWarn("[cacheFind] cache no hit:", tableName, ides[j])
+			session.Engine.LogWarn("[cacheFind] cache no hit:", tableName, ides[j], temps)
 			// return errors.New("cache error") // !nashtsai! no need to return error, but continue instead
 			continue
 		}
@@ -2356,7 +2358,6 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			} else {
 				x = 0
 			}
-			//fmt.Println("######", x, data)
 		} else if strings.HasPrefix(sdata, "0x") {
 			x, err = strconv.ParseInt(sdata, 16, 64)
 		} else if strings.HasPrefix(sdata, "0") {
@@ -2605,7 +2606,6 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 				} else {
 					x = 0
 				}
-				//fmt.Println("######", x, data)
 			} else if strings.HasPrefix(sdata, "0x") {
 				x, err = strconv.ParseInt(sdata, 16, 64)
 			} else if strings.HasPrefix(sdata, "0") {
@@ -2631,7 +2631,6 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 				} else {
 					x = 0
 				}
-				//fmt.Println("######", x, data)
 			} else if strings.HasPrefix(sdata, "0x") {
 				x1, err = strconv.ParseInt(sdata, 16, 64)
 				x = int(x1)
@@ -2660,7 +2659,6 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 				} else {
 					x = 0
 				}
-				//fmt.Println("######", x, data)
 			} else if strings.HasPrefix(sdata, "0x") {
 				x1, err = strconv.ParseInt(sdata, 16, 64)
 				x = int32(x1)
@@ -2689,7 +2687,6 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 				} else {
 					x = 0
 				}
-				//fmt.Println("######", x, data)
 			} else if strings.HasPrefix(sdata, "0x") {
 				x1, err = strconv.ParseInt(sdata, 16, 64)
 				x = int8(x1)
@@ -2718,7 +2715,6 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 				} else {
 					x = 0
 				}
-				//fmt.Println("######", x, data)
 			} else if strings.HasPrefix(sdata, "0x") {
 				x1, err = strconv.ParseInt(sdata, 16, 64)
 				x = int16(x1)
@@ -3237,7 +3233,8 @@ func (session *Session) cacheInsert(tables ...string) error {
 }
 
 func (session *Session) cacheUpdate(sqlStr string, args ...interface{}) error {
-	if session.Statement.RefTable == nil || len(session.Statement.RefTable.PrimaryKeys) != 1 {
+	if session.Statement.RefTable == nil ||
+		session.Tx != nil {
 		return ErrCacheFailed
 	}
 
@@ -3587,7 +3584,8 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 }
 
 func (session *Session) cacheDelete(sqlStr string, args ...interface{}) error {
-	if session.Statement.RefTable == nil || len(session.Statement.RefTable.PrimaryKeys) != 1 {
+	if session.Statement.RefTable == nil ||
+		session.Tx != nil {
 		return ErrCacheFailed
 	}
 
@@ -3612,15 +3610,25 @@ func (session *Session) cacheDelete(sqlStr string, args ...interface{}) error {
 		if len(resultsSlice) > 0 {
 			for _, data := range resultsSlice {
 				var id int64
-				if v, ok := data[session.Statement.RefTable.PrimaryKeys[0]]; !ok {
-					return errors.New("no id")
-				} else {
-					id, err = strconv.ParseInt(string(v), 10, 64)
-					if err != nil {
-						return err
+				var pk core.PK = make([]interface{}, 0)
+				for _, col := range session.Statement.RefTable.PKColumns() {
+					if v, ok := data[col.Name]; !ok {
+						return errors.New("no id")
+					} else {
+						if col.SQLType.IsText() {
+							pk = append(pk, string(v))
+						} else if col.SQLType.IsNumeric() {
+							id, err = strconv.ParseInt(string(v), 10, 64)
+							if err != nil {
+								return err
+							}
+							pk = append(pk, id)
+						} else {
+							return errors.New("not supported primary key type")
+						}
 					}
 				}
-				ids = append(ids, core.PK{id})
+				ids = append(ids, pk)
 			}
 		}
 	} /*else {

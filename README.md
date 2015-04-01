@@ -41,26 +41,19 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * MsSql: [github.com/lunny/godbc](https://github.com/lunny/godbc)
 
-
-
 # Changelog
 
-* **v0.4.1**
-	Features:
-	* Add deleted xorm tag for soft delete and add unscoped
+* **v0.4.3**
+    * Json column type support
+    * oracle expirement support
+    * bug fixed
 
-* **v0.4.0 RC1** 
-	Changes:
-	* moved xorm cmd to [github.com/go-xorm/cmd](github.com/go-xorm/cmd)
-	* refactored general DB operation a core lib at [github.com/go-xorm/core](https://github.com/go-xorm/core)
-	* moved tests to github.com/go-xorm/tests [github.com/go-xorm/tests](github.com/go-xorm/tests)
+* **v0.4.2**
+	* Transaction will auto rollback if not Rollback or Commit be called.
+    * Gonic Mapper support
+    * bug fixed
 
-	Improvements:
-	* Prepared statement cache
-	* Add Incr API
-	* Specify Timezone Location
-
-[More changelogs ...](https://github.com/go-xorm/manual-en-US/tree/master/chapter-15)
+[More changelogs ...](https://github.com/go-xorm/manual-en-US/tree/master/chapter-16)
 
 # Installation
 

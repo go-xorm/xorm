@@ -156,7 +156,8 @@ func (db *sqlite3) SqlType(c *core.Column) string {
 		return core.DateTime
 	case core.TimeStampz:
 		return core.Text
-	case core.Char, core.Varchar, core.NVarchar, core.TinyText, core.Text, core.MediumText, core.LongText:
+	case core.Char, core.Varchar, core.NVarchar, core.TinyText, 
+		core.Text, core.MediumText, core.LongText, core.Json:
 		return core.Text
 	case core.Bit, core.TinyInt, core.SmallInt, core.MediumInt, core.Int, core.Integer, core.BigInt, core.Bool:
 		return core.Integer
