@@ -42,6 +42,8 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * MsSql: [github.com/lunny/godbc](https://github.com/lunny/godbc)
 
+* Oracle: [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (试验性支持)
+
 ## 更新日志
 
 * **v0.4.3**
