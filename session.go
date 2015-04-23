@@ -168,6 +168,12 @@ func (session *Session) SetExpr(column string, expression string) *Session {
 	return session
 }
 
+// Method Options specify the query option
+func (session *Session) Options(options ...string) *Session {
+	session.Statement.Options = options
+	return session
+}
+
 // Method Cols provides some columns to special
 func (session *Session) Cols(columns ...string) *Session {
 	session.Statement.Cols(columns...)
@@ -722,7 +728,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr interface{}, args ...interface{}) (err error) {
 	if session.Statement.RefTable == nil ||
 		indexNoCase(sqlStr, "having") != -1 ||
-		indexNoCase(sqlStr, "group by") != -1  ||
+		indexNoCase(sqlStr, "group by") != -1 ||
 		session.Tx != nil {
 		return ErrCacheFailed
 	}
