@@ -1,3 +1,7 @@
+// Copyright 2015 The Xorm Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package xorm
 
 import (
@@ -722,7 +726,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr interface{}, args ...interface{}) (err error) {
 	if session.Statement.RefTable == nil ||
 		indexNoCase(sqlStr, "having") != -1 ||
-		indexNoCase(sqlStr, "group by") != -1  ||
+		indexNoCase(sqlStr, "group by") != -1 ||
 		session.Tx != nil {
 		return ErrCacheFailed
 	}
