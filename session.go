@@ -102,6 +102,12 @@ func (session *Session) Where(querystring string, args ...interface{}) *Session 
 	return session
 }
 
+// Method Where provides custom query condition without bean's non-empty fields.
+func (session *Session) WhereOnly(querystring string, args ...interface{}) *Session {
+	session.Statement.WhereOnly(querystring, args...)
+	return session
+}
+
 // Method Where provides custom query condition.
 func (session *Session) And(querystring string, args ...interface{}) *Session {
 	session.Statement.And(querystring, args...)
