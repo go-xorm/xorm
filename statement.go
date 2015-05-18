@@ -615,7 +615,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 						}
 					} else {
 						//TODO: how to handler?
-						panic("not supported")
+						panic(fmt.Sprintln("not supported", fieldValue.Interface(), "as", table.PrimaryKeys))
 					}
 				} else {
 					val = fieldValue.Interface()

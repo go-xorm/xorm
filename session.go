@@ -2896,20 +2896,15 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 	case reflect.String:
 		return fieldValue.String(), nil
 	case reflect.Struct:
-		if fieldType == core.TimeType {
-			switch fieldValue.Interface().(type) {
-			case time.Time:
-				t := fieldValue.Interface().(time.Time)
-				if session.Engine.dialect.DBType() == core.MSSQL {
-					if t.IsZero() {
-						return nil, nil
-					}
+		if fieldType.ConvertibleTo(core.TimeType) {
+			t := fieldValue.Convert(core.TimeType).Interface().(time.Time)
+			if session.Engine.dialect.DBType() == core.MSSQL {
+				if t.IsZero() {
+					return nil, nil
 				}
-				tf := session.Engine.FormatTime(col.SQLType.Name, t)
-				return tf, nil
-			default:
-				return fieldValue.Interface(), nil
 			}
+			tf := session.Engine.FormatTime(col.SQLType.Name, t)
+			return tf, nil
 		}
 		if fieldTable, ok := session.Engine.Tables[fieldValue.Type()]; ok {
 			if len(fieldTable.PrimaryKeys) == 1 {
@@ -2919,7 +2914,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 				return 0, fmt.Errorf("no primary key for col %v", col.Name)
 			}
 		} else {
-			return 0, fmt.Errorf("Unsupported type %v\n", fieldValue.Type())
+			return 0, fmt.Errorf("Unsupported type %v", fieldValue.Type())
 		}
 	case reflect.Complex64, reflect.Complex128:
 		bytes, err := json.Marshal(fieldValue.Interface())

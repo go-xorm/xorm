@@ -646,20 +646,18 @@ func (engine *Engine) Having(conditions string) *Session {
 
 func (engine *Engine) autoMapType(v reflect.Value) *core.Table {
 	t := v.Type()
-	engine.mutex.RLock()
+	engine.mutex.Lock()
 	table, ok := engine.Tables[t]
-	engine.mutex.RUnlock()
 	if !ok {
 		table = engine.mapType(v)
-		engine.mutex.Lock()
 		engine.Tables[t] = table
 		if v.CanAddr() {
 			engine.GobRegister(v.Addr().Interface())
 		} else {
 			engine.GobRegister(v.Interface())
 		}
-		engine.mutex.Unlock()
 	}
+	engine.mutex.Unlock()
 	return table
 }
 
