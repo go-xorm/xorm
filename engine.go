@@ -1114,7 +1114,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 				session := engine.NewSession()
 				session.Statement.RefTable = table
 				defer session.Close()
-				isExist, err := session.Engine.dialect.IsColumnExist(table.Name, col)
+				isExist, err := session.Engine.dialect.IsColumnExist(table.Name, col.Name)
 				if err != nil {
 					return err
 				}
