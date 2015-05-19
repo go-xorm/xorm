@@ -172,6 +172,12 @@ func (session *Session) SetExpr(column string, expression string) *Session {
 	return session
 }
 
+// Method Options specify the query option
+func (session *Session) Options(options ...string) *Session {
+	session.Statement.Options = options
+	return session
+}
+
 // Method Cols provides some columns to special
 func (session *Session) Cols(columns ...string) *Session {
 	session.Statement.Cols(columns...)

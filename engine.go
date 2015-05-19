@@ -575,6 +575,13 @@ func (engine *Engine) SetExpr(column string, expression string) *Session {
 	return session.SetExpr(column, expression)
 }
 
+// Method Options specify the query option
+func (engine *Engine) Options(options ...string) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.Options(options...)
+}
+
 // Temporarily change the Get, Find, Update's table
 func (engine *Engine) Table(tableNameOrBean interface{}) *Session {
 	session := engine.NewSession()

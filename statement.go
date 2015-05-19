@@ -73,6 +73,7 @@ type Statement struct {
 	incrColumns   map[string]incrParam
 	decrColumns   map[string]decrParam
 	exprColumns   map[string]exprParam
+	Options       []string
 }
 
 // init
@@ -1309,6 +1310,20 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 	} else if statement.Engine.dialect.DBType() == core.ORACLE {
 		if statement.Start != 0 || statement.LimitN != 0 {
 			a = fmt.Sprintf("SELECT %v FROM (SELECT %v,ROWNUM RN FROM (%v) at WHERE ROWNUM <= %d) aat WHERE RN > %d", columnStr, columnStr, a, statement.Start+statement.LimitN, statement.Start)
+		}
+	}
+
+	if len(statement.Options) > 0 {
+		switch statement.Engine.dialect.DBType() {
+		case core.MYSQL:
+			for _, option := range statement.Options {
+				switch option {
+				case "select:for-update":
+					a += " FOR UPDATE"
+				case "select:lock-in-share-mode":
+					a += " LOCK IN SHARE MODE"
+				}
+			}
 		}
 	}
 
