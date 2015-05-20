@@ -877,7 +877,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 	for j := 0; j < len(temps); j++ {
 		bean := temps[j]
 		if bean == nil {
-			session.Engine.LogWarn("[cacheFind] cache no hit:", tableName, ides[j], temps)
+			session.Engine.LogWarn("[cacheFind] cache no hit:", tableName, ids[j], temps)
 			// return errors.New("cache error") // !nashtsai! no need to return error, but continue instead
 			continue
 		}
