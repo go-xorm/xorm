@@ -49,6 +49,7 @@ type Statement struct {
 	GroupByStr    string
 	HavingStr     string
 	ColumnStr     string
+	selectStr string
 	columnMap     map[string]bool
 	useAllCols    bool
 	OmitStr       string
@@ -100,6 +101,7 @@ func (statement *Statement) Init() {
 	statement.UseAutoTime = true
 	statement.IsDistinct = false
 	statement.TableAlias = ""
+	statement.selectStr = ""
 	statement.allUseBool = false
 	statement.useAllCols = false
 	statement.mustColumnMap = make(map[string]bool)
@@ -862,6 +864,12 @@ func (statement *Statement) Distinct(columns ...string) *Statement {
 	return statement
 }
 
+// replace select
+func (s *Statement) Select(str string) *Statement {
+	s.selectStr = str
+	return s
+}
+
 // Generate "col1, col2" statement
 func (statement *Statement) Cols(columns ...string) *Statement {
 	newColumns := col2NewCols(columns...)
@@ -1146,20 +1154,24 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 	statement.BeanArgs = args
 
 	var columnStr string = statement.ColumnStr
-	if len(statement.JoinStr) == 0 {
-		if len(columnStr) == 0 {
-			if statement.GroupByStr != "" {
-				columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
-			} else {
-				columnStr = statement.genColumnStr()
-			}
-		}
+	if len(statement.selectStr) > 0 {
+		columnStr = statement.selectStr
 	} else {
-		if len(columnStr) == 0 {
-			if statement.GroupByStr != "" {
-				columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
-			} else {
-				columnStr = "*"
+		if len(statement.JoinStr) == 0 {
+			if len(columnStr) == 0 {
+				if statement.GroupByStr != "" {
+					columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
+				} else {
+					columnStr = statement.genColumnStr()
+				}
+			}
+		} else {
+			if len(columnStr) == 0 {
+				if statement.GroupByStr != "" {
+					columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
+				} else {
+					columnStr = "*"
+				}
 			}
 		}
 	}

@@ -173,6 +173,12 @@ func (session *Session) SetExpr(column string, expression string) *Session {
 }
 
 // Method Cols provides some columns to special
+func (session *Session) Select(str string) *Session {
+	session.Statement.Select(str)
+	return session
+}
+
+// Method Cols provides some columns to special
 func (session *Session) Cols(columns ...string) *Session {
 	session.Statement.Cols(columns...)
 	return session
@@ -621,12 +627,20 @@ func (statement *Statement) convertIdSql(sqlStr string) string {
 	return ""
 }
 
-func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interface{}) (has bool, err error) {
-	// if has no reftable, then don't use cache currently
+func (session *Session) canCache() bool {
 	if session.Statement.RefTable == nil ||
 		session.Statement.JoinStr != "" ||
 		session.Statement.RawSQL != "" ||
-		session.Tx != nil {
+		session.Tx != nil || 
+		len(session.Statement.selectStr) > 0 {
+		return false
+	}
+	return true
+}
+
+func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interface{}) (has bool, err error) {
+	// if has no reftable, then don't use cache currently
+	if !session.canCache() {
 		return false, ErrCacheFailed
 	}
 
@@ -724,10 +738,9 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 }
 
 func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr interface{}, args ...interface{}) (err error) {
-	if session.Statement.RefTable == nil ||
+	if !session.canCache() || 
 		indexNoCase(sqlStr, "having") != -1 ||
-		indexNoCase(sqlStr, "group by") != -1 ||
-		session.Tx != nil {
+		indexNoCase(sqlStr, "group by") != -1 {
 		return ErrCacheFailed
 	}
 
@@ -1183,20 +1196,24 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	var args []interface{}
 	if session.Statement.RawSQL == "" {
 		var columnStr string = session.Statement.ColumnStr
-		if session.Statement.JoinStr == "" {
-			if columnStr == "" {
-				if session.Statement.GroupByStr != "" {
-					columnStr = session.Statement.Engine.Quote(strings.Replace(session.Statement.GroupByStr, ",", session.Engine.Quote(","), -1))
-				} else {
-					columnStr = session.Statement.genColumnStr()
-				}
-			}
+		if len(session.Statement.selectStr) > 0 {
+			columnStr = session.Statement.selectStr
 		} else {
-			if columnStr == "" {
-				if session.Statement.GroupByStr != "" {
-					columnStr = session.Statement.Engine.Quote(strings.Replace(session.Statement.GroupByStr, ",", session.Engine.Quote(","), -1))
-				} else {
-					columnStr = "*"
+			if session.Statement.JoinStr == "" {
+				if columnStr == "" {
+					if session.Statement.GroupByStr != "" {
+						columnStr = session.Statement.Engine.Quote(strings.Replace(session.Statement.GroupByStr, ",", session.Engine.Quote(","), -1))
+					} else {
+						columnStr = session.Statement.genColumnStr()
+					}
+				}
+			} else {
+				if columnStr == "" {
+					if session.Statement.GroupByStr != "" {
+						columnStr = session.Statement.Engine.Quote(strings.Replace(session.Statement.GroupByStr, ",", session.Engine.Quote(","), -1))
+					} else {
+						columnStr = "*"
+					}
 				}
 			}
 		}

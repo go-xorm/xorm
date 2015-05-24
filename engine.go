@@ -510,6 +510,12 @@ func (engine *Engine) Distinct(columns ...string) *Session {
 	return session.Distinct(columns...)
 }
 
+func (engine *Engine) Select(str string) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.Select(str)
+}
+
 // only use the paramters as select or update columns
 func (engine *Engine) Cols(columns ...string) *Session {
 	session := engine.NewSession()
