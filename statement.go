@@ -498,8 +498,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 func buildConditions(engine *Engine, table *core.Table, bean interface{},
 	includeVersion bool, includeUpdated bool, includeNil bool,
 	includeAutoIncr bool, allUseBool bool, useAllCols bool, unscoped bool,
-	mustColumnMap map[string]bool) ([]string, []interface{}) {
-
+	mustColumnMap map[string]bool, tableName string, addedTableName bool) ([]string, []interface{}) {
 	colNames := make([]string, 0)
 	var args = make([]interface{}, 0)
 	for _, col := range table.Columns() {
@@ -516,6 +515,14 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 		if engine.dialect.DBType() == core.MSSQL && col.SQLType.Name == core.Text {
 			continue
 		}
+
+		var colName string
+		if addedTableName {
+			colName = engine.Quote(tableName)+"."+engine.Quote(col.Name)
+		} else {
+			colName = engine.Quote(col.Name)
+		}
+
 		fieldValuePtr, err := col.ValueOf(bean)
 		if err != nil {
 			engine.LogError(err)
@@ -523,7 +530,8 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 		}
 
 		if col.IsDeleted && !unscoped { // tag "deleted" is enabled
-			colNames = append(colNames, fmt.Sprintf("(%v IS NULL or %v = '0001-01-01 00:00:00')", engine.Quote(col.Name), engine.Quote(col.Name)))
+			colNames = append(colNames, fmt.Sprintf("(%v IS NULL or %v = '0001-01-01 00:00:00')", 
+				colName, colName))
 		}
 
 		fieldValue := *fieldValuePtr
@@ -545,7 +553,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 			if fieldValue.IsNil() {
 				if includeNil {
 					args = append(args, nil)
-					colNames = append(colNames, fmt.Sprintf("%v %s ?", engine.Quote(col.Name), engine.dialect.EqStr()))
+					colNames = append(colNames, fmt.Sprintf("%v %s ?", colName, engine.dialect.EqStr()))
 				}
 				continue
 			} else if !fieldValue.IsValid() {
@@ -668,7 +676,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 		if col.IsPrimaryKey && engine.dialect.DBType() == "ql" {
 			condi = "id() == ?"
 		} else {
-			condi = fmt.Sprintf("%v %s ?", engine.Quote(col.Name), engine.dialect.EqStr())
+			condi = fmt.Sprintf("%v %s ?", colName, engine.dialect.EqStr())
 		}
 		colNames = append(colNames, condi)
 	}
@@ -1146,9 +1154,11 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 		table = statement.RefTable
 	}
 
+	var addedTableName = (len(statement.JoinStr) > 0)
+
 	colNames, args := buildConditions(statement.Engine, table, bean, true, true,
 		false, true, statement.allUseBool, statement.useAllCols,
-		statement.unscoped, statement.mustColumnMap)
+		statement.unscoped, statement.mustColumnMap, statement.TableName(), addedTableName)
 
 	statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.dialect.AndStr()+" ")
 	statement.BeanArgs = args
@@ -1205,9 +1215,11 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 	table := statement.Engine.TableInfo(bean)
 	statement.RefTable = table
 
+	var addedTableName = (len(statement.JoinStr) > 0)
+
 	colNames, args := buildConditions(statement.Engine, table, bean, true, true, false,
 		true, statement.allUseBool, statement.useAllCols,
-		statement.unscoped, statement.mustColumnMap)
+		statement.unscoped, statement.mustColumnMap, statement.TableName(), addedTableName)
 
 	statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.Dialect().AndStr()+" ")
 	statement.BeanArgs = args

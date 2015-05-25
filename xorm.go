@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	Version string = "0.4.3.0524"
+	Version string = "0.4.3.0525"
 )
 
 func regDrvsNDialects() bool {

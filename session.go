@@ -1178,9 +1178,11 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	}
 
 	if len(condiBean) > 0 {
+		var addedTableName = (len(session.Statement.JoinStr) > 0)
 		colNames, args := buildConditions(session.Engine, table, condiBean[0], true, true,
 			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-			session.Statement.unscoped, session.Statement.mustColumnMap)
+			session.Statement.unscoped, session.Statement.mustColumnMap, 
+			session.Statement.TableName(), addedTableName)
 		session.Statement.ConditionStr = strings.Join(colNames, " AND ")
 		session.Statement.BeanArgs = args
 	} else {
@@ -3467,7 +3469,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	if len(condiBean) > 0 {
 		condiColNames, condiArgs = buildConditions(session.Engine, session.Statement.RefTable, condiBean[0], true, true,
 			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-			session.Statement.unscoped, session.Statement.mustColumnMap)
+			session.Statement.unscoped, session.Statement.mustColumnMap, session.Statement.TableName(), false)
 	}
 
 	var condition = ""
@@ -3687,7 +3689,8 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	session.Statement.RefTable = table
 	colNames, args := buildConditions(session.Engine, table, bean, true, true,
 		false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-		session.Statement.unscoped, session.Statement.mustColumnMap)
+		session.Statement.unscoped, session.Statement.mustColumnMap, 
+		session.Statement.TableName(), false)
 
 	var condition = ""
 	var andStr = session.Engine.dialect.AndStr()
