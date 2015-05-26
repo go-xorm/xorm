@@ -133,8 +133,8 @@ func reflect2value(rawValue *reflect.Value) (str string, err error) {
 		}
 	//时间类型
 	case reflect.Struct:
-		if aa == core.TimeType {
-			str = rawValue.Interface().(time.Time).Format(time.RFC3339Nano)
+		if aa.ConvertibleTo(core.TimeType) {
+			str = rawValue.Convert(core.TimeType).Interface().(time.Time).Format(time.RFC3339Nano)
 		} else {
 			err = fmt.Errorf("Unsupported struct type %v", vv.Type().Name())
 		}

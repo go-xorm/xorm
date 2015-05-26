@@ -172,122 +172,6 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 	return statement
 }
 
-/*func (statement *Statement) genFields(bean interface{}) map[string]interface{} {
-    results := make(map[string]interface{})
-    table := statement.Engine.TableInfo(bean)
-    for _, col := range table.Columns {
-        fieldValue := col.ValueOf(bean)
-        fieldType := reflect.TypeOf(fieldValue.Interface())
-        var val interface{}
-        switch fieldType.Kind() {
-        case reflect.Bool:
-            if allUseBool {
-                val = fieldValue.Interface()
-            } else if _, ok := boolColumnMap[col.Name]; ok {
-                val = fieldValue.Interface()
-            } else {
-                // if a bool in a struct, it will not be as a condition because it default is false,
-                // please use Where() instead
-                continue
-            }
-        case reflect.String:
-            if fieldValue.String() == "" {
-                continue
-            }
-            // for MyString, should convert to string or panic
-            if fieldType.String() != reflect.String.String() {
-                val = fieldValue.String()
-            } else {
-                val = fieldValue.Interface()
-            }
-        case reflect.Int8, reflect.Int16, reflect.Int, reflect.Int32, reflect.Int64:
-            if fieldValue.Int() == 0 {
-                continue
-            }
-            val = fieldValue.Interface()
-        case reflect.Float32, reflect.Float64:
-            if fieldValue.Float() == 0.0 {
-                continue
-            }
-            val = fieldValue.Interface()
-        case reflect.Uint8, reflect.Uint16, reflect.Uint, reflect.Uint32, reflect.Uint64:
-            if fieldValue.Uint() == 0 {
-                continue
-            }
-            val = fieldValue.Interface()
-        case reflect.Struct:
-            if fieldType == reflect.TypeOf(time.Now()) {
-                t := fieldValue.Interface().(time.Time)
-                if t.IsZero() || !fieldValue.IsValid() {
-                    continue
-                }
-                var str string
-                if col.SQLType.Name == Time {
-                    s := t.UTC().Format("2006-01-02 15:04:05")
-                    val = s[11:19]
-                } else if col.SQLType.Name == Date {
-                    str = t.Format("2006-01-02")
-                    val = str
-                } else {
-                    val = t
-                }
-            } else {
-                engine.autoMapType(fieldValue.Type())
-                if table, ok := engine.Tables[fieldValue.Type()]; ok {
-                    pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumn().FieldName)
-                    if pkField.Int() != 0 {
-                        val = pkField.Interface()
-                    } else {
-                        continue
-                    }
-                } else {
-                    val = fieldValue.Interface()
-                }
-            }
-        case reflect.Array, reflect.Slice, reflect.Map:
-            if fieldValue == reflect.Zero(fieldType) {
-                continue
-            }
-            if fieldValue.IsNil() || !fieldValue.IsValid() {
-                continue
-            }
-
-            if col.SQLType.IsText() {
-                bytes, err := json.Marshal(fieldValue.Interface())
-                if err != nil {
-                    engine.LogError(err)
-                    continue
-                }
-                val = string(bytes)
-            } else if col.SQLType.IsBlob() {
-                var bytes []byte
-                var err error
-                if (fieldType.Kind() == reflect.Array || fieldType.Kind() == reflect.Slice) &&
-                    fieldType.Elem().Kind() == reflect.Uint8 {
-                    if fieldValue.Len() > 0 {
-                        val = fieldValue.Bytes()
-                    } else {
-                        continue
-                    }
-                } else {
-                    bytes, err = json.Marshal(fieldValue.Interface())
-                    if err != nil {
-                        engine.LogError(err)
-                        continue
-                    }
-                    val = bytes
-                }
-            } else {
-                continue
-            }
-        default:
-            val = fieldValue.Interface()
-        }
-        results[col.Name] = val
-    }
-    return results
-}*/
-
 // Auto generating conditions according a struct
 func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 	includeVersion bool, includeUpdated bool, includeNil bool,
@@ -416,8 +300,8 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			t := int64(fieldValue.Uint())
 			val = reflect.ValueOf(&t).Interface()
 		case reflect.Struct:
-			if fieldType == reflect.TypeOf(time.Now()) {
-				t := fieldValue.Interface().(time.Time)
+			if fieldType.ConvertibleTo(core.TimeType) {
+				t := fieldValue.Convert(core.TimeType).Interface().(time.Time)
 				if !requiredField && (t.IsZero() || !fieldValue.IsValid()) {
 					continue
 				}
