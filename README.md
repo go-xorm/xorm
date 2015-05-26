@@ -77,6 +77,8 @@ Or
 
 # Cases
 
+* [github.com/m3ng9i/qreader](https://github.com/m3ng9i/qreader)
+
 * [Wego](http://github.com/go-tango/wego)
 
 * [Docker.cn](https://docker.cn/)
