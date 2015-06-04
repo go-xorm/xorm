@@ -249,9 +249,9 @@ func (db *sqlite3) DropIndexSql(tableName string, index *core.Index) string {
 	return sql, args
 }*/
 
-func (db *sqlite3) IsColumnExist(tableName string, col *core.Column) (bool, error) {
+func (db *sqlite3) IsColumnExist(tableName, colName string) (bool, error) {
 	args := []interface{}{tableName}
-	query := "SELECT name FROM sqlite_master WHERE type='table' and name = ? and ((sql like '%`" + col.Name + "`%') or (sql like '%[" + col.Name + "]%'))"
+	query := "SELECT name FROM sqlite_master WHERE type='table' and name = ? and ((sql like '%`" + colName + "`%') or (sql like '%[" + colName + "]%'))"
 	rows, err := db.DB().Query(query, args...)
 	if db.Logger != nil {
 		db.Logger.Info("[sql]", query, args)
