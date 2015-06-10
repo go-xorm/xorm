@@ -70,6 +70,7 @@ type Statement struct {
 	checkVersion  bool
 	unscoped      bool
 	mustColumnMap map[string]bool
+	nullableMap   map[string]bool
 	inColumns     map[string]*inParam
 	incrColumns   map[string]incrParam
 	decrColumns   map[string]decrParam
@@ -105,6 +106,7 @@ func (statement *Statement) Init() {
 	statement.allUseBool = false
 	statement.useAllCols = false
 	statement.mustColumnMap = make(map[string]bool)
+	statement.nullableMap = make(map[string]bool)
 	statement.checkVersion = true
 	statement.unscoped = false
 	statement.inColumns = make(map[string]*inParam)
@@ -176,7 +178,8 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 	includeVersion bool, includeUpdated bool, includeNil bool,
 	includeAutoIncr bool, allUseBool bool, useAllCols bool,
-	mustColumnMap map[string]bool, columnMap map[string]bool, update bool) ([]string, []interface{}) {
+	mustColumnMap map[string]bool, nullableMap map[string]bool,
+	columnMap map[string]bool, update bool) ([]string, []interface{}) {
 
 	colNames := make([]string, 0)
 	var args = make([]interface{}, 0)
@@ -215,11 +218,22 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 
 		requiredField := useAllCols
 		includeNil := useAllCols
-		if b, ok := mustColumnMap[strings.ToLower(col.Name)]; ok {
+		lColName := strings.ToLower(col.Name)
+		if b, ok := mustColumnMap[lColName]; ok {
 			if b {
 				requiredField = true
 			} else {
 				continue
+			}
+		}
+
+		// !evalphobia! set fieldValue as nil when column is nullable and zero-value
+		if b, ok := nullableMap[lColName]; ok {
+			if b && col.Nullable && isZero(fieldValue.Interface()) {
+				var nilValue *int
+				fieldValue = reflect.ValueOf(nilValue)
+				fieldType = reflect.TypeOf(fieldValue.Interface())
+				includeNil = true
 			}
 		}
 
@@ -816,6 +830,14 @@ func (statement *Statement) Omit(columns ...string) {
 		statement.columnMap[strings.ToLower(nc)] = false
 	}
 	statement.OmitStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
+}
+
+// Update use only: update columns to null when value is nullable and zero-value
+func (statement *Statement) Nullable(columns ...string) {
+	newColumns := col2NewCols(columns...)
+	for _, nc := range newColumns {
+		statement.nullableMap[strings.ToLower(nc)] = true
+	}
 }
 
 // Generate LIMIT limit statement

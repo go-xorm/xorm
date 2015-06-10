@@ -223,6 +223,12 @@ func (session *Session) Omit(columns ...string) *Session {
 	return session
 }
 
+// Set null when column is zero-value and nullable for update
+func (session *Session) Nullable(columns ...string) *Session {
+	session.Statement.Nullable(columns...)
+	return session
+}
+
 // Method NoAutoTime means do not automatically give created field and updated field
 // the current time on the current session temporarily
 func (session *Session) NoAutoTime() *Session {
@@ -3408,7 +3414,8 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		if session.Statement.ColumnStr == "" {
 			colNames, args = buildUpdates(session.Engine, table, bean, false, false,
 				false, false, session.Statement.allUseBool, session.Statement.useAllCols,
-				session.Statement.mustColumnMap, session.Statement.columnMap, true)
+				session.Statement.mustColumnMap, session.Statement.nullableMap, 
+				session.Statement.columnMap, true)
 		} else {
 			colNames, args, err = genCols(table, session, bean, true, true)
 			if err != nil {
