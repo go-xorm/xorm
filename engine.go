@@ -553,6 +553,13 @@ func (engine *Engine) Omit(columns ...string) *Session {
 	return session.Omit(columns...)
 }
 
+// Set null when column is zero-value and nullable for update
+func (engine *Engine) Nullable(columns ...string) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.Nullable(columns...)
+}
+
 // This method will generate "column IN (?, ?)"
 func (engine *Engine) In(column string, args ...interface{}) *Session {
 	session := engine.NewSession()
