@@ -49,7 +49,7 @@ type Statement struct {
 	GroupByStr    string
 	HavingStr     string
 	ColumnStr     string
-	selectStr string
+	selectStr     string
 	columnMap     map[string]bool
 	useAllCols    bool
 	OmitStr       string
@@ -416,7 +416,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 
 		var colName string
 		if addedTableName {
-			colName = engine.Quote(tableName)+"."+engine.Quote(col.Name)
+			colName = engine.Quote(tableName) + "." + engine.Quote(col.Name)
 		} else {
 			colName = engine.Quote(col.Name)
 		}
@@ -428,7 +428,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 		}
 
 		if col.IsDeleted && !unscoped { // tag "deleted" is enabled
-			colNames = append(colNames, fmt.Sprintf("(%v IS NULL or %v = '0001-01-01 00:00:00')", 
+			colNames = append(colNames, fmt.Sprintf("(%v IS NULL or %v = '0001-01-01 00:00:00')",
 				colName, colName))
 		}
 
@@ -1139,14 +1139,14 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 	return statement.genSelectSql(fmt.Sprintf("count(%v)", id)), append(statement.Params, statement.BeanArgs...)
 }
 
-func (statement *Statement) genSelectSql(columnStr string) (a string) {
+func (statement *Statement) genSelectSql(columnStr string) string {
 	/*if statement.GroupByStr != "" {
 		if columnStr == "" {
 			columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
 		}
 		//statement.GroupByStr = columnStr
 	}*/
-	var distinct string
+	var distinct, a string
 	if statement.IsDistinct {
 		distinct = "DISTINCT "
 	}
@@ -1241,8 +1241,9 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 			a = fmt.Sprintf("SELECT %v FROM (SELECT %v,ROWNUM RN FROM (%v) at WHERE ROWNUM <= %d) aat WHERE RN > %d", columnStr, columnStr, a, statement.Start+statement.LimitN, statement.Start)
 		}
 	}
-
-	return
+	//在事务中强制性加入排他锁,不开事务则不起作用 FOR oracle & pg & mysql
+	a += "  FOR UPDATE "
+	return a
 }
 
 func (statement *Statement) processIdParam() {
