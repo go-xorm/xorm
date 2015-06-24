@@ -751,6 +751,16 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 				if tags[0] == "-" {
 					continue
 				}
+
+				// by hzm
+				if strings.ToUpper(tags[0]) == "INHERITS" {
+					engine.LogInfo(tags[0])
+					if fieldValue.Kind() == reflect.Struct {
+						table.AddInherit(engine.TableMapper.Obj2Table(fieldType.Name()))
+					}
+					continue
+				}
+
 				if strings.ToUpper(tags[0]) == "EXTENDS" {
 					if fieldValue.Kind() == reflect.Struct {
 						parentTable := engine.mapType(fieldValue)
