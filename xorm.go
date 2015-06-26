@@ -39,7 +39,7 @@ func regDrvsNDialects() bool {
 	for driverName, v := range providedDrvsNDialects {
 		if driver := core.QueryDriver(driverName); driver == nil {
 			core.RegisterDriver(driverName, v.getDriver())
-			core.RegisterDialect(v.dbType, v.getDialect())
+			core.RegisterDialect(v.dbType, v.getDialect)
 		}
 	}
 	return true
