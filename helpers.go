@@ -37,6 +37,12 @@ func isZero(k interface{}) bool {
 		return k.(uint32) == 0
 	case uint64:
 		return k.(uint64) == 0
+	case float32:
+		return k.(float32) == 0
+	case float64:
+		return k.(float64) == 0
+	case bool:
+		return k.(bool) == false
 	case string:
 		return k.(string) == ""
 	case time.Time:
