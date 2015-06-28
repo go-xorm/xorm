@@ -785,7 +785,7 @@ func (statement *Statement) Cols(columns ...string) *Statement {
 
 	// by hzm
 	if len(newColumns) == 1 {
-		statement.ColumnStr = newColumns
+		statement.ColumnStr = newColumns[0]
 
 	} else {
 		statement.ColumnStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
