@@ -49,7 +49,7 @@ type Statement struct {
 	GroupByStr    string
 	HavingStr     string
 	ColumnStr     string
-	selectStr string
+	selectStr     string
 	columnMap     map[string]bool
 	useAllCols    bool
 	OmitStr       string
@@ -416,7 +416,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 
 		var colName string
 		if addedTableName {
-			colName = engine.Quote(tableName)+"."+engine.Quote(col.Name)
+			colName = engine.Quote(tableName) + "." + engine.Quote(col.Name)
 		} else {
 			colName = engine.Quote(col.Name)
 		}
@@ -428,7 +428,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 		}
 
 		if col.IsDeleted && !unscoped { // tag "deleted" is enabled
-			colNames = append(colNames, fmt.Sprintf("(%v IS NULL or %v = '0001-01-01 00:00:00')", 
+			colNames = append(colNames, fmt.Sprintf("(%v IS NULL or %v = '0001-01-01 00:00:00')",
 				colName, colName))
 		}
 
@@ -782,7 +782,15 @@ func (statement *Statement) Cols(columns ...string) *Statement {
 	for _, nc := range newColumns {
 		statement.columnMap[strings.ToLower(nc)] = true
 	}
-	statement.ColumnStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
+
+	// by hzm
+	if len(newColumns) == 1 {
+		statement.ColumnStr = newColumns
+
+	} else {
+		statement.ColumnStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
+	}
+
 	if strings.Contains(statement.ColumnStr, ".") {
 		statement.ColumnStr = strings.Replace(statement.ColumnStr, ".", statement.Engine.Quote("."), -1)
 	}
