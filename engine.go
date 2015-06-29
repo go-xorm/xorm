@@ -756,6 +756,12 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 				if strings.ToUpper(tags[0]) == "INHERITS" {
 					engine.LogInfo(tags[0])
 					if fieldValue.Kind() == reflect.Struct {
+						// 保留为了Find（）映射数据
+						parentTable := engine.mapType(fieldValue)
+						for _, col := range parentTable.Columns() {
+							col.FieldName = fmt.Sprintf("%v.%v", t.Field(i).Name, col.FieldName)
+							table.AddColumn(col)
+						}
 						table.AddInherit(engine.TableMapper.Obj2Table(fieldType.Name()))
 					}
 					continue
