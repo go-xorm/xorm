@@ -37,8 +37,16 @@ func isZero(k interface{}) bool {
 		return k.(uint32) == 0
 	case uint64:
 		return k.(uint64) == 0
+	case float32:
+		return k.(float32) == 0
+	case float64:
+		return k.(float64) == 0
+	case bool:
+		return k.(bool) == false
 	case string:
 		return k.(string) == ""
+	case time.Time:
+		return k.(time.Time).IsZero()
 	}
 	return false
 }
@@ -353,6 +361,14 @@ func genCols(table *core.Table, session *Session, bean interface{}, useCol bool,
 		if session.Statement.OmitStr != "" {
 			if _, ok := session.Statement.columnMap[lColName]; ok {
 				continue
+			}
+		}
+
+		// !evalphobia! set fieldValue as nil when column is nullable and zero-value
+		if _, ok := session.Statement.nullableMap[lColName]; ok {
+			if col.Nullable && isZero(fieldValue.Interface()) {
+				var nilValue *int
+				fieldValue = reflect.ValueOf(nilValue)
 			}
 		}
 
