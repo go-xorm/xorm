@@ -97,6 +97,16 @@ func (session *Session) Sql(querystring string, args ...interface{}) *Session {
 	return session
 }
 
+//set read lock
+func (session *Session) SetLockRead(lr ...bool) *Session {
+	if 0 == len(lr) {
+		session.LockRead = true
+	} else {
+		session.LockRead = lr[0]
+	}
+	return session
+}
+
 // Method Where provides custom query condition.
 func (session *Session) Where(querystring string, args ...interface{}) *Session {
 	session.Statement.Where(querystring, args...)
