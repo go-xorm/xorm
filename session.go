@@ -29,6 +29,7 @@ type Session struct {
 	IsCommitedOrRollbacked bool
 	TransType              string
 	IsAutoClose            bool
+	LockRead               bool //set sad lock for accepting ro read dirty data
 
 	// Automatically reset the statement after operations that execute a SQL
 	// query such as Count(), Find(), Get(), ...
@@ -637,7 +638,7 @@ func (session *Session) canCache() bool {
 	if session.Statement.RefTable == nil ||
 		session.Statement.JoinStr != "" ||
 		session.Statement.RawSQL != "" ||
-		session.Tx != nil || 
+		session.Tx != nil ||
 		len(session.Statement.selectStr) > 0 {
 		return false
 	}
@@ -744,7 +745,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 }
 
 func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr interface{}, args ...interface{}) (err error) {
-	if !session.canCache() || 
+	if !session.canCache() ||
 		indexNoCase(sqlStr, "having") != -1 ||
 		indexNoCase(sqlStr, "group by") != -1 {
 		return ErrCacheFailed
@@ -1001,6 +1002,10 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 
 	if session.Statement.RawSQL == "" {
 		sqlStr, args = session.Statement.genGetSql(bean)
+		//加入悲观锁 FOR oracle & pg & mysql
+		if session.LockRead {
+			sqlStr += " FOR UPDATE "
+		}
 	} else {
 		sqlStr = session.Statement.RawSQL
 		args = session.Statement.RawParams
@@ -1187,7 +1192,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		var addedTableName = (len(session.Statement.JoinStr) > 0)
 		colNames, args := buildConditions(session.Engine, table, condiBean[0], true, true,
 			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-			session.Statement.unscoped, session.Statement.mustColumnMap, 
+			session.Statement.unscoped, session.Statement.mustColumnMap,
 			session.Statement.TableName(), addedTableName)
 		session.Statement.ConditionStr = strings.Join(colNames, " AND ")
 		session.Statement.BeanArgs = args
@@ -3414,7 +3419,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		if session.Statement.ColumnStr == "" {
 			colNames, args = buildUpdates(session.Engine, table, bean, false, false,
 				false, false, session.Statement.allUseBool, session.Statement.useAllCols,
-				session.Statement.mustColumnMap, session.Statement.nullableMap, 
+				session.Statement.mustColumnMap, session.Statement.nullableMap,
 				session.Statement.columnMap, true)
 		} else {
 			colNames, args, err = genCols(table, session, bean, true, true)
@@ -3696,7 +3701,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	session.Statement.RefTable = table
 	colNames, args := buildConditions(session.Engine, table, bean, true, true,
 		false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-		session.Statement.unscoped, session.Statement.mustColumnMap, 
+		session.Statement.unscoped, session.Statement.mustColumnMap,
 		session.Statement.TableName(), false)
 
 	var condition = ""

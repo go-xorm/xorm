@@ -1241,8 +1241,6 @@ func (statement *Statement) genSelectSql(columnStr string) string {
 			a = fmt.Sprintf("SELECT %v FROM (SELECT %v,ROWNUM RN FROM (%v) at WHERE ROWNUM <= %d) aat WHERE RN > %d", columnStr, columnStr, a, statement.Start+statement.LimitN, statement.Start)
 		}
 	}
-	//在事务中强制性加入排他锁,不开事务则不起作用 FOR oracle & pg & mysql
-	a += "  FOR UPDATE "
 	return a
 }
 
