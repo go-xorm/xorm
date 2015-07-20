@@ -321,6 +321,10 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 					continue
 				}
 				val = engine.FormatTime(col.SQLType.Name, t)
+			} else if nulVal, ok := fieldValue.Interface().(driver.Valuer); ok {
+				if val, _ = nulVal.Value(); val == nil {
+					continue
+				}
 			} else {
 				engine.autoMapType(fieldValue)
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
