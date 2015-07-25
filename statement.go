@@ -220,6 +220,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 		requiredField := useAllCols
 		includeNil := useAllCols
 		lColName := strings.ToLower(col.Name)
+
 		if b, ok := mustColumnMap[lColName]; ok {
 			if b {
 				requiredField = true
@@ -321,10 +322,8 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 					continue
 				}
 				val = engine.FormatTime(col.SQLType.Name, t)
-			} else if nulVal, ok := fieldValue.Interface().(driver.Valuer); ok {
-				if val, _ = nulVal.Value(); val == nil {
-					continue
-				}
+			} else if nulType, ok := fieldValue.Interface().(driver.Valuer); ok {
+				val, _ = nulType.Value()
 			} else {
 				engine.autoMapType(fieldValue)
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
