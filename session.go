@@ -104,8 +104,8 @@ func (session *Session) Where(querystring string, args ...interface{}) *Session 
 }
 
 // Method Where provides custom query condition without bean's non-empty fields.
-func (session *Session) WhereOnly(querystring string, args ...interface{}) *Session {
-	session.Statement.WhereOnly(querystring, args...)
+func (session *Session) NoAutoCondition(querystring string, args ...interface{}) *Session {
+	session.Statement.NoAutoCondition(querystring, args...)
 	return session
 }
 
