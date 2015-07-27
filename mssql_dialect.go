@@ -220,6 +220,11 @@ func (db *mssql) SqlType(c *core.Column) string {
 	switch t := c.SQLType.Name; t {
 	case core.Bool:
 		res = core.TinyInt
+		if c.Default == "true" {
+			c.Default = "1"
+		} else if c.Default == "false" {
+			c.Default = "0"
+		}
 	case core.Serial:
 		c.IsAutoIncrement = true
 		c.IsPrimaryKey = true

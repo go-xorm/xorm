@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -49,7 +50,7 @@ type Statement struct {
 	GroupByStr    string
 	HavingStr     string
 	ColumnStr     string
-	selectStr string
+	selectStr     string
 	columnMap     map[string]bool
 	useAllCols    bool
 	OmitStr       string
@@ -234,6 +235,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 		requiredField := useAllCols
 		includeNil := useAllCols
 		lColName := strings.ToLower(col.Name)
+
 		if b, ok := mustColumnMap[lColName]; ok {
 			if b {
 				requiredField = true
@@ -335,6 +337,8 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 					continue
 				}
 				val = engine.FormatTime(col.SQLType.Name, t)
+			} else if nulType, ok := fieldValue.Interface().(driver.Valuer); ok {
+				val, _ = nulType.Value()
 			} else {
 				engine.autoMapType(fieldValue)
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
@@ -431,7 +435,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 
 		var colName string
 		if addedTableName {
-			colName = engine.Quote(tableName)+"."+engine.Quote(col.Name)
+			colName = engine.Quote(tableName) + "." + engine.Quote(col.Name)
 		} else {
 			colName = engine.Quote(col.Name)
 		}
@@ -443,7 +447,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 		}
 
 		if col.IsDeleted && !unscoped { // tag "deleted" is enabled
-			colNames = append(colNames, fmt.Sprintf("(%v IS NULL or %v = '0001-01-01 00:00:00')", 
+			colNames = append(colNames, fmt.Sprintf("(%v IS NULL or %v = '0001-01-01 00:00:00')",
 				colName, colName))
 		}
 
@@ -524,6 +528,11 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 				val = engine.FormatTime(col.SQLType.Name, t)
 			} else if _, ok := reflect.New(fieldType).Interface().(core.Conversion); ok {
 				continue
+			} else if valNul, ok := fieldValue.Interface().(driver.Valuer); ok {
+				val, _ = valNul.Value()
+				if val == nil {
+					continue
+				}
 			} else {
 				engine.autoMapType(fieldValue)
 				if table, ok := engine.Tables[fieldValue.Type()]; ok {
