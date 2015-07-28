@@ -625,7 +625,7 @@ func (statement *Statement) convertIdSql(sqlStr string) string {
 		}
 
 		colstrs := statement.JoinColumns(cols)
-		sqls := splitNNoCase(sqlStr, "from", 2)
+		sqls := splitNNoCase(sqlStr, " from ", 2)
 		if len(sqls) != 2 {
 			return ""
 		}
