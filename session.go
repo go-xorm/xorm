@@ -46,6 +46,10 @@ type Session struct {
 
 	stmtCache   map[uint32]*core.Stmt //key: hash.Hash32 of (queryStr, len(queryStr))
 	cascadeDeep int
+
+	// !evalphobia! stored the last executed query on this session
+	lastSQL                string
+	lastSQLArgs            []interface{}
 }
 
 // Method Init reset the session as the init status.
@@ -63,6 +67,9 @@ func (session *Session) Init() {
 	session.afterDeleteBeans = make(map[interface{}]*[]func(interface{}), 0)
 	session.beforeClosures = make([]func(interface{}), 0)
 	session.afterClosures = make([]func(interface{}), 0)
+
+	session.lastSQL = ""
+	session.lastSQLArgs = []interface{}{}
 }
 
 // Method Close release the connection from pool
@@ -325,8 +332,7 @@ func (session *Session) Begin() error {
 		session.IsAutoCommit = false
 		session.IsCommitedOrRollbacked = false
 		session.Tx = tx
-
-		session.Engine.logSQL("BEGIN TRANSACTION")
+		session.saveLastSQL("BEGIN TRANSACTION")
 	}
 	return nil
 }
@@ -334,7 +340,7 @@ func (session *Session) Begin() error {
 // When using transaction, you can rollback if any error
 func (session *Session) Rollback() error {
 	if !session.IsAutoCommit && !session.IsCommitedOrRollbacked {
-		session.Engine.logSQL(session.Engine.dialect.RollBackStr())
+		session.saveLastSQL(session.Engine.dialect.RollBackStr())
 		session.IsCommitedOrRollbacked = true
 		return session.Tx.Rollback()
 	}
@@ -344,7 +350,7 @@ func (session *Session) Rollback() error {
 // When using transaction, Commit will commit all operations.
 func (session *Session) Commit() error {
 	if !session.IsAutoCommit && !session.IsCommitedOrRollbacked {
-		session.Engine.logSQL("COMMIT")
+		session.saveLastSQL("COMMIT")
 		session.IsCommitedOrRollbacked = true
 		var err error
 		if err = session.Tx.Commit(); err == nil {
@@ -465,7 +471,7 @@ func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, er
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
 
-	session.Engine.logSQL(sqlStr, args...)
+	session.saveLastSQL(sqlStr, args...)
 
 	return session.Engine.LogSQLExecutionTime(sqlStr, args, func() (sql.Result, error) {
 		if session.IsAutoCommit {
@@ -1457,7 +1463,7 @@ func (session *Session) isTableEmpty(tableName string) (bool, error) {
 	var total int64
 	sql := fmt.Sprintf("select count(*) from %s", session.Engine.Quote(tableName))
 	err := session.DB().QueryRow(sql).Scan(&total)
-	session.Engine.logSQL(sql)
+	session.saveLastSQL(sql)
 	if err != nil {
 		return true, err
 	}
@@ -1958,7 +1964,7 @@ func (session *Session) queryPreprocess(sqlStr *string, paramStr ...interface{})
 		*sqlStr = filter.Do(*sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
 
-	session.Engine.logSQL(*sqlStr, paramStr...)
+	session.saveLastSQL(*sqlStr, paramStr...)
 }
 
 func (session *Session) query(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
@@ -3819,6 +3825,18 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	// --
 
 	return res.RowsAffected()
+}
+
+// saveLastSQL stores executed query information
+func (session *Session) saveLastSQL(sql string, args ...interface{}) {
+	session.lastSQL = sql
+	session.lastSQLArgs = args
+	session.Engine.logSQL(sql, args...)
+}
+
+// LastSQL returns last query information
+func (session *Session) LastSQL() (string, []interface{}) {
+	return session.lastSQL, session.lastSQLArgs
 }
 
 func (s *Session) Sync2(beans ...interface{}) error {
