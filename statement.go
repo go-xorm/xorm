@@ -417,6 +417,9 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 		if engine.dialect.DBType() == core.MSSQL && col.SQLType.Name == core.Text {
 			continue
 		}
+		if col.SQLType.IsJson() {
+			continue
+		}
 
 		var colName string
 		if addedTableName {
@@ -519,23 +522,43 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 					continue
 				}
 			} else {
-				engine.autoMapType(fieldValue)
-				if table, ok := engine.Tables[fieldValue.Type()]; ok {
-					if len(table.PrimaryKeys) == 1 {
-						pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)
-						// fix non-int pk issues
-						//if pkField.Int() != 0 {
-						if pkField.IsValid() && !isZero(pkField.Interface()) {
-							val = pkField.Interface()
-						} else {
+				if col.SQLType.IsJson() {
+					if col.SQLType.IsText() {
+						bytes, err := json.Marshal(fieldValue.Interface())
+						if err != nil {
+							engine.LogError(err)
 							continue
 						}
-					} else {
-						//TODO: how to handler?
-						panic(fmt.Sprintln("not supported", fieldValue.Interface(), "as", table.PrimaryKeys))
+						val = string(bytes)
+					} else if col.SQLType.IsBlob() {
+						var bytes []byte
+						var err error
+						bytes, err = json.Marshal(fieldValue.Interface())
+						if err != nil {
+							engine.LogError(err)
+							continue
+						}
+						val = bytes
 					}
 				} else {
-					val = fieldValue.Interface()
+					engine.autoMapType(fieldValue)
+					if table, ok := engine.Tables[fieldValue.Type()]; ok {
+						if len(table.PrimaryKeys) == 1 {
+							pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)
+							// fix non-int pk issues
+							//if pkField.Int() != 0 {
+							if pkField.IsValid() && !isZero(pkField.Interface()) {
+								val = pkField.Interface()
+							} else {
+								continue
+							}
+						} else {
+							//TODO: how to handler?
+							panic(fmt.Sprintln("not supported", fieldValue.Interface(), "as", table.PrimaryKeys))
+						}
+					} else {
+						val = fieldValue.Interface()
+					}
 				}
 			}
 		case reflect.Array, reflect.Slice, reflect.Map:

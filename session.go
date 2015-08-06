@@ -1626,6 +1626,14 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 		}
 	}
 
+	defer func() {
+		if b, hasAfterSet := bean.(AfterSetProcessor); hasAfterSet {
+			for ii, key := range fields {
+				b.AfterSet(key, Cell(scanResults[ii].(*interface{})))
+			}
+		}
+	}()
+
 	var tempMap = make(map[string]int)
 	for ii, key := range fields {
 		var idx int
@@ -1675,12 +1683,20 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 			hasAssigned := false
 
 			switch fieldType.Kind() {
-
 			case reflect.Complex64, reflect.Complex128:
 				if rawValueType.Kind() == reflect.String {
 					hasAssigned = true
 					x := reflect.New(fieldType)
 					err := json.Unmarshal([]byte(vv.String()), x.Interface())
+					if err != nil {
+						session.Engine.LogError(err)
+						return err
+					}
+					fieldValue.Set(x.Elem())
+				} else if rawValueType.Kind() == reflect.Slice {
+					hasAssigned = true
+					x := reflect.New(fieldType)
+					err := json.Unmarshal(vv.Bytes(), x.Interface())
 					if err != nil {
 						session.Engine.LogError(err)
 						return err
@@ -1730,6 +1746,7 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 					fieldValue.SetUint(uint64(vv.Int()))
 				}
 			case reflect.Struct:
+				col := table.GetColumn(key)
 				if fieldType.ConvertibleTo(core.TimeType) {
 					if rawValueType == core.TimeType {
 						hasAssigned = true
@@ -1763,11 +1780,31 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 						session.Engine.LogError("sql.Sanner error:", err.Error())
 						hasAssigned = false
 					}
+				} else if col.SQLType.IsJson() {
+					if rawValueType.Kind() == reflect.String {
+						hasAssigned = true
+						x := reflect.New(fieldType)
+						err := json.Unmarshal([]byte(vv.String()), x.Interface())
+						if err != nil {
+							session.Engine.LogError(err)
+							return err
+						}
+						fieldValue.Set(x.Elem())
+					} else if rawValueType.Kind() == reflect.Slice {
+						hasAssigned = true
+						x := reflect.New(fieldType)
+						err := json.Unmarshal(vv.Bytes(), x.Interface())
+						if err != nil {
+							session.Engine.LogError(err)
+							return err
+						}
+						fieldValue.Set(x.Elem())
+					}
 				} else if session.Statement.UseCascade {
 					table := session.Engine.autoMapType(*fieldValue)
 					if table != nil {
-						if len(table.PrimaryKeys) > 1 {
-							panic("unsupported composited primary key cascade")
+						if len(table.PrimaryKeys) != 1 {
+							panic("unsupported non or composited primary key cascade")
 						}
 						var pk = make(core.PK, len(table.PrimaryKeys))
 
@@ -2952,17 +2989,31 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 			if len(fieldTable.PrimaryKeys) == 1 {
 				pkField := reflect.Indirect(fieldValue).FieldByName(fieldTable.PKColumns()[0].FieldName)
 				return pkField.Interface(), nil
-			} else {
-				return 0, fmt.Errorf("no primary key for col %v", col.Name)
 			}
-		} else {
-			// !<winxxp>! 增加支持driver.Valuer接口的结构，如sql.NullString
-			if v, ok := fieldValue.Interface().(driver.Valuer); ok {
-				return v.Value()
-			}
-
-			return 0, fmt.Errorf("Unsupported type %v", fieldValue.Type())
+			return 0, fmt.Errorf("no primary key for col %v", col.Name)
 		}
+		// !<winxxp>! 增加支持driver.Valuer接口的结构，如sql.NullString
+		if v, ok := fieldValue.Interface().(driver.Valuer); ok {
+			return v.Value()
+		}
+
+		if col.SQLType.IsText() {
+			bytes, err := json.Marshal(fieldValue.Interface())
+			if err != nil {
+				session.Engine.LogError(err)
+				return 0, err
+			}
+			return string(bytes), nil
+		} else if col.SQLType.IsBlob() {
+			bytes, err := json.Marshal(fieldValue.Interface())
+			if err != nil {
+				session.Engine.LogError(err)
+				return 0, err
+			}
+			return bytes, nil
+		}
+
+		return nil, fmt.Errorf("Unsupported type %v", fieldValue.Type())
 	case reflect.Complex64, reflect.Complex128:
 		bytes, err := json.Marshal(fieldValue.Interface())
 		if err != nil {
@@ -2996,9 +3047,8 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 				}
 			}
 			return bytes, nil
-		} else {
-			return nil, ErrUnSupportedType
 		}
+		return nil, ErrUnSupportedType
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 		return int64(fieldValue.Uint()), nil
 	default:
