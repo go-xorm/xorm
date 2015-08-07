@@ -48,8 +48,8 @@ type Session struct {
 	cascadeDeep int
 
 	// !evalphobia! stored the last executed query on this session
-	lastSQL                string
-	lastSQLArgs            []interface{}
+	lastSQL     string
+	lastSQLArgs []interface{}
 }
 
 // Method Init reset the session as the init status.
@@ -614,11 +614,15 @@ func (session *Session) DropTable(beanOrTableName interface{}) error {
 	return nil
 }
 
-func (statement *Statement) JoinColumns(cols []*core.Column) string {
+func (statement *Statement) JoinColumns(cols []*core.Column, includeTableName bool) string {
 	var colnames = make([]string, len(cols))
 	for i, col := range cols {
-		colnames[i] = statement.Engine.Quote(statement.TableName()) +
-			"." + statement.Engine.Quote(col.Name)
+		if includeTableName {
+			colnames[i] = statement.Engine.Quote(statement.TableName()) +
+				"." + statement.Engine.Quote(col.Name)
+		} else {
+			colnames[i] = statement.Engine.Quote(col.Name)
+		}
 	}
 	return strings.Join(colnames, ", ")
 }
@@ -630,10 +634,13 @@ func (statement *Statement) convertIdSql(sqlStr string) string {
 			return ""
 		}
 
-		colstrs := statement.JoinColumns(cols)
+		colstrs := statement.JoinColumns(cols, false)
 		sqls := splitNNoCase(sqlStr, " from ", 2)
 		if len(sqls) != 2 {
 			return ""
+		}
+		if statement.Engine.dialect.DBType() == "ql" {
+			return fmt.Sprintf("SELECT id() FROM %v", sqls[1])
 		}
 		return fmt.Sprintf("SELECT %s FROM %v", colstrs, sqls[1])
 	}
@@ -3280,7 +3287,7 @@ func (statement *Statement) convertUpdateSql(sqlStr string) (string, string) {
 		return "", ""
 	}
 
-	colstrs := statement.JoinColumns(statement.RefTable.PKColumns())
+	colstrs := statement.JoinColumns(statement.RefTable.PKColumns(), true)
 	sqls := splitNNoCase(sqlStr, "where", 2)
 	if len(sqls) != 2 {
 		if len(sqls) == 1 {
