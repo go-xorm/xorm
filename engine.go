@@ -1350,6 +1350,14 @@ func (engine *Engine) Count(bean interface{}) (int64, error) {
 	return session.Count(bean)
 }
 
+//Sum for the incoming field. bean's non-empty fields
+// are conditions.
+func (engine *Engine) Sum(bean interface{}, cols ...string) (map[string]float64, error) {
+	session := engine.NewSession()
+	defer session.Close()
+	return session.Sum(bean, cols...)
+}
+
 // Import SQL DDL file
 func (engine *Engine) ImportFile(ddlPath string) ([]sql.Result, error) {
 	file, err := os.Open(ddlPath)
