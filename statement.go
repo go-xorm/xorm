@@ -1171,6 +1171,29 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 	return statement.genSelectSql(fmt.Sprintf("count(%v)", id)), append(statement.Params, statement.BeanArgs...)
 }
 
+func (statement *Statement) genSumSql(bean interface{}, cols ...string) (string, []interface{}) {
+	table := statement.Engine.TableInfo(bean)
+	statement.RefTable = table
+
+	var addedTableName = (len(statement.JoinStr) > 0)
+
+	colNames, args := buildConditions(statement.Engine, table, bean, true, true, false,
+		true, statement.allUseBool, statement.useAllCols,
+		statement.unscoped, statement.mustColumnMap, statement.TableName(), addedTableName)
+
+	statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.Dialect().AndStr()+" ")
+	statement.BeanArgs = args
+
+	statement.attachInSql()
+
+	sumsql := ""
+	for _, v := range cols {
+		sumsql = sumsql + fmt.Sprintf(",sum(%s) as %s", v, v)
+	}
+	sumsql = strings.TrimLeft(sumsql, ",")
+
+	return statement.genSelectSql(sumsql), append(statement.Params, statement.BeanArgs...)
+}
 func (statement *Statement) genSelectSql(columnStr string) (a string) {
 	/*if statement.GroupByStr != "" {
 		if columnStr == "" {
