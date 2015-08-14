@@ -1093,6 +1093,42 @@ func (session *Session) Count(bean interface{}) (int64, error) {
 	return int64(total), err
 }
 
+func (session *Session) Sum(bean interface{}, cols ...string) (map[string]float64, error) {
+	defer session.resetStatement()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+
+	var sqlStr string
+	var args []interface{}
+	if session.Statement.RawSQL == "" {
+		sqlStr, args = session.Statement.genSumSql(bean, cols...)
+	} else {
+		sqlStr = session.Statement.RawSQL
+		args = session.Statement.RawParams
+	}
+
+	resultsSlice, err := session.query(sqlStr, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	totals := make(map[string]float64)
+	if len(resultsSlice) > 0 {
+		results := resultsSlice[0]
+		for k, value := range results {
+
+			total, err := strconv.ParseFloat(string(value), 64)
+			if err != nil {
+				return nil, err
+			}
+			totals[k] = total
+
+		}
+	}
+
+	return totals, err
+}
 func Atot(s string, tp reflect.Type) (interface{}, error) {
 	var err error
 	var result interface{}
