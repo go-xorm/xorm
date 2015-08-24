@@ -2998,16 +2998,20 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 			return tf, nil
 		}
 
-		if fieldTable, ok := session.Engine.Tables[fieldValue.Type()]; ok {
-			if len(fieldTable.PrimaryKeys) == 1 {
-				pkField := reflect.Indirect(fieldValue).FieldByName(fieldTable.PKColumns()[0].FieldName)
-				return pkField.Interface(), nil
+		if !col.SQLType.IsJson() {
+			// !<winxxp>! 增加支持driver.Valuer接口的结构，如sql.NullString
+			if v, ok := fieldValue.Interface().(driver.Valuer); ok {
+				return v.Value()
 			}
-			return 0, fmt.Errorf("no primary key for col %v", col.Name)
-		}
-		// !<winxxp>! 增加支持driver.Valuer接口的结构，如sql.NullString
-		if v, ok := fieldValue.Interface().(driver.Valuer); ok {
-			return v.Value()
+
+			fieldTable := session.Engine.autoMapType(fieldValue)
+			//if fieldTable, ok := session.Engine.Tables[fieldValue.Type()]; ok {
+				if len(fieldTable.PrimaryKeys) == 1 {
+					pkField := reflect.Indirect(fieldValue).FieldByName(fieldTable.PKColumns()[0].FieldName)
+					return pkField.Interface(), nil
+				}
+				return 0, fmt.Errorf("no primary key for col %v", col.Name)
+			//}
 		}
 
 		if col.SQLType.IsText() {
