@@ -6,6 +6,8 @@ Xorm is a simple and powerful ORM for Go.
 
 # Features
 
+[![Join the chat at https://gitter.im/go-xorm/xorm](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-xorm/xorm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 * Struct <-> Table Mapping Support
 
 * Chainable APIs
