@@ -3212,6 +3212,64 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		aiValue.Set(reflect.ValueOf(v))
 
 		return res.RowsAffected()
+	} else if session.Engine.DriverName() == core.ORACLE {
+		//assert table.AutoIncrement != ""
+		res, err := session.query("select seq_atable.currval from dual", args...)
+
+		if err != nil {
+			return 0, err
+		} else {
+			handleAfterInsertProcessorFunc(bean)
+		}
+
+		if cacher := session.Engine.getCacher2(table); cacher != nil && session.Statement.UseCache {
+			session.cacheInsert(session.Statement.TableName())
+		}
+
+		if table.Version != "" && session.Statement.checkVersion {
+			verValue, err := table.VersionColumn().ValueOf(bean)
+			if err != nil {
+				session.Engine.LogError(err)
+			} else if verValue.IsValid() && verValue.CanSet() {
+				verValue.SetInt(1)
+			}
+		}
+
+		if len(res) < 1 {
+			return 0, errors.New("insert no error but not returned id")
+		}
+
+		idByte := res[0][table.AutoIncrement]
+		id, err := strconv.ParseInt(string(idByte), 10, 64)
+		if err != nil {
+			return 1, err
+		}
+
+		aiValue, err := table.AutoIncrColumn().ValueOf(bean)
+		if err != nil {
+			session.Engine.LogError(err)
+		}
+
+		if aiValue == nil || !aiValue.IsValid() /*|| aiValue. != 0*/ || !aiValue.CanSet() {
+			return 1, nil
+		}
+
+		var v interface{} = id
+		switch aiValue.Type().Kind() {
+		case reflect.Int32:
+			v = int32(id)
+		case reflect.Int:
+			v = int(id)
+		case reflect.Uint32:
+			v = uint32(id)
+		case reflect.Uint64:
+			v = uint64(id)
+		case reflect.Uint:
+			v = uint(id)
+		}
+		aiValue.Set(reflect.ValueOf(v))
+
+		return 1, nil
 	} else {
 		//assert table.AutoIncrement != ""
 		sqlStr = sqlStr + " RETURNING " + session.Engine.Quote(table.AutoIncrement)
