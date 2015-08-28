@@ -225,6 +225,12 @@ func (session *Session) Distinct(columns ...string) *Session {
 	return session
 }
 
+// Set Read/Write locking for UPDATE
+func (session *Session) ForUpdate() *Session {
+	session.Statement.IsForUpdate = true
+	return session
+}
+
 // Only not use the paramters as select or update columns
 func (session *Session) Omit(columns ...string) *Session {
 	session.Statement.Omit(columns...)
