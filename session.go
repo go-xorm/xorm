@@ -30,6 +30,7 @@ type Session struct {
 	IsCommitedOrRollbacked bool
 	TransType              string
 	IsAutoClose            bool
+	LockRead               bool //set sad lock for accepting ro read dirty data
 
 	// Automatically reset the statement after operations that execute a SQL
 	// query such as Count(), Find(), Get(), ...
@@ -60,6 +61,7 @@ func (session *Session) Init() {
 	session.IsCommitedOrRollbacked = false
 	session.IsAutoClose = false
 	session.AutoResetStatement = true
+	session.LockRead = false
 
 	// !nashtsai! is lazy init better?
 	session.afterInsertBeans = make(map[interface{}]*[]func(interface{}), 0)
@@ -101,6 +103,16 @@ func (session *Session) resetStatement() {
 // and cannot use Where, Id, In and etc. Methods to describe, you can use Sql.
 func (session *Session) Sql(querystring string, args ...interface{}) *Session {
 	session.Statement.Sql(querystring, args...)
+	return session
+}
+
+//set read lock
+func (session *Session) SetLockRead(lr ...bool) *Session {
+	if 0 == len(lr) {
+		session.LockRead = true
+	} else {
+		session.LockRead = lr[0]
+	}
 	return session
 }
 
@@ -1015,6 +1027,10 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 
 	if session.Statement.RawSQL == "" {
 		sqlStr, args = session.Statement.genGetSql(bean)
+		//加入悲观锁 FOR oracle & pg & mysql
+		if session.LockRead {
+			sqlStr += " FOR UPDATE "
+		}
 	} else {
 		sqlStr = session.Statement.RawSQL
 		args = session.Statement.RawParams

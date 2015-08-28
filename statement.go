@@ -1172,14 +1172,14 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 	return statement.genSelectSql(fmt.Sprintf("count(%v)", id)), append(statement.Params, statement.BeanArgs...)
 }
 
-func (statement *Statement) genSelectSql(columnStr string) (a string) {
+func (statement *Statement) genSelectSql(columnStr string) string {
 	/*if statement.GroupByStr != "" {
 		if columnStr == "" {
 			columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
 		}
 		//statement.GroupByStr = columnStr
 	}*/
-	var distinct string
+	var distinct, a string
 	if statement.IsDistinct {
 		distinct = "DISTINCT "
 	}
@@ -1274,8 +1274,7 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 			a = fmt.Sprintf("SELECT %v FROM (SELECT %v,ROWNUM RN FROM (%v) at WHERE ROWNUM <= %d) aat WHERE RN > %d", columnStr, columnStr, a, statement.Start+statement.LimitN, statement.Start)
 		}
 	}
-
-	return
+	return a
 }
 
 func (statement *Statement) processIdParam() {
