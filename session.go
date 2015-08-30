@@ -3155,7 +3155,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 
 	// for postgres, many of them didn't implement lastInsertId, so we should
 	// implemented it ourself.
-	if session.Engine.DriverName() == core.ORACLE && len(table.AutoIncrement) > 0 {
+	if session.Engine.dialect.DBType() == core.ORACLE && len(table.AutoIncrement) > 0 {
 		//assert table.AutoIncrement != ""
 		res, err := session.query("select seq_atable.currval from dual", args...)
 
@@ -3213,7 +3213,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		aiValue.Set(reflect.ValueOf(v))
 
 		return 1, nil
-	} else if session.Engine.DriverName() == core.POSTGRES && len(table.AutoIncrement) > 0 {
+	} else if session.Engine.dialect.DBType() == core.POSTGRES && len(table.AutoIncrement) > 0 {
 		//assert table.AutoIncrement != ""
 		sqlStr = sqlStr + " RETURNING " + session.Engine.Quote(table.AutoIncrement)
 		res, err := session.query(sqlStr, args...)
