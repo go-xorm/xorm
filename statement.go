@@ -1283,7 +1283,7 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 		}
 	}
 	if statement.IsForUpdate {
-		a += " FOR UPDATE"
+			a = statement.Engine.dialect.ForUpdateSql(a)
 	}
 
 	return
