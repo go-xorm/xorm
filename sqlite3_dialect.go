@@ -250,6 +250,10 @@ func (db *sqlite3) DropIndexSql(tableName string, index *core.Index) string {
 	return fmt.Sprintf("DROP INDEX %v", quote(idxName))
 }
 
+func (db *sqlite3) ForUpdateSql(query string) string {
+	return query
+}
+
 /*func (db *sqlite3) ColumnCheckSql(tableName, colName string) (string, []interface{}) {
 	args := []interface{}{tableName}
 	sql := "SELECT name FROM sqlite_master WHERE type='table' and name = ? and ((sql like '%`" + colName + "`%') or (sql like '%[" + colName + "]%'))"
