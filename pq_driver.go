@@ -41,7 +41,7 @@ func parseURL(connstr string) (string, error) {
 		return "", err
 	}
 
-	if u.Scheme != "postgres" {
+	if u.Scheme != "postgresql" {
 		return "", fmt.Errorf("invalid connection protocol: %s", u.Scheme)
 	}
 
@@ -103,7 +103,7 @@ func (p *pqDriver) Parse(driverName, dataSourceName string) (*core.Uri, error) {
 	db := &core.Uri{DbType: core.POSTGRES}
 	o := make(values)
 	var err error
-	if strings.HasPrefix(dataSourceName, "postgres://") {
+	if strings.HasPrefix(dataSourceName, "postgresql://") {
 		dataSourceName, err = parseURL(dataSourceName)
 		if err != nil {
 			return nil, err
