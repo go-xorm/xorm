@@ -66,6 +66,7 @@ type Statement struct {
 	UseCache      bool
 	UseAutoTime   bool
 	IsDistinct    bool
+	IsForUpdate   bool
 	TableAlias    string
 	allUseBool    bool
 	checkVersion  bool
@@ -104,6 +105,7 @@ func (statement *Statement) Init() {
 	statement.UseCache = true
 	statement.UseAutoTime = true
 	statement.IsDistinct = false
+	statement.IsForUpdate = false
 	statement.TableAlias = ""
 	statement.selectStr = ""
 	statement.allUseBool = false
@@ -432,6 +434,9 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 		if engine.dialect.DBType() == core.MSSQL && col.SQLType.Name == core.Text {
 			continue
 		}
+		if col.SQLType.IsJson() {
+			continue
+		}
 
 		var colName string
 		if addedTableName {
@@ -534,23 +539,43 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 					continue
 				}
 			} else {
-				engine.autoMapType(fieldValue)
-				if table, ok := engine.Tables[fieldValue.Type()]; ok {
-					if len(table.PrimaryKeys) == 1 {
-						pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)
-						// fix non-int pk issues
-						//if pkField.Int() != 0 {
-						if pkField.IsValid() && !isZero(pkField.Interface()) {
-							val = pkField.Interface()
-						} else {
+				if col.SQLType.IsJson() {
+					if col.SQLType.IsText() {
+						bytes, err := json.Marshal(fieldValue.Interface())
+						if err != nil {
+							engine.LogError(err)
 							continue
 						}
-					} else {
-						//TODO: how to handler?
-						panic(fmt.Sprintln("not supported", fieldValue.Interface(), "as", table.PrimaryKeys))
+						val = string(bytes)
+					} else if col.SQLType.IsBlob() {
+						var bytes []byte
+						var err error
+						bytes, err = json.Marshal(fieldValue.Interface())
+						if err != nil {
+							engine.LogError(err)
+							continue
+						}
+						val = bytes
 					}
 				} else {
-					val = fieldValue.Interface()
+					engine.autoMapType(fieldValue)
+					if table, ok := engine.Tables[fieldValue.Type()]; ok {
+						if len(table.PrimaryKeys) == 1 {
+							pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)
+							// fix non-int pk issues
+							//if pkField.Int() != 0 {
+							if pkField.IsValid() && !isZero(pkField.Interface()) {
+								val = pkField.Interface()
+							} else {
+								continue
+							}
+						} else {
+							//TODO: how to handler?
+							panic(fmt.Sprintln("not supported", fieldValue.Interface(), "as", table.PrimaryKeys))
+						}
+					} else {
+						val = fieldValue.Interface()
+					}
 				}
 			}
 		case reflect.Array, reflect.Slice, reflect.Map:
@@ -794,6 +819,12 @@ func (statement *Statement) Distinct(columns ...string) *Statement {
 	return statement
 }
 
+// Generate "SELECT ... FOR UPDATE" statment
+func (statement *Statement) ForUpdate() *Statement {
+	statement.IsForUpdate = true
+	return statement
+}
+
 // replace select
 func (s *Statement) Select(str string) *Statement {
 	s.selectStr = str
@@ -810,6 +841,7 @@ func (statement *Statement) Cols(columns ...string) *Statement {
 	if strings.Contains(statement.ColumnStr, ".") {
 		statement.ColumnStr = strings.Replace(statement.ColumnStr, ".", statement.Engine.Quote("."), -1)
 	}
+	statement.ColumnStr = strings.Replace(statement.ColumnStr, statement.Engine.Quote("*"), "*", -1)
 	return statement
 }
 
@@ -1179,6 +1211,7 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 		distinct = "DISTINCT "
 	}
 
+	var dialect core.Dialect = statement.Engine.Dialect()
 	var top string
 	var mssqlCondi string
 	/*var orderBy string
@@ -1190,7 +1223,7 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 	if statement.WhereStr != "" {
 		whereStr = fmt.Sprintf(" WHERE %v", statement.WhereStr)
 		if statement.ConditionStr != "" {
-			whereStr = fmt.Sprintf("%v %s %v", whereStr, statement.Engine.Dialect().AndStr(),
+			whereStr = fmt.Sprintf("%v %s %v", whereStr, dialect.AndStr(),
 				statement.ConditionStr)
 		}
 	} else if statement.ConditionStr != "" {
@@ -1198,7 +1231,7 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 	}
 	var fromStr string = " FROM " + statement.Engine.Quote(statement.TableName())
 	if statement.TableAlias != "" {
-		if statement.Engine.dialect.DBType() == core.ORACLE {
+		if dialect.DBType() == core.ORACLE {
 			fromStr += " " + statement.Engine.Quote(statement.TableAlias)
 		} else {
 			fromStr += " AS " + statement.Engine.Quote(statement.TableAlias)
@@ -1208,7 +1241,7 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 		fromStr = fmt.Sprintf("%v %v", fromStr, statement.JoinStr)
 	}
 
-	if statement.Engine.dialect.DBType() == core.MSSQL {
+	if dialect.DBType() == core.MSSQL {
 		if statement.LimitN > 0 {
 			top = fmt.Sprintf(" TOP %d ", statement.LimitN)
 		}
@@ -1258,16 +1291,19 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 	if statement.OrderStr != "" {
 		a = fmt.Sprintf("%v ORDER BY %v", a, statement.OrderStr)
 	}
-	if statement.Engine.dialect.DBType() != core.MSSQL && statement.Engine.dialect.DBType() != core.ORACLE {
+	if dialect.DBType() != core.MSSQL && dialect.DBType() != core.ORACLE {
 		if statement.Start > 0 {
 			a = fmt.Sprintf("%v LIMIT %v OFFSET %v", a, statement.LimitN, statement.Start)
 		} else if statement.LimitN > 0 {
 			a = fmt.Sprintf("%v LIMIT %v", a, statement.LimitN)
 		}
-	} else if statement.Engine.dialect.DBType() == core.ORACLE {
+	} else if dialect.DBType() == core.ORACLE {
 		if statement.Start != 0 || statement.LimitN != 0 {
 			a = fmt.Sprintf("SELECT %v FROM (SELECT %v,ROWNUM RN FROM (%v) at WHERE ROWNUM <= %d) aat WHERE RN > %d", columnStr, columnStr, a, statement.Start+statement.LimitN, statement.Start)
 		}
+	}
+	if statement.IsForUpdate {
+			a = dialect.ForUpdateSql(a)
 	}
 
 	return

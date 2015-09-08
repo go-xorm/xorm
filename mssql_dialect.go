@@ -509,6 +509,10 @@ func (db *mssql) CreateTableSql(table *core.Table, tableName, storeEngine, chars
 	return sql
 }
 
+func (db *mssql) ForUpdateSql(query string) string {
+	return query
+}
+
 func (db *mssql) Filters() []core.Filter {
 	return []core.Filter{&core.IdFilter{}, &core.QuoteFilter{}}
 }
