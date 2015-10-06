@@ -182,7 +182,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 	includeVersion bool, includeUpdated bool, includeNil bool,
 	includeAutoIncr bool, allUseBool bool, useAllCols bool,
 	mustColumnMap map[string]bool, nullableMap map[string]bool,
-	columnMap map[string]bool, update bool) ([]string, []interface{}) {
+	columnMap map[string]bool, update, unscoped bool) ([]string, []interface{}) {
 
 	colNames := make([]string, 0)
 	var args = make([]interface{}, 0)
@@ -199,7 +199,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 		if !includeAutoIncr && col.IsAutoIncrement {
 			continue
 		}
-		if col.IsDeleted {
+		if col.IsDeleted && !unscoped {
 			continue
 		}
 		if use, ok := columnMap[col.Name]; ok && !use {

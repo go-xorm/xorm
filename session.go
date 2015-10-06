@@ -3565,7 +3565,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			colNames, args = buildUpdates(session.Engine, table, bean, false, false,
 				false, false, session.Statement.allUseBool, session.Statement.useAllCols,
 				session.Statement.mustColumnMap, session.Statement.nullableMap,
-				session.Statement.columnMap, true)
+				session.Statement.columnMap, true, session.Statement.unscoped)
 		} else {
 			colNames, args, err = genCols(table, session, bean, true, true)
 			if err != nil {
