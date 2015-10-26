@@ -2144,7 +2144,9 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 	cols := make([]*core.Column, 0)
 
 	for i := 0; i < size; i++ {
-		elemValue := sliceValue.Index(i).Interface()
+		v := sliceValue.Index(i)
+		vv := reflect.Indirect(v)
+		elemValue := v.Interface()
 		colPlaces := make([]string, 0)
 
 		// handle BeforeInsertProcessor
@@ -2160,7 +2162,11 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 
 		if i == 0 {
 			for _, col := range table.Columns() {
-				fieldValue := reflect.Indirect(reflect.ValueOf(elemValue)).FieldByName(col.FieldName)
+				ptrFieldValue, err := col.ValueOfV(&vv)
+				if err != nil {
+					return 0, err
+				}
+				fieldValue := *ptrFieldValue
 				if col.IsAutoIncrement && fieldValue.Int() == 0 {
 					continue
 				}
@@ -2203,7 +2209,12 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 			}
 		} else {
 			for _, col := range cols {
-				fieldValue := reflect.Indirect(reflect.ValueOf(elemValue)).FieldByName(col.FieldName)
+				ptrFieldValue, err := col.ValueOfV(&vv)
+				if err != nil {
+					return 0, err
+				}
+				fieldValue := *ptrFieldValue
+
 				if col.IsAutoIncrement && fieldValue.Int() == 0 {
 					continue
 				}
@@ -2267,7 +2278,8 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 
 	lenAfterClosures := len(session.afterClosures)
 	for i := 0; i < size; i++ {
-		elemValue := sliceValue.Index(i).Interface()
+		elemValue := reflect.Indirect(sliceValue.Index(i)).Addr().Interface()
+
 		// handle AfterInsertProcessor
 		if session.IsAutoCommit {
 			// !nashtsai! does user expect it's same slice to passed closure when using Before()/After() when insert multi??
@@ -3012,11 +3024,11 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 
 			fieldTable := session.Engine.autoMapType(fieldValue)
 			//if fieldTable, ok := session.Engine.Tables[fieldValue.Type()]; ok {
-				if len(fieldTable.PrimaryKeys) == 1 {
-					pkField := reflect.Indirect(fieldValue).FieldByName(fieldTable.PKColumns()[0].FieldName)
-					return pkField.Interface(), nil
-				}
-				return 0, fmt.Errorf("no primary key for col %v", col.Name)
+			if len(fieldTable.PrimaryKeys) == 1 {
+				pkField := reflect.Indirect(fieldValue).FieldByName(fieldTable.PKColumns()[0].FieldName)
+				return pkField.Interface(), nil
+			}
+			return 0, fmt.Errorf("no primary key for col %v", col.Name)
 			//}
 		}
 
