@@ -1203,8 +1203,8 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		table = session.Statement.RefTable
 	}
 
+	var addedTableName = (len(session.Statement.JoinStr) > 0)
 	if len(condiBean) > 0 {
-		var addedTableName = (len(session.Statement.JoinStr) > 0)
 		colNames, args := buildConditions(session.Engine, table, condiBean[0], true, true,
 			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
 			session.Statement.unscoped, session.Statement.mustColumnMap,
@@ -1215,8 +1215,12 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		// !oinume! Add "<col> IS NULL" to WHERE whatever condiBean is given.
 		// See https://github.com/go-xorm/xorm/issues/179
 		if col := table.DeletedColumn(); col != nil && !session.Statement.unscoped { // tag "deleted" is enabled
+			var colName string = session.Engine.Quote(col.Name)
+			if addedTableName {
+				colName = session.Engine.Quote(session.Statement.TableName()) + "." + colName
+			}
 			session.Statement.ConditionStr = fmt.Sprintf("(%v IS NULL or %v = '0001-01-01 00:00:00') ",
-				session.Engine.Quote(col.Name), session.Engine.Quote(col.Name))
+				colName, colName)
 		}
 	}
 
