@@ -3332,10 +3332,14 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 
 		var v interface{} = id
 		switch aiValue.Type().Kind() {
+		case reflect.Int16:
+			v = int16(id)
 		case reflect.Int32:
 			v = int32(id)
 		case reflect.Int:
 			v = int(id)
+		case reflect.Uint16:
+			v = uint16(id)
 		case reflect.Uint32:
 			v = uint32(id)
 		case reflect.Uint64:
