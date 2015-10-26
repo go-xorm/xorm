@@ -1181,12 +1181,6 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 }
 
 func (statement *Statement) genSelectSql(columnStr string) (a string) {
-	/*if statement.GroupByStr != "" {
-		if columnStr == "" {
-			columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
-		}
-		//statement.GroupByStr = columnStr
-	}*/
 	var distinct string
 	if statement.IsDistinct {
 		distinct = "DISTINCT "
@@ -1195,16 +1189,17 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 	var dialect core.Dialect = statement.Engine.Dialect()
 	var top string
 	var mssqlCondi string
-	/*var orderBy string
-	if statement.OrderStr != "" {
-		orderBy = fmt.Sprintf(" ORDER BY %v", statement.OrderStr)
-	}*/
+
 	statement.processIdParam()
 	var whereStr string
 	if statement.WhereStr != "" {
-		whereStr = fmt.Sprintf(" WHERE %v", statement.WhereStr)
 		if statement.ConditionStr != "" {
-			whereStr = fmt.Sprintf("%v %s %v", whereStr, dialect.AndStr(),
+			whereStr = fmt.Sprintf(" WHERE (%v)", statement.WhereStr)
+		} else {
+			whereStr = fmt.Sprintf(" WHERE %v", statement.WhereStr)
+		}
+		if statement.ConditionStr != "" {
+			whereStr = fmt.Sprintf("%v %s (%v)", whereStr, dialect.AndStr(),
 				statement.ConditionStr)
 		}
 	} else if statement.ConditionStr != "" {
@@ -1284,7 +1279,7 @@ func (statement *Statement) genSelectSql(columnStr string) (a string) {
 		}
 	}
 	if statement.IsForUpdate {
-			a = dialect.ForUpdateSql(a)
+		a = dialect.ForUpdateSql(a)
 	}
 
 	return
