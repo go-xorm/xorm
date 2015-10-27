@@ -913,7 +913,7 @@ func (statement *Statement) Desc(colNames ...string) *Statement {
 		fmt.Fprint(&buf, ", ")
 	}
 	newColNames := statement.col2NewColsWithQuote(colNames...)
-	fmt.Fprintf(&buf, "%q DESC", strings.Join(newColNames, " DESC, "))
+	fmt.Fprintf(&buf, "%v DESC", strings.Join(newColNames, " DESC, "))
 	statement.OrderStr = buf.String()
 	return statement
 }
@@ -926,7 +926,7 @@ func (statement *Statement) Asc(colNames ...string) *Statement {
 		fmt.Fprint(&buf, ", ")
 	}
 	newColNames := statement.col2NewColsWithQuote(colNames...)
-	fmt.Fprintf(&buf, "%q ASC", strings.Join(newColNames, " ASC, "))
+	fmt.Fprintf(&buf, "%v ASC", strings.Join(newColNames, " ASC, "))
 	statement.OrderStr = buf.String()
 	return statement
 }
@@ -935,7 +935,7 @@ func (statement *Statement) Asc(colNames ...string) *Statement {
 func (statement *Statement) Join(join_operator string, tablename interface{}, condition string) *Statement {
 	var buf bytes.Buffer
 	if len(statement.JoinStr) > 0 {
-		fmt.Fprintf(&buf, "%q %v JOIN ", statement.JoinStr, join_operator)
+		fmt.Fprintf(&buf, "%v %v JOIN ", statement.JoinStr, join_operator)
 	} else {
 		fmt.Fprintf(&buf, "%v JOIN ", join_operator)
 	}
@@ -944,7 +944,7 @@ func (statement *Statement) Join(join_operator string, tablename interface{}, co
 	case []string:
 		t := tablename.([]string)
 		if len(t) > 1 {
-			fmt.Fprintf(&buf, "%q AS %q", statement.Engine.Quote(t[0]), statement.Engine.Quote(t[1]))
+			fmt.Fprintf(&buf, "%v AS %v", statement.Engine.Quote(t[0]), statement.Engine.Quote(t[1]))
 		} else if len(t) == 1 {
 			fmt.Fprintf(&buf, statement.Engine.Quote(t[0]))
 		}
@@ -964,7 +964,7 @@ func (statement *Statement) Join(join_operator string, tablename interface{}, co
 			}
 		}
 		if l > 1 {
-			fmt.Fprintf(&buf, "%q AS %q", statement.Engine.Quote(table),
+			fmt.Fprintf(&buf, "%v AS %v", statement.Engine.Quote(table),
 				statement.Engine.Quote(fmt.Sprintf("%v", t[1])))
 		} else if l == 1 {
 			fmt.Fprintf(&buf, statement.Engine.Quote(table))
