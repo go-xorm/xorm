@@ -332,23 +332,35 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			} else if nulType, ok := fieldValue.Interface().(driver.Valuer); ok {
 				val, _ = nulType.Value()
 			} else {
-				engine.autoMapType(fieldValue)
-				if table, ok := engine.Tables[fieldValue.Type()]; ok {
-					if len(table.PrimaryKeys) == 1 {
-						pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)
-						// fix non-int pk issues
-						//if pkField.Int() != 0 {
-						if pkField.IsValid() && !isZero(pkField.Interface()) {
-							val = pkField.Interface()
+				if !col.SQLType.IsJson() {
+					engine.autoMapType(fieldValue)
+					if table, ok := engine.Tables[fieldValue.Type()]; ok {
+						if len(table.PrimaryKeys) == 1 {
+							pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)
+							// fix non-int pk issues
+							//if pkField.Int() != 0 {
+							if pkField.IsValid() && !isZero(pkField.Interface()) {
+								val = pkField.Interface()
+							} else {
+								continue
+							}
 						} else {
-							continue
+							//TODO: how to handler?
+							panic("not supported")
 						}
 					} else {
-						//TODO: how to handler?
-						panic("not supported")
+						val = fieldValue.Interface()
 					}
 				} else {
-					val = fieldValue.Interface()
+					bytes, err := json.Marshal(fieldValue.Interface())
+					if err != nil {
+						panic(fmt.Sprintf("mashal %v failed", fieldValue.Interface()))
+					}
+					if col.SQLType.IsText() {
+						val = string(bytes)
+					} else if col.SQLType.IsBlob() {
+						val = bytes
+					}
 				}
 			}
 		case reflect.Array, reflect.Slice, reflect.Map:
