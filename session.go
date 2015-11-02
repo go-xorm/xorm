@@ -1368,6 +1368,117 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	return nil
 }
 
+
+func (session *Session) FindMap(rowsSlicePtr interface{}, condiBean ...interface{}) error {
+	defer session.resetStatement()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+
+	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
+	if sliceValue.Kind() != reflect.Slice && sliceValue.Kind() != reflect.Map {
+		return errors.New("needs a pointer to a slice or a map")
+	}
+
+	sliceElementType := sliceValue.Type().Elem()
+	fmt.Println("sliceValue.Kind()", sliceValue.Kind(), sliceElementType)
+
+	fmt.Println("sliceValue.Kind()")
+	/*
+		if len(condiBean) > 0 {
+			colNames, args := buildConditions(session.Engine, table, condiBean[0], true, true,
+				false, true, session.Statement.allUseBool, session.Statement.useAllCols,
+				session.Statement.unscoped, session.Statement.mustColumnMap)
+			session.Statement.ConditionStr = strings.Join(colNames, " AND ")
+			session.Statement.BeanArgs = args
+		} else {
+			// !oinume! Add "<col> IS NULL" to WHERE whatever condiBean is given.
+			// See https://github.com/go-xorm/xorm/issues/179
+			if col := table.DeletedColumn(); col != nil && !session.Statement.unscoped { // tag "deleted" is enabled
+				session.Statement.ConditionStr = fmt.Sprintf("(%v IS NULL or %v = '0001-01-01 00:00:00') ",
+					session.Engine.Quote(col.Name), session.Engine.Quote(col.Name))
+			}
+		}*/
+	fmt.Println("sliceValue.Kind()")
+	var sqlStr string
+	var args []interface{}
+	if session.Statement.RawSQL == "" {
+		var columnStr string = session.Statement.ColumnStr
+		if session.Statement.JoinStr == "" {
+			if columnStr == "" {
+				if session.Statement.GroupByStr != "" {
+					columnStr = session.Statement.Engine.Quote(strings.Replace(session.Statement.GroupByStr, ",", session.Engine.Quote(","), -1))
+				} else {
+					columnStr = session.Statement.genColumnStr()
+				}
+			}
+		} else {
+			if columnStr == "" {
+				if session.Statement.GroupByStr != "" {
+					columnStr = session.Statement.Engine.Quote(strings.Replace(session.Statement.GroupByStr, ",", session.Engine.Quote(","), -1))
+				} else {
+					columnStr = "*"
+				}
+			}
+		}
+
+		session.Statement.attachInSql()
+
+		sqlStr = session.Statement.genSelectSql(columnStr)
+		args = append(session.Statement.Params, session.Statement.BeanArgs...)
+		// for mssql and use limit
+		qs := strings.Count(sqlStr, "?")
+		if len(args)*2 == qs {
+			args = append(args, args...)
+		}
+	} else {
+		sqlStr = session.Statement.RawSQL
+		args = session.Statement.RawParams
+	}
+	fmt.Println("sliceValue.Kind()")
+	//	var err error
+	/*
+		if session.Statement.JoinStr == "" {
+			if cacher := session.Engine.getCacher2(table); cacher != nil &&
+				session.Statement.UseCache &&
+				!session.Statement.IsDistinct &&
+				!session.Statement.unscoped {
+				err = session.cacheFind(sliceElementType, sqlStr, rowsSlicePtr, args...)
+				if err != ErrCacheFailed {
+					return err
+				}
+				err = nil // !nashtsai! reset err to nil for ErrCacheFailed
+				session.Engine.LogWarn("Cache Find Failed")
+			}
+		}
+	*/
+
+	fmt.Println("sliceValue.Kind()", sliceValue.Kind())
+	if sliceValue.Kind() != reflect.Map {
+		fmt.Println("sliceValue.Type()", sliceValue.Index(0).Type(), reflect.TypeOf(make(map[string]interface{})).Name())
+
+		if sliceValue.Index(0).Type() == reflect.TypeOf(make(map[string][]byte)) {
+			fmt.Println("sliceValue.Type()OK")
+			resultsSlice, err := session.query(sqlStr, args...)
+			if err != nil {
+				fmt.Println("sliceValue.Type()err", err.Error())
+				return err
+			}
+
+			for _, results := range resultsSlice {
+				fmt.Println("sliceValue.Type()OK", results)
+				sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(results))))
+			}
+
+		} else {
+			fmt.Println("sliceValue.Index(0).Type() == reflect.TypeOf(make(map[string]interface{}))")
+		}
+	} else {
+		fmt.Println("sliceValue.Kind() != reflect.Map")
+	}
+	return nil
+}
+
 // func (session *Session) queryRows(rawStmt **sql.Stmt, rawRows **sql.Rows, sqlStr string, args ...interface{}) error {
 // 	var err error
 // 	if session.IsAutoCommit {
