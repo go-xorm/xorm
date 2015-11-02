@@ -2,6 +2,8 @@
 
 Xorm is a simple and powerful ORM for Go.
 
+[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-xorm/xorm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
 [![Build Status](https://drone.io/github.com/go-xorm/tests/status.png)](https://drone.io/github.com/go-xorm/tests/latest)  [![Go Walker](http://gowalker.org/api/v1/badge)](http://gowalker.org/github.com/go-xorm/xorm) [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/lunny/xorm/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
 
 # Features
@@ -33,9 +35,11 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
 
-* SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
-
 * Postgres: [github.com/lib/pq](https://github.com/lib/pq)
+
+* Tidb: [github.com/pingcap/tidb](https://github.com/pingcap/tidb)
+
+* SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 
 * MsSql: [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
@@ -43,7 +47,16 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * Oracle: [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (experiment)
 
+* ql: [github.com/cznic/ql](https://github.com/cznic/ql) (experiment)
+
 # Changelog
+
+* **v0.4.4**
+    * ql database expriment support
+    * tidb database expriment support
+    * sql.NullString and etc. field support
+    * select ForUpdate support
+    * many bugs fixed
 
 * **v0.4.3**
     * Json column type support

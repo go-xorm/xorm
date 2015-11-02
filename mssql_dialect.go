@@ -220,6 +220,11 @@ func (db *mssql) SqlType(c *core.Column) string {
 	switch t := c.SQLType.Name; t {
 	case core.Bool:
 		res = core.TinyInt
+		if c.Default == "true" {
+			c.Default = "1"
+		} else if c.Default == "false" {
+			c.Default = "0"
+		}
 	case core.Serial:
 		c.IsAutoIncrement = true
 		c.IsPrimaryKey = true
@@ -502,6 +507,10 @@ func (db *mssql) CreateTableSql(table *core.Table, tableName, storeEngine, chars
 	sql = sql[:len(sql)-2] + ")"
 	sql += ";"
 	return sql
+}
+
+func (db *mssql) ForUpdateSql(query string) string {
+	return query
 }
 
 func (db *mssql) Filters() []core.Filter {

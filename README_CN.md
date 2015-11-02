@@ -4,6 +4,8 @@
 
 xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作非常简便。
 
+[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-xorm/xorm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
 [![Build Status](https://drone.io/github.com/go-xorm/tests/status.png)](https://drone.io/github.com/go-xorm/tests/latest)  [![Go Walker](http://gowalker.org/api/v1/badge)](http://gowalker.org/github.com/go-xorm/xorm)
 
 ## 特性
@@ -34,9 +36,11 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
 
-* SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
-
 * Postgres: [github.com/lib/pq](https://github.com/lib/pq)
+
+* Tidb: [github.com/pingcap/tidb](https://github.com/pingcap/tidb)
+
+* SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 
 * MsSql: [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
@@ -44,16 +48,20 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * Oracle: [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (试验性支持)
 
+* ql: [github.com/cznic/ql](https://github.com/cznic/ql) (试验性支持)
+
 ## 更新日志
 
+* **v0.4.4**
+    * Tidb 数据库支持
+    * QL 试验性支持
+    * sql.NullString支持
+    * ForUpdate 支持
+    * bug修正
+    
 * **v0.4.3**
     * Json 字段类型支持
     * oracle实验性支持
-    * bug修正
-
-* **v0.4.2**
-    * 事物如未Rollback或Commit，在关闭时会自动Rollback
-    * Gonic 映射支持
     * bug修正
 
 [更多更新日志...](https://github.com/go-xorm/manual-zh-CN/tree/master/chapter-16)

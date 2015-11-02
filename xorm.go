@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	Version string = "0.4.3.0526"
+	Version string = "0.4.4.1029"
 )
 
 func regDrvsNDialects() bool {
@@ -39,7 +39,7 @@ func regDrvsNDialects() bool {
 	for driverName, v := range providedDrvsNDialects {
 		if driver := core.QueryDriver(driverName); driver == nil {
 			core.RegisterDriver(driverName, v.getDriver())
-			core.RegisterDialect(v.dbType, v.getDialect())
+			core.RegisterDialect(v.dbType, v.getDialect)
 		}
 	}
 	return true

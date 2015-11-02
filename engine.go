@@ -664,10 +664,12 @@ func (engine *Engine) autoMapType(v reflect.Value) *core.Table {
 	if !ok {
 		table = engine.mapType(v)
 		engine.Tables[t] = table
-		if v.CanAddr() {
-			engine.GobRegister(v.Addr().Interface())
-		} else {
-			engine.GobRegister(v.Interface())
+		if engine.Cacher != nil {
+			if v.CanAddr() {
+				engine.GobRegister(v.Addr().Interface())
+			} else {
+				engine.GobRegister(v.Interface())
+			}
 		}
 	}
 	engine.mutex.Unlock()

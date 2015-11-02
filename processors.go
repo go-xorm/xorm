@@ -23,6 +23,10 @@ type BeforeSetProcessor interface {
 	BeforeSet(string, Cell)
 }
 
+type AfterSetProcessor interface {
+	AfterSet(string, Cell)
+}
+
 // !nashtsai! TODO enable BeforeValidateProcessor when xorm start to support validations
 //// Executed before an object is validated
 //type BeforeValidateProcessor interface {
