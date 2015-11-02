@@ -1540,10 +1540,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 				sliceValue.SetMapIndex(reflect.ValueOf(key), reflect.Indirect(reflect.ValueOf(newValue.Interface())))
 			}
 		}
-<<<<<<< HEAD
 
-=======
->>>>>>> parent of 24f47dd... Add FindMap
 	}
 	return nil
 }
