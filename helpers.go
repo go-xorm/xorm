@@ -15,6 +15,10 @@ import (
 	"github.com/go-xorm/core"
 )
 
+type zeroable interface {
+	IsZero() bool
+}
+
 func isZero(k interface{}) bool {
 	switch k.(type) {
 	case int:
@@ -45,8 +49,8 @@ func isZero(k interface{}) bool {
 		return k.(bool) == false
 	case string:
 		return k.(string) == ""
-	case time.Time:
-		return k.(time.Time).IsZero()
+	case zeroable:
+		return k.(zeroable).IsZero()
 	}
 	return false
 }
