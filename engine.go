@@ -378,12 +378,12 @@ func (engine *Engine) DumpAll(w io.Writer) error {
 	}
 
 	for _, table := range tables {
-		_, err = io.WriteString(w, engine.dialect.CreateTableSql(table, "", table.StoreEngine, "")+"\n\n")
+		_, err = io.WriteString(w, engine.dialect.CreateTableSql(table, "", table.StoreEngine, "")+";\n\n")
 		if err != nil {
 			return err
 		}
 		for _, index := range table.Indexes {
-			_, err = io.WriteString(w, engine.dialect.CreateIndexSql(table.Name, index)+"\n\n")
+			_, err = io.WriteString(w, engine.dialect.CreateIndexSql(table.Name, index)+";\n\n")
 			if err != nil {
 				return err
 			}
