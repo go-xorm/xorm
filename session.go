@@ -2171,7 +2171,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 					return 0, err
 				}
 				fieldValue := *ptrFieldValue
-				if col.IsAutoIncrement && fieldValue.Int() == 0 {
+				if col.IsAutoIncrement && isZero(fieldValue.Interface()) {
 					continue
 				}
 				if col.MapType == core.ONLYFROMDB {
@@ -2219,7 +2219,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 				}
 				fieldValue := *ptrFieldValue
 
-				if col.IsAutoIncrement && fieldValue.Int() == 0 {
+				if col.IsAutoIncrement && isZero(fieldValue.Interface()) {
 					continue
 				}
 				if col.MapType == core.ONLYFROMDB {
@@ -3219,19 +3219,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			return 1, nil
 		}
 
-		var v interface{} = id
-		switch aiValue.Type().Kind() {
-		case reflect.Int32:
-			v = int32(id)
-		case reflect.Int:
-			v = int(id)
-		case reflect.Uint32:
-			v = uint32(id)
-		case reflect.Uint64:
-			v = uint64(id)
-		case reflect.Uint:
-			v = uint(id)
-		}
+		v := int64ToInt(id, aiValue.Type().Kind())
 		aiValue.Set(reflect.ValueOf(v))
 
 		return 1, nil
@@ -3278,19 +3266,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			return 1, nil
 		}
 
-		var v interface{} = id
-		switch aiValue.Type().Kind() {
-		case reflect.Int32:
-			v = int32(id)
-		case reflect.Int:
-			v = int(id)
-		case reflect.Uint32:
-			v = uint32(id)
-		case reflect.Uint64:
-			v = uint64(id)
-		case reflect.Uint:
-			v = uint(id)
-		}
+		v := int64ToInt(id, aiValue.Type().Kind())
 		aiValue.Set(reflect.ValueOf(v))
 
 		return 1, nil
@@ -3334,23 +3310,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			return res.RowsAffected()
 		}
 
-		var v interface{} = id
-		switch aiValue.Type().Kind() {
-		case reflect.Int16:
-			v = int16(id)
-		case reflect.Int32:
-			v = int32(id)
-		case reflect.Int:
-			v = int(id)
-		case reflect.Uint16:
-			v = uint16(id)
-		case reflect.Uint32:
-			v = uint32(id)
-		case reflect.Uint64:
-			v = uint64(id)
-		case reflect.Uint:
-			v = uint(id)
-		}
+		v := int64ToInt(id, aiValue.Type().Kind())
 		aiValue.Set(reflect.ValueOf(v))
 
 		return res.RowsAffected()

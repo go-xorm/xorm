@@ -55,6 +55,27 @@ func isZero(k interface{}) bool {
 	return false
 }
 
+func int64ToInt(id int64, k reflect.Kind) interface{} {
+	var v interface{} = id
+	switch k {
+	case reflect.Int16:
+		v = int16(id)
+	case reflect.Int32:
+		v = int32(id)
+	case reflect.Int:
+		v = int(id)
+	case reflect.Uint16:
+		v = uint16(id)
+	case reflect.Uint32:
+		v = uint32(id)
+	case reflect.Uint64:
+		v = uint64(id)
+	case reflect.Uint:
+		v = uint(id)
+	}
+	return v
+}
+
 func isPKZero(pk core.PK) bool {
 	for _, k := range pk {
 		if isZero(k) {
