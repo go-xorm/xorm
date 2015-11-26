@@ -1867,7 +1867,7 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 							structInter := reflect.New(fieldValue.Type())
 							newsession := session.Engine.NewSession()
 							defer newsession.Close()
-							has, err := newsession.Id(pk).NoCascade().Get(structInter.Interface())
+							has, err := newsession.Id(pk).Cascade().Get(structInter.Interface())  // FIXME NoCascade
 							if err != nil {
 								return err
 							}
@@ -2582,7 +2582,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 						structInter := reflect.New(fieldValue.Type())
 						newsession := session.Engine.NewSession()
 						defer newsession.Close()
-						has, err := newsession.Id(pk).NoCascade().Get(structInter.Interface())
+						has, err := newsession.Id(pk).Cascade().Get(structInter.Interface())  // FIXME NoCascade
 						if err != nil {
 							return err
 						}
@@ -2930,7 +2930,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 							// property to be fetched lazily
 							newsession := session.Engine.NewSession()
 							defer newsession.Close()
-							has, err := newsession.Id(pk).NoCascade().Get(structInter.Interface())
+							has, err := newsession.Id(pk).Cascade().Get(structInter.Interface())  // FIXME  NoCascade
 							if err != nil {
 								return err
 							}
