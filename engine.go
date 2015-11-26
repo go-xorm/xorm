@@ -8,12 +8,14 @@ import (
 	"bufio"
 	"bytes"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/gob"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -50,6 +52,8 @@ type Engine struct {
 
 	disableGlobalCache bool
 }
+
+var sqlRegexp = regexp.MustCompile(`(\$\d+)|\?`)
 
 func (engine *Engine) SetLogger(logger core.ILogger) {
 	engine.Logger = logger
@@ -197,10 +201,34 @@ func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
 	if engine.ShowSQL {
 		engine.overrideLogLevel(core.LOG_INFO)
 		if len(sqlArgs) > 0 {
-			engine.Logger.Infof("[sql] %v [args] %v", sqlStr, sqlArgs)
-		} else {
-			engine.Logger.Infof("[sql] %v", sqlStr)
+			// format sql args
+			var formatedSqlArgs []interface{}
+			for _, value := range sqlArgs {
+				indirectValue := reflect.Indirect(reflect.ValueOf(value))
+				if indirectValue.IsValid() {
+					value = indirectValue.Interface()
+					if t, ok := value.(time.Time); ok {
+						formatedSqlArgs = append(formatedSqlArgs, fmt.Sprintf("'%v'", t.Format(time.RFC3339)))
+					} else if b, ok := value.([]byte); ok {
+						formatedSqlArgs = append(formatedSqlArgs, fmt.Sprintf("'%v'", string(b)))
+					} else if r, ok := value.(driver.Valuer); ok {
+						if value, err := r.Value(); err == nil && value != nil {
+							formatedSqlArgs = append(formatedSqlArgs, fmt.Sprintf("'%v'", value))
+						} else {
+							formatedSqlArgs = append(formatedSqlArgs, "NULL")
+						}
+					} else {
+						formatedSqlArgs = append(formatedSqlArgs, fmt.Sprintf("'%v'", value))
+					}
+				} else {
+					formatedSqlArgs = append(formatedSqlArgs, fmt.Sprintf("'%v'", value))
+				}
+			}
+
+			sqlStr = fmt.Sprintf(sqlRegexp.ReplaceAllString(sqlStr, "%v"), formatedSqlArgs...)
 		}
+
+		engine.Logger.Infof("[sql] %v", sqlStr)
 	}
 }
 
