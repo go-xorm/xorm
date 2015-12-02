@@ -182,7 +182,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 	return statement
 }
 
-// Auto generating conditions according a struct
+// Auto generating update columnes and values according a struct
 func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 	includeVersion bool, includeUpdated bool, includeNil bool,
 	includeAutoIncr bool, allUseBool bool, useAllCols bool,
@@ -208,10 +208,6 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			continue
 		}
 		if use, ok := columnMap[col.Name]; ok && !use {
-			continue
-		}
-
-		if engine.dialect.DBType() == core.MSSQL && col.SQLType.Name == core.Text {
 			continue
 		}
 
@@ -338,7 +334,6 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 						if len(table.PrimaryKeys) == 1 {
 							pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)
 							// fix non-int pk issues
-							//if pkField.Int() != 0 {
 							if pkField.IsValid() && !isZero(pkField.Interface()) {
 								val = pkField.Interface()
 							} else {
@@ -364,11 +359,13 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 				}
 			}
 		case reflect.Array, reflect.Slice, reflect.Map:
-			if fieldValue == reflect.Zero(fieldType) {
-				continue
-			}
-			if fieldValue.IsNil() || !fieldValue.IsValid() || fieldValue.Len() == 0 {
-				continue
+			if !requiredField {
+				if fieldValue == reflect.Zero(fieldType) {
+					continue
+				}
+				if fieldValue.IsNil() || !fieldValue.IsValid() || fieldValue.Len() == 0 {
+					continue
+				}
 			}
 
 			if col.SQLType.IsText() {
