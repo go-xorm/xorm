@@ -3537,7 +3537,9 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	// --
 
 	var err error
-	if t.Kind() == reflect.Struct {
+	var isMap = t.Kind() == reflect.Map
+	var isStruct = t.Kind() == reflect.Struct
+	if isStruct {
 		table = session.Engine.TableInfo(bean)
 		session.Statement.RefTable = table
 
@@ -3552,7 +3554,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 				return 0, err
 			}
 		}
-	} else if t.Kind() == reflect.Map {
+	} else if isMap {
 		if session.Statement.RefTable == nil {
 			return 0, ErrTableNotFound
 		}
@@ -3576,10 +3578,12 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		args = append(args, val)
 
 		var colName = col.Name
-		session.afterClosures = append(session.afterClosures, func(bean interface{}) {
-			col := table.GetColumn(colName)
-			setColumnTime(bean, col, t)
-		})
+		if isStruct {
+			session.afterClosures = append(session.afterClosures, func(bean interface{}) {
+				col := table.GetColumn(colName)
+				setColumnTime(bean, col, t)
+			})
+		}
 	}
 
 	//for update action to like "column = column + ?"
@@ -3723,6 +3727,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			} else {
 				afterClosures := make([]func(interface{}), lenAfterClosures)
 				copy(afterClosures, session.afterClosures)
+				// FIXME: if bean is a map type, it will panic because map cannot be as map key
 				session.afterUpdateBeans[bean] = &afterClosures
 			}
 
