@@ -4011,9 +4011,25 @@ func (s *Session) Sync2(beans ...interface{}) error {
 								engine.LogWarnf("Table %s column %s db type is %s, struct type is %s\n",
 									table.Name, col.Name, curType, expectedType)
 							}
+						} else if strings.HasPrefix(curType, core.Varchar) && strings.HasPrefix(expectedType, core.Varchar) {
+							if engine.dialect.DBType() == core.MYSQL {
+								if oriCol.Length < col.Length {
+									engine.LogInfof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
+										table.Name, col.Name, oriCol.Length, col.Length)
+									_, err = engine.Exec(engine.dialect.ModifyColumnSql(table.Name, col))
+								}
+							}
 						} else {
 							engine.LogWarnf("Table %s column %s db type is %s, struct type is %s",
 								table.Name, col.Name, curType, expectedType)
+						}
+					} else if expectedType == core.Varchar {
+						if engine.dialect.DBType() == core.MYSQL {
+							if oriCol.Length < col.Length {
+								engine.LogInfof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
+									table.Name, col.Name, oriCol.Length, col.Length)
+								_, err = engine.Exec(engine.dialect.ModifyColumnSql(table.Name, col))
+							}
 						}
 					}
 					if col.Default != oriCol.Default {
