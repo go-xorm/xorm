@@ -44,6 +44,7 @@ type Session struct {
 	beforeClosures []func(interface{})
 	afterClosures  []func(interface{})
 
+	prepareStmt bool
 	stmtCache   map[uint32]*core.Stmt //key: hash.Hash32 of (queryStr, len(queryStr))
 	cascadeDeep int
 
@@ -60,6 +61,7 @@ func (session *Session) Init() {
 	session.IsCommitedOrRollbacked = false
 	session.IsAutoClose = false
 	session.AutoResetStatement = true
+	session.prepareStmt = false
 
 	// !nashtsai! is lazy init better?
 	session.afterInsertBeans = make(map[interface{}]*[]func(interface{}), 0)
@@ -95,6 +97,12 @@ func (session *Session) resetStatement() {
 	if session.AutoResetStatement {
 		session.Statement.Init()
 	}
+}
+
+// Prepare
+func (session *Session) Prepare() *Session {
+	session.prepareStmt = true
+	return session
 }
 
 // Method Sql provides raw sql input parameter. When you have a complex SQL statement
@@ -459,17 +467,20 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 
 //Execute sql
 func (session *Session) innerExec(sqlStr string, args ...interface{}) (sql.Result, error) {
-	stmt, err := session.doPrepare(sqlStr)
-	if err != nil {
-		return nil, err
-	}
-	//defer stmt.Close()
+	if session.prepareStmt {
+		stmt, err := session.doPrepare(sqlStr)
+		if err != nil {
+			return nil, err
+		}
 
-	res, err := stmt.Exec(args...)
-	if err != nil {
-		return nil, err
+		res, err := stmt.Exec(args...)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
-	return res, nil
+
+	return session.DB().Exec(sqlStr, args...)
 }
 
 func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, error) {
@@ -1041,12 +1052,16 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	var err error
 	session.queryPreprocess(&sqlStr, args...)
 	if session.IsAutoCommit {
-		stmt, errPrepare := session.doPrepare(sqlStr)
-		if errPrepare != nil {
-			return false, errPrepare
+		if session.prepareStmt {
+			stmt, errPrepare := session.doPrepare(sqlStr)
+			if errPrepare != nil {
+				return false, errPrepare
+			}
+			// defer stmt.Close() // !nashtsai! don't close due to stmt is cached and bounded to this session
+			rawRows, err = stmt.Query(args...)
+		} else {
+			rawRows, err = session.DB().Query(sqlStr, args...)
 		}
-		// defer stmt.Close() // !nashtsai! don't close due to stmt is cached and bounded to this session
-		rawRows, err = stmt.Query(args...)
 	} else {
 		rawRows, err = session.Tx.Query(sqlStr, args...)
 	}
@@ -1286,11 +1301,15 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		session.queryPreprocess(&sqlStr, args...)
 
 		if session.IsAutoCommit {
-			stmt, err = session.doPrepare(sqlStr)
-			if err != nil {
-				return err
+			if session.prepareStmt {
+				stmt, err = session.doPrepare(sqlStr)
+				if err != nil {
+					return err
+				}
+				rawRows, err = stmt.Query(args...)
+			} else {
+				rawRows, err = session.DB().Query(sqlStr, args...)
 			}
-			rawRows, err = stmt.Query(args...)
 		} else {
 			rawRows, err = session.Tx.Query(sqlStr, args...)
 		}
@@ -1390,20 +1409,6 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	}
 	return nil
 }
-
-// func (session *Session) queryRows(rawStmt **sql.Stmt, rawRows **sql.Rows, sqlStr string, args ...interface{}) error {
-// 	var err error
-// 	if session.IsAutoCommit {
-// 		*rawStmt, err = session.doPrepare(sqlStr)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		*rawRows, err = (*rawStmt).Query(args...)
-// 	} else {
-// 		*rawRows, err = session.Tx.Query(sqlStr, args...)
-// 	}
-// 	return err
-// }
 
 // Test if database is ok
 func (session *Session) Ping() error {
@@ -1608,7 +1613,6 @@ type Cell *interface{}
 func (session *Session) rows2Beans(rows *core.Rows, fields []string, fieldsCount int,
 	table *core.Table, newElemFunc func() reflect.Value,
 	sliceValueSetFunc func(*reflect.Value)) error {
-
 	for rows.Next() {
 		var newValue reflect.Value = newElemFunc()
 		bean := newValue.Interface()
@@ -1618,7 +1622,6 @@ func (session *Session) rows2Beans(rows *core.Rows, fields []string, fieldsCount
 			return err
 		}
 		sliceValueSetFunc(&newValue)
-
 	}
 	return nil
 }
@@ -1854,8 +1857,10 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 							pk[0] = uint8(vv.Uint())
 						case reflect.String:
 							pk[0] = vv.String()
+						case reflect.Slice:
+							pk[0], _ = strconv.ParseInt(string(rawValue.Interface().([]byte)), 10, 64)
 						default:
-							panic("unsupported primary key type cascade")
+							panic(fmt.Sprintf("unsupported primary key type: %v, %v", rawValueType, fieldValue))
 						}
 
 						if !isPKZero(pk) {
@@ -3027,13 +3032,11 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 			}
 
 			fieldTable := session.Engine.autoMapType(fieldValue)
-			//if fieldTable, ok := session.Engine.Tables[fieldValue.Type()]; ok {
 			if len(fieldTable.PrimaryKeys) == 1 {
 				pkField := reflect.Indirect(fieldValue).FieldByName(fieldTable.PKColumns()[0].FieldName)
 				return pkField.Interface(), nil
 			}
 			return 0, fmt.Errorf("no primary key for col %v", col.Name)
-			//}
 		}
 
 		if col.SQLType.IsText() {
@@ -3051,7 +3054,6 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 			}
 			return bytes, nil
 		}
-
 		return nil, fmt.Errorf("Unsupported type %v", fieldValue.Type())
 	case reflect.Complex64, reflect.Complex128:
 		bytes, err := json.Marshal(fieldValue.Interface())
