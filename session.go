@@ -1801,7 +1801,7 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 						if d, ok := vv.Interface().([]uint8); ok {
 							hasAssigned = true
 							t, err := session.byte2Time(col, d)
-							fmt.Println(string(d), t, err)
+							//fmt.Println(string(d), t, err)
 							if err != nil {
 								session.Engine.LogError("byte2Time error:", err.Error())
 								hasAssigned = false
