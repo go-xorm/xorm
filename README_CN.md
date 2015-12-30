@@ -86,13 +86,13 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 # 快速开始
 
-## 第一步创建引擎，driverName, dataSourceName和database/sql接口相同
+* 第一步创建引擎，driverName, dataSourceName和database/sql接口相同
 
 ```Go
 engine, err := xorm.NewEngine(driverName, dataSourceName)
 ```
 
-## 定义一个和表同步的结构体，并且自动同步结构体到数据库
+* 定义一个和表同步的结构体，并且自动同步结构体到数据库
 
 ```Go
 type User struct {
@@ -108,19 +108,19 @@ type User struct {
 err := engine.Sync2(new(User))
 ```
 
-## 最原始的也支持SQL语句查询，返回的结果类型为 []map[string][]byte
+* 最原始的也支持SQL语句查询，返回的结果类型为 []map[string][]byte
 
 ```Go
 results, err := engine.Query("select * from user")
 ```
 
-## 执行一个SQL语句
+* 执行一个SQL语句
 
 ```Go
 affected, err := engine.Exec("update user set age = ? where name = ?", age, name)
 ```
 
-## 插入一条或者多条记录
+* 插入一条或者多条记录
 
 ```Go
 affected, err := engine.Insert(&user)
@@ -135,7 +135,7 @@ affected, err := engine.Insert(&user1, &users)
 // INSERT INTO struct2 () values (),(),()
 ```
 
-## 查询单条记录
+* 查询单条记录
 
 ```Go
 has, err := engine.Get(&user)
@@ -144,32 +144,32 @@ has, err := engine.Where("name = ?", name).Desc("id").Get(&user)
 // SELECT * FROM user WHERE name = ? ORDER BY id DESC LIMIT 1
 ```
 
-## 查询多条记录，当然可以使用Join和extends来组合使用
+* 查询多条记录，当然可以使用Join和extends来组合使用
 
 ```Go
-    var users []User
-    err := engine.Where("name = ?", name).And("age > 10").Limit(10, 0).Find(&users)
-    // SELECT * FROM user WHERE name = ? AND age > 10 limit 0 offset 10
+var users []User
+err := engine.Where("name = ?", name).And("age > 10").Limit(10, 0).Find(&users)
+// SELECT * FROM user WHERE name = ? AND age > 10 limit 0 offset 10
 
-    type Detail struct {
-        Id int64
-        UserId int64 `xorm:"index"`
-    }
+type Detail struct {
+    Id int64
+    UserId int64 `xorm:"index"`
+}
 
-    type UserDetail struct {
-        User `xorm:"extends"`
-        Detail `xorm:"extends"`
-    }
+type UserDetail struct {
+    User `xorm:"extends"`
+    Detail `xorm:"extends"`
+}
 
-    var users []UserDetail
-    err := engine.Table("user").Select("user.*, detail.*")
-        Join("INNER", "detail", "detail.user_id = user.id").
-        Where("user.name = ?", name).Limit(10, 0).
-        Find(&users)
-    // SELECT user.*, detail.* FROM user INNER JOIN detail WHERE user.name = ? limit 0 offset 10
+var users []UserDetail
+err := engine.Table("user").Select("user.*, detail.*")
+    Join("INNER", "detail", "detail.user_id = user.id").
+    Where("user.name = ?", name).Limit(10, 0).
+    Find(&users)
+// SELECT user.*, detail.* FROM user INNER JOIN detail WHERE user.name = ? limit 0 offset 10
 ```
 
-## 根据条件遍历数据库，可以有两种方式: Iterate and Rows
+* 根据条件遍历数据库，可以有两种方式: Iterate and Rows
 
 ```Go
 err := engine.Iterate(&User{Name:name}, func(idx int, bean interface{}) error {
@@ -187,7 +187,7 @@ for rows.Next() {
 }
 ```
 
-## 更新数据，除非使用Cols,AllCols函数指明，默认只更新非空和非0的字段
+* 更新数据，除非使用Cols,AllCols函数指明，默认只更新非空和非0的字段
 
 ```Go
 affected, err := engine.Id(1).Update(&user)
@@ -212,14 +212,14 @@ affected, err := engine.Id(1).AllCols().Update(&user)
 // UPDATE user SET name=?,age=?,salt=?,passwd=?,updated=? Where id = ?
 ```
 
-## 删除记录，需要注意，删除必须至少有一个条件，否则会报错。要清空数据库可以用EmptyTable
+* 删除记录，需要注意，删除必须至少有一个条件，否则会报错。要清空数据库可以用EmptyTable
 
 ```Go
 affected, err := engine.Where(...).Delete(&user)
 // DELETE FROM user Where ...
 ```
 
-## 获取记录条数
+* 获取记录条数
 
 ```Go
 counts, err := engine.Count(&user)

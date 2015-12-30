@@ -90,13 +90,13 @@ Or
 
 # Quick Start
 
-## Create Engine
+* Create Engine
 
 ```Go
 engine, err := xorm.NewEngine(driverName, dataSourceName)
 ```
 
-## Define a struct and Sync2 table struct to database
+* Define a struct and Sync2 table struct to database
 
 ```Go
 type User struct {
@@ -112,19 +112,19 @@ type User struct {
 err := engine.Sync2(new(User))
 ```
 
-## Query a SQL string, the returned results is []map[string][]byte
+* Query a SQL string, the returned results is []map[string][]byte
 
 ```Go
 results, err := engine.Query("select * from user")
 ```
 
-## Execute a SQL string, the returned results
+* Execute a SQL string, the returned results
 
 ```Go
 affected, err := engine.Exec("update user set age = ? where name = ?", age, name)
 ```
 
-## Insert one or multipe records to database
+* Insert one or multipe records to database
 
 ```Go
 affected, err := engine.Insert(&user)
@@ -139,7 +139,7 @@ affected, err := engine.Insert(&user1, &users)
 // INSERT INTO struct2 () values (),(),()
 ```
 
-## Query one record from database
+* Query one record from database
 
 ```Go
 has, err := engine.Get(&user)
@@ -148,32 +148,32 @@ has, err := engine.Where("name = ?", name).Desc("id").Get(&user)
 // SELECT * FROM user WHERE name = ? ORDER BY id DESC LIMIT 1
 ```
 
-## Query multiple records from database, also you can use join and extends
+* Query multiple records from database, also you can use join and extends
 
 ```Go
-    var users []User
-    err := engine.Where("name = ?", name).And("age > 10").Limit(10, 0).Find(&users)
-    // SELECT * FROM user WHERE name = ? AND age > 10 limit 0 offset 10
+var users []User
+err := engine.Where("name = ?", name).And("age > 10").Limit(10, 0).Find(&users)
+// SELECT * FROM user WHERE name = ? AND age > 10 limit 0 offset 10
 
-    type Detail struct {
-        Id int64
-        UserId int64 `xorm:"index"`
-    }
+type Detail struct {
+    Id int64
+    UserId int64 `xorm:"index"`
+}
 
-    type UserDetail struct {
-        User `xorm:"extends"`
-        Detail `xorm:"extends"`
-    }
+type UserDetail struct {
+    User `xorm:"extends"`
+    Detail `xorm:"extends"`
+}
 
-    var users []UserDetail
-    err := engine.Table("user").Select("user.*, detail.*")
-        Join("INNER", "detail", "detail.user_id = user.id").
-        Where("user.name = ?", name).Limit(10, 0).
-        Find(&users)
-    // SELECT user.*, detail.* FROM user INNER JOIN detail WHERE user.name = ? limit 0 offset 10
+var users []UserDetail
+err := engine.Table("user").Select("user.*, detail.*")
+    Join("INNER", "detail", "detail.user_id = user.id").
+    Where("user.name = ?", name).Limit(10, 0).
+    Find(&users)
+// SELECT user.*, detail.* FROM user INNER JOIN detail WHERE user.name = ? limit 0 offset 10
 ```
 
-## Query multiple records and record by record handle, there two methods Iterate and Rows
+* Query multiple records and record by record handle, there two methods Iterate and Rows
 
 ```Go
 err := engine.Iterate(&User{Name:name}, func(idx int, bean interface{}) error {
@@ -191,7 +191,7 @@ for rows.Next() {
 }
 ```
 
-## Update one or more records, default will update non-empty and non-zero fields except to use Cols, AllCols and etc.
+* Update one or more records, default will update non-empty and non-zero fields except to use Cols, AllCols and etc.
 
 ```Go
 affected, err := engine.Id(1).Update(&user)
@@ -216,14 +216,14 @@ affected, err := engine.Id(1).AllCols().Update(&user)
 // UPDATE user SET name=?,age=?,salt=?,passwd=?,updated=? Where id = ?
 ```
 
-## Delete one or more records, Delete MUST has conditon
+* Delete one or more records, Delete MUST has conditon
 
 ```Go
 affected, err := engine.Where(...).Delete(&user)
 // DELETE FROM user Where ...
 ```
 
-## Count records
+* Count records
 
 ```Go
 counts, err := engine.Count(&user)
