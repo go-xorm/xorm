@@ -1795,8 +1795,22 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 						rawValueType == core.Int32Type {
 						hasAssigned = true
 						t := time.Unix(vv.Int(), 0).In(session.Engine.TZLocation)
-						vv = reflect.ValueOf(t)
-						fieldValue.Set(vv)
+						//vv = reflect.ValueOf(t)
+						fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
+					} else {
+						if d, ok := vv.Interface().([]uint8); ok {
+							hasAssigned = true
+							t, err := session.byte2Time(col, d)
+							fmt.Println(string(d), t, err)
+							if err != nil {
+								session.Engine.LogError("byte2Time error:", err.Error())
+								hasAssigned = false
+							} else {
+								fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
+							}
+						} else {
+							panic(fmt.Sprintf("rawValueType is %v, value is %v", rawValueType, vv.Interface()))
+						}
 					}
 				} else if nulVal, ok := fieldValue.Addr().Interface().(sql.Scanner); ok {
 					// !<winxxp>! 增加支持sql.Scanner接口的结构，如sql.NullString
@@ -2031,7 +2045,7 @@ func (session *Session) query(sqlStr string, paramStr ...interface{}) (resultsSl
 	session.queryPreprocess(&sqlStr, paramStr...)
 
 	if session.IsAutoCommit {
-		return session.innerQuery(session.DB(), sqlStr, paramStr...)
+		return session.innerQuery(sqlStr, paramStr...)
 	}
 	return session.txQuery(session.Tx, sqlStr, paramStr...)
 }
@@ -2046,21 +2060,32 @@ func (session *Session) txQuery(tx *core.Tx, sqlStr string, params ...interface{
 	return rows2maps(rows)
 }
 
-func (session *Session) innerQuery(db *core.DB, sqlStr string, params ...interface{}) (resultsSlice []map[string][]byte, err error) {
-	stmt, rows, err := session.Engine.LogSQLQueryTime(sqlStr, params, func() (*core.Stmt, *core.Rows, error) {
-		stmt, err := db.Prepare(sqlStr)
-		if err != nil {
-			return stmt, nil, err
+func (session *Session) innerQuery(sqlStr string, params ...interface{}) ([]map[string][]byte, error) {
+	var callback func() (*core.Stmt, *core.Rows, error)
+	if session.prepareStmt {
+		callback = func() (*core.Stmt, *core.Rows, error) {
+			stmt, err := session.doPrepare(sqlStr)
+			if err != nil {
+				return nil, nil, err
+			}
+			rows, err := stmt.Query(params...)
+			if err != nil {
+				return nil, nil, err
+			}
+			return stmt, rows, nil
 		}
-		rows, err := stmt.Query(params...)
-
-		return stmt, rows, err
-	})
+	} else {
+		callback = func() (*core.Stmt, *core.Rows, error) {
+			rows, err := session.DB().Query(sqlStr, params...)
+			if err != nil {
+				return nil, nil, err
+			}
+			return nil, rows, err
+		}
+	}
+	_, rows, err := session.Engine.LogSQLQueryTime(sqlStr, params, callback)
 	if rows != nil {
 		defer rows.Close()
-	}
-	if stmt != nil {
-		defer stmt.Close()
 	}
 	if err != nil {
 		return nil, err
@@ -2347,17 +2372,18 @@ func (session *Session) byte2Time(col *core.Column, data []byte) (outTime time.T
 		// time stamp
 		sd, err := strconv.ParseInt(sdata, 10, 64)
 		if err == nil {
-			x = time.Unix(0, sd)
+			x = time.Unix(sd, 0)
 			// !nashtsai! HACK mymysql driver is casuing Local location being change to CHAT and cause wrong time conversion
-			x = x.In(time.UTC)
-			x = time.Date(x.Year(), x.Month(), x.Day(), x.Hour(),
-				x.Minute(), x.Second(), x.Nanosecond(), session.Engine.TZLocation)
+			//fmt.Println(x.In(session.Engine.TZLocation), "===")
+			x = x.In(session.Engine.TZLocation)
+			//fmt.Println(x, "=====")
+			/*x = time.Date(x.Year(), x.Month(), x.Day(), x.Hour(),
+			x.Minute(), x.Second(), x.Nanosecond(), session.Engine.TZLocation)*/
 			session.Engine.LogDebugf("time(0) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		} else {
 			session.Engine.LogDebugf("time(0) err key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		}
-	} else if len(sdata) > 19 {
-
+	} else if len(sdata) > 19 && strings.Contains(sdata, "-") {
 		x, err = time.ParseInLocation(time.RFC3339Nano, sdata, session.Engine.TZLocation)
 		session.Engine.LogDebugf("time(1) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		if err != nil {
@@ -2369,7 +2395,7 @@ func (session *Session) byte2Time(col *core.Column, data []byte) (outTime time.T
 			session.Engine.LogDebugf("time(3) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		}
 
-	} else if len(sdata) == 19 {
+	} else if len(sdata) == 19 && strings.Contains(sdata, "-") {
 		x, err = time.ParseInLocation("2006-01-02 15:04:05", sdata, session.Engine.TZLocation)
 		session.Engine.LogDebugf("time(4) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 	} else if len(sdata) == 10 && sdata[4] == '-' && sdata[7] == '-' {
