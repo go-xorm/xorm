@@ -78,6 +78,8 @@ type Statement struct {
 	incrColumns   map[string]incrParam
 	decrColumns   map[string]decrParam
 	exprColumns   map[string]exprParam
+
+	IsNoAutoCondition bool
 }
 
 // init
@@ -117,6 +119,8 @@ func (statement *Statement) Init() {
 	statement.incrColumns = make(map[string]incrParam)
 	statement.decrColumns = make(map[string]decrParam)
 	statement.exprColumns = make(map[string]exprParam)
+
+	statement.IsNoAutoCondition = false
 }
 
 // add the raw sql statement
@@ -139,6 +143,17 @@ func (statement *Statement) Where(querystring string, args ...interface{}) *Stat
 	}
 	statement.WhereStr = querystring
 	statement.Params = args
+	return statement
+}
+
+// add where statment without bean's non-empty fields for Get Count
+func (statement *Statement) NoAutoCondition(querystring string, args ...interface{}) *Statement {
+	if !strings.Contains(querystring, statement.Engine.dialect.EqStr()) {
+		querystring = strings.Replace(querystring, "=", statement.Engine.dialect.EqStr(), -1)
+	}
+	statement.WhereStr = querystring
+	statement.Params = args
+	statement.IsNoAutoCondition = true
 	return statement
 }
 
@@ -1115,8 +1130,10 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 		false, true, statement.allUseBool, statement.useAllCols,
 		statement.unscoped, statement.mustColumnMap, statement.TableName(), addedTableName)
 
-	statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.dialect.AndStr()+" ")
-	statement.BeanArgs = args
+	if !statement.IsNoAutoCondition {
+		statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.dialect.AndStr()+" ")
+		statement.BeanArgs = args
+	}
 
 	var columnStr string = statement.ColumnStr
 	if len(statement.selectStr) > 0 {
@@ -1176,8 +1193,10 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 		true, statement.allUseBool, statement.useAllCols,
 		statement.unscoped, statement.mustColumnMap, statement.TableName(), addedTableName)
 
-	statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.Dialect().AndStr()+" ")
-	statement.BeanArgs = args
+	if !statement.IsNoAutoCondition {
+		statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.Dialect().AndStr()+" ")
+		statement.BeanArgs = args
+	}
 
 	// count(index fieldname) > count(0) > count(*)
 	var id string = "*"

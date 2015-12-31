@@ -478,6 +478,13 @@ func (engine *Engine) Where(querystring string, args ...interface{}) *Session {
 	return session.Where(querystring, args...)
 }
 
+// Where method provide a condition query without bean's non-empty fields.
+func (engine *Engine) NoAutoCondition(querystring string, args ...interface{}) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.NoAutoCondition(querystring, args...)
+}
+
 // Id mehtod provoide a condition as (id) = ?
 func (engine *Engine) Id(id interface{}) *Session {
 	session := engine.NewSession()
