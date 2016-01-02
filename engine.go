@@ -759,7 +759,7 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 		if ormTagStr != "" {
 			col = &core.Column{FieldName: t.Field(i).Name, Nullable: true, IsPrimaryKey: false,
 				IsAutoIncrement: false, MapType: core.TWOSIDES, Indexes: make(map[string]bool)}
-			tags := strings.Split(ormTagStr, " ")
+			tags := splitTag(ormTagStr)
 
 			if len(tags) > 0 {
 				if tags[0] == "-" {
