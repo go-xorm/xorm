@@ -258,6 +258,11 @@ func (session *Session) NoAutoTime() *Session {
 	return session
 }
 
+func (session *Session) NoAutoCondition(no ...bool) *Session {
+	session.Statement.NoAutoCondition(no...)
+	return session
+}
+
 // Method Limit provide limit and offset query condition
 func (session *Session) Limit(limit int, start ...int) *Session {
 	session.Statement.Limit(limit, start...)
@@ -1219,7 +1224,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	}
 
 	var addedTableName = (len(session.Statement.JoinStr) > 0)
-	if len(condiBean) > 0 {
+	if !session.Statement.noAutoCondition && len(condiBean) > 0 {
 		colNames, args := buildConditions(session.Engine, table, condiBean[0], true, true,
 			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
 			session.Statement.unscoped, session.Statement.mustColumnMap,
@@ -3635,7 +3640,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	var condiColNames []string
 	var condiArgs []interface{}
 
-	if len(condiBean) > 0 {
+	if !session.Statement.noAutoCondition && len(condiBean) > 0 {
 		condiColNames, condiArgs = buildConditions(session.Engine, session.Statement.RefTable, condiBean[0], true, true,
 			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
 			session.Statement.unscoped, session.Statement.mustColumnMap, session.Statement.TableName(), false)
@@ -3857,11 +3862,15 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 
 	table := session.Engine.TableInfo(bean)
 	session.Statement.RefTable = table
-	colNames, args := buildConditions(session.Engine, table, bean, true, true,
-		false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-		session.Statement.unscoped, session.Statement.mustColumnMap,
-		session.Statement.TableName(), false)
+	var colNames []string
+	var args []interface{}
 
+	if !session.Statement.noAutoCondition {
+		colNames, args = buildConditions(session.Engine, table, bean, true, true,
+			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
+			session.Statement.unscoped, session.Statement.mustColumnMap,
+			session.Statement.TableName(), false)
+	}
 	var condition = ""
 	var andStr = session.Engine.dialect.AndStr()
 

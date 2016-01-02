@@ -39,45 +39,46 @@ type exprParam struct {
 
 // statement save all the sql info for executing SQL
 type Statement struct {
-	RefTable      *core.Table
-	Engine        *Engine
-	Start         int
-	LimitN        int
-	WhereStr      string
-	IdParam       *core.PK
-	Params        []interface{}
-	OrderStr      string
-	JoinStr       string
-	GroupByStr    string
-	HavingStr     string
-	ColumnStr     string
-	selectStr     string
-	columnMap     map[string]bool
-	useAllCols    bool
-	OmitStr       string
-	ConditionStr  string
-	AltTableName  string
-	RawSQL        string
-	RawParams     []interface{}
-	UseCascade    bool
-	UseAutoJoin   bool
-	StoreEngine   string
-	Charset       string
-	BeanArgs      []interface{}
-	UseCache      bool
-	UseAutoTime   bool
-	IsDistinct    bool
-	IsForUpdate   bool
-	TableAlias    string
-	allUseBool    bool
-	checkVersion  bool
-	unscoped      bool
-	mustColumnMap map[string]bool
-	nullableMap   map[string]bool
-	inColumns     map[string]*inParam
-	incrColumns   map[string]incrParam
-	decrColumns   map[string]decrParam
-	exprColumns   map[string]exprParam
+	RefTable        *core.Table
+	Engine          *Engine
+	Start           int
+	LimitN          int
+	WhereStr        string
+	IdParam         *core.PK
+	Params          []interface{}
+	OrderStr        string
+	JoinStr         string
+	GroupByStr      string
+	HavingStr       string
+	ColumnStr       string
+	selectStr       string
+	columnMap       map[string]bool
+	useAllCols      bool
+	OmitStr         string
+	ConditionStr    string
+	AltTableName    string
+	RawSQL          string
+	RawParams       []interface{}
+	UseCascade      bool
+	UseAutoJoin     bool
+	StoreEngine     string
+	Charset         string
+	BeanArgs        []interface{}
+	UseCache        bool
+	UseAutoTime     bool
+	noAutoCondition bool
+	IsDistinct      bool
+	IsForUpdate     bool
+	TableAlias      string
+	allUseBool      bool
+	checkVersion    bool
+	unscoped        bool
+	mustColumnMap   map[string]bool
+	nullableMap     map[string]bool
+	inColumns       map[string]*inParam
+	incrColumns     map[string]incrParam
+	decrColumns     map[string]decrParam
+	exprColumns     map[string]exprParam
 }
 
 // init
@@ -103,6 +104,7 @@ func (statement *Statement) Init() {
 	statement.BeanArgs = make([]interface{}, 0)
 	statement.UseCache = true
 	statement.UseAutoTime = true
+	statement.noAutoCondition = false
 	statement.IsDistinct = false
 	statement.IsForUpdate = false
 	statement.TableAlias = ""
@@ -117,6 +119,15 @@ func (statement *Statement) Init() {
 	statement.incrColumns = make(map[string]incrParam)
 	statement.decrColumns = make(map[string]decrParam)
 	statement.exprColumns = make(map[string]exprParam)
+}
+
+// NoAutoCondition
+func (statement *Statement) NoAutoCondition(no ...bool) *Statement {
+	statement.noAutoCondition = true
+	if len(no) > 0 {
+		statement.noAutoCondition = no[0]
+	}
+	return statement
 }
 
 // add the raw sql statement
@@ -1111,12 +1122,14 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 
 	var addedTableName = (len(statement.JoinStr) > 0)
 
-	colNames, args := buildConditions(statement.Engine, table, bean, true, true,
-		false, true, statement.allUseBool, statement.useAllCols,
-		statement.unscoped, statement.mustColumnMap, statement.TableName(), addedTableName)
+	if !statement.noAutoCondition {
+		colNames, args := buildConditions(statement.Engine, table, bean, true, true,
+			false, true, statement.allUseBool, statement.useAllCols,
+			statement.unscoped, statement.mustColumnMap, statement.TableName(), addedTableName)
 
-	statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.dialect.AndStr()+" ")
-	statement.BeanArgs = args
+		statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.dialect.AndStr()+" ")
+		statement.BeanArgs = args
+	}
 
 	var columnStr string = statement.ColumnStr
 	if len(statement.selectStr) > 0 {
@@ -1172,12 +1185,14 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 
 	var addedTableName = (len(statement.JoinStr) > 0)
 
-	colNames, args := buildConditions(statement.Engine, table, bean, true, true, false,
-		true, statement.allUseBool, statement.useAllCols,
-		statement.unscoped, statement.mustColumnMap, statement.TableName(), addedTableName)
+	if !statement.noAutoCondition {
+		colNames, args := buildConditions(statement.Engine, table, bean, true, true, false,
+			true, statement.allUseBool, statement.useAllCols,
+			statement.unscoped, statement.mustColumnMap, statement.TableName(), addedTableName)
 
-	statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.Dialect().AndStr()+" ")
-	statement.BeanArgs = args
+		statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.Dialect().AndStr()+" ")
+		statement.BeanArgs = args
+	}
 
 	// count(index fieldname) > count(0) > count(*)
 	var id string = "*"

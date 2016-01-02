@@ -320,6 +320,12 @@ func (engine *Engine) NoAutoTime() *Session {
 	return session.NoAutoTime()
 }
 
+func (engine *Engine) NoAutoCondition(no ...bool) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.NoAutoCondition(no...)
+}
+
 // Retrieve all tables, columns, indexes' informations from database.
 func (engine *Engine) DBMetas() ([]*core.Table, error) {
 	tables, err := engine.dialect.GetTables()
