@@ -852,7 +852,15 @@ func (statement *Statement) Cols(columns ...string) *Statement {
 	for _, nc := range newColumns {
 		statement.columnMap[strings.ToLower(nc)] = true
 	}
-	statement.ColumnStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
+
+	// by hzm
+	if len(newColumns) == 1 {
+		statement.ColumnStr = newColumns[0]
+
+	} else {
+		statement.ColumnStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
+	}
+
 	if strings.Contains(statement.ColumnStr, ".") {
 		statement.ColumnStr = strings.Replace(statement.ColumnStr, ".", statement.Engine.Quote("."), -1)
 	}
