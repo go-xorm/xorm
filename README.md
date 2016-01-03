@@ -11,7 +11,7 @@ Xorm is a simple and powerful ORM for Go.
 * Struct <-> Table Mapping Support
 
 * Chainable APIs
- 
+
 * Transaction Support
 
 * Both ORM and raw SQL operation Support
@@ -72,7 +72,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 # Installation
 
-If you have [gopm](https://github.com/gpmgo/gopm) installed, 
+If you have [gopm](https://github.com/gpmgo/gopm) installed,
 
 	gopm get github.com/go-xorm/xorm
 
@@ -87,6 +87,148 @@ Or
 * [GoDoc](http://godoc.org/github.com/go-xorm/xorm)
 
 * [GoWalker](http://gowalker.org/github.com/go-xorm/xorm)
+
+# Quick Start
+
+* Create Engine
+
+```Go
+engine, err := xorm.NewEngine(driverName, dataSourceName)
+```
+
+* Define a struct and Sync2 table struct to database
+
+```Go
+type User struct {
+    Id int64
+    Name string
+    Salt string
+    Age int
+    Passwd string `xorm:"varchar(200)"`
+    Created time.Time `xorm:"created"`
+    Updated time.Time `xorm:"updated"`
+}
+
+err := engine.Sync2(new(User))
+```
+
+* Query a SQL string, the returned results is []map[string][]byte
+
+```Go
+results, err := engine.Query("select * from user")
+```
+
+* Execute a SQL string, the returned results
+
+```Go
+affected, err := engine.Exec("update user set age = ? where name = ?", age, name)
+```
+
+* Insert one or multipe records to database
+
+```Go
+affected, err := engine.Insert(&user)
+// INSERT INTO struct () values ()
+affected, err := engine.Insert(&user1, &user2)
+// INSERT INTO struct1 () values ()
+// INSERT INTO struct2 () values ()
+affected, err := engine.Insert(&users)
+// INSERT INTO struct () values (),(),()
+affected, err := engine.Insert(&user1, &users)
+// INSERT INTO struct1 () values ()
+// INSERT INTO struct2 () values (),(),()
+```
+
+* Query one record from database
+
+```Go
+has, err := engine.Get(&user)
+// SELECT * FROM user LIMIT 1
+has, err := engine.Where("name = ?", name).Desc("id").Get(&user)
+// SELECT * FROM user WHERE name = ? ORDER BY id DESC LIMIT 1
+```
+
+* Query multiple records from database, also you can use join and extends
+
+```Go
+var users []User
+err := engine.Where("name = ?", name).And("age > 10").Limit(10, 0).Find(&users)
+// SELECT * FROM user WHERE name = ? AND age > 10 limit 0 offset 10
+
+type Detail struct {
+    Id int64
+    UserId int64 `xorm:"index"`
+}
+
+type UserDetail struct {
+    User `xorm:"extends"`
+    Detail `xorm:"extends"`
+}
+
+var users []UserDetail
+err := engine.Table("user").Select("user.*, detail.*")
+    Join("INNER", "detail", "detail.user_id = user.id").
+    Where("user.name = ?", name).Limit(10, 0).
+    Find(&users)
+// SELECT user.*, detail.* FROM user INNER JOIN detail WHERE user.name = ? limit 0 offset 10
+```
+
+* Query multiple records and record by record handle, there two methods Iterate and Rows
+
+```Go
+err := engine.Iterate(&User{Name:name}, func(idx int, bean interface{}) error {
+    user := bean.(*User)
+    return nil
+})
+// SELECT * FROM user
+
+rows, err := engine.Rows(&User{Name:name})
+// SELECT * FROM user
+defer rows.Close()
+bean := new(Struct)
+for rows.Next() {
+    err = rows.Scan(bean)
+}
+```
+
+* Update one or more records, default will update non-empty and non-zero fields except to use Cols, AllCols and etc.
+
+```Go
+affected, err := engine.Id(1).Update(&user)
+// UPDATE user SET ... Where id = ?
+
+affected, err := engine.Update(&user, &User{Name:name})
+// UPDATE user SET ... Where name = ?
+
+var ids = []int64{1, 2, 3}
+affected, err := engine.In(ids).Update(&user)
+// UPDATE user SET ... Where id IN (?, ?, ?)
+
+// force update indicated columns by Cols
+affected, err := engine.Id(1).Cols("age").Update(&User{Name:name, Age: 12})
+// UPDATE user SET age = ?, updated=? Where id = ?
+
+// force NOT update indicated columns by Omit
+affected, err := engine.Id(1).Omit("name").Update(&User{Name:name, Age: 12})
+// UPDATE user SET age = ?, updated=? Where id = ?
+
+affected, err := engine.Id(1).AllCols().Update(&user)
+// UPDATE user SET name=?,age=?,salt=?,passwd=?,updated=? Where id = ?
+```
+
+* Delete one or more records, Delete MUST has conditon
+
+```Go
+affected, err := engine.Where(...).Delete(&user)
+// DELETE FROM user Where ...
+```
+
+* Count records
+
+```Go
+counts, err := engine.Count(&user)
+// SELECT count(*) AS total FROM user
+```
 
 # Cases
 

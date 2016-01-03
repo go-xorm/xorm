@@ -15,6 +15,30 @@ import (
 	"github.com/go-xorm/core"
 )
 
+func splitTag(tag string) (tags []string) {
+	tag = strings.TrimSpace(tag)
+	var hasQuote = false
+	var lastIdx = 0
+	for i, t := range tag {
+		if t == '\'' {
+			hasQuote = !hasQuote
+		} else if t == ' ' {
+			if lastIdx < i && !hasQuote {
+				tags = append(tags, strings.TrimSpace(tag[lastIdx:i]))
+				lastIdx = i + 1
+			}
+		}
+	}
+	if lastIdx < len(tag) {
+		tags = append(tags, strings.TrimSpace(tag[lastIdx:len(tag)]))
+	}
+	return
+}
+
+type zeroable interface {
+	IsZero() bool
+}
+
 func isZero(k interface{}) bool {
 	switch k.(type) {
 	case int:
@@ -45,10 +69,31 @@ func isZero(k interface{}) bool {
 		return k.(bool) == false
 	case string:
 		return k.(string) == ""
-	case time.Time:
-		return k.(time.Time).IsZero()
+	case zeroable:
+		return k.(zeroable).IsZero()
 	}
 	return false
+}
+
+func int64ToInt(id int64, k reflect.Kind) interface{} {
+	var v interface{} = id
+	switch k {
+	case reflect.Int16:
+		v = int16(id)
+	case reflect.Int32:
+		v = int32(id)
+	case reflect.Int:
+		v = int(id)
+	case reflect.Uint16:
+		v = uint16(id)
+	case reflect.Uint32:
+		v = uint32(id)
+	case reflect.Uint64:
+		v = uint64(id)
+	case reflect.Uint:
+		v = uint(id)
+	}
+	return v
 }
 
 func isPKZero(pk core.PK) bool {
