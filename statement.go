@@ -427,7 +427,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 func buildConditions(engine *Engine, table *core.Table, bean interface{},
 	includeVersion bool, includeUpdated bool, includeNil bool,
 	includeAutoIncr bool, allUseBool bool, useAllCols bool, unscoped bool,
-	mustColumnMap map[string]bool, tableName string, addedTableName bool) ([]string, []interface{}) {
+	mustColumnMap map[string]bool, tableName, aliasName string, addedTableName bool) ([]string, []interface{}) {
 	colNames := make([]string, 0)
 	var args = make([]interface{}, 0)
 	for _, col := range table.Columns() {
@@ -450,7 +450,11 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 
 		var colName string
 		if addedTableName {
-			colName = engine.Quote(tableName) + "." + engine.Quote(col.Name)
+			var nm = tableName
+			if len(aliasName) > 0 {
+				nm = aliasName
+			}
+			colName = engine.Quote(nm) + "." + engine.Quote(col.Name)
 		} else {
 			colName = engine.Quote(col.Name)
 		}
@@ -462,7 +466,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 		}
 
 		if col.IsDeleted && !unscoped { // tag "deleted" is enabled
-			colNames = append(colNames, fmt.Sprintf("(%v IS NULL or %v = '0001-01-01 00:00:00')",
+			colNames = append(colNames, fmt.Sprintf("%v IS NULL or %v = '0001-01-01 00:00:00'",
 				colName, colName))
 		}
 
@@ -1123,9 +1127,7 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 	var addedTableName = (len(statement.JoinStr) > 0)
 
 	if !statement.noAutoCondition {
-		colNames, args := buildConditions(statement.Engine, table, bean, true, true,
-			false, true, statement.allUseBool, statement.useAllCols,
-			statement.unscoped, statement.mustColumnMap, statement.TableName(), addedTableName)
+		colNames, args := statement.buildConditions(table, bean, true, true, false, true, addedTableName)
 
 		statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.dialect.AndStr()+" ")
 		statement.BeanArgs = args
@@ -1179,6 +1181,11 @@ func (s *Statement) genAddUniqueStr(uqeName string, cols []string) (string, []in
 	return sql, []interface{}{}
 }*/
 
+func (statement *Statement) buildConditions(table *core.Table, bean interface{}, includeVersion bool, includeUpdated bool, includeNil bool, includeAutoIncr bool, addedTableName bool) ([]string, []interface{}) {
+	return buildConditions(statement.Engine, table, bean, includeVersion, includeUpdated, includeNil, includeAutoIncr, statement.allUseBool, statement.useAllCols,
+		statement.unscoped, statement.mustColumnMap, statement.TableName(), statement.TableAlias, addedTableName)
+}
+
 func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}) {
 	table := statement.Engine.TableInfo(bean)
 	statement.RefTable = table
@@ -1186,9 +1193,7 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 	var addedTableName = (len(statement.JoinStr) > 0)
 
 	if !statement.noAutoCondition {
-		colNames, args := buildConditions(statement.Engine, table, bean, true, true, false,
-			true, statement.allUseBool, statement.useAllCols,
-			statement.unscoped, statement.mustColumnMap, statement.TableName(), addedTableName)
+		colNames, args := statement.buildConditions(table, bean, true, true, false, true, addedTableName)
 
 		statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.Dialect().AndStr()+" ")
 		statement.BeanArgs = args

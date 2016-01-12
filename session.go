@@ -49,6 +49,7 @@ type Session struct {
 	cascadeDeep int
 
 	// !evalphobia! stored the last executed query on this session
+	//beforeSQLExec func(string, ...interface{})
 	lastSQL     string
 	lastSQLArgs []interface{}
 }
@@ -1225,10 +1226,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 
 	var addedTableName = (len(session.Statement.JoinStr) > 0)
 	if !session.Statement.noAutoCondition && len(condiBean) > 0 {
-		colNames, args := buildConditions(session.Engine, table, condiBean[0], true, true,
-			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-			session.Statement.unscoped, session.Statement.mustColumnMap,
-			session.Statement.TableName(), addedTableName)
+		colNames, args := session.Statement.buildConditions(table, condiBean[0], true, true, false, true, addedTableName)
 		session.Statement.ConditionStr = strings.Join(colNames, " AND ")
 		session.Statement.BeanArgs = args
 	} else {
@@ -1237,9 +1235,13 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		if col := table.DeletedColumn(); col != nil && !session.Statement.unscoped { // tag "deleted" is enabled
 			var colName string = session.Engine.Quote(col.Name)
 			if addedTableName {
-				colName = session.Engine.Quote(session.Statement.TableName()) + "." + colName
+				var nm = session.Statement.TableName()
+				if len(session.Statement.TableAlias) > 0 {
+					nm = session.Statement.TableAlias
+				}
+				colName = session.Engine.Quote(nm) + "." + colName
 			}
-			session.Statement.ConditionStr = fmt.Sprintf("(%v IS NULL or %v = '0001-01-01 00:00:00') ",
+			session.Statement.ConditionStr = fmt.Sprintf("%v IS NULL OR %v = '0001-01-01 00:00:00'",
 				colName, colName)
 		}
 	}
@@ -3641,9 +3643,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	var condiArgs []interface{}
 
 	if !session.Statement.noAutoCondition && len(condiBean) > 0 {
-		condiColNames, condiArgs = buildConditions(session.Engine, session.Statement.RefTable, condiBean[0], true, true,
-			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-			session.Statement.unscoped, session.Statement.mustColumnMap, session.Statement.TableName(), false)
+		condiColNames, condiArgs = session.Statement.buildConditions(session.Statement.RefTable, condiBean[0], true, true, false, true, false)
 	}
 
 	var condition = ""
@@ -3866,10 +3866,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	var args []interface{}
 
 	if !session.Statement.noAutoCondition {
-		colNames, args = buildConditions(session.Engine, table, bean, true, true,
-			false, true, session.Statement.allUseBool, session.Statement.useAllCols,
-			session.Statement.unscoped, session.Statement.mustColumnMap,
-			session.Statement.TableName(), false)
+		colNames, args = session.Statement.buildConditions(table, bean, true, true, false, true, false)
 	}
 	var condition = ""
 	var andStr = session.Engine.dialect.AndStr()
