@@ -3998,7 +3998,7 @@ func (s *Session) Sync2(beans ...interface{}) error {
 
 		var oriTable *core.Table
 		for _, tb := range tables {
-			if tb.Name == table.Name {
+			if equalNoCase(tb.Name, table.Name) {
 				oriTable = tb
 				break
 			}
@@ -4023,7 +4023,7 @@ func (s *Session) Sync2(beans ...interface{}) error {
 			for _, col := range table.Columns() {
 				var oriCol *core.Column
 				for _, col2 := range oriTable.Columns() {
-					if col.Name == col2.Name {
+					if equalNoCase(col.Name, col2.Name) {
 						oriCol = col2
 						break
 					}
@@ -4146,7 +4146,7 @@ func (s *Session) Sync2(beans ...interface{}) error {
 	for _, table := range tables {
 		var oriTable *core.Table
 		for _, structTable := range structTables {
-			if table.Name == structTable.Name {
+			if equalNoCase(table.Name, structTable.Name) {
 				oriTable = structTable
 				break
 			}
