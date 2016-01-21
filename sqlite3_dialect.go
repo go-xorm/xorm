@@ -307,7 +307,7 @@ func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Colu
 
 	nStart := strings.Index(name, "(")
 	nEnd := strings.LastIndex(name, ")")
-	reg := regexp.MustCompile(`\w[\w\s]*(\([^\(]*\))?`)
+	reg := regexp.MustCompile(`[^\(,\)]*(\([^\(]*\))?`)
 	colCreates := reg.FindAllString(name[nStart+1:nEnd], -1)
 	cols := make(map[string]*core.Column)
 	colSeq := make([]string, 0)
