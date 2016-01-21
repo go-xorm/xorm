@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/go-xorm/core"
@@ -306,10 +307,13 @@ func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Colu
 
 	nStart := strings.Index(name, "(")
 	nEnd := strings.LastIndex(name, ")")
-	colCreates := strings.Split(name[nStart+1:nEnd], ",")
+	reg := regexp.MustCompile(`\w[\w\s]*(\([^\(]*\))?`)
+	colCreates := reg.FindAllString(name[nStart+1:nEnd], -1)
 	cols := make(map[string]*core.Column)
 	colSeq := make([]string, 0)
 	for _, colStr := range colCreates {
+		reg = regexp.MustCompile(`,\s`)
+		colStr = reg.ReplaceAllString(colStr, ",")
 		fields := strings.Fields(strings.TrimSpace(colStr))
 		col := new(core.Column)
 		col.Indexes = make(map[string]bool)
