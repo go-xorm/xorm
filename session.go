@@ -1792,7 +1792,11 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 								t.Minute(), t.Second(), t.Nanosecond(), time.Local)
 						}
 						// !nashtsai! convert to engine location
-						t = t.In(session.Engine.TZLocation)
+						if col.TimeZone == nil {
+							t = t.In(session.Engine.TZLocation)
+						} else {
+							t = t.In(col.TimeZone)
+						}
 						fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
 
 						// t = fieldValue.Interface().(time.Time)
@@ -1801,7 +1805,13 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 					} else if rawValueType == core.IntType || rawValueType == core.Int64Type ||
 						rawValueType == core.Int32Type {
 						hasAssigned = true
-						t := time.Unix(vv.Int(), 0).In(session.Engine.TZLocation)
+						var tz *time.Location
+						if col.TimeZone == nil {
+							tz = session.Engine.TZLocation
+						} else {
+							tz = col.TimeZone
+						}
+						t := time.Unix(vv.Int(), 0).In(tz)
 						//vv = reflect.ValueOf(t)
 						fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
 					} else {
@@ -2382,10 +2392,12 @@ func (session *Session) byte2Time(col *core.Column, data []byte) (outTime time.T
 			x = time.Unix(sd, 0)
 			// !nashtsai! HACK mymysql driver is casuing Local location being change to CHAT and cause wrong time conversion
 			//fmt.Println(x.In(session.Engine.TZLocation), "===")
-			x = x.In(session.Engine.TZLocation)
+			if col.TimeZone == nil {
+				x = x.In(session.Engine.TZLocation)
+			} else {
+				x = x.In(col.TimeZone)
+			}
 			//fmt.Println(x, "=====")
-			/*x = time.Date(x.Year(), x.Month(), x.Day(), x.Hour(),
-			x.Minute(), x.Second(), x.Nanosecond(), session.Engine.TZLocation)*/
 			session.Engine.LogDebugf("time(0) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		} else {
 			session.Engine.LogDebugf("time(0) err key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)

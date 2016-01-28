@@ -726,33 +726,24 @@ func (engine *Engine) newTable() *core.Table {
 	return table
 }
 
+type TableName interface {
+	TableName() string
+}
+
 func (engine *Engine) mapType(v reflect.Value) *core.Table {
 	t := v.Type()
 	table := engine.newTable()
-	method := v.MethodByName("TableName")
-	if !method.IsValid() {
-		if v.CanAddr() {
-			method = v.Addr().MethodByName("TableName")
-		}
-	}
-	if method.IsValid() {
-		params := []reflect.Value{}
-		results := method.Call(params)
-		if len(results) == 1 {
-			table.Name = results[0].Interface().(string)
-		}
-	}
-
-	if table.Name == "" {
+	if tb, ok := v.Interface().(TableName); ok {
+		table.Name = tb.TableName()
+	} else {
 		table.Name = engine.TableMapper.Obj2Table(t.Name())
 	}
+
 	table.Type = t
 
 	var idFieldColName string
 	var err error
-
-	hasCacheTag := false
-	hasNoCacheTag := false
+	var hasCacheTag, hasNoCacheTag bool
 
 	for i := 0; i < t.NumField(); i++ {
 		tag := t.Field(i).Tag
@@ -839,6 +830,16 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 					case k == "VERSION":
 						col.IsVersion = true
 						col.Default = "1"
+					case k == "UTC":
+						col.TimeZone = time.UTC
+					case k == "LOCAL":
+						col.TimeZone = time.Local
+					case strings.HasPrefix(k, "LOCALE(") && strings.HasSuffix(k, ")"):
+						location := k[len("INDEX")+1 : len(k)-1]
+						col.TimeZone, err = time.LoadLocation(location)
+						if err != nil {
+							engine.LogError(err)
+						}
 					case k == "UPDATED":
 						col.IsUpdated = true
 					case k == "DELETED":
@@ -1422,7 +1423,6 @@ var (
 )
 
 func (engine *Engine) TZTime(t time.Time) time.Time {
-
 	if NULL_TIME != t { // if time is not initialized it's not suitable for Time.In()
 		return t.In(engine.TZLocation)
 	}
@@ -1440,35 +1440,51 @@ func (engine *Engine) NowTime2(sqlTypeName string) (interface{}, time.Time) {
 }
 
 func (engine *Engine) FormatTime(sqlTypeName string, t time.Time) (v interface{}) {
+	return engine.formatTime(engine.TZLocation, sqlTypeName, t)
+}
+
+func (engine *Engine) formatColTime(col *core.Column, t time.Time) (v interface{}) {
+	if col.DisableTimeZone {
+		return engine.formatTime(nil, col.SQLType.Name, t)
+	} else if col.TimeZone != nil {
+		return engine.formatTime(col.TimeZone, col.SQLType.Name, t)
+	}
+	return engine.formatTime(engine.TZLocation, col.SQLType.Name, t)
+}
+
+func (engine *Engine) formatTime(tz *time.Location, sqlTypeName string, t time.Time) (v interface{}) {
 	if engine.dialect.DBType() == core.ORACLE {
 		return t
 	}
+	if tz != nil {
+		t = engine.TZTime(t)
+	}
 	switch sqlTypeName {
 	case core.Time:
-		s := engine.TZTime(t).Format("2006-01-02 15:04:05") //time.RFC3339
+		s := t.Format("2006-01-02 15:04:05") //time.RFC3339
 		v = s[11:19]
 	case core.Date:
-		v = engine.TZTime(t).Format("2006-01-02")
+		v = t.Format("2006-01-02")
 	case core.DateTime, core.TimeStamp:
 		if engine.dialect.DBType() == "ql" {
-			v = engine.TZTime(t)
+			v = t
 		} else if engine.dialect.DBType() == "sqlite3" {
-			v = engine.TZTime(t).UTC().Format("2006-01-02 15:04:05")
+			v = t.UTC().Format("2006-01-02 15:04:05")
 		} else {
-			v = engine.TZTime(t).Format("2006-01-02 15:04:05")
+			v = t.Format("2006-01-02 15:04:05")
 		}
 	case core.TimeStampz:
 		if engine.dialect.DBType() == core.MSSQL {
-			v = engine.TZTime(t).Format("2006-01-02T15:04:05.9999999Z07:00")
+			v = t.Format("2006-01-02T15:04:05.9999999Z07:00")
 		} else if engine.DriverName() == "mssql" {
-			v = engine.TZTime(t)
+			v = t
 		} else {
-			v = engine.TZTime(t).Format(time.RFC3339Nano)
+			v = t.Format(time.RFC3339Nano)
 		}
 	case core.BigInt, core.Int:
-		v = engine.TZTime(t).Unix()
+		v = t.Unix()
 	default:
-		v = engine.TZTime(t)
+		v = t
 	}
 	return
 }
