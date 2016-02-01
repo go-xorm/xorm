@@ -864,6 +864,16 @@ func (statement *Statement) Cols(columns ...string) *Statement {
 	return statement
 }
 
+// Generate "col1, col2" statement without quotes
+func (statement *Statement) RawCols(columns ...string) *Statement {
+	newColumns := col2NewCols(columns...)
+	for _, nc := range newColumns {
+		statement.columnMap[strings.ToLower(nc)] = true
+	}
+	statement.ColumnStr = strings.Join(newColumns, ", ")
+	return statement
+}
+
 // Update use only: update all columns
 func (statement *Statement) AllCols() *Statement {
 	statement.useAllCols = true

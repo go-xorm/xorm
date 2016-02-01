@@ -201,6 +201,12 @@ func (session *Session) Cols(columns ...string) *Session {
 	return session
 }
 
+// Method RawCols adds Cols without quotes
+func (session *Session) RawCols(columns ...string) *Session {
+	session.Statement.RawCols(columns...)
+	return session
+}
+
 func (session *Session) AllCols() *Session {
 	session.Statement.AllCols()
 	return session
