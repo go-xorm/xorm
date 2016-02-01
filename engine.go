@@ -541,6 +541,12 @@ func (engine *Engine) Cols(columns ...string) *Session {
 	return session.Cols(columns...)
 }
 
+func (engine *Engine) RawCols(columns ...string) *Session {
+	session := engine.NewSession()
+	session.IsAutoClose = true
+	return session.RawCols(columns...)
+}
+
 func (engine *Engine) AllCols() *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
