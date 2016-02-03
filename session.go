@@ -3900,31 +3900,70 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		condition += inSql
 		args = append(args, inArgs...)
 	}
-	if len(condition) == 0 {
+	if len(condition) == 0 && session.Statement.LimitN == 0 {
 		return 0, ErrNeedDeletedCond
 	}
 
-	sqlStr, sqlStrForCache := "", ""
+	var deleteSql, realSql string
+	var tableName = session.Engine.Quote(session.Statement.TableName())
+
+	if len(condition) > 0 {
+		deleteSql = fmt.Sprintf("DELETE FROM %v WHERE %v", tableName, condition)
+	} else {
+		deleteSql = fmt.Sprintf("DELETE FROM %v", tableName)
+	}
+
+	var orderSql string
+	if len(session.Statement.OrderStr) > 0 {
+		orderSql += fmt.Sprintf(" ORDER BY %s", session.Statement.OrderStr)
+	}
+	if session.Statement.LimitN > 0 {
+		orderSql += fmt.Sprintf(" LIMIT %d", session.Statement.LimitN)
+	}
+
+	if len(orderSql) > 0 {
+		switch session.Engine.dialect.DBType() {
+		case core.POSTGRES:
+			inSql := fmt.Sprintf("ctid IN (SELECT ctid FROM %s%s)", tableName, orderSql)
+			if len(condition) > 0 {
+				deleteSql += " AND " + inSql
+			} else {
+				deleteSql += " WHERE " + inSql
+			}
+		case core.SQLITE:
+			inSql := fmt.Sprintf("rowid IN (SELECT rowid FROM %s%s)", tableName, orderSql)
+			if len(condition) > 0 {
+				deleteSql += " AND " + inSql
+			} else {
+				deleteSql += " WHERE " + inSql
+			}
+		// TODO: how to handle delete limit on mssql?
+		case core.MSSQL:
+			return 0, ErrNotImplemented
+		default:
+			deleteSql += orderSql
+		}
+	}
+
 	argsForCache := make([]interface{}, 0, len(args)*2)
 	if session.Statement.unscoped || table.DeletedColumn() == nil { // tag "deleted" is disabled
-		sqlStr = fmt.Sprintf("DELETE FROM %v WHERE %v",
-			session.Engine.Quote(session.Statement.TableName()), condition)
-
-		sqlStrForCache = sqlStr
+		realSql = deleteSql
 		copy(argsForCache, args)
 		argsForCache = append(session.Statement.Params, argsForCache...)
 	} else {
 		// !oinume! sqlStrForCache and argsForCache is needed to behave as executing "DELETE FROM ..." for cache.
-		sqlStrForCache = fmt.Sprintf("DELETE FROM %v WHERE %v",
-			session.Engine.Quote(session.Statement.TableName()), condition)
 		copy(argsForCache, args)
 		argsForCache = append(session.Statement.Params, argsForCache...)
 
 		deletedColumn := table.DeletedColumn()
-		sqlStr = fmt.Sprintf("UPDATE %v SET %v = ? WHERE %v",
+		realSql = fmt.Sprintf("UPDATE %v SET %v = ? WHERE %v",
 			session.Engine.Quote(session.Statement.TableName()),
 			session.Engine.Quote(deletedColumn.Name),
 			condition)
+
+		if len(orderSql) > 0 {
+			realSql += orderSql
+		}
 
 		// !oinume! Insert NowTime to the head of session.Statement.Params
 		session.Statement.Params = append(session.Statement.Params, "")
@@ -3944,10 +3983,10 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	args = append(session.Statement.Params, args...)
 
 	if cacher := session.Engine.getCacher2(session.Statement.RefTable); cacher != nil && session.Statement.UseCache {
-		session.cacheDelete(sqlStrForCache, argsForCache...)
+		session.cacheDelete(deleteSql, argsForCache...)
 	}
 
-	res, err := session.exec(sqlStr, args...)
+	res, err := session.exec(realSql, args...)
 	if err != nil {
 		return 0, err
 	}
