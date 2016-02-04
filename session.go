@@ -3962,7 +3962,27 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 			condition)
 
 		if len(orderSql) > 0 {
-			realSql += orderSql
+			switch session.Engine.dialect.DBType() {
+			case core.POSTGRES:
+				inSql := fmt.Sprintf("ctid IN (SELECT ctid FROM %s%s)", tableName, orderSql)
+				if len(condition) > 0 {
+					realSql += " AND " + inSql
+				} else {
+					realSql += " WHERE " + inSql
+				}
+			case core.SQLITE:
+				inSql := fmt.Sprintf("rowid IN (SELECT rowid FROM %s%s)", tableName, orderSql)
+				if len(condition) > 0 {
+					realSql += " AND " + inSql
+				} else {
+					realSql += " WHERE " + inSql
+				}
+			// TODO: how to handle delete limit on mssql?
+			case core.MSSQL:
+				return 0, ErrNotImplemented
+			default:
+				realSql += orderSql
+			}
 		}
 
 		// !oinume! Insert NowTime to the head of session.Statement.Params
