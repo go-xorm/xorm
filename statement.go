@@ -730,9 +730,14 @@ func (statement *Statement) getExpr() map[string]exprParam {
 
 // Generate "Where column IN (?) " statment
 func (statement *Statement) In(column string, args ...interface{}) *Statement {
+	length := len(args)
+	if length == 0 {
+		return statement
+	}
+
 	k := strings.ToLower(column)
 	var newargs []interface{}
-	if len(args) == 1 &&
+	if length == 1 &&
 		reflect.TypeOf(args[0]).Kind() == reflect.Slice {
 		newargs = make([]interface{}, 0)
 		v := reflect.ValueOf(args[0])
