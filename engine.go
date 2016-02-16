@@ -768,7 +768,14 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 	if tb, ok := v.Interface().(TableName); ok {
 		table.Name = tb.TableName()
 	} else {
-		table.Name = engine.TableMapper.Obj2Table(t.Name())
+		if v.CanAddr() {
+			if tb, ok = v.Addr().Interface().(TableName); ok {
+				table.Name = tb.TableName()
+			}
+		}
+		if table.Name == "" {
+			table.Name = engine.TableMapper.Obj2Table(t.Name())
+		}
 	}
 
 	table.Type = t
