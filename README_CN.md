@@ -8,6 +8,10 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 [![Build Status](https://drone.io/github.com/go-xorm/tests/status.png)](https://drone.io/github.com/go-xorm/tests/latest)  [![Go Walker](http://gowalker.org/api/v1/badge)](http://gowalker.org/github.com/go-xorm/xorm)
 
+# 注意
+
+最新的版本有不兼容的更新，您必须使用 `engine.ShowSQL()` 和 `engine.Logger().SetLevel()` 来替代 `engine.ShowSQL = `, `engine.ShowInfo = ` 等等。
+
 ## 特性
 
 * 支持Struct和数据库表之间的灵活映射，并支持自动同步
