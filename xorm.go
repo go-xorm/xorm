@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	Version string = "0.4.5.0204"
+	Version string = "0.5.0.0216"
 )
 
 func regDrvsNDialects() bool {
@@ -84,12 +84,10 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		Tables:        make(map[reflect.Type]*core.Table),
 		mutex:         &sync.RWMutex{},
 		TagIdentifier: "xorm",
-		Logger:        NewSimpleLogger(os.Stdout),
 		TZLocation:    time.Local,
 	}
 
-	engine.dialect.SetLogger(engine.Logger)
-
+	engine.SetLogger(NewSimpleLogger(os.Stdout))
 	engine.SetMapper(core.NewCacheMapper(new(core.SnakeMapper)))
 
 	runtime.SetFinalizer(engine, close)

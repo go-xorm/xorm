@@ -52,16 +52,16 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 ## 更新日志
 
+* **v0.4.5**
+    * bug修正
+    * extends 支持无限级
+    * Delete Limit 支持
+
 * **v0.4.4**
     * Tidb 数据库支持
     * QL 试验性支持
     * sql.NullString支持
     * ForUpdate 支持
-    * bug修正
-
-* **v0.4.3**
-    * Json 字段类型支持
-    * oracle实验性支持
     * bug修正
 
 [更多更新日志...](https://github.com/go-xorm/manual-zh-CN/tree/master/chapter-16)

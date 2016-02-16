@@ -51,6 +51,11 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 # Changelog
 
+* **v0.4.5**
+    * many bugs fixed
+    * extends support unlimited deep
+    * Delete Limit support
+
 * **v0.4.4**
     * ql database expriment support
     * tidb database expriment support

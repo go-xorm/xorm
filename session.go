@@ -496,9 +496,9 @@ func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, er
 
 	session.saveLastSQL(sqlStr, args...)
 
-	return session.Engine.LogSQLExecutionTime(sqlStr, args, func() (sql.Result, error) {
+	return session.Engine.logSQLExecutionTime(sqlStr, args, func() (sql.Result, error) {
 		if session.IsAutoCommit {
-			//oci8 can not auto commit (github.com/mattn/go-oci8)
+			// FIXME: oci8 can not auto commit (github.com/mattn/go-oci8)
 			if session.Engine.dialect.DBType() == core.ORACLE {
 				session.Begin()
 				r, err := session.Tx.Exec(sqlStr, args...)
@@ -573,7 +573,6 @@ func (session *Session) CreateUniques(bean interface{}) error {
 
 func (session *Session) createOneTable() error {
 	sqlStr := session.Statement.genCreateTableSQL()
-	session.Engine.LogDebug("create table sql: [", sqlStr, "]")
 	_, err := session.exec(sqlStr)
 	return err
 }
@@ -2100,7 +2099,7 @@ func (session *Session) innerQuery(sqlStr string, params ...interface{}) ([]map[
 			return nil, rows, err
 		}
 	}
-	_, rows, err := session.Engine.LogSQLQueryTime(sqlStr, params, callback)
+	_, rows, err := session.Engine.logSQLQueryTime(sqlStr, params, callback)
 	if rows != nil {
 		defer rows.Close()
 	}

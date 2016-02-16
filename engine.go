@@ -36,23 +36,47 @@ type Engine struct {
 	mutex  *sync.RWMutex
 	Cacher core.Cacher
 
-	ShowSQL bool
+	// 是否显示SQL
+	showSQL      bool
+	showExecTime bool
+	//ShowSQL bool
 
 	// !nashtsai! TODO ought to deprecate these but having logger to control its log level
-	ShowInfo  bool
-	ShowErr   bool
-	ShowDebug bool
-	ShowWarn  bool
+	/*ShowInfo  bool
+	ShowErr   bool*/
+	//ShowDebug bool
+	//ShowWarn  bool*/
 	// --227
 
-	Logger     core.ILogger
+	logger     core.ILogger
 	TZLocation *time.Location
 
 	disableGlobalCache bool
 }
 
+func (engine *Engine) ShowSQL(show ...bool) {
+	engine.logger.ShowSQL(show...)
+	if len(show) == 0 {
+		engine.showSQL = true
+	} else {
+		engine.showSQL = show[0]
+	}
+}
+
+func (engine *Engine) ShowExecTime(show ...bool) {
+	if len(show) == 0 {
+		engine.showExecTime = true
+	} else {
+		engine.showExecTime = show[0]
+	}
+}
+
+func (engine *Engine) Logger() core.ILogger {
+	return engine.logger
+}
+
 func (engine *Engine) SetLogger(logger core.ILogger) {
-	engine.Logger = logger
+	engine.logger = logger
 	engine.dialect.SetLogger(logger)
 }
 
@@ -194,34 +218,42 @@ func (engine *Engine) Ping() error {
 
 // logging sql
 func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
-	if engine.ShowSQL {
-		engine.overrideLogLevel(core.LOG_INFO)
+	if engine.showSQL && !engine.showExecTime {
+		//engine.overrideLogLevel(core.LOG_INFO)
 		if len(sqlArgs) > 0 {
-			engine.Logger.Infof("[sql] %v [args] %v", sqlStr, sqlArgs)
+			engine.logger.Infof("[sql] %v [args] %v", sqlStr, sqlArgs)
 		} else {
-			engine.Logger.Infof("[sql] %v", sqlStr)
+			engine.logger.Infof("[sql] %v", sqlStr)
 		}
 	}
 }
 
-func (engine *Engine) LogSQLQueryTime(sqlStr string, args interface{}, executionBlock func() (*core.Stmt, *core.Rows, error)) (*core.Stmt, *core.Rows, error) {
-	if engine.ShowDebug {
+func (engine *Engine) logSQLQueryTime(sqlStr string, args []interface{}, executionBlock func() (*core.Stmt, *core.Rows, error)) (*core.Stmt, *core.Rows, error) {
+	if engine.showSQL && engine.showExecTime {
 		b4ExecTime := time.Now()
 		stmt, res, err := executionBlock()
 		execDuration := time.Since(b4ExecTime)
-		engine.LogDebugf("[time] %s - args %v - query took: %vns", sqlStr, args, execDuration.Nanoseconds())
+		if len(args) > 0 {
+			engine.logger.Infof("[sql] %s [args] %v - took: %v", sqlStr, args, execDuration)
+		} else {
+			engine.logger.Infof("[sql] %s - took: %v", sqlStr, execDuration)
+		}
 		return stmt, res, err
 	} else {
 		return executionBlock()
 	}
 }
 
-func (engine *Engine) LogSQLExecutionTime(sqlStr string, args interface{}, executionBlock func() (sql.Result, error)) (sql.Result, error) {
-	if engine.ShowDebug {
+func (engine *Engine) logSQLExecutionTime(sqlStr string, args []interface{}, executionBlock func() (sql.Result, error)) (sql.Result, error) {
+	if engine.showSQL && engine.showExecTime {
 		b4ExecTime := time.Now()
 		res, err := executionBlock()
 		execDuration := time.Since(b4ExecTime)
-		engine.LogDebugf("[time] %s - args %v - execution took: %vns", sqlStr, args, execDuration.Nanoseconds())
+		if len(args) > 0 {
+			engine.logger.Infof("[sql] %s [args] %v - took: %v", sqlStr, args, execDuration)
+		} else {
+			engine.logger.Infof("[sql] %s - took: %v", sqlStr, execDuration)
+		}
 		return res, err
 	} else {
 		return executionBlock()
@@ -229,73 +261,73 @@ func (engine *Engine) LogSQLExecutionTime(sqlStr string, args interface{}, execu
 }
 
 // logging error
+/*
 func (engine *Engine) overrideLogLevel(overrideLevel core.LogLevel) {
-	logLevel := engine.Logger.Level()
+	logLevel := engine.logger.Level()
 	if logLevel == core.LOG_UNKNOWN {
 		// intend to left empty
 	} else if logLevel < overrideLevel { // TODO can remove if deprecated engine.ShowErr
-		engine.Logger.SetLevel(core.LOG_ERR) // try override logger's log level
+		engine.logger.SetLevel(core.LOG_ERR) // try override logger's log level
 	}
-
-}
+}*/
 
 func (engine *Engine) LogError(contents ...interface{}) {
-	if engine.ShowErr {
-		engine.overrideLogLevel(core.LOG_ERR)
-		engine.Logger.Err(contents...)
-	}
+	//if engine.ShowErr {
+	//	engine.overrideLogLevel(core.LOG_ERR)
+	engine.logger.Err(contents...)
+	//}
 }
 
 func (engine *Engine) LogErrorf(format string, contents ...interface{}) {
-	if engine.ShowErr {
-		engine.overrideLogLevel(core.LOG_ERR)
-		engine.Logger.Errf(format, contents...)
-	}
+	//if engine.ShowErr {
+	//	engine.overrideLogLevel(core.LOG_ERR)
+	engine.logger.Errf(format, contents...)
+	//}
 }
 
 // logging info
 func (engine *Engine) LogInfo(contents ...interface{}) {
-	if engine.ShowInfo {
-		engine.overrideLogLevel(core.LOG_INFO)
-		engine.Logger.Info(contents...)
-	}
+	//if engine.ShowInfo {
+	//	engine.overrideLogLevel(core.LOG_INFO)
+	engine.logger.Info(contents...)
+	//}
 }
 
 func (engine *Engine) LogInfof(format string, contents ...interface{}) {
-	if engine.ShowErr {
-		engine.overrideLogLevel(core.LOG_INFO)
-		engine.Logger.Infof(format, contents...)
-	}
+	//if engine.ShowErr {
+	//	engine.overrideLogLevel(core.LOG_INFO)
+	engine.logger.Infof(format, contents...)
+	//}
 }
 
 // logging debug
 func (engine *Engine) LogDebug(contents ...interface{}) {
-	if engine.ShowDebug {
-		engine.overrideLogLevel(core.LOG_DEBUG)
-		engine.Logger.Debug(contents...)
-	}
+	//if engine.ShowDebug {
+	//	engine.overrideLogLevel(core.LOG_DEBUG)
+	engine.logger.Debug(contents...)
+	//}
 }
 
 func (engine *Engine) LogDebugf(format string, contents ...interface{}) {
-	if engine.ShowDebug {
-		engine.overrideLogLevel(core.LOG_DEBUG)
-		engine.Logger.Debugf(format, contents...)
-	}
+	//if engine.ShowDebug {
+	//	engine.overrideLogLevel(core.LOG_DEBUG)
+	engine.logger.Debugf(format, contents...)
+	//}
 }
 
 // logging warn
 func (engine *Engine) LogWarn(contents ...interface{}) {
-	if engine.ShowWarn {
-		engine.overrideLogLevel(core.LOG_WARNING)
-		engine.Logger.Warning(contents...)
-	}
+	//if engine.ShowWarn {
+	//	engine.overrideLogLevel(core.LOG_WARNING)
+	engine.logger.Warning(contents...)
+	//}
 }
 
 func (engine *Engine) LogWarnf(format string, contents ...interface{}) {
-	if engine.ShowWarn {
-		engine.overrideLogLevel(core.LOG_WARNING)
-		engine.Logger.Warningf(format, contents...)
-	}
+	//if engine.ShowWarn {
+	//	engine.overrideLogLevel(core.LOG_WARNING)
+	engine.logger.Warningf(format, contents...)
+	//}
 }
 
 // Sql method let's you manualy write raw sql and operate
@@ -985,15 +1017,15 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 
 	if hasCacheTag {
 		if engine.Cacher != nil { // !nash! use engine's cacher if provided
-			engine.Logger.Info("enable cache on table:", table.Name)
+			engine.logger.Info("enable cache on table:", table.Name)
 			table.Cacher = engine.Cacher
 		} else {
-			engine.Logger.Info("enable LRU cache on table:", table.Name)
+			engine.logger.Info("enable LRU cache on table:", table.Name)
 			table.Cacher = NewLRUCacher2(NewMemoryStore(), time.Hour, 10000) // !nashtsai! HACK use LRU cacher for now
 		}
 	}
 	if hasNoCacheTag {
-		engine.Logger.Info("no cache on table:", table.Name)
+		engine.logger.Info("no cache on table:", table.Name)
 		table.Cacher = nil
 	}
 
@@ -1405,16 +1437,18 @@ func (engine *Engine) Import(r io.Reader) ([]sql.Result, error) {
 	scanner.Split(semiColSpliter)
 
 	for scanner.Scan() {
-		query := scanner.Text()
-		query = strings.Trim(query, " \t")
+		query := strings.Trim(scanner.Text(), " \t\n\r")
 		if len(query) > 0 {
+			engine.logSQL(query)
 			result, err := engine.DB().Exec(query)
 			results = append(results, result)
 			if err != nil {
+				return nil, err
 				lastError = err
 			}
 		}
 	}
+
 	return results, lastError
 }
 
