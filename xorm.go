@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	Version string = "0.5.0.0216"
+	Version string = "0.5.1.0228"
 )
 
 func regDrvsNDialects() bool {
@@ -87,7 +87,9 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		TZLocation:    time.Local,
 	}
 
-	engine.SetLogger(NewSimpleLogger(os.Stdout))
+	logger := NewSimpleLogger(os.Stdout)
+	logger.SetLevel(core.LOG_INFO)
+	engine.SetLogger(logger)
 	engine.SetMapper(core.NewCacheMapper(new(core.SnakeMapper)))
 
 	runtime.SetFinalizer(engine, close)

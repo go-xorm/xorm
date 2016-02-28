@@ -1240,7 +1240,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 				}
 				colName = session.Engine.Quote(nm) + "." + colName
 			}
-			session.Statement.ConditionStr = fmt.Sprintf("%v IS NULL OR %v = '0001-01-01 00:00:00'",
+			session.Statement.ConditionStr = fmt.Sprintf("(%v IS NULL OR %v = '0001-01-01 00:00:00')",
 				colName, colName)
 		}
 	}
@@ -1426,18 +1426,6 @@ func (session *Session) Ping() error {
 	return session.DB().Ping()
 }
 
-/*
-func (session *Session) isColumnExist(tableName string, col *core.Column) (bool, error) {
-	defer session.resetStatement()
-	if session.IsAutoClose {
-		defer session.Close()
-	}
-	return session.Engine.dialect.IsColumnExist(tableName, col)
-	//sqlStr, args := session.Engine.dialect.ColumnCheckSql(tableName, colName)
-	//results, err := session.query(sqlStr, args...)
-	//return len(results) > 0, err
-}*/
-
 func (engine *Engine) tableName(beanOrTableName interface{}) (string, error) {
 	v := rValue(beanOrTableName)
 	if v.Type().Kind() == reflect.String {
@@ -1596,7 +1584,7 @@ func (session *Session) dropAll() error {
 func (session *Session) getField(dataStruct *reflect.Value, key string, table *core.Table, idx int) *reflect.Value {
 	var col *core.Column
 	if col = table.GetColumnIdx(key, idx); col == nil {
-		session.Engine.LogWarn(fmt.Sprintf("table %v's has not column %v. %v", table.Name, key, table.Columns()))
+		session.Engine.LogWarn(fmt.Sprintf("table %v has no column %v. %v", table.Name, key, table.ColumnsSeq()))
 		return nil
 	}
 
@@ -4223,7 +4211,7 @@ func (s *Session) Sync2(beans ...interface{}) error {
 		}
 
 		if oriTable == nil {
-			engine.LogWarnf("Table %s has no struct to mapping it", table.Name)
+			//engine.LogWarnf("Table %s has no struct to mapping it", table.Name)
 			continue
 		}
 
