@@ -55,6 +55,10 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 # Changelog
 
+* **v0.5.0**
+    * logging interface changed
+    * some bugs fixed
+
 * **v0.4.5**
     * many bugs fixed
     * extends support unlimited deep
