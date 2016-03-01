@@ -219,7 +219,6 @@ func (engine *Engine) Ping() error {
 // logging sql
 func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
 	if engine.showSQL && !engine.showExecTime {
-		//engine.overrideLogLevel(core.LOG_INFO)
 		if len(sqlArgs) > 0 {
 			engine.logger.Infof("[sql] %v [args] %v", sqlStr, sqlArgs)
 		} else {

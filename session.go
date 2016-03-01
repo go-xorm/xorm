@@ -1057,16 +1057,7 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	var err error
 	session.queryPreprocess(&sqlStr, args...)
 	if session.IsAutoCommit {
-		if session.prepareStmt {
-			stmt, errPrepare := session.doPrepare(sqlStr)
-			if errPrepare != nil {
-				return false, errPrepare
-			}
-			// defer stmt.Close() // !nashtsai! don't close due to stmt is cached and bounded to this session
-			rawRows, err = stmt.Query(args...)
-		} else {
-			rawRows, err = session.DB().Query(sqlStr, args...)
-		}
+		_, rawRows, err = session.innerQuery(sqlStr, args...)
 	} else {
 		rawRows, err = session.Tx.Query(sqlStr, args...)
 	}
@@ -1302,20 +1293,10 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 
 	if sliceValue.Kind() != reflect.Map {
 		var rawRows *core.Rows
-		var stmt *core.Stmt
 
 		session.queryPreprocess(&sqlStr, args...)
-
 		if session.IsAutoCommit {
-			if session.prepareStmt {
-				stmt, err = session.doPrepare(sqlStr)
-				if err != nil {
-					return err
-				}
-				rawRows, err = stmt.Query(args...)
-			} else {
-				rawRows, err = session.DB().Query(sqlStr, args...)
-			}
+			_, rawRows, err = session.innerQuery(sqlStr, args...)
 		} else {
 			rawRows, err = session.Tx.Query(sqlStr, args...)
 		}
@@ -2049,7 +2030,7 @@ func (session *Session) query(sqlStr string, paramStr ...interface{}) (resultsSl
 	session.queryPreprocess(&sqlStr, paramStr...)
 
 	if session.IsAutoCommit {
-		return session.innerQuery(sqlStr, paramStr...)
+		return session.innerQuery2(sqlStr, paramStr...)
 	}
 	return session.txQuery(session.Tx, sqlStr, paramStr...)
 }
@@ -2064,7 +2045,7 @@ func (session *Session) txQuery(tx *core.Tx, sqlStr string, params ...interface{
 	return rows2maps(rows)
 }
 
-func (session *Session) innerQuery(sqlStr string, params ...interface{}) ([]map[string][]byte, error) {
+func (session *Session) innerQuery(sqlStr string, params ...interface{}) (*core.Stmt, *core.Rows, error) {
 	var callback func() (*core.Stmt, *core.Rows, error)
 	if session.prepareStmt {
 		callback = func() (*core.Stmt, *core.Rows, error) {
@@ -2087,7 +2068,15 @@ func (session *Session) innerQuery(sqlStr string, params ...interface{}) ([]map[
 			return nil, rows, err
 		}
 	}
-	_, rows, err := session.Engine.logSQLQueryTime(sqlStr, params, callback)
+	stmt, rows, err := session.Engine.logSQLQueryTime(sqlStr, params, callback)
+	if err != nil {
+		return nil, nil, err
+	}
+	return stmt, rows, nil
+}
+
+func (session *Session) innerQuery2(sqlStr string, params ...interface{}) ([]map[string][]byte, error) {
+	_, rows, err := session.innerQuery(sqlStr, params...)
 	if rows != nil {
 		defer rows.Close()
 	}

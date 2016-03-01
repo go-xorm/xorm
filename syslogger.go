@@ -15,6 +15,7 @@ import (
 
 var _ core.ILogger = &SyslogLogger{}
 
+// SyslogLogger will be depricated
 type SyslogLogger struct {
 	w       *syslog.Writer
 	showSQL bool
