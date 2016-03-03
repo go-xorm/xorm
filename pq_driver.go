@@ -115,5 +115,9 @@ func (p *pqDriver) Parse(driverName, dataSourceName string) (*core.Uri, error) {
 	if db.DbName == "" {
 		return nil, errors.New("dbname is empty")
 	}
+	db.Schema = o.Get("schema")
+	if len(db.Schema) == 0 {
+		db.Schema = "public"
+	}
 	return db, nil
 }

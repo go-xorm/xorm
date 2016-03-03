@@ -836,6 +836,7 @@ func (db *postgres) IsReserved(name string) bool {
 }
 
 func (db *postgres) Quote(name string) string {
+	name = strings.Replace(name, ".", `"."`, -1)
 	return "\"" + name + "\""
 }
 
@@ -912,8 +913,7 @@ func (db *postgres) IsColumnExist(tableName, colName string) (bool, error) {
 }
 
 func (db *postgres) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
-	pgSchema := "public"
-	args := []interface{}{tableName, pgSchema}
+	args := []interface{}{tableName, db.URI().Schema}
 	s := `SELECT column_name, column_default, is_nullable, data_type, character_maximum_length, numeric_precision, numeric_precision_radix ,
     CASE WHEN p.contype = 'p' THEN true ELSE false END AS primarykey,
     CASE WHEN p.contype = 'u' THEN true ELSE false END AS uniquekey
@@ -1013,7 +1013,7 @@ WHERE c.relkind = 'r'::char AND c.relname = $1 AND s.table_schema = $2 AND f.att
 
 func (db *postgres) GetTables() ([]*core.Table, error) {
 	args := []interface{}{}
-	s := "SELECT tablename FROM pg_tables where schemaname = 'public'"
+	s := fmt.Sprintf("SELECT tablename FROM pg_tables where schemaname = '%s'", db.Uri.Schema)
 	db.LogSQL(s, args)
 
 	rows, err := db.DB().Query(s, args...)
@@ -1038,7 +1038,7 @@ func (db *postgres) GetTables() ([]*core.Table, error) {
 
 func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error) {
 	args := []interface{}{tableName}
-	s := "SELECT indexname, indexdef FROM pg_indexes WHERE schemaname='public' AND tablename=$1"
+	s := fmt.Sprintf("SELECT indexname, indexdef FROM pg_indexes WHERE schemaname='%s' AND tablename=$1", db.URI().Schema)
 	db.LogSQL(s, args)
 
 	rows, err := db.DB().Query(s, args...)

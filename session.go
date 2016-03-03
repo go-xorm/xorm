@@ -2285,10 +2285,8 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 	}
 	cleanupProcessorsClosures(&session.beforeClosures)
 
-	statement := fmt.Sprintf("INSERT INTO %v%v%v (%v%v%v) VALUES (%v)",
-		session.Engine.QuoteStr(),
-		session.Statement.TableName(),
-		session.Engine.QuoteStr(),
+	statement := fmt.Sprintf("INSERT INTO %s (%v%v%v) VALUES (%v)",
+		session.Engine.Quote(session.Statement.TableName()),
 		session.Engine.QuoteStr(),
 		strings.Join(colNames, session.Engine.QuoteStr()+", "+session.Engine.QuoteStr()),
 		session.Engine.QuoteStr(),
@@ -3160,10 +3158,8 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		colPlaces = colPlaces[0 : len(colPlaces)-2]
 	}
 
-	sqlStr := fmt.Sprintf("INSERT INTO %v%v%v (%v%v%v) VALUES (%v)",
-		session.Engine.QuoteStr(),
-		session.Statement.TableName(),
-		session.Engine.QuoteStr(),
+	sqlStr := fmt.Sprintf("INSERT INTO %s (%v%v%v) VALUES (%v)",
+		session.Engine.Quote(session.Statement.TableName()),
 		session.Engine.QuoteStr(),
 		strings.Join(colNames, session.Engine.Quote(", ")),
 		session.Engine.QuoteStr(),
@@ -4087,7 +4083,7 @@ func (s *Session) Sync2(beans ...interface{}) error {
 								engine.dialect.DBType() == core.POSTGRES {
 								engine.LogInfof("Table %s column %s change type from %s to %s\n",
 									table.Name, col.Name, curType, expectedType)
-								_, err = engine.Exec(engine.dialect.ModifyColumnSql(table.Name, col))
+								_, err = engine.Exec(engine.dialect.ModifyColumnSql(engine.tbName(table), col))
 							} else {
 								engine.LogWarnf("Table %s column %s db type is %s, struct type is %s\n",
 									table.Name, col.Name, curType, expectedType)
@@ -4097,7 +4093,7 @@ func (s *Session) Sync2(beans ...interface{}) error {
 								if oriCol.Length < col.Length {
 									engine.LogInfof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
 										table.Name, col.Name, oriCol.Length, col.Length)
-									_, err = engine.Exec(engine.dialect.ModifyColumnSql(table.Name, col))
+									_, err = engine.Exec(engine.dialect.ModifyColumnSql(engine.tbName(table), col))
 								}
 							}
 						} else {
@@ -4109,7 +4105,7 @@ func (s *Session) Sync2(beans ...interface{}) error {
 							if oriCol.Length < col.Length {
 								engine.LogInfof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
 									table.Name, col.Name, oriCol.Length, col.Length)
-								_, err = engine.Exec(engine.dialect.ModifyColumnSql(table.Name, col))
+								_, err = engine.Exec(engine.dialect.ModifyColumnSql(engine.tbName(table), col))
 							}
 						}
 					}
@@ -4176,12 +4172,12 @@ func (s *Session) Sync2(beans ...interface{}) error {
 					session := engine.NewSession()
 					session.Statement.RefTable = table
 					defer session.Close()
-					err = session.addUnique(table.Name, name)
+					err = session.addUnique(engine.tbName(table), name)
 				} else if index.Type == core.IndexType {
 					session := engine.NewSession()
 					session.Statement.RefTable = table
 					defer session.Close()
-					err = session.addIndex(table.Name, name)
+					err = session.addIndex(engine.tbName(table), name)
 				}
 				if err != nil {
 					return err

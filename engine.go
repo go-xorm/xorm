@@ -129,6 +129,7 @@ func (engine *Engine) Quote(sql string) string {
 	if string(sql[0]) == engine.dialect.QuoteStr() || sql[0] == '`' {
 		return sql
 	}
+	sql = strings.Replace(sql, ".", engine.dialect.QuoteStr()+"."+engine.dialect.QuoteStr(), -1)
 	return engine.dialect.QuoteStr() + sql + engine.dialect.QuoteStr()
 }
 
@@ -423,6 +424,10 @@ func (engine *Engine) DumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 	return engine.dumpTables(tables, w, tp...)
 }
 
+func (engine *Engine) tbName(tb *core.Table) string {
+	return tb.Name
+}
+
 // DumpAll dump database all table structs and data to w with specify db type
 func (engine *Engine) dumpAll(w io.Writer, tp ...core.DbType) error {
 	tables, err := engine.DBMetas()
@@ -459,13 +464,13 @@ func (engine *Engine) dumpAll(w io.Writer, tp ...core.DbType) error {
 			return err
 		}
 		for _, index := range table.Indexes {
-			_, err = io.WriteString(w, dialect.CreateIndexSql(table.Name, index)+";\n")
+			_, err = io.WriteString(w, dialect.CreateIndexSql(engine.tbName(table), index)+";\n")
 			if err != nil {
 				return err
 			}
 		}
 
-		rows, err := engine.DB().Query("SELECT * FROM " + engine.Quote(table.Name))
+		rows, err := engine.DB().Query("SELECT * FROM " + engine.Quote(engine.tbName(table)))
 		if err != nil {
 			return err
 		}
@@ -484,7 +489,7 @@ func (engine *Engine) dumpAll(w io.Writer, tp ...core.DbType) error {
 				return err
 			}
 
-			_, err = io.WriteString(w, "INSERT INTO "+dialect.Quote(table.Name)+" ("+dialect.Quote(strings.Join(cols, dialect.Quote(", ")))+") VALUES (")
+			_, err = io.WriteString(w, "INSERT INTO "+dialect.Quote(engine.tbName(table))+" ("+dialect.Quote(strings.Join(cols, dialect.Quote(", ")))+") VALUES (")
 			if err != nil {
 				return err
 			}
@@ -559,13 +564,13 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 			return err
 		}
 		for _, index := range table.Indexes {
-			_, err = io.WriteString(w, dialect.CreateIndexSql(table.Name, index)+";\n")
+			_, err = io.WriteString(w, dialect.CreateIndexSql(engine.tbName(table), index)+";\n")
 			if err != nil {
 				return err
 			}
 		}
 
-		rows, err := engine.DB().Query("SELECT * FROM " + engine.Quote(table.Name))
+		rows, err := engine.DB().Query("SELECT * FROM " + engine.Quote(engine.tbName(table)))
 		if err != nil {
 			return err
 		}
@@ -584,7 +589,7 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 				return err
 			}
 
-			_, err = io.WriteString(w, "INSERT INTO "+dialect.Quote(table.Name)+" ("+dialect.Quote(strings.Join(cols, dialect.Quote(", ")))+") VALUES (")
+			_, err = io.WriteString(w, "INSERT INTO "+dialect.Quote(engine.tbName(table))+" ("+dialect.Quote(strings.Join(cols, dialect.Quote(", ")))+") VALUES (")
 			if err != nil {
 				return err
 			}
@@ -1350,7 +1355,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 						session := engine.NewSession()
 						session.Statement.RefTable = table
 						defer session.Close()
-						err = session.addUnique(table.Name, name)
+						err = session.addUnique(engine.tbName(table), name)
 						if err != nil {
 							return err
 						}
@@ -1364,7 +1369,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 						session := engine.NewSession()
 						session.Statement.RefTable = table
 						defer session.Close()
-						err = session.addIndex(table.Name, name)
+						err = session.addIndex(engine.tbName(table), name)
 						if err != nil {
 							return err
 						}

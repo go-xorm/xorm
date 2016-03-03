@@ -652,6 +652,10 @@ func (statement *Statement) TableName() string {
 	}
 
 	if statement.RefTable != nil {
+		schema := statement.Engine.dialect.URI().Schema
+		if len(schema) > 0 {
+			return schema + "." + statement.RefTable.Name
+		}
 		return statement.RefTable.Name
 	}
 	return ""
@@ -1078,7 +1082,7 @@ func (s *Statement) genIndexSQL() []string {
 	quote := s.Engine.Quote
 	for idxName, index := range s.RefTable.Indexes {
 		if index.Type == core.IndexType {
-			sql := fmt.Sprintf("CREATE INDEX %v ON %v (%v);", quote(indexName(tbName, idxName)),
+			sql := fmt.Sprintf("CREATE INDEX %v ON %v (%v);", quote(indexName(s.RefTable.Name, idxName)),
 				quote(tbName), quote(strings.Join(index.Cols, quote(","))))
 			sqls = append(sqls, sql)
 		}
@@ -1092,10 +1096,9 @@ func uniqueName(tableName, uqeName string) string {
 
 func (s *Statement) genUniqueSQL() []string {
 	var sqls []string = make([]string, 0)
-	tbName := s.TableName()
 	for _, index := range s.RefTable.Indexes {
 		if index.Type == core.UniqueType {
-			sql := s.Engine.dialect.CreateIndexSql(tbName, index)
+			sql := s.Engine.dialect.CreateIndexSql(s.RefTable.Name, index)
 			sqls = append(sqls, sql)
 		}
 	}
@@ -1107,9 +1110,9 @@ func (s *Statement) genDelIndexSQL() []string {
 	for idxName, index := range s.RefTable.Indexes {
 		var rIdxName string
 		if index.Type == core.UniqueType {
-			rIdxName = uniqueName(s.TableName(), idxName)
+			rIdxName = uniqueName(s.RefTable.Name, idxName)
 		} else if index.Type == core.IndexType {
-			rIdxName = indexName(s.TableName(), idxName)
+			rIdxName = indexName(s.RefTable.Name, idxName)
 		}
 		sql := fmt.Sprintf("DROP INDEX %v", s.Engine.Quote(rIdxName))
 		if s.Engine.dialect.IndexOnTable() {
