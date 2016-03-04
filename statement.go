@@ -867,7 +867,8 @@ func (statement *Statement) Cols(columns ...string) *Statement {
 	}
 	statement.ColumnStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
 	if strings.Contains(statement.ColumnStr, ".") {
-		statement.ColumnStr = strings.Replace(statement.ColumnStr, ".", statement.Engine.Quote("."), -1)
+		statement.ColumnStr = strings.Replace(statement.ColumnStr, ".",
+			statement.Engine.dialect.QuoteStr()+"."+statement.Engine.dialect.QuoteStr(), -1)
 	}
 	statement.ColumnStr = strings.Replace(statement.ColumnStr, statement.Engine.Quote("*"), "*", -1)
 	return statement
