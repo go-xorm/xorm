@@ -123,14 +123,40 @@ func (engine *Engine) QuoteStr() string {
 
 // Use QuoteStr quote the string sql
 func (engine *Engine) Quote(sql string) string {
-	if len(sql) == 0 {
-		return sql
-	}
-	if string(sql[0]) == engine.dialect.QuoteStr() || sql[0] == '`' {
-		return sql
-	}
-	sql = strings.Replace(sql, ".", engine.dialect.QuoteStr()+"."+engine.dialect.QuoteStr(), -1)
+	return engine.quoteTable(sql)
+}
+
+func (engine *Engine) quote(sql string) string {
 	return engine.dialect.QuoteStr() + sql + engine.dialect.QuoteStr()
+}
+
+func (engine *Engine) quoteColumn(keyName string) string {
+	if len(keyName) == 0 {
+		return keyName
+	}
+
+	keyName = strings.TrimSpace(keyName)
+	keyName = strings.Replace(keyName, "`", "", -1)
+	keyName = strings.Replace(keyName, engine.QuoteStr(), "", -1)
+
+	keyName = strings.Replace(keyName, ",", engine.dialect.QuoteStr()+","+engine.dialect.QuoteStr(), -1)
+
+	return engine.dialect.QuoteStr() + keyName + engine.dialect.QuoteStr()
+}
+
+func (engine *Engine) quoteTable(keyName string) string {
+	keyName = strings.TrimSpace(keyName)
+	if len(keyName) == 0 {
+		return keyName
+	}
+
+	if string(keyName[0]) == engine.dialect.QuoteStr() || keyName[0] == '`' {
+		return keyName
+	}
+
+	keyName = strings.Replace(keyName, ".", engine.dialect.QuoteStr()+"."+engine.dialect.QuoteStr(), -1)
+
+	return engine.dialect.QuoteStr() + keyName + engine.dialect.QuoteStr()
 }
 
 // A simple wrapper to dialect's core.SqlType method

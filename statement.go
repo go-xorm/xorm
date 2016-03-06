@@ -772,7 +772,7 @@ func (statement *Statement) genInSql() (string, []interface{}) {
 	for _, params := range statement.inColumns {
 		buf.Reset()
 		fmt.Fprintf(&buf, "(%v IN (%v))",
-			statement.Engine.autoQuote(params.colName),
+			statement.Engine.quoteColumn(params.colName),
 			strings.Join(makeArray("?", len(params.args)), ","))
 		inStrs[i] = buf.String()
 		i++
@@ -809,16 +809,6 @@ func col2NewCols(columns ...string) []string {
 	return newColumns
 }
 
-func (engine *Engine) autoQuote(col string) string {
-	col = strings.Replace(col, "`", "", -1)
-	col = strings.Replace(col, engine.QuoteStr(), "", -1)
-	fields := strings.Split(strings.TrimSpace(col), ".")
-	for i, field := range fields {
-		fields[i] = engine.Quote(field)
-	}
-	return strings.Join(fields, ".")
-}
-
 func (statement *Statement) col2NewColsWithQuote(columns ...string) []string {
 	newColumns := make([]string, 0)
 	for _, col := range columns {
@@ -828,10 +818,10 @@ func (statement *Statement) col2NewColsWithQuote(columns ...string) []string {
 		for _, c := range ccols {
 			fields := strings.Split(strings.TrimSpace(c), ".")
 			if len(fields) == 1 {
-				newColumns = append(newColumns, statement.Engine.Quote(fields[0]))
+				newColumns = append(newColumns, statement.Engine.quote(fields[0]))
 			} else if len(fields) == 2 {
-				newColumns = append(newColumns, statement.Engine.Quote(fields[0])+"."+
-					statement.Engine.Quote(fields[1]))
+				newColumns = append(newColumns, statement.Engine.quote(fields[0])+"."+
+					statement.Engine.quote(fields[1]))
 			} else {
 				panic(errors.New("unwanted colnames"))
 			}
@@ -861,16 +851,15 @@ func (s *Statement) Select(str string) *Statement {
 
 // Generate "col1, col2" statement
 func (statement *Statement) Cols(columns ...string) *Statement {
-	newColumns := col2NewCols(columns...)
-	for _, nc := range newColumns {
+	cols := col2NewCols(columns...)
+	for _, nc := range cols {
 		statement.columnMap[strings.ToLower(nc)] = true
 	}
-	statement.ColumnStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
-	if strings.Contains(statement.ColumnStr, ".") {
-		statement.ColumnStr = strings.Replace(statement.ColumnStr, ".",
-			statement.Engine.dialect.QuoteStr()+"."+statement.Engine.dialect.QuoteStr(), -1)
-	}
-	statement.ColumnStr = strings.Replace(statement.ColumnStr, statement.Engine.Quote("*"), "*", -1)
+
+	newColumns := statement.col2NewColsWithQuote(columns...)
+	fmt.Println("=====", columns, newColumns, cols)
+	statement.ColumnStr = strings.Join(newColumns, ", ")
+	statement.ColumnStr = strings.Replace(statement.ColumnStr, statement.Engine.quote("*"), "*", -1)
 	return statement
 }
 
