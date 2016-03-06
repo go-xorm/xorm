@@ -4097,8 +4097,10 @@ func (s *Session) Sync2(beans ...interface{}) error {
 								}
 							}
 						} else {
-							engine.LogWarnf("Table %s column %s db type is %s, struct type is %s",
-								table.Name, col.Name, curType, expectedType)
+							if !(strings.HasPrefix(curType, expectedType) && curType[len(expectedType)] == '(') {
+								engine.LogWarnf("Table %s column %s db type is %s, struct type is %s",
+									table.Name, col.Name, curType, expectedType)
+							}
 						}
 					} else if expectedType == core.Varchar {
 						if engine.dialect.DBType() == core.MYSQL {
