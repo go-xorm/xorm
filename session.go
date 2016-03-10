@@ -523,7 +523,8 @@ func (session *Session) Exec(sqlStr string, args ...interface{}) (sql.Result, er
 
 // this function create a table according a bean
 func (session *Session) CreateTable(bean interface{}) error {
-	session.Statement.RefTable = session.Engine.TableInfo(bean)
+	v := rValue(bean)
+	session.Statement.RefTable = session.Engine.mapType(v)
 
 	defer session.resetStatement()
 	if session.IsAutoClose {
@@ -535,7 +536,8 @@ func (session *Session) CreateTable(bean interface{}) error {
 
 // create indexes
 func (session *Session) CreateIndexes(bean interface{}) error {
-	session.Statement.RefTable = session.Engine.TableInfo(bean)
+	v := rValue(bean)
+	session.Statement.RefTable = session.Engine.mapType(v)
 
 	defer session.resetStatement()
 	if session.IsAutoClose {
@@ -554,7 +556,8 @@ func (session *Session) CreateIndexes(bean interface{}) error {
 
 // create uniques
 func (session *Session) CreateUniques(bean interface{}) error {
-	session.Statement.RefTable = session.Engine.TableInfo(bean)
+	v := rValue(bean)
+	session.Statement.RefTable = session.Engine.mapType(v)
 
 	defer session.resetStatement()
 	if session.IsAutoClose {
@@ -4036,7 +4039,8 @@ func (s *Session) Sync2(beans ...interface{}) error {
 	structTables := make([]*core.Table, 0)
 
 	for _, bean := range beans {
-		table := engine.TableInfo(bean)
+		v := rValue(bean)
+		table := engine.mapType(v)
 		structTables = append(structTables, table)
 
 		var oriTable *core.Table

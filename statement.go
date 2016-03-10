@@ -857,7 +857,7 @@ func (statement *Statement) Cols(columns ...string) *Statement {
 	}
 
 	newColumns := statement.col2NewColsWithQuote(columns...)
-	fmt.Println("=====", columns, newColumns, cols)
+	//fmt.Println("=====", columns, newColumns, cols)
 	statement.ColumnStr = strings.Join(newColumns, ", ")
 	statement.ColumnStr = strings.Replace(statement.ColumnStr, statement.Engine.quote("*"), "*", -1)
 	return statement
