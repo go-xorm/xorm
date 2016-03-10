@@ -4028,6 +4028,19 @@ func (session *Session) LastSQL() (string, []interface{}) {
 	return session.lastSQL, session.lastSQLArgs
 }
 
+// tbName get some table's table name
+func (session *Session) tbName(table *core.Table) string {
+	var tbName = table.Name
+	if len(session.Statement.AltTableName) > 0 {
+		tbName = session.Statement.AltTableName
+	}
+
+	if len(session.Engine.dialect.URI().Schema) > 0 {
+		return session.Engine.dialect.URI().Schema + "." + tbName
+	}
+	return tbName
+}
+
 func (s *Session) Sync2(beans ...interface{}) error {
 	engine := s.Engine
 
@@ -4042,27 +4055,28 @@ func (s *Session) Sync2(beans ...interface{}) error {
 		v := rValue(bean)
 		table := engine.mapType(v)
 		structTables = append(structTables, table)
+		var tbName = s.tbName(table)
 
 		var oriTable *core.Table
 		for _, tb := range tables {
-			if equalNoCase(tb.Name, table.Name) {
+			if equalNoCase(tb.Name, tbName) {
 				oriTable = tb
 				break
 			}
 		}
 
 		if oriTable == nil {
-			err = engine.StoreEngine(s.Statement.StoreEngine).CreateTable(bean)
+			err = s.StoreEngine(s.Statement.StoreEngine).CreateTable(bean)
 			if err != nil {
 				return err
 			}
 
-			err = engine.CreateUniques(bean)
+			err = s.CreateUniques(bean)
 			if err != nil {
 				return err
 			}
 
-			err = engine.CreateIndexes(bean)
+			err = s.CreateIndexes(bean)
 			if err != nil {
 				return err
 			}
@@ -4086,42 +4100,42 @@ func (s *Session) Sync2(beans ...interface{}) error {
 							if engine.dialect.DBType() == core.MYSQL ||
 								engine.dialect.DBType() == core.POSTGRES {
 								engine.LogInfof("Table %s column %s change type from %s to %s\n",
-									table.Name, col.Name, curType, expectedType)
+									tbName, col.Name, curType, expectedType)
 								_, err = engine.Exec(engine.dialect.ModifyColumnSql(engine.tbName(table), col))
 							} else {
 								engine.LogWarnf("Table %s column %s db type is %s, struct type is %s\n",
-									table.Name, col.Name, curType, expectedType)
+									tbName, col.Name, curType, expectedType)
 							}
 						} else if strings.HasPrefix(curType, core.Varchar) && strings.HasPrefix(expectedType, core.Varchar) {
 							if engine.dialect.DBType() == core.MYSQL {
 								if oriCol.Length < col.Length {
 									engine.LogInfof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
-										table.Name, col.Name, oriCol.Length, col.Length)
+										tbName, col.Name, oriCol.Length, col.Length)
 									_, err = engine.Exec(engine.dialect.ModifyColumnSql(engine.tbName(table), col))
 								}
 							}
 						} else {
 							if !(strings.HasPrefix(curType, expectedType) && curType[len(expectedType)] == '(') {
 								engine.LogWarnf("Table %s column %s db type is %s, struct type is %s",
-									table.Name, col.Name, curType, expectedType)
+									tbName, col.Name, curType, expectedType)
 							}
 						}
 					} else if expectedType == core.Varchar {
 						if engine.dialect.DBType() == core.MYSQL {
 							if oriCol.Length < col.Length {
 								engine.LogInfof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
-									table.Name, col.Name, oriCol.Length, col.Length)
+									tbName, col.Name, oriCol.Length, col.Length)
 								_, err = engine.Exec(engine.dialect.ModifyColumnSql(engine.tbName(table), col))
 							}
 						}
 					}
 					if col.Default != oriCol.Default {
 						engine.LogWarnf("Table %s Column %s db default is %s, struct default is %s",
-							table.Name, col.Name, oriCol.Default, col.Default)
+							tbName, col.Name, oriCol.Default, col.Default)
 					}
 					if col.Nullable != oriCol.Nullable {
 						engine.LogWarnf("Table %s Column %s db nullable is %v, struct nullable is %v",
-							table.Name, col.Name, oriCol.Nullable, col.Nullable)
+							tbName, col.Name, oriCol.Nullable, col.Nullable)
 					}
 				} else {
 					session := engine.NewSession()
@@ -4149,7 +4163,7 @@ func (s *Session) Sync2(beans ...interface{}) error {
 
 				if oriIndex != nil {
 					if oriIndex.Type != index.Type {
-						sql := engine.dialect.DropIndexSql(table.Name, oriIndex)
+						sql := engine.dialect.DropIndexSql(tbName, oriIndex)
 						_, err = engine.Exec(sql)
 						if err != nil {
 							return err
@@ -4165,7 +4179,7 @@ func (s *Session) Sync2(beans ...interface{}) error {
 
 			for name2, index2 := range oriTable.Indexes {
 				if _, ok := foundIndexNames[name2]; !ok {
-					sql := engine.dialect.DropIndexSql(table.Name, index2)
+					sql := engine.dialect.DropIndexSql(tbName, index2)
 					_, err = engine.Exec(sql)
 					if err != nil {
 						return err
@@ -4178,12 +4192,12 @@ func (s *Session) Sync2(beans ...interface{}) error {
 					session := engine.NewSession()
 					session.Statement.RefTable = table
 					defer session.Close()
-					err = session.addUnique(engine.tbName(table), name)
+					err = session.addUnique(tbName, name)
 				} else if index.Type == core.IndexType {
 					session := engine.NewSession()
 					session.Statement.RefTable = table
 					defer session.Close()
-					err = session.addIndex(engine.tbName(table), name)
+					err = session.addIndex(tbName, name)
 				}
 				if err != nil {
 					return err
@@ -4195,7 +4209,7 @@ func (s *Session) Sync2(beans ...interface{}) error {
 	for _, table := range tables {
 		var oriTable *core.Table
 		for _, structTable := range structTables {
-			if equalNoCase(table.Name, structTable.Name) {
+			if equalNoCase(table.Name, s.tbName(structTable)) {
 				oriTable = structTable
 				break
 			}
@@ -4208,8 +4222,7 @@ func (s *Session) Sync2(beans ...interface{}) error {
 
 		for _, colName := range table.ColumnsSeq() {
 			if oriTable.GetColumn(colName) == nil {
-				engine.LogWarnf("Table %s has column %s but struct has not related field",
-					table.Name, colName)
+				engine.LogWarnf("Table %s has column %s but struct has not related field", table.Name, colName)
 			}
 		}
 	}
