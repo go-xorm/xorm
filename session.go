@@ -4041,6 +4041,16 @@ func (session *Session) tbName(table *core.Table) string {
 	return tbName
 }
 
+// tbName get some table's table name
+func (session *Session) tbNameNoSchema(table *core.Table) string {
+	if len(session.Statement.AltTableName) > 0 {
+		return session.Statement.AltTableName
+	}
+
+	return table.Name
+}
+
+// Sync2
 func (s *Session) Sync2(beans ...interface{}) error {
 	engine := s.Engine
 
@@ -4055,7 +4065,7 @@ func (s *Session) Sync2(beans ...interface{}) error {
 		v := rValue(bean)
 		table := engine.mapType(v)
 		structTables = append(structTables, table)
-		var tbName = s.tbName(table)
+		var tbName = s.tbNameNoSchema(table)
 
 		var oriTable *core.Table
 		for _, tb := range tables {
@@ -4209,7 +4219,7 @@ func (s *Session) Sync2(beans ...interface{}) error {
 	for _, table := range tables {
 		var oriTable *core.Table
 		for _, structTable := range structTables {
-			if equalNoCase(table.Name, s.tbName(structTable)) {
+			if equalNoCase(table.Name, s.tbNameNoSchema(structTable)) {
 				oriTable = structTable
 				break
 			}
