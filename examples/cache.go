@@ -22,7 +22,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	Orm.ShowSQL = true
+	Orm.ShowSQL(true)
 	cacher := xorm.NewLRUCacher(xorm.NewMemoryStore(), 1000)
 	Orm.SetDefaultCacher(cacher)
 

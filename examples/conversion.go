@@ -53,7 +53,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	Orm.ShowSQL = true
+	Orm.ShowSQL(true)
 	err = Orm.CreateTables(&User{})
 	if err != nil {
 		fmt.Println(err)

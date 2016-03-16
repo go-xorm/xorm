@@ -65,7 +65,7 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-		Orm.ShowSQL = true
+		Orm.ShowSQL(true)
 		err = sync(Orm)
 		if err != nil {
 			fmt.Println(err)

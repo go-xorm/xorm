@@ -85,7 +85,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	engine.ShowSQL = true
+	engine.ShowSQL(true)
 	cacher := xorm.NewLRUCacher2(xorm.NewMemoryStore(), time.Hour, 1000)
 	engine.SetDefaultCacher(cacher)
 	fmt.Println(engine)
@@ -95,7 +95,7 @@ func main() {
 
 	fmt.Println("-----start mysql go routines-----")
 	engine, err = mysqlEngine()
-	engine.ShowSQL = true
+	engine.ShowSQL(true)
 	cacher = xorm.NewLRUCacher2(xorm.NewMemoryStore(), time.Hour, 1000)
 	engine.SetDefaultCacher(cacher)
 	if err != nil {

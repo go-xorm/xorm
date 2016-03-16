@@ -34,7 +34,7 @@ func main() {
 		return
 	}
 	defer Orm.Close()
-	Orm.ShowSQL = true
+	Orm.ShowSQL(true)
 	err = Orm.CreateTables(&User{}, &LoginInfo{})
 	if err != nil {
 		fmt.Println(err)
@@ -56,7 +56,7 @@ func main() {
 	fmt.Println(info)
 
 	infos := make([]LoginInfo1, 0)
-	err = Orm.Sql(`select *, (select name from user where id = login_info.user_id) as user_name from 
+	err = Orm.Sql(`select *, (select name from user where id = login_info.user_id) as user_name from
              login_info limit 10`).Find(&infos)
 	if err != nil {
 		fmt.Println(err)
