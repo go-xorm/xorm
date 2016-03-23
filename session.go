@@ -1789,7 +1789,15 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 						if d, ok := vv.Interface().([]uint8); ok {
 							hasAssigned = true
 							t, err := session.byte2Time(col, d)
-							//fmt.Println(string(d), t, err)
+							if err != nil {
+								session.Engine.LogError("byte2Time error:", err.Error())
+								hasAssigned = false
+							} else {
+								fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
+							}
+						} else if d, ok := vv.Interface().(string); ok {
+							hasAssigned = true
+							t, err := session.str2Time(col, d)
 							if err != nil {
 								session.Engine.LogError("byte2Time error:", err.Error())
 								hasAssigned = false
@@ -2355,8 +2363,8 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 	}
 }
 
-func (session *Session) byte2Time(col *core.Column, data []byte) (outTime time.Time, outErr error) {
-	sdata := strings.TrimSpace(string(data))
+func (session *Session) str2Time(col *core.Column, data string) (outTime time.Time, outErr error) {
+	sdata := strings.TrimSpace(data)
 	var x time.Time
 	var err error
 
@@ -2421,6 +2429,10 @@ func (session *Session) byte2Time(col *core.Column, data []byte) (outTime time.T
 	}
 	outTime = x
 	return
+}
+
+func (session *Session) byte2Time(col *core.Column, data []byte) (outTime time.Time, outErr error) {
+	return session.str2Time(col, string(data))
 }
 
 // convert a db data([]byte) to a field value
