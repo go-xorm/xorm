@@ -1265,10 +1265,12 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 			}
 		}
 
+		session.Statement.Params = append(session.Statement.Params, session.Statement.BeanArgs...)
+
 		session.Statement.attachInSql()
 
 		sqlStr = session.Statement.genSelectSql(columnStr)
-		args = append(session.Statement.Params, session.Statement.BeanArgs...)
+		args = session.Statement.Params
 		// for mssql and use limit
 		qs := strings.Count(sqlStr, "?")
 		if len(args)*2 == qs {
