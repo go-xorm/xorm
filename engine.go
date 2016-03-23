@@ -140,6 +140,7 @@ func (engine *Engine) quoteColumn(keyName string) string {
 	keyName = strings.Replace(keyName, engine.QuoteStr(), "", -1)
 
 	keyName = strings.Replace(keyName, ",", engine.dialect.QuoteStr()+","+engine.dialect.QuoteStr(), -1)
+	keyName = strings.Replace(keyName, ".", engine.dialect.QuoteStr()+"."+engine.dialect.QuoteStr(), -1)
 
 	return engine.dialect.QuoteStr() + keyName + engine.dialect.QuoteStr()
 }
