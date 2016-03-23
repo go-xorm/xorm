@@ -145,6 +145,11 @@ func (statement *Statement) Alias(alias string) *Statement {
 
 // Where add Where statment
 func (statement *Statement) Where(querystring string, args ...interface{}) *Statement {
+	// The second where will be triggered as And
+	if len(statement.WhereStr) > 0 {
+		return statement.And(querystring, args...)
+	}
+
 	if !strings.Contains(querystring, statement.Engine.dialect.EqStr()) {
 		querystring = strings.Replace(querystring, "=", statement.Engine.dialect.EqStr(), -1)
 	}
