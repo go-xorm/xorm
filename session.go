@@ -1687,22 +1687,59 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 
 			fieldType := fieldValue.Type()
 			hasAssigned := false
+			col := table.GetColumn(key)
 
-			switch fieldType.Kind() {
-			case reflect.Complex64, reflect.Complex128:
+			if col.SQLType.IsJson() {
+				var bs []byte
 				if rawValueType.Kind() == reflect.String {
-					hasAssigned = true
+					bs = []byte(vv.String())
+				} else if rawValueType.ConvertibleTo(reflect.SliceOf(reflect.TypeOf(uint8(1)))) {
+					bs = vv.Bytes()
+				} else {
+					return errors.New("unsupported database data type")
+				}
+
+				hasAssigned = true
+
+				if fieldValue.CanAddr() {
+					err := json.Unmarshal(bs, fieldValue.Addr().Interface())
+					if err != nil {
+						session.Engine.LogError(err)
+						return err
+					}
+				} else {
 					x := reflect.New(fieldType)
-					err := json.Unmarshal([]byte(vv.String()), x.Interface())
+					err := json.Unmarshal(bs, x.Interface())
 					if err != nil {
 						session.Engine.LogError(err)
 						return err
 					}
 					fieldValue.Set(x.Elem())
+				}
+
+				continue
+			}
+
+			switch fieldType.Kind() {
+			case reflect.Complex64, reflect.Complex128:
+				// TODO: reimplement this
+				var bs []byte
+				if rawValueType.Kind() == reflect.String {
+					bs = []byte(vv.String())
 				} else if rawValueType.Kind() == reflect.Slice {
-					hasAssigned = true
+					bs = vv.Bytes()
+				}
+
+				hasAssigned = true
+				if fieldValue.CanAddr() {
+					err := json.Unmarshal(bs, fieldValue.Addr().Interface())
+					if err != nil {
+						session.Engine.LogError(err)
+						return err
+					}
+				} else {
 					x := reflect.New(fieldType)
-					err := json.Unmarshal(vv.Bytes(), x.Interface())
+					err := json.Unmarshal(bs, x.Interface())
 					if err != nil {
 						session.Engine.LogError(err)
 						return err
@@ -1752,7 +1789,6 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 					fieldValue.SetUint(uint64(vv.Int()))
 				}
 			case reflect.Struct:
-				col := table.GetColumn(key)
 				if fieldType.ConvertibleTo(core.TimeType) {
 					if rawValueType == core.TimeType {
 						hasAssigned = true

@@ -287,74 +287,39 @@ func (engine *Engine) logSQLExecutionTime(sqlStr string, args []interface{}, exe
 	}
 }
 
-// logging error
-/*
-func (engine *Engine) overrideLogLevel(overrideLevel core.LogLevel) {
-	logLevel := engine.logger.Level()
-	if logLevel == core.LOG_UNKNOWN {
-		// intend to left empty
-	} else if logLevel < overrideLevel { // TODO can remove if deprecated engine.ShowErr
-		engine.logger.SetLevel(core.LOG_ERR) // try override logger's log level
-	}
-}*/
-
 func (engine *Engine) LogError(contents ...interface{}) {
-	//if engine.ShowErr {
-	//	engine.overrideLogLevel(core.LOG_ERR)
 	engine.logger.Err(contents...)
-	//}
 }
 
 func (engine *Engine) LogErrorf(format string, contents ...interface{}) {
-	//if engine.ShowErr {
-	//	engine.overrideLogLevel(core.LOG_ERR)
 	engine.logger.Errf(format, contents...)
-	//}
 }
 
 // logging info
 func (engine *Engine) LogInfo(contents ...interface{}) {
-	//if engine.ShowInfo {
-	//	engine.overrideLogLevel(core.LOG_INFO)
 	engine.logger.Info(contents...)
-	//}
 }
 
 func (engine *Engine) LogInfof(format string, contents ...interface{}) {
-	//if engine.ShowErr {
-	//	engine.overrideLogLevel(core.LOG_INFO)
 	engine.logger.Infof(format, contents...)
-	//}
 }
 
 // logging debug
 func (engine *Engine) LogDebug(contents ...interface{}) {
-	//if engine.ShowDebug {
-	//	engine.overrideLogLevel(core.LOG_DEBUG)
 	engine.logger.Debug(contents...)
-	//}
 }
 
 func (engine *Engine) LogDebugf(format string, contents ...interface{}) {
-	//if engine.ShowDebug {
-	//	engine.overrideLogLevel(core.LOG_DEBUG)
 	engine.logger.Debugf(format, contents...)
-	//}
 }
 
 // logging warn
 func (engine *Engine) LogWarn(contents ...interface{}) {
-	//if engine.ShowWarn {
-	//	engine.overrideLogLevel(core.LOG_WARNING)
 	engine.logger.Warning(contents...)
-	//}
 }
 
 func (engine *Engine) LogWarnf(format string, contents ...interface{}) {
-	//if engine.ShowWarn {
-	//	engine.overrideLogLevel(core.LOG_WARNING)
 	engine.logger.Warningf(format, contents...)
-	//}
 }
 
 // Sql method let's you manualy write raw sql and operate

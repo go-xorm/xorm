@@ -48,56 +48,56 @@ func NewSimpleLogger3(out io.Writer, prefix string, flag int, l core.LogLevel) *
 }
 
 func (s *SimpleLogger) Err(v ...interface{}) (err error) {
-	if s.level > core.LOG_OFF && s.level <= core.LOG_ERR {
+	if s.level <= core.LOG_ERR {
 		s.ERR.Println(v...)
 	}
 	return
 }
 
 func (s *SimpleLogger) Errf(format string, v ...interface{}) (err error) {
-	if s.level > core.LOG_OFF && s.level <= core.LOG_ERR {
+	if s.level <= core.LOG_ERR {
 		s.ERR.Printf(format, v...)
 	}
 	return
 }
 
 func (s *SimpleLogger) Debug(v ...interface{}) (err error) {
-	if s.level > core.LOG_OFF && s.level <= core.LOG_DEBUG {
+	if s.level <= core.LOG_DEBUG {
 		s.DEBUG.Println(v...)
 	}
 	return
 }
 
 func (s *SimpleLogger) Debugf(format string, v ...interface{}) (err error) {
-	if s.level > core.LOG_OFF && s.level >= core.LOG_DEBUG {
+	if s.level <= core.LOG_DEBUG {
 		s.DEBUG.Printf(format, v...)
 	}
 	return
 }
 
 func (s *SimpleLogger) Info(v ...interface{}) (err error) {
-	if s.level > core.LOG_OFF && s.level >= core.LOG_INFO {
+	if s.level <= core.LOG_INFO {
 		s.INFO.Println(v...)
 	}
 	return
 }
 
 func (s *SimpleLogger) Infof(format string, v ...interface{}) (err error) {
-	if s.level > core.LOG_OFF && s.level >= core.LOG_INFO {
+	if s.level <= core.LOG_INFO {
 		s.INFO.Printf(format, v...)
 	}
 	return
 }
 
 func (s *SimpleLogger) Warning(v ...interface{}) (err error) {
-	if s.level > core.LOG_OFF && s.level >= core.LOG_WARNING {
+	if s.level <= core.LOG_WARNING {
 		s.WARN.Println(v...)
 	}
 	return
 }
 
 func (s *SimpleLogger) Warningf(format string, v ...interface{}) (err error) {
-	if s.level > core.LOG_OFF && s.level >= core.LOG_WARNING {
+	if s.level <= core.LOG_WARNING {
 		s.WARN.Printf(format, v...)
 	}
 	return
