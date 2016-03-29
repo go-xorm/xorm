@@ -5,7 +5,6 @@
 package xorm
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -17,7 +16,8 @@ import (
 )
 
 const (
-	Version string = "0.5.2.0324"
+	// Version show the xorm's version
+	Version string = "0.5.2.0329"
 )
 
 func regDrvsNDialects() bool {
@@ -49,13 +49,13 @@ func close(engine *Engine) {
 	engine.Close()
 }
 
-// new a db manager according to the parameter. Currently support four
+// NewEngine new a db manager according to the parameter. Currently support four
 // drivers
 func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 	regDrvsNDialects()
 	driver := core.QueryDriver(driverName)
 	if driver == nil {
-		return nil, errors.New(fmt.Sprintf("Unsupported driver name: %v", driverName))
+		return nil, fmt.Errorf("Unsupported driver name: %v", driverName)
 	}
 
 	uri, err := driver.Parse(driverName, dataSourceName)
@@ -65,7 +65,7 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 
 	dialect := core.QueryDialect(uri.DbType)
 	if dialect == nil {
-		return nil, errors.New(fmt.Sprintf("Unsupported dialect type: %v", uri.DbType))
+		return nil, fmt.Errorf("Unsupported dialect type: %v", uri.DbType)
 	}
 
 	db, err := core.Open(driverName, dataSourceName)
@@ -97,7 +97,7 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 	return engine, nil
 }
 
-// clone an engine
+// Clone clone an engine
 func (engine *Engine) Clone() (*Engine, error) {
 	return NewEngine(engine.DriverName(), engine.DataSourceName())
 }

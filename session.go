@@ -309,31 +309,32 @@ func (session *Session) Cascade(trueOrFalse ...bool) *Session {
 	return session
 }
 
-// Method NoCache ask this session do not retrieve data from cache system and
+// NoCache ask this session do not retrieve data from cache system and
 // get data from database directly.
 func (session *Session) NoCache() *Session {
 	session.Statement.UseCache = false
 	return session
 }
 
-//The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
-func (session *Session) Join(join_operator string, tablename interface{}, condition string) *Session {
-	session.Statement.Join(join_operator, tablename, condition)
+// Join join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
+func (session *Session) Join(joinOperator string, tablename interface{}, condition string, args ...interface{}) *Session {
+	session.Statement.Join(joinOperator, tablename, condition, args...)
 	return session
 }
 
-// Generate Group By statement
+// GroupBy Generate Group By statement
 func (session *Session) GroupBy(keys string) *Session {
 	session.Statement.GroupBy(keys)
 	return session
 }
 
-// Generate Having statement
+// Having Generate Having statement
 func (session *Session) Having(conditions string) *Session {
 	session.Statement.Having(conditions)
 	return session
 }
 
+// DB db return the wrapper of sql.DB
 func (session *Session) DB() *core.DB {
 	if session.db == nil {
 		session.db = session.Engine.db
@@ -357,7 +358,7 @@ func (session *Session) Begin() error {
 	return nil
 }
 
-// When using transaction, you can rollback if any error
+// Rollback When using transaction, you can rollback if any error
 func (session *Session) Rollback() error {
 	if !session.IsAutoCommit && !session.IsCommitedOrRollbacked {
 		session.saveLastSQL(session.Engine.dialect.RollBackStr())
@@ -367,7 +368,7 @@ func (session *Session) Rollback() error {
 	return nil
 }
 
-// When using transaction, Commit will commit all operations.
+// Commit When using transaction, Commit will commit all operations.
 func (session *Session) Commit() error {
 	if !session.IsAutoCommit && !session.IsCommitedOrRollbacked {
 		session.saveLastSQL("COMMIT")
@@ -471,7 +472,7 @@ func (session *Session) scanMapIntoStruct(obj interface{}, objMap map[string][]b
 	return nil
 }
 
-//Execute sql
+// Execute sql
 func (session *Session) innerExec(sqlStr string, args ...interface{}) (sql.Result, error) {
 	if session.prepareStmt {
 		stmt, err := session.doPrepare(sqlStr)
@@ -521,7 +522,7 @@ func (session *Session) Exec(sqlStr string, args ...interface{}) (sql.Result, er
 	return session.exec(sqlStr, args...)
 }
 
-// this function create a table according a bean
+// CreateTable create a table according a bean
 func (session *Session) CreateTable(bean interface{}) error {
 	v := rValue(bean)
 	session.Statement.RefTable = session.Engine.mapType(v)
@@ -534,7 +535,7 @@ func (session *Session) CreateTable(bean interface{}) error {
 	return session.createOneTable()
 }
 
-// create indexes
+// CreateIndexes create indexes
 func (session *Session) CreateIndexes(bean interface{}) error {
 	v := rValue(bean)
 	session.Statement.RefTable = session.Engine.mapType(v)
@@ -554,7 +555,7 @@ func (session *Session) CreateIndexes(bean interface{}) error {
 	return nil
 }
 
-// create uniques
+// CreateUniques create uniques
 func (session *Session) CreateUniques(bean interface{}) error {
 	v := rValue(bean)
 	session.Statement.RefTable = session.Engine.mapType(v)
@@ -1242,7 +1243,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	var sqlStr string
 	var args []interface{}
 	if session.Statement.RawSQL == "" {
-		var columnStr string = session.Statement.ColumnStr
+		var columnStr = session.Statement.ColumnStr
 		if len(session.Statement.selectStr) > 0 {
 			columnStr = session.Statement.selectStr
 		} else {
@@ -1265,11 +1266,11 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 			}
 		}
 
-		session.Statement.Params = append(session.Statement.Params, session.Statement.BeanArgs...)
+		session.Statement.Params = append(session.Statement.joinArgs, append(session.Statement.Params, session.Statement.BeanArgs...)...)
 
 		session.Statement.attachInSql()
 
-		sqlStr = session.Statement.genSelectSql(columnStr)
+		sqlStr = session.Statement.genSelectSQL(columnStr)
 		args = session.Statement.Params
 		// for mssql and use limit
 		qs := strings.Count(sqlStr, "?")

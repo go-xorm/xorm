@@ -37,7 +37,7 @@ type exprParam struct {
 	expr    string
 }
 
-// statement save all the sql info for executing SQL
+// Statement save all the sql info for executing SQL
 type Statement struct {
 	RefTable        *core.Table
 	Engine          *Engine
@@ -48,6 +48,7 @@ type Statement struct {
 	Params          []interface{}
 	OrderStr        string
 	JoinStr         string
+	joinArgs        []interface{}
 	GroupByStr      string
 	HavingStr       string
 	ColumnStr       string
@@ -91,6 +92,7 @@ func (statement *Statement) Init() {
 	statement.OrderStr = ""
 	statement.UseCascade = true
 	statement.JoinStr = ""
+	statement.joinArgs = make([]interface{}, 0)
 	statement.GroupByStr = ""
 	statement.HavingStr = ""
 	statement.ColumnStr = ""
@@ -428,12 +430,27 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 	return colNames, args
 }
 
+func (statement *Statement) needTableName() bool {
+	return len(statement.JoinStr) > 0
+}
+
+func (statement *Statement) colName(col *core.Column, tableName string) string {
+	if statement.needTableName() {
+		var nm = tableName
+		if len(statement.TableAlias) > 0 {
+			nm = statement.TableAlias
+		}
+		return statement.Engine.Quote(nm) + "." + statement.Engine.Quote(col.Name)
+	}
+	return statement.Engine.Quote(col.Name)
+}
+
 // Auto generating conditions according a struct
 func buildConditions(engine *Engine, table *core.Table, bean interface{},
 	includeVersion bool, includeUpdated bool, includeNil bool,
 	includeAutoIncr bool, allUseBool bool, useAllCols bool, unscoped bool,
 	mustColumnMap map[string]bool, tableName, aliasName string, addedTableName bool) ([]string, []interface{}) {
-	colNames := make([]string, 0)
+	var colNames []string
 	var args = make([]interface{}, 0)
 	for _, col := range table.Columns() {
 		if !includeVersion && col.IsVersion {
@@ -960,7 +977,7 @@ func (statement *Statement) Asc(colNames ...string) *Statement {
 }
 
 //The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
-func (statement *Statement) Join(join_operator string, tablename interface{}, condition string) *Statement {
+func (statement *Statement) Join(join_operator string, tablename interface{}, condition string, args ...interface{}) *Statement {
 	var buf bytes.Buffer
 	if len(statement.JoinStr) > 0 {
 		fmt.Fprintf(&buf, "%v %v JOIN ", statement.JoinStr, join_operator)
@@ -1003,6 +1020,7 @@ func (statement *Statement) Join(join_operator string, tablename interface{}, co
 
 	fmt.Fprintf(&buf, " ON %v", condition)
 	statement.JoinStr = buf.String()
+	statement.joinArgs = args
 	return statement
 }
 
@@ -1140,9 +1158,10 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 	if len(statement.selectStr) > 0 {
 		columnStr = statement.selectStr
 	} else {
+		// TODO: always generate column names, not use * even if join
 		if len(statement.JoinStr) == 0 {
 			if len(columnStr) == 0 {
-				if statement.GroupByStr != "" {
+				if len(statement.GroupByStr) > 0 {
 					columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
 				} else {
 					columnStr = statement.genColumnStr()
@@ -1150,7 +1169,7 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 			}
 		} else {
 			if len(columnStr) == 0 {
-				if statement.GroupByStr != "" {
+				if len(statement.GroupByStr) > 0 {
 					columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
 				} else {
 					columnStr = "*"
@@ -1160,7 +1179,7 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 	}
 
 	statement.attachInSql() // !admpub!  fix bug:Iterate func missing "... IN (...)"
-	return statement.genSelectSql(columnStr), append(statement.Params, statement.BeanArgs...)
+	return statement.genSelectSQL(columnStr), append(append(statement.joinArgs, statement.Params...), statement.BeanArgs...)
 }
 
 func (s *Statement) genAddColumnStr(col *core.Column) (string, []interface{}) {
@@ -1203,15 +1222,15 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 	}
 
 	// count(index fieldname) > count(0) > count(*)
-	var id string = "*"
+	var id = "*"
 	if statement.Engine.Dialect().DBType() == "ql" {
 		id = ""
 	}
 	statement.attachInSql()
-	return statement.genSelectSql(fmt.Sprintf("count(%v)", id)), append(statement.Params, statement.BeanArgs...)
+	return statement.genSelectSQL(fmt.Sprintf("count(%v)", id)), append(append(statement.joinArgs, statement.Params...), statement.BeanArgs...)
 }
 
-func (statement *Statement) genSelectSql(columnStr string) (a string) {
+func (statement *Statement) genSelectSQL(columnStr string) (a string) {
 	var distinct string
 	if statement.IsDistinct {
 		distinct = "DISTINCT "
@@ -1322,11 +1341,12 @@ func (statement *Statement) processIdParam() {
 	if statement.IdParam != nil {
 		if statement.Engine.dialect.DBType() != "ql" {
 			for i, col := range statement.RefTable.PKColumns() {
+				var colName = statement.colName(col, statement.TableName())
 				if i < len(*(statement.IdParam)) {
-					statement.And(fmt.Sprintf("%v %s ?", statement.Engine.Quote(col.Name),
+					statement.And(fmt.Sprintf("%v %s ?", colName,
 						statement.Engine.dialect.EqStr()), (*(statement.IdParam))[i])
 				} else {
-					statement.And(fmt.Sprintf("%v %s ?", statement.Engine.Quote(col.Name),
+					statement.And(fmt.Sprintf("%v %s ?", colName,
 						statement.Engine.dialect.EqStr()), "")
 				}
 			}

@@ -54,6 +54,7 @@ type Engine struct {
 	disableGlobalCache bool
 }
 
+// ShowSQL show SQL statment or not on logger if log level is great than INFO
 func (engine *Engine) ShowSQL(show ...bool) {
 	engine.logger.ShowSQL(show...)
 	if len(show) == 0 {
@@ -63,6 +64,7 @@ func (engine *Engine) ShowSQL(show ...bool) {
 	}
 }
 
+// ShowExecTime show SQL statment and execute time or not on logger if log level is great than INFO
 func (engine *Engine) ShowExecTime(show ...bool) {
 	if len(show) == 0 {
 		engine.showExecTime = true
@@ -71,43 +73,51 @@ func (engine *Engine) ShowExecTime(show ...bool) {
 	}
 }
 
+// Logger return the logger interface
 func (engine *Engine) Logger() core.ILogger {
 	return engine.logger
 }
 
+// SetLogger set the new logger
 func (engine *Engine) SetLogger(logger core.ILogger) {
 	engine.logger = logger
 	engine.dialect.SetLogger(logger)
 }
 
+// SetDisableGlobalCache disable global cache or not
 func (engine *Engine) SetDisableGlobalCache(disable bool) {
 	if engine.disableGlobalCache != disable {
 		engine.disableGlobalCache = disable
 	}
 }
 
+// DriverName return the current sql driver's name
 func (engine *Engine) DriverName() string {
 	return engine.dialect.DriverName()
 }
 
+// DataSourceName return the current connection string
 func (engine *Engine) DataSourceName() string {
 	return engine.dialect.DataSourceName()
 }
 
+// SetMapper set the name mapping rules
 func (engine *Engine) SetMapper(mapper core.IMapper) {
 	engine.SetTableMapper(mapper)
 	engine.SetColumnMapper(mapper)
 }
 
+// SetTableMapper set the table name mapping rule
 func (engine *Engine) SetTableMapper(mapper core.IMapper) {
 	engine.TableMapper = mapper
 }
 
+// SetColumnMapper set the column name mapping rule
 func (engine *Engine) SetColumnMapper(mapper core.IMapper) {
 	engine.ColumnMapper = mapper
 }
 
-// If engine's database support batch insert records like
+// SupportInsertMany If engine's database support batch insert records like
 // "insert into user values (name, age), (name, age)".
 // When the return is ture, then engine.Insert(&users) will
 // generate batch sql and exeute.
@@ -115,13 +125,13 @@ func (engine *Engine) SupportInsertMany() bool {
 	return engine.dialect.SupportInsertMany()
 }
 
-// Engine's database use which charactor as quote.
+// QuoteStr Engine's database use which charactor as quote.
 // mysql, sqlite use ` and postgres use "
 func (engine *Engine) QuoteStr() string {
 	return engine.dialect.QuoteStr()
 }
 
-// Use QuoteStr quote the string sql
+// Quote Use QuoteStr quote the string sql
 func (engine *Engine) Quote(sql string) string {
 	return engine.quoteTable(sql)
 }
@@ -160,12 +170,12 @@ func (engine *Engine) quoteTable(keyName string) string {
 	return engine.dialect.QuoteStr() + keyName + engine.dialect.QuoteStr()
 }
 
-// A simple wrapper to dialect's core.SqlType method
+// SqlType A simple wrapper to dialect's core.SqlType method
 func (engine *Engine) SqlType(c *core.Column) string {
 	return engine.dialect.SqlType(c)
 }
 
-// Database's autoincrement statement
+// AutoIncrStr Database's autoincrement statement
 func (engine *Engine) AutoIncrStr() string {
 	return engine.dialect.AutoIncrStr()
 }
@@ -175,22 +185,17 @@ func (engine *Engine) SetMaxOpenConns(conns int) {
 	engine.db.SetMaxOpenConns(conns)
 }
 
-// @Deprecated
-func (engine *Engine) SetMaxConns(conns int) {
-	engine.SetMaxOpenConns(conns)
-}
-
-// SetMaxIdleConns
+// SetMaxIdleConns set the max idle connections on pool, default is 2
 func (engine *Engine) SetMaxIdleConns(conns int) {
 	engine.db.SetMaxIdleConns(conns)
 }
 
-// SetDefaltCacher set the default cacher. Xorm's default not enable cacher.
+// SetDefaultCacher set the default cacher. Xorm's default not enable cacher.
 func (engine *Engine) SetDefaultCacher(cacher core.Cacher) {
 	engine.Cacher = cacher
 }
 
-// If you has set default cacher, and you want temporilly stop use cache,
+// NoCache If you has set default cacher, and you want temporilly stop use cache,
 // you can use NoCache()
 func (engine *Engine) NoCache() *Session {
 	session := engine.NewSession()
@@ -198,13 +203,14 @@ func (engine *Engine) NoCache() *Session {
 	return session.NoCache()
 }
 
+// NoCascade If you do not want to auto cascade load object
 func (engine *Engine) NoCascade() *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
 	return session.NoCascade()
 }
 
-// Set a table use a special cacher
+// MapCacher Set a table use a special cacher
 func (engine *Engine) MapCacher(bean interface{}, cacher core.Cacher) {
 	v := rValue(bean)
 	tb := engine.autoMapType(v)
@@ -216,15 +222,17 @@ func (engine *Engine) NewDB() (*core.DB, error) {
 	return core.OpenDialect(engine.dialect)
 }
 
+// DB return the wrapper of sql.DB
 func (engine *Engine) DB() *core.DB {
 	return engine.db
 }
 
+// Dialect return database dialect
 func (engine *Engine) Dialect() core.Dialect {
 	return engine.dialect
 }
 
-// New a session
+// NewSession New a session
 func (engine *Engine) NewSession() *Session {
 	session := &Session{Engine: engine}
 	session.Init()
@@ -287,37 +295,42 @@ func (engine *Engine) logSQLExecutionTime(sqlStr string, args []interface{}, exe
 	}
 }
 
+// LogError logging error
 func (engine *Engine) LogError(contents ...interface{}) {
 	engine.logger.Err(contents...)
 }
 
+// LogErrorf logging errorf
 func (engine *Engine) LogErrorf(format string, contents ...interface{}) {
 	engine.logger.Errf(format, contents...)
 }
 
-// logging info
+// LogInfo logging info
 func (engine *Engine) LogInfo(contents ...interface{}) {
 	engine.logger.Info(contents...)
 }
 
+// LogInfof logging infof
 func (engine *Engine) LogInfof(format string, contents ...interface{}) {
 	engine.logger.Infof(format, contents...)
 }
 
-// logging debug
+// LogDebug logging debug
 func (engine *Engine) LogDebug(contents ...interface{}) {
 	engine.logger.Debug(contents...)
 }
 
+// LogDebugf logging debugf
 func (engine *Engine) LogDebugf(format string, contents ...interface{}) {
 	engine.logger.Debugf(format, contents...)
 }
 
-// logging warn
+// LogWarn logging warn
 func (engine *Engine) LogWarn(contents ...interface{}) {
 	engine.logger.Warning(contents...)
 }
 
+// LogWarnf logging warnf
 func (engine *Engine) LogWarnf(format string, contents ...interface{}) {
 	engine.logger.Warningf(format, contents...)
 }
@@ -335,7 +348,7 @@ func (engine *Engine) Sql(querystring string, args ...interface{}) *Session {
 	return session.Sql(querystring, args...)
 }
 
-// Default if your struct has "created" or "updated" filed tag, the fields
+// NoAutoTime Default if your struct has "created" or "updated" filed tag, the fields
 // will automatically be filled with current time when Insert or Update
 // invoked. Call NoAutoTime if you dont' want to fill automatically.
 func (engine *Engine) NoAutoTime() *Session {
@@ -344,13 +357,14 @@ func (engine *Engine) NoAutoTime() *Session {
 	return session.NoAutoTime()
 }
 
+// NoAutoCondition disable auto generate Where condition from bean or not
 func (engine *Engine) NoAutoCondition(no ...bool) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
 	return session.NoAutoCondition(no...)
 }
 
-// Retrieve all tables, columns, indexes' informations from database.
+// DBMetas Retrieve all tables, columns, indexes' informations from database.
 func (engine *Engine) DBMetas() ([]*core.Table, error) {
 	tables, err := engine.dialect.GetTables()
 	if err != nil {
@@ -818,10 +832,10 @@ func (engine *Engine) OrderBy(order string) *Session {
 }
 
 // The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
-func (engine *Engine) Join(join_operator string, tablename interface{}, condition string) *Session {
+func (engine *Engine) Join(join_operator string, tablename interface{}, condition string, args ...interface{}) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
-	return session.Join(join_operator, tablename, condition)
+	return session.Join(join_operator, tablename, condition, args...)
 }
 
 // Generate Group By statement
