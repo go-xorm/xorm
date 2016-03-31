@@ -72,18 +72,18 @@ func NewSimpleLogger3(out io.Writer, prefix string, flag int, l core.LogLevel) *
 	}
 }
 
-// Err implement core.ILogger
+// Error implement core.ILogger
 func (s *SimpleLogger) Error(v ...interface{}) {
 	if s.level <= core.LOG_ERR {
-		s.ERR.Println(v...)
+		s.ERR.Output(2, fmt.Sprint(v...))
 	}
 	return
 }
 
-// Errf implement core.ILogger
+// Errorf implement core.ILogger
 func (s *SimpleLogger) Errorf(format string, v ...interface{}) {
 	if s.level <= core.LOG_ERR {
-		s.ERR.Printf(format, v...)
+		s.ERR.Output(2, fmt.Sprintf(format, v...))
 	}
 	return
 }
@@ -91,7 +91,7 @@ func (s *SimpleLogger) Errorf(format string, v ...interface{}) {
 // Debug implement core.ILogger
 func (s *SimpleLogger) Debug(v ...interface{}) {
 	if s.level <= core.LOG_DEBUG {
-		s.DEBUG.Println(v...)
+		s.DEBUG.Output(2, fmt.Sprint(v...))
 	}
 	return
 }
@@ -99,7 +99,7 @@ func (s *SimpleLogger) Debug(v ...interface{}) {
 // Debugf implement core.ILogger
 func (s *SimpleLogger) Debugf(format string, v ...interface{}) {
 	if s.level <= core.LOG_DEBUG {
-		s.DEBUG.Printf(format, v...)
+		s.DEBUG.Output(2, fmt.Sprintf(format, v...))
 	}
 	return
 }
@@ -107,7 +107,7 @@ func (s *SimpleLogger) Debugf(format string, v ...interface{}) {
 // Info implement core.ILogger
 func (s *SimpleLogger) Info(v ...interface{}) {
 	if s.level <= core.LOG_INFO {
-		s.INFO.Println(v...)
+		s.INFO.Output(2, fmt.Sprint(v...))
 	}
 	return
 }
@@ -115,23 +115,23 @@ func (s *SimpleLogger) Info(v ...interface{}) {
 // Infof implement core.ILogger
 func (s *SimpleLogger) Infof(format string, v ...interface{}) {
 	if s.level <= core.LOG_INFO {
-		s.INFO.Printf(format, v...)
+		s.INFO.Output(2, fmt.Sprintf(format, v...))
 	}
 	return
 }
 
-// Warning implement core.ILogger
+// Warn implement core.ILogger
 func (s *SimpleLogger) Warn(v ...interface{}) {
 	if s.level <= core.LOG_WARNING {
-		s.WARN.Println(v...)
+		s.WARN.Output(2, fmt.Sprint(v...))
 	}
 	return
 }
 
-// Warningf implement core.ILogger
+// Warnf implement core.ILogger
 func (s *SimpleLogger) Warnf(format string, v ...interface{}) {
 	if s.level <= core.LOG_WARNING {
-		s.WARN.Printf(format, v...)
+		s.WARN.Output(2, fmt.Sprintf(format, v...))
 	}
 	return
 }

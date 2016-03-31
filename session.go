@@ -1654,12 +1654,13 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 	for ii, key := range fields {
 		var idx int
 		var ok bool
-		if idx, ok = tempMap[strings.ToLower(key)]; !ok {
+		var lKey = strings.ToLower(key)
+		if idx, ok = tempMap[lKey]; !ok {
 			idx = 0
 		} else {
 			idx = idx + 1
 		}
-		tempMap[strings.ToLower(key)] = idx
+		tempMap[lKey] = idx
 
 		if fieldValue := session.getField(dataStruct, key, table, idx); fieldValue != nil {
 			rawValue := reflect.Indirect(reflect.ValueOf(scanResults[ii]))
@@ -1697,7 +1698,7 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 
 			fieldType := fieldValue.Type()
 			hasAssigned := false
-			col := table.GetColumn(key)
+			col := table.GetColumnIdx(key, idx)
 
 			if col.SQLType.IsJson() {
 				var bs []byte
@@ -2065,7 +2066,7 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 			if !hasAssigned {
 				data, err := value2Bytes(&rawValue)
 				if err == nil {
-					session.bytes2Value(table.GetColumn(key), fieldValue, data)
+					session.bytes2Value(col, fieldValue, data)
 				} else {
 					session.Engine.logger.Error(err.Error())
 				}
@@ -4104,7 +4105,7 @@ func (session *Session) tbNameNoSchema(table *core.Table) string {
 	return table.Name
 }
 
-// Sync2
+// Sync2 synchronize structs to database tables
 func (s *Session) Sync2(beans ...interface{}) error {
 	engine := s.Engine
 
@@ -4113,7 +4114,7 @@ func (s *Session) Sync2(beans ...interface{}) error {
 		return err
 	}
 
-	structTables := make([]*core.Table, 0)
+	var structTables []*core.Table
 
 	for _, bean := range beans {
 		v := rValue(bean)
