@@ -36,17 +36,8 @@ type Engine struct {
 	mutex  *sync.RWMutex
 	Cacher core.Cacher
 
-	// 是否显示SQL
 	showSQL      bool
 	showExecTime bool
-	//ShowSQL bool
-
-	// !nashtsai! TODO ought to deprecate these but having logger to control its log level
-	/*ShowInfo  bool
-	ShowErr   bool*/
-	//ShowDebug bool
-	//ShowWarn  bool*/
-	// --227
 
 	logger     core.ILogger
 	TZLocation *time.Location
@@ -248,7 +239,7 @@ func (engine *Engine) Close() error {
 func (engine *Engine) Ping() error {
 	session := engine.NewSession()
 	defer session.Close()
-	engine.LogInfo("PING DATABASE", engine.DriverName)
+	engine.logger.Info("PING DATABASE", engine.DriverName)
 	return session.Ping()
 }
 
@@ -296,7 +287,7 @@ func (engine *Engine) logSQLExecutionTime(sqlStr string, args []interface{}, exe
 }
 
 // LogError logging error
-func (engine *Engine) LogError(contents ...interface{}) {
+/*func (engine *Engine) LogError(contents ...interface{}) {
 	engine.logger.Err(contents...)
 }
 
@@ -333,7 +324,7 @@ func (engine *Engine) LogWarn(contents ...interface{}) {
 // LogWarnf logging warnf
 func (engine *Engine) LogWarnf(format string, contents ...interface{}) {
 	engine.logger.Warningf(format, contents...)
-}
+}*/
 
 // Sql method let's you manualy write raw sql and operate
 // For example:
@@ -1018,7 +1009,7 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 						location := k[len("INDEX")+1 : len(k)-1]
 						col.TimeZone, err = time.LoadLocation(location)
 						if err != nil {
-							engine.LogError(err)
+							engine.logger.Error(err)
 						}
 					case k == "UPDATED":
 						col.IsUpdated = true
@@ -1079,16 +1070,16 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 								if len(fs2) == 2 {
 									col.Length, err = strconv.Atoi(fs2[0])
 									if err != nil {
-										engine.LogError(err)
+										engine.logger.Error(err)
 									}
 									col.Length2, err = strconv.Atoi(fs2[1])
 									if err != nil {
-										engine.LogError(err)
+										engine.logger.Error(err)
 									}
 								} else if len(fs2) == 1 {
 									col.Length, err = strconv.Atoi(fs2[0])
 									if err != nil {
-										engine.LogError(err)
+										engine.logger.Error(err)
 									}
 								}
 							}

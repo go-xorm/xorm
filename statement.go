@@ -231,7 +231,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 
 		fieldValuePtr, err := col.ValueOf(bean)
 		if err != nil {
-			engine.LogError(err)
+			engine.logger.Error(err)
 			continue
 		}
 
@@ -266,7 +266,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			if structConvert, ok := fieldValue.Addr().Interface().(core.Conversion); ok {
 				data, err := structConvert.ToDB()
 				if err != nil {
-					engine.LogError(err)
+					engine.logger.Error(err)
 				} else {
 					val = data
 				}
@@ -277,7 +277,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 		if structConvert, ok := fieldValue.Interface().(core.Conversion); ok {
 			data, err := structConvert.ToDB()
 			if err != nil {
-				engine.LogError(err)
+				engine.logger.Error(err)
 			} else {
 				val = data
 			}
@@ -389,7 +389,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			if col.SQLType.IsText() {
 				bytes, err := json.Marshal(fieldValue.Interface())
 				if err != nil {
-					engine.LogError(err)
+					engine.logger.Error(err)
 					continue
 				}
 				val = string(bytes)
@@ -406,7 +406,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 				} else {
 					bytes, err = json.Marshal(fieldValue.Interface())
 					if err != nil {
-						engine.LogError(err)
+						engine.logger.Error(err)
 						continue
 					}
 					val = bytes
@@ -483,7 +483,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 
 		fieldValuePtr, err := col.ValueOf(bean)
 		if err != nil {
-			engine.LogError(err)
+			engine.logger.Error(err)
 			continue
 		}
 
@@ -579,7 +579,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 					if col.SQLType.IsText() {
 						bytes, err := json.Marshal(fieldValue.Interface())
 						if err != nil {
-							engine.LogError(err)
+							engine.logger.Error(err)
 							continue
 						}
 						val = string(bytes)
@@ -588,7 +588,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 						var err error
 						bytes, err = json.Marshal(fieldValue.Interface())
 						if err != nil {
-							engine.LogError(err)
+							engine.logger.Error(err)
 							continue
 						}
 						val = bytes
@@ -625,7 +625,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 			if col.SQLType.IsText() {
 				bytes, err := json.Marshal(fieldValue.Interface())
 				if err != nil {
-					engine.LogError(err)
+					engine.logger.Error(err)
 					continue
 				}
 				val = string(bytes)
@@ -642,7 +642,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 				} else {
 					bytes, err = json.Marshal(fieldValue.Interface())
 					if err != nil {
-						engine.LogError(err)
+						engine.logger.Error(err)
 						continue
 					}
 					val = bytes

@@ -360,8 +360,8 @@ func setColumnTime(bean interface{}, col *core.Column, t time.Time) {
 }
 
 func genCols(table *core.Table, session *Session, bean interface{}, useCol bool, includeQuote bool) ([]string, []interface{}, error) {
-	colNames := make([]string, 0)
-	args := make([]interface{}, 0)
+	colNames := make([]string, 0, len(table.ColumnsSeq()))
+	args := make([]interface{}, 0, len(table.ColumnsSeq()))
 
 	for _, col := range table.Columns() {
 		lColName := strings.ToLower(col.Name)
@@ -376,8 +376,7 @@ func genCols(table *core.Table, session *Session, bean interface{}, useCol bool,
 
 		fieldValuePtr, err := col.ValueOf(bean)
 		if err != nil {
-			session.Engine.LogError(err)
-			continue
+			return nil, nil, err
 		}
 		fieldValue := *fieldValuePtr
 

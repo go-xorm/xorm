@@ -71,16 +71,6 @@ Drivers for Go's sql package which currently support database/sql includes:
     * select ForUpdate support
     * many bugs fixed
 
-* **v0.4.3**
-    * Json column type support
-    * oracle expirement support
-    * bug fixed
-
-* **v0.4.2**
-	* Transaction will auto rollback if not Rollback or Commit be called.
-    * Gonic Mapper support
-    * bug fixed
-
 [More changelogs ...](https://github.com/go-xorm/manual-en-US/tree/master/chapter-16)
 
 # Installation
@@ -214,7 +204,7 @@ affected, err := engine.Update(&user, &User{Name:name})
 // UPDATE user SET ... Where name = ?
 
 var ids = []int64{1, 2, 3}
-affected, err := engine.In(ids).Update(&user)
+affected, err := engine.In("id", ids).Update(&user)
 // UPDATE user SET ... Where id IN (?, ?, ?)
 
 // force update indicated columns by Cols
@@ -234,6 +224,7 @@ affected, err := engine.Id(1).AllCols().Update(&user)
 ```Go
 affected, err := engine.Where(...).Delete(&user)
 // DELETE FROM user Where ...
+affected, err := engine.Id(2).Delete(&user)
 ```
 
 * Count records

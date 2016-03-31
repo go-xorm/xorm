@@ -25,36 +25,36 @@ func NewSyslogLogger(w *syslog.Writer) *SyslogLogger {
 	return &SyslogLogger{w: w}
 }
 
-func (s *SyslogLogger) Debug(v ...interface{}) (err error) {
-	return s.w.Debug(fmt.Sprint(v...))
+func (s *SyslogLogger) Debug(v ...interface{}) {
+	s.w.Debug(fmt.Sprint(v...))
 }
 
-func (s *SyslogLogger) Debugf(format string, v ...interface{}) (err error) {
-	return s.w.Debug(fmt.Sprintf(format, v...))
+func (s *SyslogLogger) Debugf(format string, v ...interface{}) {
+	s.w.Debug(fmt.Sprintf(format, v...))
 }
 
-func (s *SyslogLogger) Err(v ...interface{}) (err error) {
-	return s.w.Err(fmt.Sprint(v...))
+func (s *SyslogLogger) Error(v ...interface{}) {
+	s.w.Err(fmt.Sprint(v...))
 }
 
-func (s *SyslogLogger) Errf(format string, v ...interface{}) (err error) {
-	return s.w.Err(fmt.Sprintf(format, v...))
+func (s *SyslogLogger) Errorf(format string, v ...interface{}) {
+	s.w.Err(fmt.Sprintf(format, v...))
 }
 
-func (s *SyslogLogger) Info(v ...interface{}) (err error) {
-	return s.w.Info(fmt.Sprint(v...))
+func (s *SyslogLogger) Info(v ...interface{}) {
+	s.w.Info(fmt.Sprint(v...))
 }
 
-func (s *SyslogLogger) Infof(format string, v ...interface{}) (err error) {
-	return s.w.Info(fmt.Sprintf(format, v...))
+func (s *SyslogLogger) Infof(format string, v ...interface{}) {
+	s.w.Info(fmt.Sprintf(format, v...))
 }
 
-func (s *SyslogLogger) Warning(v ...interface{}) (err error) {
-	return s.w.Warning(fmt.Sprint(v...))
+func (s *SyslogLogger) Warn(v ...interface{}) {
+	s.w.Warning(fmt.Sprint(v...))
 }
 
-func (s *SyslogLogger) Warningf(format string, v ...interface{}) (err error) {
-	return s.w.Warning(fmt.Sprintf(format, v...))
+func (s *SyslogLogger) Warnf(format string, v ...interface{}) {
+	s.w.Warning(fmt.Sprintf(format, v...))
 }
 
 func (s *SyslogLogger) Level() core.LogLevel {
@@ -62,9 +62,7 @@ func (s *SyslogLogger) Level() core.LogLevel {
 }
 
 // SetLevel always return error, as current log/syslog package doesn't allow to set priority level after syslog.Writer created
-func (s *SyslogLogger) SetLevel(l core.LogLevel) (err error) {
-	return fmt.Errorf("unable to set syslog level")
-}
+func (s *SyslogLogger) SetLevel(l core.LogLevel) {}
 
 func (s *SyslogLogger) ShowSQL(show ...bool) {
 	if len(show) == 0 {

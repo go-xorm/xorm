@@ -18,6 +18,27 @@ const (
 	DEFAULT_LOG_LEVEL  = core.LOG_DEBUG
 )
 
+var _ core.ILogger = DiscardLogger{}
+
+type DiscardLogger struct{}
+
+func (DiscardLogger) Debug(v ...interface{})                 {}
+func (DiscardLogger) Debugf(format string, v ...interface{}) {}
+func (DiscardLogger) Error(v ...interface{})                 {}
+func (DiscardLogger) Errorf(format string, v ...interface{}) {}
+func (DiscardLogger) Info(v ...interface{})                  {}
+func (DiscardLogger) Infof(format string, v ...interface{})  {}
+func (DiscardLogger) Warn(v ...interface{})                  {}
+func (DiscardLogger) Warnf(format string, v ...interface{})  {}
+func (DiscardLogger) Level() core.LogLevel {
+	return core.LOG_UNKNOWN
+}
+func (DiscardLogger) SetLevel(l core.LogLevel) {}
+func (DiscardLogger) ShowSQL(show ...bool)     {}
+func (DiscardLogger) IsShowSQL() bool {
+	return false
+}
+
 // SimpleLogger is the default implment of core.ILogger
 type SimpleLogger struct {
 	DEBUG   *log.Logger
@@ -52,7 +73,7 @@ func NewSimpleLogger3(out io.Writer, prefix string, flag int, l core.LogLevel) *
 }
 
 // Err implement core.ILogger
-func (s *SimpleLogger) Err(v ...interface{}) (err error) {
+func (s *SimpleLogger) Error(v ...interface{}) {
 	if s.level <= core.LOG_ERR {
 		s.ERR.Println(v...)
 	}
@@ -60,7 +81,7 @@ func (s *SimpleLogger) Err(v ...interface{}) (err error) {
 }
 
 // Errf implement core.ILogger
-func (s *SimpleLogger) Errf(format string, v ...interface{}) (err error) {
+func (s *SimpleLogger) Errorf(format string, v ...interface{}) {
 	if s.level <= core.LOG_ERR {
 		s.ERR.Printf(format, v...)
 	}
@@ -68,7 +89,7 @@ func (s *SimpleLogger) Errf(format string, v ...interface{}) (err error) {
 }
 
 // Debug implement core.ILogger
-func (s *SimpleLogger) Debug(v ...interface{}) (err error) {
+func (s *SimpleLogger) Debug(v ...interface{}) {
 	if s.level <= core.LOG_DEBUG {
 		s.DEBUG.Println(v...)
 	}
@@ -76,7 +97,7 @@ func (s *SimpleLogger) Debug(v ...interface{}) (err error) {
 }
 
 // Debugf implement core.ILogger
-func (s *SimpleLogger) Debugf(format string, v ...interface{}) (err error) {
+func (s *SimpleLogger) Debugf(format string, v ...interface{}) {
 	if s.level <= core.LOG_DEBUG {
 		s.DEBUG.Printf(format, v...)
 	}
@@ -84,7 +105,7 @@ func (s *SimpleLogger) Debugf(format string, v ...interface{}) (err error) {
 }
 
 // Info implement core.ILogger
-func (s *SimpleLogger) Info(v ...interface{}) (err error) {
+func (s *SimpleLogger) Info(v ...interface{}) {
 	if s.level <= core.LOG_INFO {
 		s.INFO.Println(v...)
 	}
@@ -92,7 +113,7 @@ func (s *SimpleLogger) Info(v ...interface{}) (err error) {
 }
 
 // Infof implement core.ILogger
-func (s *SimpleLogger) Infof(format string, v ...interface{}) (err error) {
+func (s *SimpleLogger) Infof(format string, v ...interface{}) {
 	if s.level <= core.LOG_INFO {
 		s.INFO.Printf(format, v...)
 	}
@@ -100,7 +121,7 @@ func (s *SimpleLogger) Infof(format string, v ...interface{}) (err error) {
 }
 
 // Warning implement core.ILogger
-func (s *SimpleLogger) Warning(v ...interface{}) (err error) {
+func (s *SimpleLogger) Warn(v ...interface{}) {
 	if s.level <= core.LOG_WARNING {
 		s.WARN.Println(v...)
 	}
@@ -108,7 +129,7 @@ func (s *SimpleLogger) Warning(v ...interface{}) (err error) {
 }
 
 // Warningf implement core.ILogger
-func (s *SimpleLogger) Warningf(format string, v ...interface{}) (err error) {
+func (s *SimpleLogger) Warnf(format string, v ...interface{}) {
 	if s.level <= core.LOG_WARNING {
 		s.WARN.Printf(format, v...)
 	}
@@ -121,7 +142,7 @@ func (s *SimpleLogger) Level() core.LogLevel {
 }
 
 // SetLevel implement core.ILogger
-func (s *SimpleLogger) SetLevel(l core.LogLevel) (err error) {
+func (s *SimpleLogger) SetLevel(l core.LogLevel) {
 	s.level = l
 	return
 }
