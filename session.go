@@ -960,7 +960,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 			keyType := sliceValue.Type().Key()
 			var ikey interface{}
 			if len(key) == 1 {
-				ikey, err = Atot(fmt.Sprintf("%v", key[0]), keyType)
+				ikey, err = Str2PK(fmt.Sprintf("%v", key[0]), keyType)
 				if err != nil {
 					return err
 				}
@@ -1123,7 +1123,8 @@ func (session *Session) Count(bean interface{}) (int64, error) {
 	return int64(total), err
 }
 
-func Atot(s string, tp reflect.Type) (interface{}, error) {
+// Str2PK convert string value to primary key value according to tp
+func Str2PK(s string, tp reflect.Type) (interface{}, error) {
 	var err error
 	var result interface{}
 	switch tp.Kind() {
@@ -1189,6 +1190,7 @@ func Atot(s string, tp reflect.Type) (interface{}, error) {
 	default:
 		panic("unsupported convert type")
 	}
+	result = reflect.ValueOf(result).Convert(tp).Interface()
 	return result, nil
 }
 
@@ -1382,7 +1384,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 			var key interface{}
 			// if there is only one pk, we can put the id as map key.
 			if len(table.PrimaryKeys) == 1 {
-				key, err = Atot(string(results[table.PrimaryKeys[0]]), keyType)
+				key, err = Str2PK(string(results[table.PrimaryKeys[0]]), keyType)
 				if err != nil {
 					return err
 				}
@@ -1392,7 +1394,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 				} else {
 					keys := core.PK{}
 					for _, pk := range table.PrimaryKeys {
-						skey, err := Atot(string(results[pk]), keyType)
+						skey, err := Str2PK(string(results[pk]), keyType)
 						if err != nil {
 							return err
 						}
@@ -3298,8 +3300,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			return 1, nil
 		}
 
-		v := int64ToInt(id, aiValue.Type().Kind())
-		aiValue.Set(reflect.ValueOf(v))
+		aiValue.Set(int64ToIntValue(id, aiValue.Type()))
 
 		return 1, nil
 	} else if session.Engine.dialect.DBType() == core.POSTGRES && len(table.AutoIncrement) > 0 {
@@ -3344,8 +3345,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			return 1, nil
 		}
 
-		v := int64ToInt(id, aiValue.Type().Kind())
-		aiValue.Set(reflect.ValueOf(v))
+		aiValue.Set(int64ToIntValue(id, aiValue.Type()))
 
 		return 1, nil
 	} else {
@@ -3387,7 +3387,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			return res.RowsAffected()
 		}
 
-		v := int64ToInt(id, aiValue.Type().Kind())
+		v := int64ToInt(id, aiValue.Type())
 		aiValue.Set(reflect.ValueOf(v))
 
 		return res.RowsAffected()

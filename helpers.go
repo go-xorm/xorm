@@ -75,15 +75,17 @@ func isZero(k interface{}) bool {
 	return false
 }
 
-func int64ToInt(id int64, k reflect.Kind) interface{} {
-	var v interface{} = id
-	switch k {
+func int64ToIntValue(id int64, tp reflect.Type) reflect.Value {
+	var v interface{}
+	switch tp.Kind() {
 	case reflect.Int16:
 		v = int16(id)
 	case reflect.Int32:
 		v = int32(id)
 	case reflect.Int:
 		v = int(id)
+	case reflect.Int64:
+		v = id
 	case reflect.Uint16:
 		v = uint16(id)
 	case reflect.Uint32:
@@ -93,7 +95,11 @@ func int64ToInt(id int64, k reflect.Kind) interface{} {
 	case reflect.Uint:
 		v = uint(id)
 	}
-	return v
+	return reflect.ValueOf(v).Convert(tp)
+}
+
+func int64ToInt(id int64, tp reflect.Type) interface{} {
+	return int64ToIntValue(id, tp).Interface()
 }
 
 func isPKZero(pk core.PK) bool {

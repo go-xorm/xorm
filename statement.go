@@ -688,7 +688,7 @@ var (
 	pkType    = reflect.TypeOf(core.PK{})
 )
 
-// Generate "where id = ? " statment or for composite key "where key1 = ? and key2 = ?"
+// Id generate "where id = ? " statment or for composite key "where key1 = ? and key2 = ?"
 func (statement *Statement) Id(id interface{}) *Statement {
 	idValue := reflect.ValueOf(id)
 	idType := reflect.TypeOf(idValue.Interface())
@@ -697,16 +697,22 @@ func (statement *Statement) Id(id interface{}) *Statement {
 	case ptrPkType:
 		if pkPtr, ok := (id).(*core.PK); ok {
 			statement.IdParam = pkPtr
+			return statement
 		}
 	case pkType:
 		if pk, ok := (id).(core.PK); ok {
 			statement.IdParam = &pk
+			return statement
 		}
-	default:
-		// TODO: treat as int primitve for now, need to handle type check?
-		statement.IdParam = &core.PK{id}
 	}
 
+	switch idType.Kind() {
+	case reflect.String:
+		statement.IdParam = &core.PK{idValue.Convert(reflect.TypeOf("")).Interface()}
+		return statement
+	}
+
+	statement.IdParam = &core.PK{id}
 	return statement
 }
 
