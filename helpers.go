@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"sort"
@@ -14,6 +15,77 @@ import (
 
 	"github.com/go-xorm/core"
 )
+
+// str2PK convert string value to primary key value according to tp
+func str2PK(s string, tp reflect.Type) (interface{}, error) {
+	var err error
+	var result interface{}
+	switch tp.Kind() {
+	case reflect.Int:
+		result, err = strconv.Atoi(s)
+		if err != nil {
+			return nil, errors.New("convert " + s + " as int: " + err.Error())
+		}
+	case reflect.Int8:
+		x, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, errors.New("convert " + s + " as int16: " + err.Error())
+		}
+		result = int8(x)
+	case reflect.Int16:
+		x, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, errors.New("convert " + s + " as int16: " + err.Error())
+		}
+		result = int16(x)
+	case reflect.Int32:
+		x, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, errors.New("convert " + s + " as int32: " + err.Error())
+		}
+		result = int32(x)
+	case reflect.Int64:
+		result, err = strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return nil, errors.New("convert " + s + " as int64: " + err.Error())
+		}
+	case reflect.Uint:
+		x, err := strconv.ParseUint(s, 10, 64)
+		if err != nil {
+			return nil, errors.New("convert " + s + " as uint: " + err.Error())
+		}
+		result = uint(x)
+	case reflect.Uint8:
+		x, err := strconv.ParseUint(s, 10, 64)
+		if err != nil {
+			return nil, errors.New("convert " + s + " as uint8: " + err.Error())
+		}
+		result = uint8(x)
+	case reflect.Uint16:
+		x, err := strconv.ParseUint(s, 10, 64)
+		if err != nil {
+			return nil, errors.New("convert " + s + " as uint16: " + err.Error())
+		}
+		result = uint16(x)
+	case reflect.Uint32:
+		x, err := strconv.ParseUint(s, 10, 64)
+		if err != nil {
+			return nil, errors.New("convert " + s + " as uint32: " + err.Error())
+		}
+		result = uint32(x)
+	case reflect.Uint64:
+		result, err = strconv.ParseUint(s, 10, 64)
+		if err != nil {
+			return nil, errors.New("convert " + s + " as uint64: " + err.Error())
+		}
+	case reflect.String:
+		result = s
+	default:
+		panic("unsupported convert type")
+	}
+	result = reflect.ValueOf(result).Convert(tp).Interface()
+	return result, nil
+}
 
 func splitTag(tag string) (tags []string) {
 	tag = strings.TrimSpace(tag)
@@ -160,6 +232,19 @@ func structName(v reflect.Type) string {
 	return v.Name()
 }
 
+func col2NewCols(columns ...string) []string {
+	newColumns := make([]string, 0, len(columns))
+	for _, col := range columns {
+		col = strings.Replace(col, "`", "", -1)
+		col = strings.Replace(col, `"`, "", -1)
+		ccols := strings.Split(col, ",")
+		for _, c := range ccols {
+			newColumns = append(newColumns, strings.TrimSpace(c))
+		}
+	}
+	return newColumns
+}
+
 func sliceEq(left, right []string) bool {
 	if len(left) != len(right) {
 		return false
@@ -194,7 +279,7 @@ func reflect2value(rawValue *reflect.Value) (str string, err error) {
 		default:
 			err = fmt.Errorf("Unsupported struct type %v", vv.Type().Name())
 		}
-	//时间类型
+	// time type
 	case reflect.Struct:
 		if aa.ConvertibleTo(core.TimeType) {
 			str = vv.Convert(core.TimeType).Interface().(time.Time).Format(time.RFC3339Nano)
@@ -452,4 +537,8 @@ func genCols(table *core.Table, session *Session, bean interface{}, useCol bool,
 		}
 	}
 	return colNames, args, nil
+}
+
+func indexName(tableName, idxName string) string {
+	return fmt.Sprintf("IDX_%v_%v", tableName, idxName)
 }

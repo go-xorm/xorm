@@ -82,7 +82,7 @@ type Statement struct {
 	exprColumns     map[string]exprParam
 }
 
-// init
+// Init reset all the statment's fields
 func (statement *Statement) Init() {
 	statement.RefTable = nil
 	statement.Start = 0
@@ -207,7 +207,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 	mustColumnMap map[string]bool, nullableMap map[string]bool,
 	columnMap map[string]bool, update, unscoped bool) ([]string, []interface{}) {
 
-	colNames := make([]string, 0)
+	var colNames = make([]string, 0)
 	var args = make([]interface{}, 0)
 	for _, col := range table.Columns() {
 		if !includeVersion && col.IsVersion {
@@ -667,7 +667,7 @@ func buildConditions(engine *Engine, table *core.Table, bean interface{},
 	return colNames, args
 }
 
-// return current tableName
+// TableName return current tableName
 func (statement *Statement) TableName() string {
 	if statement.AltTableName != "" {
 		return statement.AltTableName
@@ -682,11 +682,6 @@ func (statement *Statement) TableName() string {
 	}
 	return ""
 }
-
-var (
-	ptrPkType = reflect.TypeOf(&core.PK{})
-	pkType    = reflect.TypeOf(core.PK{})
-)
 
 // Id generate "where id = ? " statment or for composite key "where key1 = ? and key2 = ?"
 func (statement *Statement) Id(id interface{}) *Statement {
@@ -760,7 +755,7 @@ func (statement *Statement) getExpr() map[string]exprParam {
 	return statement.exprColumns
 }
 
-// Generate "Where column IN (?) " statment
+// In generate "Where column IN (?) " statment
 func (statement *Statement) In(column string, args ...interface{}) *Statement {
 	length := len(args)
 	if length == 0 {
@@ -794,7 +789,7 @@ func (statement *Statement) genInSql() (string, []interface{}) {
 	}
 
 	inStrs := make([]string, len(statement.inColumns), len(statement.inColumns))
-	args := make([]interface{}, 0)
+	args := make([]interface{}, 0, len(statement.inColumns))
 	var buf bytes.Buffer
 	var i int
 	for _, params := range statement.inColumns {
@@ -822,19 +817,6 @@ func (statement *Statement) attachInSql() {
 		statement.ConditionStr += inSql
 		statement.Params = append(statement.Params, inArgs...)
 	}
-}
-
-func col2NewCols(columns ...string) []string {
-	newColumns := make([]string, 0)
-	for _, col := range columns {
-		col = strings.Replace(col, "`", "", -1)
-		col = strings.Replace(col, `"`, "", -1)
-		ccols := strings.Split(col, ",")
-		for _, c := range ccols {
-			newColumns = append(newColumns, strings.TrimSpace(c))
-		}
-	}
-	return newColumns
 }
 
 func (statement *Statement) col2NewColsWithQuote(columns ...string) []string {
@@ -871,13 +853,13 @@ func (statement *Statement) ForUpdate() *Statement {
 	return statement
 }
 
-// replace select
+// Select replace select
 func (s *Statement) Select(str string) *Statement {
 	s.selectStr = str
 	return s
 }
 
-// Generate "col1, col2" statement
+// Cols generate "col1, col2" statement
 func (statement *Statement) Cols(columns ...string) *Statement {
 	cols := col2NewCols(columns...)
 	for _, nc := range cols {
@@ -891,13 +873,13 @@ func (statement *Statement) Cols(columns ...string) *Statement {
 	return statement
 }
 
-// Update use only: update all columns
+// AllCols update use only: update all columns
 func (statement *Statement) AllCols() *Statement {
 	statement.useAllCols = true
 	return statement
 }
 
-// Update use only: must update columns
+// MustCols update use only: must update columns
 func (statement *Statement) MustCols(columns ...string) *Statement {
 	newColumns := col2NewCols(columns...)
 	for _, nc := range newColumns {
@@ -906,7 +888,7 @@ func (statement *Statement) MustCols(columns ...string) *Statement {
 	return statement
 }
 
-// indicates that use bool fields as update contents and query contiditions
+// UseBool indicates that use bool fields as update contents and query contiditions
 func (statement *Statement) UseBool(columns ...string) *Statement {
 	if len(columns) > 0 {
 		statement.MustCols(columns...)
@@ -916,7 +898,7 @@ func (statement *Statement) UseBool(columns ...string) *Statement {
 	return statement
 }
 
-// do not use the columns
+// Omit do not use the columns
 func (statement *Statement) Omit(columns ...string) {
 	newColumns := col2NewCols(columns...)
 	for _, nc := range newColumns {
@@ -925,7 +907,7 @@ func (statement *Statement) Omit(columns ...string) {
 	statement.OmitStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
 }
 
-// Update use only: update columns to null when value is nullable and zero-value
+// Nullable Update use only: update columns to null when value is nullable and zero-value
 func (statement *Statement) Nullable(columns ...string) {
 	newColumns := col2NewCols(columns...)
 	for _, nc := range newColumns {
@@ -933,13 +915,13 @@ func (statement *Statement) Nullable(columns ...string) {
 	}
 }
 
-// Generate LIMIT limit statement
+// Top generate LIMIT limit statement
 func (statement *Statement) Top(limit int) *Statement {
 	statement.Limit(limit)
 	return statement
 }
 
-// Generate LIMIT start, limit statement
+// Limit generate LIMIT start, limit statement
 func (statement *Statement) Limit(limit int, start ...int) *Statement {
 	statement.LimitN = limit
 	if len(start) > 0 {
@@ -948,7 +930,7 @@ func (statement *Statement) Limit(limit int, start ...int) *Statement {
 	return statement
 }
 
-// Generate "Order By order" statement
+// OrderBy generate "Order By order" statement
 func (statement *Statement) OrderBy(order string) *Statement {
 	if len(statement.OrderStr) > 0 {
 		statement.OrderStr += ", "
@@ -957,6 +939,7 @@ func (statement *Statement) OrderBy(order string) *Statement {
 	return statement
 }
 
+// Desc generate `ORDER BY xx DESC`
 func (statement *Statement) Desc(colNames ...string) *Statement {
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, statement.OrderStr)
@@ -969,7 +952,7 @@ func (statement *Statement) Desc(colNames ...string) *Statement {
 	return statement
 }
 
-// Method Asc provide asc order by query condition, the input parameters are columns.
+// Asc provide asc order by query condition, the input parameters are columns.
 func (statement *Statement) Asc(colNames ...string) *Statement {
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, statement.OrderStr)
@@ -982,13 +965,13 @@ func (statement *Statement) Asc(colNames ...string) *Statement {
 	return statement
 }
 
-//The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
-func (statement *Statement) Join(join_operator string, tablename interface{}, condition string, args ...interface{}) *Statement {
+// Join The joinOP should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
+func (statement *Statement) Join(joinOP string, tablename interface{}, condition string, args ...interface{}) *Statement {
 	var buf bytes.Buffer
 	if len(statement.JoinStr) > 0 {
-		fmt.Fprintf(&buf, "%v %v JOIN ", statement.JoinStr, join_operator)
+		fmt.Fprintf(&buf, "%v %v JOIN ", statement.JoinStr, joinOP)
 	} else {
-		fmt.Fprintf(&buf, "%v JOIN ", join_operator)
+		fmt.Fprintf(&buf, "%v JOIN ", joinOP)
 	}
 
 	switch tablename.(type) {
@@ -1030,19 +1013,19 @@ func (statement *Statement) Join(join_operator string, tablename interface{}, co
 	return statement
 }
 
-// Generate "Group By keys" statement
+// GroupBy generate "Group By keys" statement
 func (statement *Statement) GroupBy(keys string) *Statement {
 	statement.GroupByStr = keys
 	return statement
 }
 
-// Generate "Having conditions" statement
+// Having generate "Having conditions" statement
 func (statement *Statement) Having(conditions string) *Statement {
 	statement.HavingStr = fmt.Sprintf("HAVING %v", conditions)
 	return statement
 }
 
-// Always disable struct tag "deleted"
+// Unscoped always disable struct tag "deleted"
 func (statement *Statement) Unscoped() *Statement {
 	statement.unscoped = true
 	return statement
@@ -1089,10 +1072,6 @@ func (statement *Statement) genColumnStr() string {
 func (statement *Statement) genCreateTableSQL() string {
 	return statement.Engine.dialect.CreateTableSql(statement.RefTable, statement.AltTableName,
 		statement.StoreEngine, statement.Charset)
-}
-
-func indexName(tableName, idxName string) string {
-	return fmt.Sprintf("IDX_%v_%v", tableName, idxName)
 }
 
 func (s *Statement) genIndexSQL() []string {
