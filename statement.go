@@ -1009,7 +1009,7 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 
 	fmt.Fprintf(&buf, " ON %v", condition)
 	statement.JoinStr = buf.String()
-	statement.joinArgs = args
+	statement.joinArgs = append(statement.joinArgs, args...)
 	return statement
 }
 
