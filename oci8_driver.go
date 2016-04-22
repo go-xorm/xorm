@@ -11,10 +11,6 @@ import (
 	"github.com/go-xorm/core"
 )
 
-// func init() {
-// 	core.RegisterDriver("oci8", &oci8Driver{})
-// }
-
 type oci8Driver struct {
 }
 

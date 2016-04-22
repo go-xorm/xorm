@@ -15,10 +15,6 @@ import (
 	"github.com/go-xorm/core"
 )
 
-// func init() {
-// 	RegisterDialect("mysql", &mysql{})
-// }
-
 var (
 	mysqlReservedWords = map[string]bool{
 		"ADD":               true,

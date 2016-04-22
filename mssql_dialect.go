@@ -13,10 +13,6 @@ import (
 	"github.com/go-xorm/core"
 )
 
-// func init() {
-// 	RegisterDialect("mssql", &mssql{})
-// }
-
 var (
 	mssqlReservedWords = map[string]bool{
 		"ADD":                    true,

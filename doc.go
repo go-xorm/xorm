@@ -1,4 +1,4 @@
-// Copyright 2013 - 2015 The Xorm Authors. All rights reserved.
+// Copyright 2013 - 2016 The XORM Authors. All rights reserved.
 // Use of this source code is governed by a BSD
 // license that can be found in the LICENSE file.
 
@@ -129,26 +129,28 @@ Attention: the above 7 methods should be the last chainable method.
 
 5. Sql, let you custom SQL
 
-    engine.Sql("select * from user").Find()
+    var users []User
+    engine.Sql("select * from user").Find(&users)
 
 6. Cols, Omit, Distinct
 
-    engine.Cols("col1, col2").Find()
+    var users []*User
+    engine.Cols("col1, col2").Find(&users)
     // SELECT col1, col2 FROM user
     engine.Cols("col1", "col2").Where().Update(user)
     // UPDATE user set col1 = ?, col2 = ? Where ...
-    engine.Omit("col1").Find()
+    engine.Omit("col1").Find(&users)
     // SELECT col2, col3 FROM user
-    engine.Omit("col1").Insert()
+    engine.Omit("col1").Insert(&user)
     // INSERT INTO table (non-col1) VALUES ()
-    engine.Distinct("col1").Find()
+    engine.Distinct("col1").Find(&users)
     // SELECT DISTINCT col1 FROM user
 
 7. Join, GroupBy, Having
 
-    engine.GroupBy("name").Having("name='xlw'").Find()
+    engine.GroupBy("name").Having("name='xlw'").Find(&users)
     //SELECT * FROM user GROUP BY name HAVING name='xlw'
-    engine.Join("LEFT", "userdetail", "user.id=userdetail.id").Find()
+    engine.Join("LEFT", "userdetail", "user.id=userdetail.id").Find(&users)
     //SELECT * FROM user LEFT JOIN userdetail ON user.id=userdetail.id
 
 More usage, please visit http://xorm.io/docs

@@ -13,9 +13,6 @@ import (
 	"github.com/go-xorm/core"
 )
 
-// func init() {
-// 	RegisterDialect("postgres", &postgres{})
-// }
 // from http://www.postgresql.org/docs/current/static/sql-keywords-appendix.html
 var (
 	postgresReservedWords = map[string]bool{
@@ -913,7 +910,8 @@ func (db *postgres) IsColumnExist(tableName, colName string) (bool, error) {
 }
 
 func (db *postgres) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
-	args := []interface{}{tableName, db.URI().Schema}
+	// FIXME: the schema should be replaced by user custom's
+	args := []interface{}{tableName, "public"}
 	s := `SELECT column_name, column_default, is_nullable, data_type, character_maximum_length, numeric_precision, numeric_precision_radix ,
     CASE WHEN p.contype = 'p' THEN true ELSE false END AS primarykey,
     CASE WHEN p.contype = 'u' THEN true ELSE false END AS uniquekey
@@ -986,11 +984,13 @@ WHERE c.relkind = 'r'::char AND c.relname = $1 AND s.table_schema = $2 AND f.att
 			col.SQLType = core.SQLType{core.Bool, 0, 0}
 		case "time without time zone":
 			col.SQLType = core.SQLType{core.Time, 0, 0}
+		case "oid":
+			col.SQLType = core.SQLType{core.BigInt, 0, 0}
 		default:
 			col.SQLType = core.SQLType{strings.ToUpper(dataType), 0, 0}
 		}
 		if _, ok := core.SqlTypes[col.SQLType.Name]; !ok {
-			return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v", dataType))
+			return nil, nil, errors.New(fmt.Sprintf("unknow colType: %v", dataType))
 		}
 
 		col.Length = maxLen
@@ -1012,8 +1012,9 @@ WHERE c.relkind = 'r'::char AND c.relname = $1 AND s.table_schema = $2 AND f.att
 }
 
 func (db *postgres) GetTables() ([]*core.Table, error) {
-	args := []interface{}{}
-	s := fmt.Sprintf("SELECT tablename FROM pg_tables where schemaname = '%s'", db.Uri.Schema)
+	// FIXME: replace public to user customrize schema
+	args := []interface{}{"public"}
+	s := fmt.Sprintf("SELECT tablename FROM pg_tables WHERE schemaname = $1")
 	db.LogSQL(s, args)
 
 	rows, err := db.DB().Query(s, args...)
@@ -1037,8 +1038,9 @@ func (db *postgres) GetTables() ([]*core.Table, error) {
 }
 
 func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error) {
-	args := []interface{}{tableName}
-	s := fmt.Sprintf("SELECT indexname, indexdef FROM pg_indexes WHERE schemaname='%s' AND tablename=$1", db.URI().Schema)
+	// FIXME: replace the public schema to user specify schema
+	args := []interface{}{"public", tableName}
+	s := fmt.Sprintf("SELECT indexname, indexdef FROM pg_indexes WHERE schemaname=$1 AND tablename=$2")
 	db.LogSQL(s, args)
 
 	rows, err := db.DB().Query(s, args...)

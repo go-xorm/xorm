@@ -11,10 +11,6 @@ import (
 	"github.com/go-xorm/core"
 )
 
-// func init() {
-// 	core.RegisterDriver("odbc", &odbcDriver{})
-// }
-
 type odbcDriver struct {
 }
 
