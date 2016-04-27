@@ -2842,10 +2842,10 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 					return fmt.Errorf("unsupported struct type in Scan: %s", fieldValue.Type().String())
 				}
 			}
-			return fmt.Errorf("unsupported type in Scan: %s", reflect.TypeOf(v).String())
+			return fmt.Errorf("unsupported type in Scan: %s", fieldValue.Type().String())
 		}
 	default:
-		return fmt.Errorf("unsupported type in Scan: %s", reflect.TypeOf(v).String())
+		return fmt.Errorf("unsupported type in Scan: %s", fieldValue.Type().String())
 	}
 
 	return nil
