@@ -147,6 +147,26 @@ func isZero(k interface{}) bool {
 	return false
 }
 
+func isStructZero(v reflect.Value) bool {
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		switch field.Kind() {
+		case reflect.Ptr:
+			field = field.Elem()
+			fallthrough
+		case reflect.Struct:
+			if !isStructZero(field) {
+				return false
+			}
+		default:
+			if !isZero(field.Interface()) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func int64ToIntValue(id int64, tp reflect.Type) reflect.Value {
 	var v interface{}
 	switch tp.Kind() {
