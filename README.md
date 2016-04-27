@@ -8,7 +8,7 @@ Xorm is a simple and powerful ORM for Go.
 
 # Notice
 
-The last master version has non-compitable update. You should use `engine.ShowSQL()` and `engine.Logger().SetLevel()` to instead `engine.ShowSQL = `, `engine.ShowInfo = ` and etc.
+The last master version is not backwards compatible. You should use `engine.ShowSQL()` and `engine.Logger().SetLevel()` instead of `engine.ShowSQL = `, `engine.ShowInfo = ` and so on.
 
 # Features
 
@@ -71,7 +71,7 @@ Drivers for Go's sql package which currently support database/sql includes:
     * select ForUpdate support
     * many bugs fixed
 
-[More changelogs ...](https://github.com/go-xorm/manual-en-US/tree/master/chapter-16)
+[More changes ...](https://github.com/go-xorm/manual-en-US/tree/master/chapter-16)
 
 # Installation
 
@@ -127,7 +127,7 @@ results, err := engine.Query("select * from user")
 affected, err := engine.Exec("update user set age = ? where name = ?", age, name)
 ```
 
-* Insert one or multipe records to database
+* Insert one or multiple records to database
 
 ```Go
 affected, err := engine.Insert(&user)
@@ -176,7 +176,7 @@ err := engine.Table("user").Select("user.*, detail.*")
 // SELECT user.*, detail.* FROM user INNER JOIN detail WHERE user.name = ? limit 0 offset 10
 ```
 
-* Query multiple records and record by record handle, there two methods Iterate and Rows
+* Query multiple records and record by record handle, there are two methods Iterate and Rows
 
 ```Go
 err := engine.Iterate(&User{Name:name}, func(idx int, bean interface{}) error {
@@ -194,7 +194,7 @@ for rows.Next() {
 }
 ```
 
-* Update one or more records, default will update non-empty and non-zero fields except to use Cols, AllCols and etc.
+* Update one or more records, default will update non-empty and non-zero fields except when you use Cols, AllCols and so on.
 
 ```Go
 affected, err := engine.Id(1).Update(&user)
@@ -219,7 +219,7 @@ affected, err := engine.Id(1).AllCols().Update(&user)
 // UPDATE user SET name=?,age=?,salt=?,passwd=?,updated=? Where id = ?
 ```
 
-* Delete one or more records, Delete MUST has conditon
+* Delete one or more records, Delete MUST have condition
 
 ```Go
 affected, err := engine.Where(...).Delete(&user)
