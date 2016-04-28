@@ -2568,107 +2568,99 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 	case reflect.Ptr:
 		// !nashtsai! TODO merge duplicated codes above
 		//typeStr := fieldType.String()
-		switch fieldType {
+		switch fieldType.Elem().Kind() {
 		// case "*string":
-		case core.PtrStringType:
+		case core.StringType.Kind():
 			x := string(data)
-			fieldValue.Set(reflect.ValueOf(&x))
+			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*bool":
-		case core.PtrBoolType:
+		case core.BoolType.Kind():
 			d := string(data)
 			v, err := strconv.ParseBool(d)
 			if err != nil {
 				return fmt.Errorf("arg %v as bool: %s", key, err.Error())
 			}
-			fieldValue.Set(reflect.ValueOf(&v))
+			fieldValue.Set(reflect.ValueOf(&v).Convert(fieldType))
 		// case "*complex64":
-		case core.PtrComplex64Type:
+		case core.Complex64Type.Kind():
 			var x complex64
 			err := json.Unmarshal(data, &x)
 			if err != nil {
 				session.Engine.logger.Error(err)
 				return err
 			}
-			fieldValue.Set(reflect.ValueOf(&x))
+			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*complex128":
-		case core.PtrComplex128Type:
+		case core.Complex128Type.Kind():
 			var x complex128
 			err := json.Unmarshal(data, &x)
 			if err != nil {
 				session.Engine.logger.Error(err)
 				return err
 			}
-			fieldValue.Set(reflect.ValueOf(&x))
+			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*float64":
-		case core.PtrFloat64Type:
+		case core.Float64Type.Kind():
 			x, err := strconv.ParseFloat(string(data), 64)
 			if err != nil {
 				return fmt.Errorf("arg %v as float64: %s", key, err.Error())
 			}
-			fieldValue.Set(reflect.ValueOf(&x))
+			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*float32":
-		case core.PtrFloat32Type:
+		case core.Float32Type.Kind():
 			var x float32
 			x1, err := strconv.ParseFloat(string(data), 32)
 			if err != nil {
 				return fmt.Errorf("arg %v as float32: %s", key, err.Error())
 			}
 			x = float32(x1)
-			fieldValue.Set(reflect.ValueOf(&x))
-		// case "*time.Time":
-		case core.PtrTimeType:
-			x, err := session.byte2Time(col, data)
-			if err != nil {
-				return err
-			}
-			v = x
-			fieldValue.Set(reflect.ValueOf(&x))
+			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*uint64":
-		case core.PtrUint64Type:
+		case core.Uint64Type.Kind():
 			var x uint64
 			x, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
 				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
-			fieldValue.Set(reflect.ValueOf(&x))
+			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*uint":
-		case core.PtrUintType:
+		case core.UintType.Kind():
 			var x uint
 			x1, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
 				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
 			x = uint(x1)
-			fieldValue.Set(reflect.ValueOf(&x))
+			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*uint32":
-		case core.PtrUint32Type:
+		case core.Uint32Type.Kind():
 			var x uint32
 			x1, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
 				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
 			x = uint32(x1)
-			fieldValue.Set(reflect.ValueOf(&x))
+			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*uint8":
-		case core.PtrUint8Type:
+		case core.Uint8Type.Kind():
 			var x uint8
 			x1, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
 				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
 			x = uint8(x1)
-			fieldValue.Set(reflect.ValueOf(&x))
+			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*uint16":
-		case core.PtrUint16Type:
+		case core.Uint16Type.Kind():
 			var x uint16
 			x1, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
 				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
 			x = uint16(x1)
-			fieldValue.Set(reflect.ValueOf(&x))
+			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*int64":
-		case core.PtrInt64Type:
+		case core.Int64Type.Kind():
 			sdata := string(data)
 			var x int64
 			var err error
@@ -2690,9 +2682,9 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			if err != nil {
 				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
-			fieldValue.Set(reflect.ValueOf(&x))
+			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*int":
-		case core.PtrIntType:
+		case core.IntType.Kind():
 			sdata := string(data)
 			var x int
 			var x1 int64
@@ -2718,9 +2710,9 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			if err != nil {
 				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
-			fieldValue.Set(reflect.ValueOf(&x))
+			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*int32":
-		case core.PtrInt32Type:
+		case core.Int32Type.Kind():
 			sdata := string(data)
 			var x int32
 			var x1 int64
@@ -2746,9 +2738,9 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			if err != nil {
 				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
-			fieldValue.Set(reflect.ValueOf(&x))
+			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*int8":
-		case core.PtrInt8Type:
+		case core.Int8Type.Kind():
 			sdata := string(data)
 			var x int8
 			var x1 int64
@@ -2774,9 +2766,9 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			if err != nil {
 				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
-			fieldValue.Set(reflect.ValueOf(&x))
+			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*int16":
-		case core.PtrInt16Type:
+		case core.Int16Type.Kind():
 			sdata := string(data)
 			var x int16
 			var x1 int64
@@ -2802,9 +2794,19 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			if err != nil {
 				return fmt.Errorf("arg %v as int: %s", key, err.Error())
 			}
-			fieldValue.Set(reflect.ValueOf(&x))
-		default:
-			if fieldType.Elem().Kind() == reflect.Struct {
+			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
+		// case "*SomeStruct":
+		case reflect.Struct:
+			switch fieldType {
+			// case "*.time.Time":
+			case core.PtrTimeType:
+				x, err := session.byte2Time(col, data)
+				if err != nil {
+					return err
+				}
+				v = x
+				fieldValue.Set(reflect.ValueOf(&x))
+			default:
 				if session.Statement.UseCascade {
 					structInter := reflect.New(fieldType.Elem())
 					table := session.Engine.autoMapType(structInter.Elem())
@@ -2842,10 +2844,11 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 					return fmt.Errorf("unsupported struct type in Scan: %s", fieldValue.Type().String())
 				}
 			}
-			return fmt.Errorf("unsupported type in Scan: %s", reflect.TypeOf(v).String())
+		default:
+			return fmt.Errorf("unsupported type in Scan: %s", fieldValue.Type().String())
 		}
 	default:
-		return fmt.Errorf("unsupported type in Scan: %s", reflect.TypeOf(v).String())
+		return fmt.Errorf("unsupported type in Scan: %s", fieldValue.Type().String())
 	}
 
 	return nil
