@@ -1044,8 +1044,10 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	var sqlStr string
 	var args []interface{}
 
+	session.Statement.OutTable = session.Engine.TableInfo(bean)
+
 	if session.Statement.RefTable == nil {
-		session.Statement.RefTable = session.Engine.TableInfo(bean)
+		session.Statement.RefTable = session.Statement.OutTable
 	}
 
 	if session.Statement.RawSQL == "" {
@@ -1139,42 +1141,39 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 
 	sliceElementType := sliceValue.Type().Elem()
 	var table *core.Table
-	if session.Statement.RefTable == nil {
-		if sliceElementType.Kind() == reflect.Ptr {
-			if sliceElementType.Elem().Kind() == reflect.Struct {
-				pv := reflect.New(sliceElementType.Elem())
-				table = session.Engine.autoMapType(pv.Elem())
-			} else {
-				return errors.New("slice type")
-			}
-		} else if sliceElementType.Kind() == reflect.Struct {
-			pv := reflect.New(sliceElementType)
+
+	if sliceElementType.Kind() == reflect.Ptr {
+		if sliceElementType.Elem().Kind() == reflect.Struct {
+			pv := reflect.New(sliceElementType.Elem())
 			table = session.Engine.autoMapType(pv.Elem())
 		} else {
 			return errors.New("slice type")
 		}
-		session.Statement.RefTable = table
+	} else if sliceElementType.Kind() == reflect.Struct {
+		pv := reflect.New(sliceElementType)
+		table = session.Engine.autoMapType(pv.Elem())
 	} else {
-		table = session.Statement.RefTable
+		return errors.New("slice type")
 	}
 
-	var addedTableName = (len(session.Statement.JoinStr) > 0)
+	session.Statement.OutTable = table
+
+	if session.Statement.RefTable == nil {
+		session.Statement.RefTable = table
+	}
+
 	if !session.Statement.noAutoCondition && len(condiBean) > 0 {
-		colNames, args := session.Statement.buildConditions(table, condiBean[0], true, true, false, true, addedTableName)
+		colNames, args := session.Statement.buildConditions(
+			table, condiBean[0], true, true, false, true, session.Statement.needTableName())
+
 		session.Statement.ConditionStr = strings.Join(colNames, " AND ")
 		session.Statement.BeanArgs = args
 	} else {
 		// !oinume! Add "<col> IS NULL" to WHERE whatever condiBean is given.
 		// See https://github.com/go-xorm/xorm/issues/179
-		if col := table.DeletedColumn(); col != nil && !session.Statement.unscoped { // tag "deleted" is enabled
-			var colName = session.Engine.Quote(col.Name)
-			if addedTableName {
-				var nm = session.Statement.TableName()
-				if len(session.Statement.TableAlias) > 0 {
-					nm = session.Statement.TableAlias
-				}
-				colName = session.Engine.Quote(nm) + "." + colName
-			}
+		if col := table.DeletedColumn(); col != nil && !session.Statement.unscoped {
+			// tag "deleted" is enabled
+			var colName = session.Statement.colName(col, session.Statement.TableName())
 			session.Statement.ConditionStr = fmt.Sprintf("(%v IS NULL OR %v = '0001-01-01 00:00:00')",
 				colName, colName)
 		}
@@ -1183,28 +1182,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	var sqlStr string
 	var args []interface{}
 	if session.Statement.RawSQL == "" {
-		var columnStr = session.Statement.ColumnStr
-		if len(session.Statement.selectStr) > 0 {
-			columnStr = session.Statement.selectStr
-		} else {
-			if session.Statement.JoinStr == "" {
-				if columnStr == "" {
-					if session.Statement.GroupByStr != "" {
-						columnStr = session.Statement.Engine.Quote(strings.Replace(session.Statement.GroupByStr, ",", session.Engine.Quote(","), -1))
-					} else {
-						columnStr = session.Statement.genColumnStr()
-					}
-				}
-			} else {
-				if columnStr == "" {
-					if session.Statement.GroupByStr != "" {
-						columnStr = session.Statement.Engine.Quote(strings.Replace(session.Statement.GroupByStr, ",", session.Engine.Quote(","), -1))
-					} else {
-						columnStr = "*"
-					}
-				}
-			}
-		}
+		columnStr := session.Statement.genColumnStr()
 
 		session.Statement.Params = append(session.Statement.joinArgs, append(session.Statement.Params, session.Statement.BeanArgs...)...)
 

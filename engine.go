@@ -929,8 +929,16 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 		fieldType := fieldValue.Type()
 
 		if ormTagStr != "" {
-			col = &core.Column{FieldName: t.Field(i).Name, Nullable: true, IsPrimaryKey: false,
-				IsAutoIncrement: false, MapType: core.TWOSIDES, Indexes: make(map[string]bool)}
+			col = &core.Column{
+				FieldName:       t.Field(i).Name,
+				TableName:       table.Name,
+				Nullable:        true,
+				IsPrimaryKey:    false,
+				IsAutoIncrement: false,
+				MapType:         core.TWOSIDES,
+				Indexes:         make(map[string]bool),
+			}
+
 			tags := splitTag(ormTagStr)
 
 			if len(tags) > 0 {
@@ -952,6 +960,11 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 					case reflect.Struct:
 						parentTable := engine.mapType(fieldValue)
 						for _, col := range parentTable.Columns() {
+							if t.Field(i).Anonymous {
+								col.TableName = parentTable.Name
+							} else {
+								col.TableName = engine.TableMapper.Obj2Table(t.Field(i).Name)
+							}
 							col.FieldName = fmt.Sprintf("%v.%v", t.Field(i).Name, col.FieldName)
 							table.AddColumn(col)
 						}
@@ -1133,6 +1146,7 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 			col = core.NewColumn(engine.ColumnMapper.Obj2Table(t.Field(i).Name),
 				t.Field(i).Name, sqlType, sqlType.DefaultLength,
 				sqlType.DefaultLength2, true)
+			col.TableName = table.Name
 		}
 		if col.IsAutoIncrement {
 			col.Nullable = false
