@@ -159,7 +159,7 @@ func isStructZero(v reflect.Value) bool {
 				return false
 			}
 		default:
-			if !isZero(field.Interface()) {
+			if field.CanInterface() && !isZero(field.Interface()) {
 				return false
 			}
 		}
