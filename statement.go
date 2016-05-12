@@ -55,7 +55,7 @@ type Statement struct {
 	ColumnStr       string
 	selectStr       string
 	columnMap       map[string]bool
-	tableMap        map[string]bool
+	tableMap        map[string]string
 	useAllCols      bool
 	OmitStr         string
 	ConditionStr    string
@@ -101,7 +101,7 @@ func (statement *Statement) Init() {
 	statement.ColumnStr = ""
 	statement.OmitStr = ""
 	statement.columnMap = make(map[string]bool)
-	statement.tableMap = make(map[string]bool)
+	statement.tableMap = make(map[string]string)
 	statement.ConditionStr = ""
 	statement.AltTableName = ""
 	statement.IdParam = nil
@@ -201,7 +201,7 @@ func (statement *Statement) Or(querystring string, args ...interface{}) *Stateme
 
 // Table tempororily set table name, the parameter could be a string or a pointer of struct
 func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
-	if statement.TableName() != "" {
+	if statement.TableAlias == "" && statement.TableName() != "" {
 		statement.tableMapDelete(statement.TableName())
 	}
 	v := rValue(tableNameOrBean)
@@ -211,7 +211,9 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 	} else if t.Kind() == reflect.Struct {
 		statement.RefTable = statement.Engine.autoMapType(v)
 	}
-	statement.tableMapAdd(statement.TableName())
+	if statement.TableAlias == "" {
+		statement.tableMapAdd(statement.TableName())
+	}
 	return statement
 }
 
@@ -456,7 +458,7 @@ func (statement *Statement) needTableName() bool {
 
 func (statement *Statement) tableMapAdd(table string) {
 	tableName := statement.Engine.Quote(strings.ToLower(table))
-	statement.tableMap[tableName] = true
+	statement.tableMap[tableName] = table
 }
 
 func (statement *Statement) tableMapDelete(table string) {
@@ -464,7 +466,7 @@ func (statement *Statement) tableMapDelete(table string) {
 	delete(statement.tableMap, tableName)
 }
 
-func (statement *Statement) isKnownTable(table string) bool {
+func (statement *Statement) isKnownTable(table string) (string, bool) {
 	if len(table) > 0 {
 		var mainTable string
 
@@ -477,21 +479,25 @@ func (statement *Statement) isKnownTable(table string) bool {
 		cm := statement.Engine.Quote(strings.ToLower(mainTable))
 		ct := statement.Engine.Quote(strings.ToLower(table))
 
-		if ct == cm || statement.tableMap[ct] {
-			return true
+		if name, ok := statement.tableMap[ct]; ok {
+			return name, true
+		}
+
+		if ct == cm {
+			return mainTable, true
 		}
 	}
-	return false
+	return "", false
 }
 
 func (statement *Statement) colName(col *core.Column) string {
 	var colTable string
 
 	if statement.needTableName() {
-		if statement.isKnownTable(col.TableName) {
-			colTable = col.TableName
-		} else if statement.isKnownTable(statement.outTableName()) {
-			colTable = statement.outTableName()
+		if name, ok := statement.isKnownTable(col.TableName); ok {
+			colTable = name
+		} else if name, ok := statement.isKnownTable(statement.outTableName()); ok {
+			colTable = name
 		} else {
 			colTable = ""
 		}
@@ -1074,7 +1080,7 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 	fmt.Fprintf(&buf, " ON %v", condition)
 	statement.JoinStr = buf.String()
 	statement.joinArgs = append(statement.joinArgs, args...)
-	statement.tableMap[statement.Engine.Quote(strings.ToLower(refName))] = true
+	statement.tableMapAdd(refName)
 	return statement
 }
 
