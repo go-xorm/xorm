@@ -1635,10 +1635,10 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 				var bs []byte
 				if rawValueType.Kind() == reflect.String {
 					bs = []byte(vv.String())
-				} else if rawValueType.ConvertibleTo(reflect.SliceOf(reflect.TypeOf(uint8(1)))) {
+				} else if rawValueType.ConvertibleTo(core.BytesType) {
 					bs = vv.Bytes()
 				} else {
-					return errors.New("unsupported database data type")
+					return fmt.Errorf("unsupported database data type: %s %v", key, rawValueType.Kind())
 				}
 
 				hasAssigned = true
@@ -1646,14 +1646,14 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 				if fieldValue.CanAddr() {
 					err := json.Unmarshal(bs, fieldValue.Addr().Interface())
 					if err != nil {
-						session.Engine.logger.Error(err)
+						session.Engine.logger.Error(key, err)
 						return err
 					}
 				} else {
 					x := reflect.New(fieldType)
 					err := json.Unmarshal(bs, x.Interface())
 					if err != nil {
-						session.Engine.logger.Error(err)
+						session.Engine.logger.Error(key, err)
 						return err
 					}
 					fieldValue.Set(x.Elem())
@@ -1668,7 +1668,7 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 				var bs []byte
 				if rawValueType.Kind() == reflect.String {
 					bs = []byte(vv.String())
-				} else if rawValueType.Kind() == reflect.Slice {
+				} else if rawValueType.ConvertibleTo(core.BytesType) {
 					bs = vv.Bytes()
 				}
 
