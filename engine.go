@@ -960,10 +960,17 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 					case reflect.Struct:
 						parentTable := engine.mapType(fieldValue)
 						for _, col := range parentTable.Columns() {
-							if t.Field(i).Anonymous {
+							/*if t.Field(i).Anonymous {
 								col.TableName = parentTable.Name
 							} else {
 								col.TableName = engine.TableMapper.Obj2Table(t.Field(i).Name)
+							}*/
+							if len(col.TableName) <= 0 {
+								if _, ok := fieldValue.Interface().(TableName); ok {
+									col.TableName = fieldValue.Interface().(TableName).TableName()
+								} else {
+									col.TableName = engine.TableMapper.Obj2Table(fieldType.Name())
+								}
 							}
 							col.FieldName = fmt.Sprintf("%v.%v", t.Field(i).Name, col.FieldName)
 							table.AddColumn(col)
