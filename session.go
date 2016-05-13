@@ -1596,7 +1596,7 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 		if fieldValue := session.getField(dataStruct, key, table, idx); fieldValue != nil {
 			rawValue := reflect.Indirect(reflect.ValueOf(scanResults[ii]))
 
-			//if row is null then ignore
+			// if row is null then ignore
 			if rawValue.Interface() == nil {
 				continue
 			}
@@ -1643,20 +1643,22 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 
 				hasAssigned = true
 
-				if fieldValue.CanAddr() {
-					err := json.Unmarshal(bs, fieldValue.Addr().Interface())
-					if err != nil {
-						session.Engine.logger.Error(key, err)
-						return err
+				if len(bs) > 0 {
+					if fieldValue.CanAddr() {
+						err := json.Unmarshal(bs, fieldValue.Addr().Interface())
+						if err != nil {
+							session.Engine.logger.Error(key, err)
+							return err
+						}
+					} else {
+						x := reflect.New(fieldType)
+						err := json.Unmarshal(bs, x.Interface())
+						if err != nil {
+							session.Engine.logger.Error(key, err)
+							return err
+						}
+						fieldValue.Set(x.Elem())
 					}
-				} else {
-					x := reflect.New(fieldType)
-					err := json.Unmarshal(bs, x.Interface())
-					if err != nil {
-						session.Engine.logger.Error(key, err)
-						return err
-					}
-					fieldValue.Set(x.Elem())
 				}
 
 				continue
@@ -1673,20 +1675,22 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 				}
 
 				hasAssigned = true
-				if fieldValue.CanAddr() {
-					err := json.Unmarshal(bs, fieldValue.Addr().Interface())
-					if err != nil {
-						session.Engine.logger.Error(err)
-						return err
+				if len(bs) > 0 {
+					if fieldValue.CanAddr() {
+						err := json.Unmarshal(bs, fieldValue.Addr().Interface())
+						if err != nil {
+							session.Engine.logger.Error(err)
+							return err
+						}
+					} else {
+						x := reflect.New(fieldType)
+						err := json.Unmarshal(bs, x.Interface())
+						if err != nil {
+							session.Engine.logger.Error(err)
+							return err
+						}
+						fieldValue.Set(x.Elem())
 					}
-				} else {
-					x := reflect.New(fieldType)
-					err := json.Unmarshal(bs, x.Interface())
-					if err != nil {
-						session.Engine.logger.Error(err)
-						return err
-					}
-					fieldValue.Set(x.Elem())
 				}
 			case reflect.Slice, reflect.Array:
 				switch rawValueType.Kind() {
@@ -1800,21 +1804,25 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 					if rawValueType.Kind() == reflect.String {
 						hasAssigned = true
 						x := reflect.New(fieldType)
-						err := json.Unmarshal([]byte(vv.String()), x.Interface())
-						if err != nil {
-							session.Engine.logger.Error(err)
-							return err
+						if len([]byte(vv.String())) > 0 {
+							err := json.Unmarshal([]byte(vv.String()), x.Interface())
+							if err != nil {
+								session.Engine.logger.Error(err)
+								return err
+							}
+							fieldValue.Set(x.Elem())
 						}
-						fieldValue.Set(x.Elem())
 					} else if rawValueType.Kind() == reflect.Slice {
 						hasAssigned = true
 						x := reflect.New(fieldType)
-						err := json.Unmarshal(vv.Bytes(), x.Interface())
-						if err != nil {
-							session.Engine.logger.Error(err)
-							return err
+						if len(vv.Bytes()) > 0 {
+							err := json.Unmarshal(vv.Bytes(), x.Interface())
+							if err != nil {
+								session.Engine.logger.Error(err)
+								return err
+							}
+							fieldValue.Set(x.Elem())
 						}
-						fieldValue.Set(x.Elem())
 					}
 				} else if session.Statement.UseCascade {
 					table := session.Engine.autoMapType(*fieldValue)
@@ -1972,20 +1980,24 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 					}
 				case core.Complex64Type:
 					var x complex64
-					err := json.Unmarshal([]byte(vv.String()), &x)
-					if err != nil {
-						session.Engine.logger.Error(err)
-					} else {
-						fieldValue.Set(reflect.ValueOf(&x))
+					if len([]byte(vv.String())) > 0 {
+						err := json.Unmarshal([]byte(vv.String()), &x)
+						if err != nil {
+							session.Engine.logger.Error(err)
+						} else {
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
 					}
 					hasAssigned = true
 				case core.Complex128Type:
 					var x complex128
-					err := json.Unmarshal([]byte(vv.String()), &x)
-					if err != nil {
-						session.Engine.logger.Error(err)
-					} else {
-						fieldValue.Set(reflect.ValueOf(&x))
+					if len([]byte(vv.String())) > 0 {
+						err := json.Unmarshal([]byte(vv.String()), &x)
+						if err != nil {
+							session.Engine.logger.Error(err)
+						} else {
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
 					}
 					hasAssigned = true
 				} // switch fieldType
@@ -2430,36 +2442,41 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 	switch fieldType.Kind() {
 	case reflect.Complex64, reflect.Complex128:
 		x := reflect.New(fieldType)
-
-		err := json.Unmarshal(data, x.Interface())
-		if err != nil {
-			session.Engine.logger.Error(err)
-			return err
-		}
-		fieldValue.Set(x.Elem())
-	case reflect.Slice, reflect.Array, reflect.Map:
-		v = data
-		t := fieldType.Elem()
-		k := t.Kind()
-		if col.SQLType.IsText() {
-			x := reflect.New(fieldType)
+		if len(data) > 0 {
 			err := json.Unmarshal(data, x.Interface())
 			if err != nil {
 				session.Engine.logger.Error(err)
 				return err
 			}
 			fieldValue.Set(x.Elem())
-		} else if col.SQLType.IsBlob() {
-			if k == reflect.Uint8 {
-				fieldValue.Set(reflect.ValueOf(v))
-			} else {
-				x := reflect.New(fieldType)
+		}
+	case reflect.Slice, reflect.Array, reflect.Map:
+		v = data
+		t := fieldType.Elem()
+		k := t.Kind()
+		if col.SQLType.IsText() {
+			x := reflect.New(fieldType)
+			if len(data) > 0 {
 				err := json.Unmarshal(data, x.Interface())
 				if err != nil {
 					session.Engine.logger.Error(err)
 					return err
 				}
 				fieldValue.Set(x.Elem())
+			}
+		} else if col.SQLType.IsBlob() {
+			if k == reflect.Uint8 {
+				fieldValue.Set(reflect.ValueOf(v))
+			} else {
+				x := reflect.New(fieldType)
+				if len(data) > 0 {
+					err := json.Unmarshal(data, x.Interface())
+					if err != nil {
+						session.Engine.logger.Error(err)
+						return err
+					}
+					fieldValue.Set(x.Elem())
+				}
 			}
 		} else {
 			return ErrUnSupportedType
@@ -2584,21 +2601,25 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 		// case "*complex64":
 		case core.Complex64Type.Kind():
 			var x complex64
-			err := json.Unmarshal(data, &x)
-			if err != nil {
-				session.Engine.logger.Error(err)
-				return err
+			if len(data) > 0 {
+				err := json.Unmarshal(data, &x)
+				if err != nil {
+					session.Engine.logger.Error(err)
+					return err
+				}
+				fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 			}
-			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*complex128":
 		case core.Complex128Type.Kind():
 			var x complex128
-			err := json.Unmarshal(data, &x)
-			if err != nil {
-				session.Engine.logger.Error(err)
-				return err
+			if len(data) > 0 {
+				err := json.Unmarshal(data, &x)
+				if err != nil {
+					session.Engine.logger.Error(err)
+					return err
+				}
+				fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 			}
-			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*float64":
 		case core.Float64Type.Kind():
 			x, err := strconv.ParseFloat(string(data), 64)
