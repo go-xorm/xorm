@@ -499,7 +499,11 @@ func (statement *Statement) colName(col *core.Column) string {
 		} else if name, ok := statement.isKnownTable(statement.outTableName()); ok {
 			colTable = name
 		} else {
-			colTable = ""
+			if statement.TableAlias != "" {
+				colTable = statement.TableAlias
+			} else {
+				colTable = statement.TableName()
+			}
 		}
 	}
 
