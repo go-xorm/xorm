@@ -55,7 +55,7 @@ type Statement struct {
 	ColumnStr       string
 	selectStr       string
 	columnMap       map[string]bool
-	tableMap        map[string]string
+	tableMap        map[string][]string
 	useAllCols      bool
 	OmitStr         string
 	ConditionStr    string
@@ -64,6 +64,7 @@ type Statement struct {
 	RawParams       []interface{}
 	UseCascade      bool
 	UseAutoJoin     bool
+	AllowAmbiguous  bool
 	StoreEngine     string
 	Charset         string
 	BeanArgs        []interface{}
@@ -101,7 +102,7 @@ func (statement *Statement) Init() {
 	statement.ColumnStr = ""
 	statement.OmitStr = ""
 	statement.columnMap = make(map[string]bool)
-	statement.tableMap = make(map[string]string)
+	statement.tableMap = make(map[string][]string)
 	statement.ConditionStr = ""
 	statement.AltTableName = ""
 	statement.IdParam = nil
@@ -110,6 +111,7 @@ func (statement *Statement) Init() {
 	statement.BeanArgs = make([]interface{}, 0)
 	statement.UseCache = true
 	statement.UseAutoTime = true
+	statement.AllowAmbiguous = true
 	statement.noAutoCondition = false
 	statement.IsDistinct = false
 	statement.IsForUpdate = false
@@ -145,14 +147,12 @@ func (statement *Statement) Sql(querystring string, args ...interface{}) *Statem
 
 // Alias set the table alias
 func (statement *Statement) Alias(alias string) *Statement {
-	if statement.TableName() != "" {
-		statement.tableMapDelete(statement.TableName())
-	}
 	if statement.TableAlias != "" {
 		statement.tableMapDelete(statement.TableAlias)
 	}
 	statement.TableAlias = alias
-	statement.tableMapAdd(alias)
+	statement.tableMapAdd(statement.TableName(), statement.TableAlias)
+	statement.tableMapAdd(statement.TableAlias, statement.TableAlias)
 	return statement
 }
 
@@ -201,7 +201,7 @@ func (statement *Statement) Or(querystring string, args ...interface{}) *Stateme
 
 // Table tempororily set table name, the parameter could be a string or a pointer of struct
 func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
-	if statement.TableAlias == "" && statement.TableName() != "" {
+	if statement.TableName() != "" {
 		statement.tableMapDelete(statement.TableName())
 	}
 	v := rValue(tableNameOrBean)
@@ -211,8 +211,10 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 	} else if t.Kind() == reflect.Struct {
 		statement.RefTable = statement.Engine.autoMapType(v)
 	}
-	if statement.TableAlias == "" {
-		statement.tableMapAdd(statement.TableName())
+	if statement.TableAlias != "" {
+		statement.tableMapAdd(statement.TableName(), statement.TableAlias)
+	} else {
+		statement.tableMapAdd(statement.TableName(), statement.TableName())
 	}
 	return statement
 }
@@ -456,61 +458,51 @@ func (statement *Statement) needTableName() bool {
 	return len(statement.JoinStr) > 0
 }
 
-func (statement *Statement) tableMapAdd(table string) {
-	tableName := statement.Engine.Quote(strings.ToLower(table))
-	statement.tableMap[tableName] = table
+func (statement *Statement) tableMapAdd(table, alias string) {
+	key := statement.Engine.Quote(strings.ToLower(table))
+	statement.tableMap[key] = append(statement.tableMap[key], alias)
 }
 
 func (statement *Statement) tableMapDelete(table string) {
-	tableName := statement.Engine.Quote(strings.ToLower(table))
-	delete(statement.tableMap, tableName)
+	key := statement.Engine.Quote(strings.ToLower(table))
+	delete(statement.tableMap, key)
 }
 
-func (statement *Statement) isKnownTable(table string) (string, bool) {
-	if len(table) > 0 {
-		var mainTable string
+func (statement *Statement) isKnownUnambiguousTable(table string) string {
+	key := statement.Engine.Quote(strings.ToLower(table))
+	arr := statement.tableMap[key]
+	if len(arr) != 1 {
+		return ""
+	}
+	return arr[0]
+}
 
-		if len(statement.TableAlias) > 0 {
-			mainTable = statement.TableAlias
-		} else {
-			mainTable = statement.TableName()
-		}
-
-		cm := statement.Engine.Quote(strings.ToLower(mainTable))
-		ct := statement.Engine.Quote(strings.ToLower(table))
-
-		if name, ok := statement.tableMap[ct]; ok {
-			return name, true
-		}
-
-		if ct == cm {
-			return mainTable, true
+func (statement *Statement) detectTableName(col *core.Column) string {
+	for _, t := range col.TableNames {
+		if name := statement.isKnownUnambiguousTable(t); name != "" {
+			return name
 		}
 	}
-	return "", false
+	if name := statement.isKnownUnambiguousTable(statement.outTableName()); name != "" {
+		return name
+	}
+	return ""
 }
 
-func (statement *Statement) colName(col *core.Column) string {
+func (statement *Statement) colName(col *core.Column, defaultTable string) (string, bool) {
 	var colTable string
-
 	if statement.needTableName() {
-		if name, ok := statement.isKnownTable(col.TableName); ok {
-			colTable = name
-		} else if name, ok := statement.isKnownTable(statement.outTableName()); ok {
-			colTable = name
-		} else {
-			if statement.TableAlias != "" {
-				colTable = statement.TableAlias
-			} else {
-				colTable = statement.TableName()
-			}
+		colTable = statement.detectTableName(col)
+		if colTable == "" {
+			colTable = defaultTable
 		}
 	}
-
 	if colTable != "" {
-		return statement.Engine.Quote(colTable) + "." + statement.Engine.Quote(col.Name)
+		ret := statement.Engine.Quote(colTable) + "." + statement.Engine.Quote(col.Name)
+		return ret, true
 	} else {
-		return statement.Engine.Quote(col.Name)
+		ret := statement.Engine.Quote(col.Name)
+		return ret, false
 	}
 }
 
@@ -540,7 +532,7 @@ func (statement *Statement) buildConditions(
 			continue
 		}
 
-		colName := statement.colName(col)
+		colName, _ := statement.colName(col, statement.aliasedTableName())
 
 		fieldValuePtr, err := col.ValueOf(bean)
 		if err != nil {
@@ -742,6 +734,13 @@ func (statement *Statement) TableName() string {
 		return statement.RefTable.Name
 	}
 	return ""
+}
+
+func (statement *Statement) aliasedTableName() string {
+	if statement.TableAlias != "" {
+		return statement.TableAlias
+	}
+	return statement.TableName()
 }
 
 func (statement *Statement) outTableName() string {
@@ -1034,7 +1033,7 @@ func (statement *Statement) Asc(colNames ...string) *Statement {
 }
 
 // Join The joinOP should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
-func (statement *Statement) Join(joinOP string, tablename interface{}, condition string, args ...interface{}) *Statement {
+func (statement *Statement) Join(joinOP string, tablearg interface{}, condition string, args ...interface{}) *Statement {
 	var buf bytes.Buffer
 	if len(statement.JoinStr) > 0 {
 		fmt.Fprintf(&buf, "%v %v JOIN ", statement.JoinStr, joinOP)
@@ -1042,49 +1041,54 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 		fmt.Fprintf(&buf, "%v JOIN ", joinOP)
 	}
 
-	var refName string
-	switch tablename.(type) {
+	var tableName, aliasName string
+	switch tablearg.(type) {
 	case []string:
-		t := tablename.([]string)
+		t := tablearg.([]string)
 		if len(t) > 1 {
-			refName = t[1]
-			fmt.Fprintf(&buf, "%v AS %v", statement.Engine.Quote(t[0]), statement.Engine.Quote(t[1]))
+			tableName = t[0]
+			aliasName = t[1]
+			fmt.Fprintf(&buf, "%v AS %v",
+				statement.Engine.Quote(tableName), statement.Engine.Quote(aliasName))
 		} else if len(t) == 1 {
-			refName = t[0]
-			fmt.Fprintf(&buf, statement.Engine.Quote(t[0]))
+			tableName = t[0]
+			fmt.Fprintf(&buf, statement.Engine.Quote(tableName))
 		}
 	case []interface{}:
-		t := tablename.([]interface{})
+		t := tablearg.([]interface{})
 		l := len(t)
-		var table string
 		if l > 0 {
 			f := t[0]
 			v := rValue(f)
 			t := v.Type()
 			if t.Kind() == reflect.String {
-				table = f.(string)
+				tableName = f.(string)
 			} else if t.Kind() == reflect.Struct {
 				r := statement.Engine.autoMapType(v)
-				table = r.Name
+				tableName = r.Name
 			}
 		}
 		if l > 1 {
-			refName = fmt.Sprintf("%v", t[1])
-			fmt.Fprintf(&buf, "%v AS %v", statement.Engine.Quote(table),
-				statement.Engine.Quote(refName))
+			aliasName = fmt.Sprintf("%v", t[1])
+			fmt.Fprintf(&buf, "%v AS %v",
+				statement.Engine.Quote(tableName), statement.Engine.Quote(aliasName))
 		} else if l == 1 {
-			refName = table
-			fmt.Fprintf(&buf, statement.Engine.Quote(table))
+			fmt.Fprintf(&buf, statement.Engine.Quote(tableName))
 		}
 	default:
-		refName = fmt.Sprintf("%v", tablename)
-		fmt.Fprintf(&buf, statement.Engine.Quote(refName))
+		tableName = fmt.Sprintf("%v", tablearg)
+		fmt.Fprintf(&buf, statement.Engine.Quote(tableName))
 	}
 
 	fmt.Fprintf(&buf, " ON %v", condition)
 	statement.JoinStr = buf.String()
 	statement.joinArgs = append(statement.joinArgs, args...)
-	statement.tableMapAdd(refName)
+	if aliasName != "" {
+		statement.tableMapAdd(tableName, aliasName)
+		statement.tableMapAdd(aliasName, aliasName)
+	} else {
+		statement.tableMapAdd(tableName, tableName)
+	}
 	return statement
 }
 
@@ -1135,7 +1139,17 @@ func (statement *Statement) genColumnStr() string {
 			continue
 		}
 
-		name := statement.colName(col)
+		name, qualified := statement.colName(col, "")
+		if statement.needTableName() && !qualified {
+			if statement.AllowAmbiguous {
+				statement.Engine.logger.Warnf(
+					"can't detect table name for ambiguous field '%v', "+
+						"falling back to 'SELECT *'", col.Name)
+				return "*"
+			} else {
+				panic("can't detect table name for ambiguous field '"+col.Name+"'")
+			}
+		}
 
 		if col.IsPrimaryKey && statement.Engine.Dialect().DBType() == "ql" {
 			colNames = append(colNames, "id() AS "+name)
@@ -1375,7 +1389,7 @@ func (statement *Statement) processIdParam() {
 	if statement.IdParam != nil {
 		if statement.Engine.dialect.DBType() != "ql" {
 			for i, col := range statement.RefTable.PKColumns() {
-				var colName = statement.colName(col)
+				colName, _ := statement.colName(col, statement.aliasedTableName())
 				if i < len(*(statement.IdParam)) {
 					statement.And(fmt.Sprintf("%v %s ?", colName,
 						statement.Engine.dialect.EqStr()), (*(statement.IdParam))[i])

@@ -931,7 +931,7 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 		if ormTagStr != "" {
 			col = &core.Column{
 				FieldName:       t.Field(i).Name,
-				TableName:       table.Name,
+				TableNames:      []string{table.Name},
 				Nullable:        true,
 				IsPrimaryKey:    false,
 				IsAutoIncrement: false,
@@ -960,19 +960,22 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 					case reflect.Struct:
 						parentTable := engine.mapType(fieldValue)
 						for _, col := range parentTable.Columns() {
-							/*if t.Field(i).Anonymous {
-								col.TableName = parentTable.Name
+							// prepend field type to suggested table names
+							if _, ok := fieldValue.Interface().(TableName); ok {
+								name := fieldValue.Interface().(TableName).TableName()
+								col.TableNames = append([]string{name}, col.TableNames...)
 							} else {
-								col.TableName = engine.TableMapper.Obj2Table(t.Field(i).Name)
-							}*/
-							if len(col.TableName) <= 0 {
-								if _, ok := fieldValue.Interface().(TableName); ok {
-									col.TableName = fieldValue.Interface().(TableName).TableName()
-								} else {
-									col.TableName = engine.TableMapper.Obj2Table(fieldType.Name())
-								}
+								name := parentTable.Name
+								col.TableNames = append([]string{name}, col.TableNames...)
 							}
-							col.FieldName = fmt.Sprintf("%v.%v", t.Field(i).Name, col.FieldName)
+
+							// prepend field name to suggested table names
+							if !t.Field(i).Anonymous {
+								name := engine.TableMapper.Obj2Table(t.Field(i).Name)
+								col.TableNames = append([]string{name}, col.TableNames...)
+							}
+							col.FieldName = fmt.Sprintf(
+								"%v.%v", t.Field(i).Name, col.FieldName)
 							table.AddColumn(col)
 						}
 
@@ -1153,7 +1156,7 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 			col = core.NewColumn(engine.ColumnMapper.Obj2Table(t.Field(i).Name),
 				t.Field(i).Name, sqlType, sqlType.DefaultLength,
 				sqlType.DefaultLength2, true)
-			col.TableName = table.Name
+			col.TableNames = []string{table.Name}
 		}
 		if col.IsAutoIncrement {
 			col.Nullable = false

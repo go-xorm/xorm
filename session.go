@@ -1140,7 +1140,8 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		// See https://github.com/go-xorm/xorm/issues/179
 		if col := table.DeletedColumn(); col != nil && !session.Statement.unscoped {
 			// tag "deleted" is enabled
-			var colName = session.Statement.colName(col)
+			colName, _ := session.Statement.colName(
+				col, session.Statement.aliasedTableName())
 			session.Statement.ConditionStr = fmt.Sprintf(
 				"(%v IS NULL OR %v = '0001-01-01 00:00:00')", colName, colName)
 		}
