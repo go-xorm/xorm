@@ -148,6 +148,10 @@ func isZero(k interface{}) bool {
 }
 
 func isStructZero(v reflect.Value) bool {
+	if !v.IsValid() {
+		return true
+	}
+
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Field(i)
 		switch field.Kind() {
