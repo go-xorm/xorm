@@ -311,7 +311,7 @@ func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Colu
 		colStr = reg.ReplaceAllString(colStr, ",")
 		fields := strings.Fields(strings.TrimSpace(colStr))
 		col := new(core.Column)
-		col.Indexes = make(map[string]bool)
+		col.Indexes = make(map[string]int)
 		col.Nullable = true
 		col.DefaultIsEmpty = true
 		for idx, field := range fields {

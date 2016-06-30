@@ -352,7 +352,7 @@ where a.object_id=object_id('` + tableName + `')`
 		}
 
 		col := new(core.Column)
-		col.Indexes = make(map[string]bool)
+		col.Indexes = make(map[string]int)
 		col.Length = maxLen
 		col.Name = strings.Trim(name, "` ")
 

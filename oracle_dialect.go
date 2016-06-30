@@ -692,7 +692,7 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Colum
 	colSeq := make([]string, 0)
 	for rows.Next() {
 		col := new(core.Column)
-		col.Indexes = make(map[string]bool)
+		col.Indexes = make(map[string]int)
 
 		var colName, colDefault, nullable, dataType, dataPrecision, dataScale *string
 		var dataLen int
