@@ -3076,7 +3076,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 
 		idByte := res[0][table.AutoIncrement]
 		id, err := strconv.ParseInt(string(idByte), 10, 64)
-		if err != nil {
+		if err != nil || id <= 0 {
 			return 1, err
 		}
 
@@ -3085,7 +3085,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			session.Engine.logger.Error(err)
 		}
 
-		if aiValue == nil || !aiValue.IsValid() /*|| aiValue. != 0*/ || !aiValue.CanSet() {
+		if aiValue == nil || !aiValue.IsValid() || !aiValue.CanSet() {
 			return 1, nil
 		}
 
@@ -3121,7 +3121,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 
 		idByte := res[0][table.AutoIncrement]
 		id, err := strconv.ParseInt(string(idByte), 10, 64)
-		if err != nil {
+		if err != nil || id <= 0 {
 			return 1, err
 		}
 
@@ -3130,7 +3130,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			session.Engine.logger.Error(err)
 		}
 
-		if aiValue == nil || !aiValue.IsValid() /*|| aiValue. != 0*/ || !aiValue.CanSet() {
+		if aiValue == nil || !aiValue.IsValid() || !aiValue.CanSet() {
 			return 1, nil
 		}
 
@@ -3172,12 +3172,11 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			session.Engine.logger.Error(err)
 		}
 
-		if aiValue == nil || !aiValue.IsValid() /*|| aiValue.Int() != 0*/ || !aiValue.CanSet() {
+		if aiValue == nil || !aiValue.IsValid() || !aiValue.CanSet() {
 			return res.RowsAffected()
 		}
 
-		v := int64ToInt(id, aiValue.Type())
-		aiValue.Set(reflect.ValueOf(v))
+		aiValue.Set(int64ToIntValue(id, aiValue.Type()))
 
 		return res.RowsAffected()
 	}
