@@ -1220,6 +1220,27 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 	return statement.genSelectSQL(fmt.Sprintf("count(%v)", id)), append(append(statement.joinArgs, statement.Params...), statement.BeanArgs...)
 }
 
+func (statement *Statement) genSumSql(bean interface{}, columns ...string) (string, []interface{}) {
+	table := statement.Engine.TableInfo(bean)
+	statement.RefTable = table
+
+	var addedTableName = (len(statement.JoinStr) > 0)
+
+	if !statement.noAutoCondition {
+		colNames, args := statement.buildConditions(table, bean, true, true, false, true, addedTableName)
+
+		statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.Dialect().AndStr()+" ")
+		statement.BeanArgs = args
+	}
+
+	statement.attachInSql()
+	var sumStrs = make([]string, 0, len(columns))
+	for _, colName := range columns {
+		sumStrs = append(sumStrs, fmt.Sprintf("sum(%s)", colName))
+	}
+	return statement.genSelectSQL(strings.Join(sumStrs, ", ")), append(append(statement.joinArgs, statement.Params...), statement.BeanArgs...)
+}
+
 func (statement *Statement) genSelectSQL(columnStr string) (a string) {
 	var distinct string
 	if statement.IsDistinct {
