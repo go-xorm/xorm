@@ -1014,6 +1014,10 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	}
 
 	session.Statement.setRefValue(rValue(bean))
+	if len(session.Statement.TableName()) <= 0 {
+		return false, ErrTableNotFound
+	}
+
 	session.Statement.Limit(1)
 
 	var sqlStr string
@@ -1218,6 +1222,10 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		} else {
 			return errors.New("slice type")
 		}
+	}
+
+	if len(session.Statement.TableName()) <= 0 {
+		return ErrTableNotFound
 	}
 
 	var table = session.Statement.RefTable
@@ -2219,6 +2227,10 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 	bean := sliceValue.Index(0).Interface()
 	elementValue := rValue(bean)
 	session.Statement.setRefValue(elementValue)
+	if len(session.Statement.TableName()) <= 0 {
+		return 0, ErrTableNotFound
+	}
+
 	table := session.Statement.RefTable
 	size := sliceValue.Len()
 
@@ -3056,6 +3068,10 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 
 func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	session.Statement.setRefValue(rValue(bean))
+	if len(session.Statement.TableName()) <= 0 {
+		return 0, ErrTableNotFound
+	}
+
 	table := session.Statement.RefTable
 
 	// handle BeforeInsertProcessor
@@ -3452,6 +3468,10 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	var isStruct = t.Kind() == reflect.Struct
 	if isStruct {
 		session.Statement.setRefValue(v)
+
+		if len(session.Statement.TableName()) <= 0 {
+			return 0, ErrTableNotFound
+		}
 
 		if session.Statement.ColumnStr == "" {
 			colNames, args = buildUpdates(session.Engine, session.Statement.RefTable, bean, false, false,

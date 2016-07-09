@@ -35,6 +35,9 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 	var args []interface{}
 
 	rows.session.Statement.setRefValue(rValue(bean))
+	if len(session.Statement.TableName()) <= 0 {
+		return nil, ErrTableNotFound
+	}
 
 	if rows.session.Statement.RawSQL == "" {
 		sqlStr, args = rows.session.Statement.genGetSql(bean)
