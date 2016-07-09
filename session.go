@@ -1888,6 +1888,7 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 				} else if session.Statement.UseCascade {
 					table := session.Engine.autoMapType(*fieldValue)
 					if table != nil {
+						hasAssigned = true
 						if len(table.PrimaryKeys) != 1 {
 							panic("unsupported non or composited primary key cascade")
 						}
