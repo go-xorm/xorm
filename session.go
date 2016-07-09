@@ -2292,6 +2292,13 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 						col := table.GetColumn(colName)
 						setColumnTime(bean, col, t)
 					})
+				} else if col.IsVersion && session.Statement.checkVersion {
+					args = append(args, 1)
+					var colName = col.Name
+					session.afterClosures = append(session.afterClosures, func(bean interface{}) {
+						col := table.GetColumn(colName)
+						setColumnInt(bean, col, 1)
+					})
 				} else {
 					arg, err := session.value2Interface(col, fieldValue)
 					if err != nil {
@@ -2339,6 +2346,13 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 					session.afterClosures = append(session.afterClosures, func(bean interface{}) {
 						col := table.GetColumn(colName)
 						setColumnTime(bean, col, t)
+					})
+				} else if col.IsVersion && session.Statement.checkVersion {
+					args = append(args, 1)
+					var colName = col.Name
+					session.afterClosures = append(session.afterClosures, func(bean interface{}) {
+						col := table.GetColumn(colName)
+						setColumnInt(bean, col, 1)
 					})
 				} else {
 					arg, err := session.value2Interface(col, fieldValue)
@@ -2400,24 +2414,29 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 			}
 		}
 	}
+
 	cleanupProcessorsClosures(&session.afterClosures)
 	return res.RowsAffected()
 }
 
 // InsertMulti insert multiple records
 func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
+	defer session.resetStatement()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
-	if sliceValue.Kind() == reflect.Slice {
-		if sliceValue.Len() > 0 {
-			defer session.resetStatement()
-			if session.IsAutoClose {
-				defer session.Close()
-			}
-			return session.innerInsertMulti(rowsSlicePtr)
-		}
+	if sliceValue.Kind() != reflect.Slice {
+		return 0, ErrParamsType
+
+	}
+
+	if sliceValue.Len() <= 0 {
 		return 0, nil
 	}
-	return 0, ErrParamsType
+
+	return session.innerInsertMulti(rowsSlicePtr)
 }
 
 func (session *Session) str2Time(col *core.Column, data string) (outTime time.Time, outErr error) {

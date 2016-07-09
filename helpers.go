@@ -457,6 +457,21 @@ func query2(db *core.DB, sqlStr string, params ...interface{}) (resultsSlice []m
 	return rows2Strings(rows)
 }
 
+func setColumnInt(bean interface{}, col *core.Column, t int64) {
+	v, err := col.ValueOf(bean)
+	if err != nil {
+		return
+	}
+	if v.CanSet() {
+		switch v.Type().Kind() {
+		case reflect.Int, reflect.Int64, reflect.Int32:
+			v.SetInt(t)
+		case reflect.Uint, reflect.Uint64, reflect.Uint32:
+			v.SetUint(uint64(t))
+		}
+	}
+}
+
 func setColumnTime(bean interface{}, col *core.Column, t time.Time) {
 	v, err := col.ValueOf(bean)
 	if err != nil {
