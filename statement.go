@@ -58,6 +58,7 @@ type Statement struct {
 	OmitStr         string
 	ConditionStr    string
 	AltTableName    string
+	tableName       string
 	RawSQL          string
 	RawParams       []interface{}
 	UseCascade      bool
@@ -100,6 +101,7 @@ func (statement *Statement) Init() {
 	statement.columnMap = make(map[string]bool)
 	statement.ConditionStr = ""
 	statement.AltTableName = ""
+	statement.tableName = ""
 	statement.IdParam = nil
 	statement.RawSQL = ""
 	statement.RawParams = make([]interface{}, 0)
@@ -188,6 +190,11 @@ func (statement *Statement) Or(querystring string, args ...interface{}) *Stateme
 	return statement
 }
 
+func (statement *Statement) setRefValue(v reflect.Value) {
+	statement.RefTable = statement.Engine.autoMapType(v)
+	statement.tableName = statement.Engine.tbName(v)
+}
+
 // Table tempororily set table name, the parameter could be a string or a pointer of struct
 func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 	v := rValue(tableNameOrBean)
@@ -196,6 +203,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 		statement.AltTableName = tableNameOrBean.(string)
 	} else if t.Kind() == reflect.Struct {
 		statement.RefTable = statement.Engine.autoMapType(v)
+		statement.AltTableName = statement.Engine.tbName(v)
 	}
 	return statement
 }
@@ -678,14 +686,7 @@ func (statement *Statement) TableName() string {
 		return statement.AltTableName
 	}
 
-	if statement.RefTable != nil {
-		/*schema := statement.Engine.dialect.URI().Schema
-		if len(schema) > 0 {
-			return schema + "." + statement.RefTable.Name
-		}*/
-		return statement.RefTable.Name
-	}
-	return ""
+	return statement.tableName
 }
 
 // Id generate "where id = ? " statment or for composite key "where key1 = ? and key2 = ?"
@@ -998,8 +999,7 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 			if t.Kind() == reflect.String {
 				table = f.(string)
 			} else if t.Kind() == reflect.Struct {
-				r := statement.Engine.autoMapType(v)
-				table = r.Name
+				table = statement.Engine.tbName(v)
 			}
 		}
 		if l > 1 {
@@ -1038,7 +1038,7 @@ func (statement *Statement) Unscoped() *Statement {
 
 func (statement *Statement) genColumnStr() string {
 	table := statement.RefTable
-	colNames := make([]string, 0)
+	var colNames []string
 	for _, col := range table.Columns() {
 		if statement.OmitStr != "" {
 			if _, ok := statement.columnMap[strings.ToLower(col.Name)]; ok {
@@ -1075,17 +1075,17 @@ func (statement *Statement) genColumnStr() string {
 }
 
 func (statement *Statement) genCreateTableSQL() string {
-	return statement.Engine.dialect.CreateTableSql(statement.RefTable, statement.AltTableName,
+	return statement.Engine.dialect.CreateTableSql(statement.RefTable, statement.TableName(),
 		statement.StoreEngine, statement.Charset)
 }
 
 func (s *Statement) genIndexSQL() []string {
-	var sqls []string = make([]string, 0)
+	var sqls []string
 	tbName := s.TableName()
 	quote := s.Engine.Quote
 	for idxName, index := range s.RefTable.Indexes {
 		if index.Type == core.IndexType {
-			sql := fmt.Sprintf("CREATE INDEX %v ON %v (%v);", quote(indexName(s.RefTable.Name, idxName)),
+			sql := fmt.Sprintf("CREATE INDEX %v ON %v (%v);", quote(indexName(tbName, idxName)),
 				quote(tbName), quote(strings.Join(index.Cols, quote(","))))
 			sqls = append(sqls, sql)
 		}
@@ -1098,10 +1098,11 @@ func uniqueName(tableName, uqeName string) string {
 }
 
 func (s *Statement) genUniqueSQL() []string {
-	var sqls []string = make([]string, 0)
+	var sqls []string
+	tbName := s.TableName()
 	for _, index := range s.RefTable.Indexes {
 		if index.Type == core.UniqueType {
-			sql := s.Engine.dialect.CreateIndexSql(s.RefTable.Name, index)
+			sql := s.Engine.dialect.CreateIndexSql(tbName, index)
 			sqls = append(sqls, sql)
 		}
 	}
@@ -1109,13 +1110,14 @@ func (s *Statement) genUniqueSQL() []string {
 }
 
 func (s *Statement) genDelIndexSQL() []string {
-	var sqls []string = make([]string, 0)
+	var sqls []string
+	tbName := s.TableName()
 	for idxName, index := range s.RefTable.Indexes {
 		var rIdxName string
 		if index.Type == core.UniqueType {
-			rIdxName = uniqueName(s.RefTable.Name, idxName)
+			rIdxName = uniqueName(tbName, idxName)
 		} else if index.Type == core.IndexType {
-			rIdxName = indexName(s.RefTable.Name, idxName)
+			rIdxName = indexName(tbName, idxName)
 		}
 		sql := fmt.Sprintf("DROP INDEX %v", s.Engine.Quote(rIdxName))
 		if s.Engine.dialect.IndexOnTable() {
@@ -1127,14 +1129,9 @@ func (s *Statement) genDelIndexSQL() []string {
 }
 
 func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) {
-	var table *core.Table
-	if statement.RefTable == nil {
-		table = statement.Engine.TableInfo(bean)
-		statement.RefTable = table
-	} else {
-		table = statement.RefTable
-	}
+	statement.setRefValue(rValue(bean))
 
+	var table = statement.RefTable
 	var addedTableName = (len(statement.JoinStr) > 0)
 
 	if !statement.noAutoCondition {
@@ -1144,7 +1141,7 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 		statement.BeanArgs = args
 	}
 
-	var columnStr string = statement.ColumnStr
+	var columnStr = statement.ColumnStr
 	if len(statement.selectStr) > 0 {
 		columnStr = statement.selectStr
 	} else {
@@ -1199,13 +1196,12 @@ func (statement *Statement) buildConditions(table *core.Table, bean interface{},
 }
 
 func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}) {
-	table := statement.Engine.TableInfo(bean)
-	statement.RefTable = table
+	statement.setRefValue(rValue(bean))
 
 	var addedTableName = (len(statement.JoinStr) > 0)
 
 	if !statement.noAutoCondition {
-		colNames, args := statement.buildConditions(table, bean, true, true, false, true, addedTableName)
+		colNames, args := statement.buildConditions(statement.RefTable, bean, true, true, false, true, addedTableName)
 
 		statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.Dialect().AndStr()+" ")
 		statement.BeanArgs = args
@@ -1221,13 +1217,12 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 }
 
 func (statement *Statement) genSumSql(bean interface{}, columns ...string) (string, []interface{}) {
-	table := statement.Engine.TableInfo(bean)
-	statement.RefTable = table
+	statement.setRefValue(rValue(bean))
 
 	var addedTableName = (len(statement.JoinStr) > 0)
 
 	if !statement.noAutoCondition {
-		colNames, args := statement.buildConditions(table, bean, true, true, false, true, addedTableName)
+		colNames, args := statement.buildConditions(statement.RefTable, bean, true, true, false, true, addedTableName)
 
 		statement.ConditionStr = strings.Join(colNames, " "+statement.Engine.Dialect().AndStr()+" ")
 		statement.BeanArgs = args
@@ -1269,7 +1264,7 @@ func (statement *Statement) genSelectSQL(columnStr string) (a string) {
 	}
 	var whereStr = buf.String()
 
-	var fromStr string = " FROM " + quote(statement.TableName())
+	var fromStr = " FROM " + quote(statement.TableName())
 	if statement.TableAlias != "" {
 		if dialect.DBType() == core.ORACLE {
 			fromStr += " " + quote(statement.TableAlias)
@@ -1286,7 +1281,7 @@ func (statement *Statement) genSelectSQL(columnStr string) (a string) {
 			top = fmt.Sprintf(" TOP %d ", statement.LimitN)
 		}
 		if statement.Start > 0 {
-			var column string = "(id)"
+			var column = "(id)"
 			if len(statement.RefTable.PKColumns()) == 0 {
 				for _, index := range statement.RefTable.Indexes {
 					if len(index.Cols) == 1 {

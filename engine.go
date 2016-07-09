@@ -286,46 +286,6 @@ func (engine *Engine) logSQLExecutionTime(sqlStr string, args []interface{}, exe
 	}
 }
 
-// LogError logging error
-/*func (engine *Engine) LogError(contents ...interface{}) {
-	engine.logger.Err(contents...)
-}
-
-// LogErrorf logging errorf
-func (engine *Engine) LogErrorf(format string, contents ...interface{}) {
-	engine.logger.Errf(format, contents...)
-}
-
-// LogInfo logging info
-func (engine *Engine) LogInfo(contents ...interface{}) {
-	engine.logger.Info(contents...)
-}
-
-// LogInfof logging infof
-func (engine *Engine) LogInfof(format string, contents ...interface{}) {
-	engine.logger.Infof(format, contents...)
-}
-
-// LogDebug logging debug
-func (engine *Engine) LogDebug(contents ...interface{}) {
-	engine.logger.Debug(contents...)
-}
-
-// LogDebugf logging debugf
-func (engine *Engine) LogDebugf(format string, contents ...interface{}) {
-	engine.logger.Debugf(format, contents...)
-}
-
-// LogWarn logging warn
-func (engine *Engine) LogWarn(contents ...interface{}) {
-	engine.logger.Warning(contents...)
-}
-
-// LogWarnf logging warnf
-func (engine *Engine) LogWarnf(format string, contents ...interface{}) {
-	engine.logger.Warningf(format, contents...)
-}*/
-
 // Sql method let's you manualy write raw sql and operate
 // For example:
 //
@@ -421,8 +381,26 @@ func (engine *Engine) DumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 	return engine.dumpTables(tables, w, tp...)
 }
 
-func (engine *Engine) tbName(tb *core.Table) string {
-	return tb.Name
+func (engine *Engine) tableName(beanOrTableName interface{}) (string, error) {
+	v := rValue(beanOrTableName)
+	if v.Type().Kind() == reflect.String {
+		return beanOrTableName.(string), nil
+	} else if v.Type().Kind() == reflect.Struct {
+		return engine.tbName(v), nil
+	}
+	return "", errors.New("bean should be a struct or struct's point")
+}
+
+func (engine *Engine) tbName(v reflect.Value) string {
+	if tb, ok := v.Interface().(TableName); ok {
+		return tb.TableName()
+	}
+	if v.CanAddr() {
+		if tb, ok := v.Addr().Interface().(TableName); ok {
+			return tb.TableName()
+		}
+	}
+	return engine.TableMapper.Obj2Table(v.Type().Name())
 }
 
 // DumpAll dump database all table structs and data to w with specify db type
@@ -461,16 +439,17 @@ func (engine *Engine) dumpAll(w io.Writer, tp ...core.DbType) error {
 			return err
 		}
 		for _, index := range table.Indexes {
-			_, err = io.WriteString(w, dialect.CreateIndexSql(engine.tbName(table), index)+";\n")
+			_, err = io.WriteString(w, dialect.CreateIndexSql(table.Name, index)+";\n")
 			if err != nil {
 				return err
 			}
 		}
 
-		rows, err := engine.DB().Query("SELECT * FROM " + engine.Quote(engine.tbName(table)))
+		rows, err := engine.DB().Query("SELECT * FROM " + engine.Quote(table.Name))
 		if err != nil {
 			return err
 		}
+		defer rows.Close()
 
 		cols, err := rows.Columns()
 		if err != nil {
@@ -486,7 +465,7 @@ func (engine *Engine) dumpAll(w io.Writer, tp ...core.DbType) error {
 				return err
 			}
 
-			_, err = io.WriteString(w, "INSERT INTO "+dialect.Quote(engine.tbName(table))+" ("+dialect.Quote(strings.Join(cols, dialect.Quote(", ")))+") VALUES (")
+			_, err = io.WriteString(w, "INSERT INTO "+dialect.Quote(table.Name)+" ("+dialect.Quote(strings.Join(cols, dialect.Quote(", ")))+") VALUES (")
 			if err != nil {
 				return err
 			}
@@ -561,16 +540,17 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 			return err
 		}
 		for _, index := range table.Indexes {
-			_, err = io.WriteString(w, dialect.CreateIndexSql(engine.tbName(table), index)+";\n")
+			_, err = io.WriteString(w, dialect.CreateIndexSql(table.Name, index)+";\n")
 			if err != nil {
 				return err
 			}
 		}
 
-		rows, err := engine.DB().Query("SELECT * FROM " + engine.Quote(engine.tbName(table)))
+		rows, err := engine.DB().Query("SELECT * FROM " + engine.Quote(table.Name))
 		if err != nil {
 			return err
 		}
+		defer rows.Close()
 
 		cols, err := rows.Columns()
 		if err != nil {
@@ -586,7 +566,7 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 				return err
 			}
 
-			_, err = io.WriteString(w, "INSERT INTO "+dialect.Quote(engine.tbName(table))+" ("+dialect.Quote(strings.Join(cols, dialect.Quote(", ")))+") VALUES (")
+			_, err = io.WriteString(w, "INSERT INTO "+dialect.Quote(table.Name)+" ("+dialect.Quote(strings.Join(cols, dialect.Quote(", ")))+") VALUES (")
 			if err != nil {
 				return err
 			}
@@ -868,9 +848,14 @@ func (engine *Engine) GobRegister(v interface{}) *Engine {
 	return engine
 }
 
-func (engine *Engine) TableInfo(bean interface{}) *core.Table {
+type Table struct {
+	*core.Table
+	Name string
+}
+
+func (engine *Engine) TableInfo(bean interface{}) *Table {
 	v := rValue(bean)
-	return engine.autoMapType(v)
+	return &Table{engine.autoMapType(v), engine.tbName(v)}
 }
 
 func addIndex(indexName string, table *core.Table, col *core.Column, indexType int) {
@@ -1247,18 +1232,20 @@ func (engine *Engine) getCacher(v reflect.Value) core.Cacher {
 
 // If enabled cache, clear the cache bean
 func (engine *Engine) ClearCacheBean(bean interface{}, id string) error {
-	t := rType(bean)
+	v := rValue(bean)
+	t := v.Type()
 	if t.Kind() != reflect.Struct {
 		return errors.New("error params")
 	}
-	table := engine.TableInfo(bean)
+	tableName := engine.tbName(v)
+	table := engine.autoMapType(v)
 	cacher := table.Cacher
 	if cacher == nil {
 		cacher = engine.Cacher
 	}
 	if cacher != nil {
-		cacher.ClearIds(table.Name)
-		cacher.DelBean(table.Name, id)
+		cacher.ClearIds(tableName)
+		cacher.DelBean(tableName, id)
 	}
 	return nil
 }
@@ -1266,18 +1253,20 @@ func (engine *Engine) ClearCacheBean(bean interface{}, id string) error {
 // If enabled cache, clear some tables' cache
 func (engine *Engine) ClearCache(beans ...interface{}) error {
 	for _, bean := range beans {
-		t := rType(bean)
+		v := rValue(bean)
+		t := v.Type()
 		if t.Kind() != reflect.Struct {
 			return errors.New("error params")
 		}
-		table := engine.TableInfo(bean)
+		tableName := engine.tbName(v)
+		table := engine.autoMapType(v)
 		cacher := table.Cacher
 		if cacher == nil {
 			cacher = engine.Cacher
 		}
 		if cacher != nil {
-			cacher.ClearIds(table.Name)
-			cacher.ClearBeans(table.Name)
+			cacher.ClearIds(tableName)
+			cacher.ClearBeans(tableName)
 		}
 	}
 	return nil
@@ -1288,11 +1277,13 @@ func (engine *Engine) ClearCache(beans ...interface{}) error {
 // If you change some field, you should change the database manually.
 func (engine *Engine) Sync(beans ...interface{}) error {
 	for _, bean := range beans {
-		table := engine.TableInfo(bean)
+		v := rValue(bean)
+		tableName := engine.tbName(v)
+		table := engine.autoMapType(v)
 
 		s := engine.NewSession()
 		defer s.Close()
-		isExist, err := s.Table(bean).isTableExist(table.Name)
+		isExist, err := s.Table(bean).isTableExist(tableName)
 		if err != nil {
 			return err
 		}
@@ -1306,7 +1297,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 		  if err != nil {
 		      return err
 		  }*/
-		var isEmpty bool = false
+		var isEmpty bool
 		if isEmpty {
 			err = engine.DropTables(bean)
 			if err != nil {
@@ -1321,7 +1312,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 				session := engine.NewSession()
 				session.Statement.RefTable = table
 				defer session.Close()
-				isExist, err := session.Engine.dialect.IsColumnExist(table.Name, col.Name)
+				isExist, err := session.Engine.dialect.IsColumnExist(tableName, col.Name)
 				if err != nil {
 					return err
 				}
@@ -1342,7 +1333,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 				defer session.Close()
 				if index.Type == core.UniqueType {
 					//isExist, err := session.isIndexExist(table.Name, name, true)
-					isExist, err := session.isIndexExist2(table.Name, index.Cols, true)
+					isExist, err := session.isIndexExist2(tableName, index.Cols, true)
 					if err != nil {
 						return err
 					}
@@ -1350,13 +1341,13 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 						session := engine.NewSession()
 						session.Statement.RefTable = table
 						defer session.Close()
-						err = session.addUnique(engine.tbName(table), name)
+						err = session.addUnique(tableName, name)
 						if err != nil {
 							return err
 						}
 					}
 				} else if index.Type == core.IndexType {
-					isExist, err := session.isIndexExist2(table.Name, index.Cols, false)
+					isExist, err := session.isIndexExist2(tableName, index.Cols, false)
 					if err != nil {
 						return err
 					}
@@ -1364,7 +1355,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 						session := engine.NewSession()
 						session.Statement.RefTable = table
 						defer session.Close()
-						err = session.addIndex(engine.tbName(table), name)
+						err = session.addIndex(tableName, name)
 						if err != nil {
 							return err
 						}
@@ -1416,8 +1407,9 @@ func (engine *Engine) dropAll() error {
 // CreateTables create tabls according bean
 func (engine *Engine) CreateTables(beans ...interface{}) error {
 	session := engine.NewSession()
-	err := session.Begin()
 	defer session.Close()
+
+	err := session.Begin()
 	if err != nil {
 		return err
 	}

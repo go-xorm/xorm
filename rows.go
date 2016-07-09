@@ -29,11 +29,13 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 	rows.session = session
 	rows.beanType = reflect.Indirect(reflect.ValueOf(bean)).Type()
 
-	defer rows.session.Statement.Init()
+	defer rows.session.resetStatement()
 
 	var sqlStr string
 	var args []interface{}
-	rows.session.Statement.RefTable = rows.session.Engine.TableInfo(bean)
+
+	rows.session.Statement.setRefValue(rValue(bean))
+
 	if rows.session.Statement.RawSQL == "" {
 		sqlStr, args = rows.session.Statement.genGetSql(bean)
 	} else {
