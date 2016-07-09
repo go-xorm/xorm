@@ -3505,11 +3505,6 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			}
 		}
 	} else if isMap {
-		// TODO: So why Table("table_name") could not be used with update map?
-		if session.Statement.RefTable == nil {
-			return 0, ErrTableNotFound
-		}
-
 		colNames = make([]string, 0)
 		args = make([]interface{}, 0)
 		bValue := reflect.Indirect(reflect.ValueOf(bean))
@@ -3524,7 +3519,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	table := session.Statement.RefTable
 
-	if session.Statement.UseAutoTime && table.Updated != "" {
+	if session.Statement.UseAutoTime && table != nil && table.Updated != "" {
 		colNames = append(colNames, session.Engine.Quote(table.Updated)+" = ?")
 		col := table.UpdatedColumn()
 		val, t := session.Engine.NowTime2(col.SQLType.Name)
@@ -3587,7 +3582,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	var inArgs []interface{}
 	doIncVer := false
 	var verValue *reflect.Value
-	if table.Version != "" && session.Statement.checkVersion {
+	if table != nil && table.Version != "" && session.Statement.checkVersion {
 		if condition != "" {
 			condition = fmt.Sprintf("WHERE (%v) %v %v = ?", condition, session.Engine.Dialect().AndStr(),
 				session.Engine.Quote(table.Version))
@@ -3656,9 +3651,11 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		}
 	}
 
-	if cacher := session.Engine.getCacher2(table); cacher != nil && session.Statement.UseCache {
-		cacher.ClearIds(session.Statement.TableName())
-		cacher.ClearBeans(session.Statement.TableName())
+	if table != nil {
+		if cacher := session.Engine.getCacher2(table); cacher != nil && session.Statement.UseCache {
+			cacher.ClearIds(session.Statement.TableName())
+			cacher.ClearBeans(session.Statement.TableName())
+		}
 	}
 
 	// handle after update processors
