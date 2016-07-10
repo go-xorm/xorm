@@ -503,6 +503,7 @@ func (session *Session) innerExec(sqlStr string, args ...interface{}) (sql.Resul
 
 func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, error) {
 	for _, filter := range session.Engine.dialect.Filters() {
+		// TODO: for table name, it's no need to RefTable
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
 
@@ -4064,6 +4065,7 @@ func (s *Session) Sync2(beans ...interface{}) error {
 				} else {
 					session := engine.NewSession()
 					session.Statement.RefTable = table
+					session.Statement.tableName = tbName
 					defer session.Close()
 					err = session.addColumn(col.Name)
 				}
@@ -4115,11 +4117,13 @@ func (s *Session) Sync2(beans ...interface{}) error {
 				if index.Type == core.UniqueType {
 					session := engine.NewSession()
 					session.Statement.RefTable = table
+					session.Statement.tableName = tbName
 					defer session.Close()
 					err = session.addUnique(tbName, name)
 				} else if index.Type == core.IndexType {
 					session := engine.NewSession()
 					session.Statement.RefTable = table
+					session.Statement.tableName = tbName
 					defer session.Close()
 					err = session.addIndex(tbName, name)
 				}

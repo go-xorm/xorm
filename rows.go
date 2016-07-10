@@ -94,7 +94,7 @@ func (rows *Rows) Err() error {
 	return rows.lastError
 }
 
-// scan row record to bean properties
+// Scan row record to bean properties
 func (rows *Rows) Scan(bean interface{}) error {
 	if rows.lastError != nil {
 		return rows.lastError
@@ -105,21 +105,7 @@ func (rows *Rows) Scan(bean interface{}) error {
 	}
 
 	return rows.session.row2Bean(rows.rows, rows.fields, rows.fieldsCount, bean)
-
-	// result, err := row2map(rows.rows, rows.fields) // !nashtsai! TODO remove row2map then scanMapIntoStruct conversation for better performance
-	// if err == nil {
-	// 	err = rows.session.scanMapIntoStruct(bean, result)
-	// }
-	// return err
 }
-
-// // Columns returns the column names. Columns returns an error if the rows are closed, or if the rows are from QueryRow and there was a deferred error.
-// func (rows *Rows) Columns() ([]string, error) {
-// 	if rows.lastError == nil && rows.rows != nil {
-// 		return rows.rows.Columns()
-// 	}
-// 	return nil, rows.lastError
-// }
 
 // close session if session.IsAutoClose is true, and claimed any opened resources
 func (rows *Rows) Close() error {
