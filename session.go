@@ -1027,16 +1027,15 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	}
 
 	session.Statement.setRefValue(rValue(bean))
-	if len(session.Statement.TableName()) <= 0 {
-		return false, ErrTableNotFound
-	}
-
-	session.Statement.Limit(1)
 
 	var sqlStr string
 	var args []interface{}
 
 	if session.Statement.RawSQL == "" {
+		if len(session.Statement.TableName()) <= 0 {
+			return false, ErrTableNotFound
+		}
+		session.Statement.Limit(1)
 		sqlStr, args = session.Statement.genGetSql(bean)
 	} else {
 		sqlStr = session.Statement.RawSQL
@@ -1238,10 +1237,6 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		}
 	}
 
-	if len(session.Statement.TableName()) <= 0 {
-		return ErrTableNotFound
-	}
-
 	var table = session.Statement.RefTable
 
 	var addedTableName = (len(session.Statement.JoinStr) > 0)
@@ -1269,6 +1264,10 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	var sqlStr string
 	var args []interface{}
 	if session.Statement.RawSQL == "" {
+		if len(session.Statement.TableName()) <= 0 {
+			return ErrTableNotFound
+		}
+
 		var columnStr = session.Statement.ColumnStr
 		if len(session.Statement.selectStr) > 0 {
 			columnStr = session.Statement.selectStr
