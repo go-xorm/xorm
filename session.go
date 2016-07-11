@@ -19,7 +19,7 @@ import (
 	"github.com/go-xorm/core"
 )
 
-// Struct Session keep a pointer to sql.DB and provides all execution of all
+// Session keep a pointer to sql.DB and provides all execution of all
 // kind of database operations.
 type Session struct {
 	db                     *core.DB
@@ -106,15 +106,21 @@ func (session *Session) resetStatement() {
 	}
 }
 
-// Prepare
+// Prepare set a flag to session that should be prepare statment before execute query
 func (session *Session) Prepare() *Session {
 	session.prepareStmt = true
 	return session
 }
 
-// Sql provides raw sql input parameter. When you have a complex SQL statement
-// and cannot use Where, Id, In and etc. Methods to describe, you can use Sql.
+// Sql will be deprecated, please use SQL instead.
 func (session *Session) Sql(querystring string, args ...interface{}) *Session {
+	session.Statement.Sql(querystring, args...)
+	return session
+}
+
+// SQL provides raw sql input parameter. When you have a complex SQL statement
+// and cannot use Where, Id, In and etc. Methods to describe, you can use SQL.
+func (session *Session) SQL(querystring string, args ...interface{}) *Session {
 	session.Statement.Sql(querystring, args...)
 	return session
 }
@@ -137,8 +143,14 @@ func (session *Session) Or(querystring string, args ...interface{}) *Session {
 	return session
 }
 
-// Id provides converting id as a query condition
+// Id will be deprecated, please use ID instead
 func (session *Session) Id(id interface{}) *Session {
+	session.Statement.Id(id)
+	return session
+}
+
+// ID provides converting id as a query condition
+func (session *Session) ID(id interface{}) *Session {
 	session.Statement.Id(id)
 	return session
 }
@@ -213,13 +225,13 @@ func (session *Session) AllCols() *Session {
 	return session
 }
 
-// MustCols
+// MustCols specify some columns must use even if they are empty
 func (session *Session) MustCols(columns ...string) *Session {
 	session.Statement.MustCols(columns...)
 	return session
 }
 
-// NoCascade
+// NoCascade indicate that no cascade load child object
 func (session *Session) NoCascade() *Session {
 	session.Statement.UseCascade = false
 	return session
@@ -274,44 +286,44 @@ func (session *Session) NoAutoCondition(no ...bool) *Session {
 	return session
 }
 
-// Method Limit provide limit and offset query condition
+// Limit provide limit and offset query condition
 func (session *Session) Limit(limit int, start ...int) *Session {
 	session.Statement.Limit(limit, start...)
 	return session
 }
 
-// Method OrderBy provide order by query condition, the input parameter is the content
+// OrderBy provide order by query condition, the input parameter is the content
 // after order by on a sql statement.
 func (session *Session) OrderBy(order string) *Session {
 	session.Statement.OrderBy(order)
 	return session
 }
 
-// Method Desc provide desc order by query condition, the input parameters are columns.
+// Desc provide desc order by query condition, the input parameters are columns.
 func (session *Session) Desc(colNames ...string) *Session {
 	session.Statement.Desc(colNames...)
 	return session
 }
 
-// Method Asc provide asc order by query condition, the input parameters are columns.
+// Asc provide asc order by query condition, the input parameters are columns.
 func (session *Session) Asc(colNames ...string) *Session {
 	session.Statement.Asc(colNames...)
 	return session
 }
 
-// Method StoreEngine is only avialble mysql dialect currently
+// StoreEngine is only avialble mysql dialect currently
 func (session *Session) StoreEngine(storeEngine string) *Session {
 	session.Statement.StoreEngine = storeEngine
 	return session
 }
 
-// Method Charset is only avialble mysql dialect currently
+// Charset is only avialble mysql dialect currently
 func (session *Session) Charset(charset string) *Session {
 	session.Statement.Charset = charset
 	return session
 }
 
-// Method Cascade indicates if loading sub Struct
+// Cascade indicates if loading sub Struct
 func (session *Session) Cascade(trueOrFalse ...bool) *Session {
 	if len(trueOrFalse) >= 1 {
 		session.Statement.UseCascade = trueOrFalse[0]
@@ -611,7 +623,7 @@ func (session *Session) createAll() error {
 	return nil
 }
 
-// drop indexes
+// DropIndexes drop indexes
 func (session *Session) DropIndexes(bean interface{}) error {
 	v := rValue(bean)
 	session.Statement.setRefValue(v)
@@ -631,7 +643,7 @@ func (session *Session) DropIndexes(bean interface{}) error {
 	return nil
 }
 
-// drop table will drop table if exist, if drop failed, it will return error
+// DropTable drop table will drop table if exist, if drop failed, it will return error
 func (session *Session) DropTable(beanOrTableName interface{}) error {
 	tableName, err := session.Engine.tableName(beanOrTableName)
 	if err != nil {
@@ -838,8 +850,8 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
 
 	ididxes := make(map[string]int)
-	var ides []core.PK = make([]core.PK, 0)
-	var temps []interface{} = make([]interface{}, len(ids))
+	var ides []core.PK
+	var temps = make([]interface{}, len(ids))
 
 	for idx, id := range ids {
 		sid, err := id.ToString()
@@ -1162,6 +1174,7 @@ func (session *Session) Sums(bean interface{}, columnNames ...string) ([]float64
 	return res, nil
 }
 
+// SumsInt sum specify columns and return as []int64 instead of []float64
 func (session *Session) SumsInt(bean interface{}, columnNames ...string) ([]int64, error) {
 	defer session.resetStatement()
 	if session.IsAutoClose {
@@ -1507,9 +1520,8 @@ func (session *Session) isIndexExist2(tableName string, cols []string, unique bo
 		if sliceEq(index.Cols, cols) {
 			if unique {
 				return index.Type == core.UniqueType, nil
-			} else {
-				return index.Type == core.IndexType, nil
 			}
+			return index.Type == core.IndexType, nil
 		}
 	}
 	return false, nil
@@ -1590,6 +1602,7 @@ func (session *Session) getField(dataStruct *reflect.Value, key string, table *c
 	return fieldValue
 }
 
+// Cell cell is a result of one column field
 type Cell *interface{}
 
 func (session *Session) rows2Beans(rows *core.Rows, fields []string, fieldsCount int,
@@ -1940,7 +1953,7 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 								//fieldValue.Set(reflect.ValueOf(v))
 								fieldValue.Set(structInter.Elem())
 							} else {
-								return errors.New("cascade obj is not exist!")
+								return errors.New("cascade obj is not exist")
 							}
 						}
 					} else {
@@ -3579,7 +3592,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		}
 	}
 
-	var sqlStr, inSql string
+	var sqlStr, inSQL string
 	var inArgs []interface{}
 	doIncVer := false
 	var verValue *reflect.Value
@@ -3590,12 +3603,12 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		} else {
 			condition = fmt.Sprintf("WHERE %v = ?", session.Engine.Quote(table.Version))
 		}
-		inSql, inArgs = session.Statement.genInSql()
-		if len(inSql) > 0 {
+		inSQL, inArgs = session.Statement.genInSql()
+		if len(inSQL) > 0 {
 			if condition != "" {
-				condition += " " + session.Engine.Dialect().AndStr() + " " + inSql
+				condition += " " + session.Engine.Dialect().AndStr() + " " + inSQL
 			} else {
-				condition = "WHERE " + inSql
+				condition = "WHERE " + inSQL
 			}
 		}
 
@@ -3620,12 +3633,12 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		if condition != "" {
 			condition = "WHERE " + condition
 		}
-		inSql, inArgs = session.Statement.genInSql()
-		if len(inSql) > 0 {
+		inSQL, inArgs = session.Statement.genInSql()
+		if len(inSQL) > 0 {
 			if condition != "" {
-				condition += " " + session.Engine.Dialect().AndStr() + " " + inSql
+				condition += " " + session.Engine.Dialect().AndStr() + " " + inSQL
 			} else {
-				condition = "WHERE " + inSql
+				condition = "WHERE " + inSQL
 			}
 		}
 
@@ -3795,62 +3808,62 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	} else {
 		condition = strings.Join(colNames, " "+andStr+" ")
 	}
-	inSql, inArgs := session.Statement.genInSql()
-	if len(inSql) > 0 {
+	inSQL, inArgs := session.Statement.genInSql()
+	if len(inSQL) > 0 {
 		if len(condition) > 0 {
 			condition += " " + andStr + " "
 		}
-		condition += inSql
+		condition += inSQL
 		args = append(args, inArgs...)
 	}
 	if len(condition) == 0 && session.Statement.LimitN == 0 {
 		return 0, ErrNeedDeletedCond
 	}
 
-	var deleteSql, realSql string
+	var deleteSQL, realSQL string
 	var tableName = session.Engine.Quote(session.Statement.TableName())
 
 	if len(condition) > 0 {
-		deleteSql = fmt.Sprintf("DELETE FROM %v WHERE %v", tableName, condition)
+		deleteSQL = fmt.Sprintf("DELETE FROM %v WHERE %v", tableName, condition)
 	} else {
-		deleteSql = fmt.Sprintf("DELETE FROM %v", tableName)
+		deleteSQL = fmt.Sprintf("DELETE FROM %v", tableName)
 	}
 
-	var orderSql string
+	var orderSQL string
 	if len(session.Statement.OrderStr) > 0 {
-		orderSql += fmt.Sprintf(" ORDER BY %s", session.Statement.OrderStr)
+		orderSQL += fmt.Sprintf(" ORDER BY %s", session.Statement.OrderStr)
 	}
 	if session.Statement.LimitN > 0 {
-		orderSql += fmt.Sprintf(" LIMIT %d", session.Statement.LimitN)
+		orderSQL += fmt.Sprintf(" LIMIT %d", session.Statement.LimitN)
 	}
 
-	if len(orderSql) > 0 {
+	if len(orderSQL) > 0 {
 		switch session.Engine.dialect.DBType() {
 		case core.POSTGRES:
-			inSql := fmt.Sprintf("ctid IN (SELECT ctid FROM %s%s)", tableName, orderSql)
+			inSQL := fmt.Sprintf("ctid IN (SELECT ctid FROM %s%s)", tableName, orderSQL)
 			if len(condition) > 0 {
-				deleteSql += " AND " + inSql
+				deleteSQL += " AND " + inSQL
 			} else {
-				deleteSql += " WHERE " + inSql
+				deleteSQL += " WHERE " + inSQL
 			}
 		case core.SQLITE:
-			inSql := fmt.Sprintf("rowid IN (SELECT rowid FROM %s%s)", tableName, orderSql)
+			inSQL := fmt.Sprintf("rowid IN (SELECT rowid FROM %s%s)", tableName, orderSQL)
 			if len(condition) > 0 {
-				deleteSql += " AND " + inSql
+				deleteSQL += " AND " + inSQL
 			} else {
-				deleteSql += " WHERE " + inSql
+				deleteSQL += " WHERE " + inSQL
 			}
 		// TODO: how to handle delete limit on mssql?
 		case core.MSSQL:
 			return 0, ErrNotImplemented
 		default:
-			deleteSql += orderSql
+			deleteSQL += orderSQL
 		}
 	}
 
 	argsForCache := make([]interface{}, 0, len(args)*2)
 	if session.Statement.unscoped || table.DeletedColumn() == nil { // tag "deleted" is disabled
-		realSql = deleteSql
+		realSQL = deleteSQL
 		copy(argsForCache, args)
 		argsForCache = append(session.Statement.Params, argsForCache...)
 	} else {
@@ -3859,32 +3872,32 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		argsForCache = append(session.Statement.Params, argsForCache...)
 
 		deletedColumn := table.DeletedColumn()
-		realSql = fmt.Sprintf("UPDATE %v SET %v = ? WHERE %v",
+		realSQL = fmt.Sprintf("UPDATE %v SET %v = ? WHERE %v",
 			session.Engine.Quote(session.Statement.TableName()),
 			session.Engine.Quote(deletedColumn.Name),
 			condition)
 
-		if len(orderSql) > 0 {
+		if len(orderSQL) > 0 {
 			switch session.Engine.dialect.DBType() {
 			case core.POSTGRES:
-				inSql := fmt.Sprintf("ctid IN (SELECT ctid FROM %s%s)", tableName, orderSql)
+				inSQL := fmt.Sprintf("ctid IN (SELECT ctid FROM %s%s)", tableName, orderSQL)
 				if len(condition) > 0 {
-					realSql += " AND " + inSql
+					realSQL += " AND " + inSQL
 				} else {
-					realSql += " WHERE " + inSql
+					realSQL += " WHERE " + inSQL
 				}
 			case core.SQLITE:
-				inSql := fmt.Sprintf("rowid IN (SELECT rowid FROM %s%s)", tableName, orderSql)
+				inSQL := fmt.Sprintf("rowid IN (SELECT rowid FROM %s%s)", tableName, orderSQL)
 				if len(condition) > 0 {
-					realSql += " AND " + inSql
+					realSQL += " AND " + inSQL
 				} else {
-					realSql += " WHERE " + inSql
+					realSQL += " WHERE " + inSQL
 				}
 			// TODO: how to handle delete limit on mssql?
 			case core.MSSQL:
 				return 0, ErrNotImplemented
 			default:
-				realSql += orderSql
+				realSQL += orderSQL
 			}
 		}
 
@@ -3906,10 +3919,10 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	args = append(session.Statement.Params, args...)
 
 	if cacher := session.Engine.getCacher2(session.Statement.RefTable); cacher != nil && session.Statement.UseCache {
-		session.cacheDelete(deleteSql, argsForCache...)
+		session.cacheDelete(deleteSQL, argsForCache...)
 	}
 
-	res, err := session.exec(realSql, args...)
+	res, err := session.exec(realSQL, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -3966,8 +3979,8 @@ func (session *Session) tbNameNoSchema(table *core.Table) string {
 }
 
 // Sync2 synchronize structs to database tables
-func (s *Session) Sync2(beans ...interface{}) error {
-	engine := s.Engine
+func (session *Session) Sync2(beans ...interface{}) error {
+	engine := session.Engine
 
 	tables, err := engine.DBMetas()
 	if err != nil {
@@ -3980,7 +3993,7 @@ func (s *Session) Sync2(beans ...interface{}) error {
 		v := rValue(bean)
 		table := engine.mapType(v)
 		structTables = append(structTables, table)
-		var tbName = s.tbNameNoSchema(table)
+		var tbName = session.tbNameNoSchema(table)
 
 		var oriTable *core.Table
 		for _, tb := range tables {
@@ -3991,17 +4004,17 @@ func (s *Session) Sync2(beans ...interface{}) error {
 		}
 
 		if oriTable == nil {
-			err = s.StoreEngine(s.Statement.StoreEngine).CreateTable(bean)
+			err = session.StoreEngine(session.Statement.StoreEngine).CreateTable(bean)
 			if err != nil {
 				return err
 			}
 
-			err = s.CreateUniques(bean)
+			err = session.CreateUniques(bean)
 			if err != nil {
 				return err
 			}
 
-			err = s.CreateIndexes(bean)
+			err = session.CreateIndexes(bean)
 			if err != nil {
 				return err
 			}
@@ -4137,7 +4150,7 @@ func (s *Session) Sync2(beans ...interface{}) error {
 	for _, table := range tables {
 		var oriTable *core.Table
 		for _, structTable := range structTables {
-			if equalNoCase(table.Name, s.tbNameNoSchema(structTable)) {
+			if equalNoCase(table.Name, session.tbNameNoSchema(structTable)) {
 				oriTable = structTable
 				break
 			}

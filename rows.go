@@ -12,6 +12,7 @@ import (
 	"github.com/go-xorm/core"
 )
 
+// Rows rows wrapper a rows to
 type Rows struct {
 	NoTypeCheck bool
 
@@ -52,24 +53,33 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 
 	rows.session.saveLastSQL(sqlStr, args)
 	var err error
-	rows.stmt, err = rows.session.DB().Prepare(sqlStr)
-	if err != nil {
-		rows.lastError = err
-		defer rows.Close()
-		return nil, err
-	}
+	if rows.session.prepareStmt {
+		rows.stmt, err = rows.session.DB().Prepare(sqlStr)
+		if err != nil {
+			rows.lastError = err
+			rows.Close()
+			return nil, err
+		}
 
-	rows.rows, err = rows.stmt.Query(args...)
-	if err != nil {
-		rows.lastError = err
-		defer rows.Close()
-		return nil, err
+		rows.rows, err = rows.stmt.Query(args...)
+		if err != nil {
+			rows.lastError = err
+			rows.Close()
+			return nil, err
+		}
+	} else {
+		rows.rows, err = rows.session.DB().Query(sqlStr, args...)
+		if err != nil {
+			rows.lastError = err
+			rows.Close()
+			return nil, err
+		}
 	}
 
 	rows.fields, err = rows.rows.Columns()
 	if err != nil {
 		rows.lastError = err
-		defer rows.Close()
+		rows.Close()
 		return nil, err
 	}
 	rows.fieldsCount = len(rows.fields)
@@ -77,7 +87,7 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 	return rows, nil
 }
 
-// move cursor to next record, return false if end has reached
+// Next move cursor to next record, return false if end has reached
 func (rows *Rows) Next() bool {
 	if rows.lastError == nil && rows.rows != nil {
 		hasNext := rows.rows.Next()
@@ -107,7 +117,7 @@ func (rows *Rows) Scan(bean interface{}) error {
 	return rows.session.row2Bean(rows.rows, rows.fields, rows.fieldsCount, bean)
 }
 
-// close session if session.IsAutoClose is true, and claimed any opened resources
+// Close session if session.IsAutoClose is true, and claimed any opened resources
 func (rows *Rows) Close() error {
 	if rows.session.IsAutoClose {
 		defer rows.session.Close()
