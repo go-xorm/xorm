@@ -41,6 +41,7 @@ type Engine struct {
 
 	logger     core.ILogger
 	TZLocation *time.Location
+	DatabaseTZ *time.Location // The timezone of the database
 
 	disableGlobalCache bool
 }
