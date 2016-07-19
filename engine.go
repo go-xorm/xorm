@@ -1181,17 +1181,6 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 	return table
 }
 
-// Map a struct to a table
-func (engine *Engine) mapping(beans ...interface{}) (e error) {
-	engine.mutex.Lock()
-	defer engine.mutex.Unlock()
-	for _, bean := range beans {
-		v := rValue(bean)
-		engine.Tables[v.Type()] = engine.mapType(v)
-	}
-	return
-}
-
 // IsTableEmpty if a table has any reocrd
 func (engine *Engine) IsTableEmpty(bean interface{}) (bool, error) {
 	session := engine.NewSession()
