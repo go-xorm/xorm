@@ -2182,7 +2182,7 @@ func (session *Session) Query(sqlStr string, paramStr ...interface{}) (resultsSl
 // =============================
 // for string
 // =============================
-func (session *Session) query2(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string]string, err error) {
+func (session *Session) Query2(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string]string, err error) {
 	session.queryPreprocess(&sqlStr, paramStr...)
 
 	if session.IsAutoCommit {
