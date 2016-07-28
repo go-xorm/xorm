@@ -1291,9 +1291,9 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 			}
 		}
 
-		session.Statement.Params = append(session.Statement.joinArgs, append(session.Statement.Params, session.Statement.BeanArgs...)...)
-
 		session.Statement.attachInSql()
+		session.Statement.Params = append(append(append(session.Statement.joinArgs, session.Statement.Params...),
+			session.Statement.BeanArgs...), session.Statement.inParams...)
 
 		sqlStr = session.Statement.genSelectSQL(columnStr)
 		args = session.Statement.Params
@@ -1874,7 +1874,6 @@ func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount 
 					// !<winxxp>! 增加支持sql.Scanner接口的结构，如sql.NullString
 					hasAssigned = true
 					if err := nulVal.Scan(vv.Interface()); err != nil {
-						//fmt.Println("sql.Sanner error:", err.Error())
 						session.Engine.logger.Error("sql.Sanner error:", err.Error())
 						hasAssigned = false
 					}
@@ -2469,13 +2468,11 @@ func (session *Session) str2Time(col *core.Column, data string) (outTime time.Ti
 		if err == nil {
 			x = time.Unix(sd, 0)
 			// !nashtsai! HACK mymysql driver is casuing Local location being change to CHAT and cause wrong time conversion
-			//fmt.Println(x.In(session.Engine.TZLocation), "===")
 			if col.TimeZone == nil {
 				x = x.In(session.Engine.TZLocation)
 			} else {
 				x = x.In(col.TimeZone)
 			}
-			//fmt.Println(x, "=====")
 			session.Engine.logger.Debugf("time(0) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		} else {
 			session.Engine.logger.Debugf("time(0) err key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)

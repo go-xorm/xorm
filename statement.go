@@ -46,6 +46,7 @@ type Statement struct {
 	WhereStr        string
 	IdParam         *core.PK
 	Params          []interface{}
+	inParams        []interface{}
 	OrderStr        string
 	JoinStr         string
 	joinArgs        []interface{}
@@ -90,6 +91,7 @@ func (statement *Statement) Init() {
 	statement.LimitN = 0
 	statement.WhereStr = ""
 	statement.Params = make([]interface{}, 0)
+	statement.inParams = make([]interface{}, 0)
 	statement.OrderStr = ""
 	statement.UseCascade = true
 	statement.JoinStr = ""
@@ -432,7 +434,6 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 		}
 
 	APPEND:
-		//fmt.Println("==", col.Name, "==", fmt.Sprintf("%v", val))
 		args = append(args, val)
 		if col.IsPrimaryKey && engine.dialect.DBType() == "ql" {
 			continue
@@ -821,7 +822,7 @@ func (statement *Statement) attachInSql() {
 			statement.ConditionStr += " " + statement.Engine.dialect.AndStr() + " "
 		}
 		statement.ConditionStr += inSql
-		statement.Params = append(statement.Params, inArgs...)
+		statement.inParams = inArgs
 	}
 }
 
@@ -873,7 +874,6 @@ func (statement *Statement) Cols(columns ...string) *Statement {
 	}
 
 	newColumns := statement.col2NewColsWithQuote(columns...)
-	//fmt.Println("=====", columns, newColumns, cols)
 	statement.ColumnStr = strings.Join(newColumns, ", ")
 	statement.ColumnStr = strings.Replace(statement.ColumnStr, statement.Engine.quote("*"), "*", -1)
 	return statement
@@ -1166,7 +1166,8 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 	}
 
 	statement.attachInSql() // !admpub!  fix bug:Iterate func missing "... IN (...)"
-	return statement.genSelectSQL(columnStr), append(append(statement.joinArgs, statement.Params...), statement.BeanArgs...)
+	return statement.genSelectSQL(columnStr), append(append(append(statement.joinArgs, statement.Params...),
+		statement.BeanArgs...), statement.inParams...)
 }
 
 func (s *Statement) genAddColumnStr(col *core.Column) (string, []interface{}) {
@@ -1175,20 +1176,6 @@ func (s *Statement) genAddColumnStr(col *core.Column) (string, []interface{}) {
 		col.String(s.Engine.dialect))
 	return sql, []interface{}{}
 }
-
-/*func (s *Statement) genAddIndexStr(idxName string, cols []string) (string, []interface{}) {
-	quote := s.Engine.Quote
-	colstr := quote(strings.Join(cols, quote(", ")))
-	sql := fmt.Sprintf("CREATE INDEX %v ON %v (%v);", quote(idxName), quote(s.TableName()), colstr)
-	return sql, []interface{}{}
-}
-
-func (s *Statement) genAddUniqueStr(uqeName string, cols []string) (string, []interface{}) {
-	quote := s.Engine.Quote
-	colstr := quote(strings.Join(cols, quote(", ")))
-	sql := fmt.Sprintf("CREATE UNIQUE INDEX %v ON %v (%v);", quote(uqeName), quote(s.TableName()), colstr)
-	return sql, []interface{}{}
-}*/
 
 func (statement *Statement) buildConditions(table *core.Table, bean interface{}, includeVersion bool, includeUpdated bool, includeNil bool, includeAutoIncr bool, addedTableName bool) ([]string, []interface{}) {
 	return buildConditions(statement.Engine, table, bean, includeVersion, includeUpdated, includeNil, includeAutoIncr, statement.allUseBool, statement.useAllCols,
@@ -1213,7 +1200,8 @@ func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}
 		id = ""
 	}
 	statement.attachInSql()
-	return statement.genSelectSQL(fmt.Sprintf("count(%v)", id)), append(append(statement.joinArgs, statement.Params...), statement.BeanArgs...)
+	return statement.genSelectSQL(fmt.Sprintf("count(%v)", id)), append(append(append(statement.joinArgs, statement.Params...),
+		statement.BeanArgs...), statement.inParams...)
 }
 
 func (statement *Statement) genSumSql(bean interface{}, columns ...string) (string, []interface{}) {
@@ -1233,7 +1221,8 @@ func (statement *Statement) genSumSql(bean interface{}, columns ...string) (stri
 	for _, colName := range columns {
 		sumStrs = append(sumStrs, fmt.Sprintf("sum(%s)", colName))
 	}
-	return statement.genSelectSQL(strings.Join(sumStrs, ", ")), append(append(statement.joinArgs, statement.Params...), statement.BeanArgs...)
+	return statement.genSelectSQL(strings.Join(sumStrs, ", ")), append(append(append(statement.joinArgs, statement.Params...),
+		statement.BeanArgs...), statement.inParams...)
 }
 
 func (statement *Statement) genSelectSQL(columnStr string) (a string) {
