@@ -2118,6 +2118,16 @@ func (session *Session) query(sqlStr string, paramStr ...interface{}) (resultsSl
 	return session.txQuery(session.Tx, sqlStr, paramStr...)
 }
 
+func (session *Session) queryInterfaces(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string]interface{}, err error) {
+
+	session.queryPreprocess(&sqlStr, paramStr...)
+
+	if session.IsAutoCommit {
+		return session.innerQuery3(sqlStr, paramStr...)
+	}
+	return session.txQueryInterface(session.Tx, sqlStr, paramStr...)
+}
+
 func (session *Session) txQuery(tx *core.Tx, sqlStr string, params ...interface{}) (resultsSlice []map[string][]byte, err error) {
 	rows, err := tx.Query(sqlStr, params...)
 	if err != nil {
@@ -2126,6 +2136,16 @@ func (session *Session) txQuery(tx *core.Tx, sqlStr string, params ...interface{
 	defer rows.Close()
 
 	return rows2maps(rows)
+}
+
+func (session *Session) txQueryInterface(tx *core.Tx, sqlStr string, params ...interface{}) (resultsSlice []map[string]interface{}, err error) {
+	rows, err := tx.Query(sqlStr, params...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return rows2interfaces(rows)
 }
 
 func (session *Session) innerQuery(sqlStr string, params ...interface{}) (*core.Stmt, *core.Rows, error) {
@@ -2169,6 +2189,17 @@ func (session *Session) innerQuery2(sqlStr string, params ...interface{}) ([]map
 	return rows2maps(rows)
 }
 
+func (session *Session) innerQuery3(sqlStr string, params ...interface{}) ([]map[string]interface{}, error) {
+	_, rows, err := session.innerQuery(sqlStr, params...)
+	if rows != nil {
+		defer rows.Close()
+	}
+	if err != nil {
+		return nil, err
+	}
+	return rows2interfaces(rows)
+}
+
 // Query a raw sql and return records as []map[string][]byte
 func (session *Session) Query(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
 	defer session.resetStatement()
@@ -2177,6 +2208,16 @@ func (session *Session) Query(sqlStr string, paramStr ...interface{}) (resultsSl
 	}
 
 	return session.query(sqlStr, paramStr...)
+}
+
+// for interfaces
+func (session *Session) QueryInterfaces(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string]interface{}, err error) {
+	defer session.resetStatement()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+
+	return session.queryInterfaces(sqlStr, paramStr...)
 }
 
 // =============================

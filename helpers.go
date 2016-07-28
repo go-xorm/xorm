@@ -377,6 +377,22 @@ func rows2maps(rows *core.Rows) (resultsSlice []map[string][]byte, err error) {
 	return resultsSlice, nil
 }
 
+func rows2interfaces(rows *core.Rows) (resultsSlice []map[string]interface{}, err error) {
+	fields, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		result, err := row2mapInterface(rows, fields)
+		if err != nil {
+			return nil, err
+		}
+		resultsSlice = append(resultsSlice, result)
+	}
+
+	return resultsSlice, nil
+}
+
 func row2map(rows *core.Rows, fields []string) (resultsMap map[string][]byte, err error) {
 	result := make(map[string][]byte)
 	scanResultContainers := make([]interface{}, len(fields))
@@ -429,6 +445,31 @@ func row2mapStr(rows *core.Rows, fields []string) (resultsMap map[string]string,
 		} else {
 			return nil, err // !nashtsai! REVIEW, should return err or just error log?
 		}
+	}
+	return result, nil
+}
+
+func row2mapInterface(rows *core.Rows, fields []string) (resultsMap map[string]interface{}, err error) {
+	result := make(map[string]interface{})
+	scanResultContainers := make([]interface{}, len(fields))
+
+	for i := 0; i < len(fields); i++ {
+		var scanResultContainer interface{}
+		scanResultContainers[i] = &scanResultContainer
+	}
+	if err := rows.Scan(scanResultContainers...); err != nil {
+		return nil, err
+	}
+
+	for ii, key := range fields {
+		rawValue := reflect.Indirect(reflect.ValueOf(scanResultContainers[ii]))
+		//if row is null then ignore
+		if rawValue.Interface() == nil {
+			//fmt.Println("ignore ...", key, rawValue)
+			continue
+		}
+
+		result[key] = scanResultContainers[ii]
 	}
 	return result, nil
 }
