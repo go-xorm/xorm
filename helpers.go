@@ -283,6 +283,50 @@ func sliceEq(left, right []string) bool {
 	return true
 }
 
+func reflect2truevalue(rawValue *reflect.Value) (str interface{}, err error) {
+	aa := reflect.TypeOf((*rawValue).Interface())
+	vv := reflect.ValueOf((*rawValue).Interface())
+	switch aa.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		str = vv.Int()
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		str = vv.Uint()
+	case reflect.Float32, reflect.Float64:
+		str = vv.Float()
+	case reflect.String:
+		str = vv.String()
+	case reflect.Array, reflect.Slice:
+		switch aa.Elem().Kind() {
+		case reflect.Uint8:
+			data := rawValue.Interface().([]byte)
+			str = string(data)
+		default:
+			err = fmt.Errorf("Unsupported struct type %v", vv.Type().Name())
+		}
+	// time type
+	case reflect.Struct:
+		if aa.ConvertibleTo(core.TimeType) {
+			str = vv.Convert(core.TimeType).Interface().(time.Time).Format(time.RFC3339Nano)
+		} else {
+			err = fmt.Errorf("Unsupported struct type %v", vv.Type().Name())
+		}
+	case reflect.Bool:
+		str = vv.Bool()
+	case reflect.Complex128, reflect.Complex64:
+		str = fmt.Sprintf("%v", vv.Complex())
+	/* TODO: unsupported types below
+	   case reflect.Map:
+	   case reflect.Ptr:
+	   case reflect.Uintptr:
+	   case reflect.UnsafePointer:
+	   case reflect.Chan, reflect.Func, reflect.Interface:
+	*/
+	default:
+		err = fmt.Errorf("Unsupported struct type %v", vv.Type().Name())
+	}
+	return
+}
+
 func reflect2value(rawValue *reflect.Value) (str string, err error) {
 	aa := reflect.TypeOf((*rawValue).Interface())
 	vv := reflect.ValueOf((*rawValue).Interface())
@@ -469,7 +513,11 @@ func row2mapInterface(rows *core.Rows, fields []string) (resultsMap map[string]i
 			continue
 		}
 
-		result[key] = rawValue.Interface()
+		if data, err := reflect2truevalue(&rawValue); err == nil {
+			result[key] = data
+		} else {
+			return nil, err // !nashtsai! REVIEW, should return err or just error log?
+		}
 	}
 	return result, nil
 }
