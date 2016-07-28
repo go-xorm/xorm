@@ -469,7 +469,7 @@ func row2mapInterface(rows *core.Rows, fields []string) (resultsMap map[string]i
 			continue
 		}
 
-		result[key] = scanResultContainers[ii]
+		result[key] = rawValue.Interface()
 	}
 	return result, nil
 }
