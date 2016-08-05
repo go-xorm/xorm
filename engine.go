@@ -1016,7 +1016,7 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 					case k == "LOCAL":
 						col.TimeZone = time.Local
 					case strings.HasPrefix(k, "LOCALE(") && strings.HasSuffix(k, ")"):
-						location := k[len("INDEX")+1 : len(k)-1]
+						location := k[len("LOCALE")+1 : len(k)-1]
 						col.TimeZone, err = time.LoadLocation(location)
 						if err != nil {
 							engine.logger.Error(err)
