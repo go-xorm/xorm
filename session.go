@@ -2241,9 +2241,12 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 		return 0, errors.New("needs a pointer to a slice")
 	}
 
-	bean := sliceValue.Index(0).Interface()
-	elementValue := rValue(bean)
-	session.Statement.setRefValue(elementValue)
+	if sliceValue.Len() <= 0 {
+		return 0, errors.New("could not insert a empty slice")
+	}
+
+	session.Statement.setRefValue(sliceValue.Index(0))
+
 	if len(session.Statement.TableName()) <= 0 {
 		return 0, ErrTableNotFound
 	}

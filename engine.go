@@ -405,12 +405,17 @@ func (engine *Engine) tbName(v reflect.Value) string {
 	if tb, ok := v.Interface().(TableName); ok {
 		return tb.TableName()
 	}
-	if v.CanAddr() {
+
+	if v.Type().Kind() == reflect.Ptr {
+		if tb, ok := reflect.Indirect(v).Interface().(TableName); ok {
+			return tb.TableName()
+		}
+	} else if v.CanAddr() {
 		if tb, ok := v.Addr().Interface().(TableName); ok {
 			return tb.TableName()
 		}
 	}
-	return engine.TableMapper.Obj2Table(v.Type().Name())
+	return engine.TableMapper.Obj2Table(reflect.Indirect(v).Type().Name())
 }
 
 // DumpAll dump database all table structs and data to w with specify db type
@@ -905,6 +910,10 @@ func (engine *Engine) newTable() *core.Table {
 type TableName interface {
 	TableName() string
 }
+
+var (
+	tpTableName = reflect.TypeOf((*TableName)(nil)).Elem()
+)
 
 func (engine *Engine) mapType(v reflect.Value) *core.Table {
 	t := v.Type()

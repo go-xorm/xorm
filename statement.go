@@ -193,7 +193,7 @@ func (statement *Statement) Or(querystring string, args ...interface{}) *Stateme
 }
 
 func (statement *Statement) setRefValue(v reflect.Value) {
-	statement.RefTable = statement.Engine.autoMapType(v)
+	statement.RefTable = statement.Engine.autoMapType(reflect.Indirect(v))
 	statement.tableName = statement.Engine.tbName(v)
 }
 
