@@ -1219,7 +1219,7 @@ func (statement *Statement) genSumSql(bean interface{}, columns ...string) (stri
 	statement.attachInSql()
 	var sumStrs = make([]string, 0, len(columns))
 	for _, colName := range columns {
-		sumStrs = append(sumStrs, fmt.Sprintf("sum(%s)", colName))
+		sumStrs = append(sumStrs, fmt.Sprintf("COALESCE(sum(%s),0)", colName))
 	}
 	return statement.genSelectSQL(strings.Join(sumStrs, ", ")), append(append(append(statement.joinArgs, statement.Params...),
 		statement.BeanArgs...), statement.inParams...)
