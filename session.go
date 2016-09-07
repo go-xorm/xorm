@@ -1583,7 +1583,7 @@ func (session *Session) dropAll() error {
 func (session *Session) getField(dataStruct *reflect.Value, key string, table *core.Table, idx int) *reflect.Value {
 	var col *core.Column
 	if col = table.GetColumnIdx(key, idx); col == nil {
-		session.Engine.logger.Warnf("table %v has no column %v. %v", table.Name, key, table.ColumnsSeq())
+		//session.Engine.logger.Warnf("table %v has no column %v. %v", table.Name, key, table.ColumnsSeq())
 		return nil
 	}
 
@@ -1594,8 +1594,7 @@ func (session *Session) getField(dataStruct *reflect.Value, key string, table *c
 	}
 
 	if !fieldValue.IsValid() || !fieldValue.CanSet() {
-		session.Engine.logger.Warnf("table %v's column %v is not valid or cannot set",
-			table.Name, key)
+		session.Engine.logger.Warnf("table %v's column %v is not valid or cannot set", table.Name, key)
 		return nil
 	}
 	return fieldValue
