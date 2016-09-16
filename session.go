@@ -3156,7 +3156,6 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		colPlaces)
 
 	handleAfterInsertProcessorFunc := func(bean interface{}) {
-
 		if session.IsAutoCommit {
 			for _, closure := range session.afterClosures {
 				closure(bean)
@@ -3189,7 +3188,6 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	if session.Engine.dialect.DBType() == core.ORACLE && len(table.AutoIncrement) > 0 {
 		//assert table.AutoIncrement != ""
 		res, err := session.query("select seq_atable.currval from dual", args...)
-
 		if err != nil {
 			return 0, err
 		}
@@ -3281,7 +3279,8 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		handleAfterInsertProcessorFunc(bean)
+
+		defer handleAfterInsertProcessorFunc(bean)
 
 		if cacher := session.Engine.getCacher2(table); cacher != nil && session.Statement.UseCache {
 			session.cacheInsert(session.Statement.TableName())
