@@ -55,7 +55,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * **v0.6.0**
     * remove support for ql
-    * add query condition builder support via [github.com/go-xorm/builder](https://github.com/go-xorm/builder), so Where, And, Or 
+    * add query condition builder support via [github.com/go-xorm/builder](https://github.com/go-xorm/builder), so `Where`, `And`, `Or` 
 methods can use `builder.Cond` as parameter
     * add Sum, SumInt, SumInt64 and NotIn methods
     * some bugs fixed
@@ -238,6 +238,13 @@ affected, err := engine.Id(2).Delete(&user)
 counts, err := engine.Count(&user)
 // SELECT count(*) AS total FROM user
 ```
+
+* Query conditions builder
+
+```Go
+err := engine.Where(builder.NotIn("a", 1, 2).And(builder.In("b", "c", "d", "e"))).Find(&users)
+// SELECT id, name ... FROM user WHERE a NOT IN (?, ?) AND b IN (?, ?, ?)
+``
 
 # Cases
 

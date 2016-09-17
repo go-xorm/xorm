@@ -239,6 +239,13 @@ counts, err := engine.Count(&user)
 // SELECT count(*) AS total FROM user
 ```
 
+* 条件编辑器
+
+```Go
+err := engine.Where(builder.NotIn("a", 1, 2).And(builder.In("b", "c", "d", "e"))).Find(&users)
+// SELECT id, name ... FROM user WHERE a NOT IN (?, ?) AND b IN (?, ?, ?)
+``
+
 # 案例
 
 * [github.com/m3ng9i/qreader](https://github.com/m3ng9i/qreader)
