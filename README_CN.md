@@ -52,9 +52,14 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * Oracle: [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (试验性支持)
 
-* ql: [github.com/cznic/ql](https://github.com/cznic/ql) (试验性支持)
-
 ## 更新日志
+
+* **v0.6.0**
+    * 去除对 ql 的支持
+    * 新增条件查询分析器 [github.com/go-xorm/builder](https://github.com/go-xorm/builder), 从因此 `Where, And, Or` 函数
+将可以用 `builder.Cond` 作为条件组合
+    * 新增 Sum, SumInt, SumInt64 和 NotIn 函数
+    * Bug修正
 
 * **v0.5.0**
     * logging接口进行不兼容改变

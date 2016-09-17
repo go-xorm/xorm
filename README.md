@@ -51,9 +51,14 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * Oracle: [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (experiment)
 
-* ql: [github.com/cznic/ql](https://github.com/cznic/ql) (experiment)
-
 # Changelog
+
+* **v0.6.0**
+    * remove support for ql
+    * add query condition builder support via [github.com/go-xorm/builder](https://github.com/go-xorm/builder), so Where, And, Or 
+methods can use `builder.Cond` as parameter
+    * add Sum, SumInt, SumInt64 and NotIn methods
+    * some bugs fixed
 
 * **v0.5.0**
     * logging interface changed
