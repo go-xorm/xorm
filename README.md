@@ -30,6 +30,7 @@ The last master version is not backwards compatible. You should use `engine.Show
 
 * Optimistic Locking support
 
+* SQL Builder support via [github.com/go-xorm/builder](https://github.com/go-xorm/builder)
 
 # Drivers Support
 
