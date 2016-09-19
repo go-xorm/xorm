@@ -695,7 +695,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 	for _, filter := range session.Engine.dialect.Filters() {
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
-	newsql := session.Statement.convertIdSql(sqlStr)
+	newsql := session.Statement.convertIDSQL(sqlStr)
 	if newsql == "" {
 		return false, ErrCacheFailed
 	}
@@ -796,7 +796,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
 
-	newsql := session.Statement.convertIdSql(sqlStr)
+	newsql := session.Statement.convertIDSQL(sqlStr)
 	if newsql == "" {
 		return ErrCacheFailed
 	}
@@ -1042,7 +1042,7 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 			return false, ErrTableNotFound
 		}
 		session.Statement.Limit(1)
-		sqlStr, args = session.Statement.genGetSql(bean)
+		sqlStr, args = session.Statement.genGetSQL(bean)
 	} else {
 		sqlStr = session.Statement.RawSQL
 		args = session.Statement.RawParams
@@ -1093,7 +1093,7 @@ func (session *Session) Count(bean interface{}) (int64, error) {
 	var sqlStr string
 	var args []interface{}
 	if session.Statement.RawSQL == "" {
-		sqlStr, args = session.Statement.genCountSql(bean)
+		sqlStr, args = session.Statement.genCountSQL(bean)
 	} else {
 		sqlStr = session.Statement.RawSQL
 		args = session.Statement.RawParams
@@ -1125,7 +1125,7 @@ func (session *Session) Sum(bean interface{}, columnName string) (float64, error
 	var sqlStr string
 	var args []interface{}
 	if len(session.Statement.RawSQL) == 0 {
-		sqlStr, args = session.Statement.genSumSql(bean, columnName)
+		sqlStr, args = session.Statement.genSumSQL(bean, columnName)
 	} else {
 		sqlStr = session.Statement.RawSQL
 		args = session.Statement.RawParams
@@ -1157,7 +1157,7 @@ func (session *Session) Sums(bean interface{}, columnNames ...string) ([]float64
 	var sqlStr string
 	var args []interface{}
 	if len(session.Statement.RawSQL) == 0 {
-		sqlStr, args = session.Statement.genSumSql(bean, columnNames...)
+		sqlStr, args = session.Statement.genSumSQL(bean, columnNames...)
 	} else {
 		sqlStr = session.Statement.RawSQL
 		args = session.Statement.RawParams
@@ -1189,7 +1189,7 @@ func (session *Session) SumsInt(bean interface{}, columnNames ...string) ([]int6
 	var sqlStr string
 	var args []interface{}
 	if len(session.Statement.RawSQL) == 0 {
-		sqlStr, args = session.Statement.genSumSql(bean, columnNames...)
+		sqlStr, args = session.Statement.genSumSQL(bean, columnNames...)
 	} else {
 		sqlStr = session.Statement.RawSQL
 		args = session.Statement.RawParams
@@ -3693,7 +3693,7 @@ func (session *Session) cacheDelete(sqlStr string, args ...interface{}) error {
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
 
-	newsql := session.Statement.convertIdSql(sqlStr)
+	newsql := session.Statement.convertIDSQL(sqlStr)
 	if newsql == "" {
 		return ErrCacheFailed
 	}

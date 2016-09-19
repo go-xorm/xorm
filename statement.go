@@ -1064,9 +1064,19 @@ func (s *Statement) genDelIndexSQL() []string {
 	return sqls
 }
 
-func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) {
-	statement.setRefValue(rValue(bean))
+func (s *Statement) genAddColumnStr(col *core.Column) (string, []interface{}) {
+	quote := s.Engine.Quote
+	sql := fmt.Sprintf("ALTER TABLE %v ADD %v;", quote(s.TableName()),
+		col.String(s.Engine.dialect))
+	return sql, []interface{}{}
+}
 
+func (statement *Statement) buildConds(table *core.Table, bean interface{}, includeVersion bool, includeUpdated bool, includeNil bool, includeAutoIncr bool, addedTableName bool) (builder.Cond, error) {
+	return buildConds(statement.Engine, table, bean, includeVersion, includeUpdated, includeNil, includeAutoIncr, statement.allUseBool, statement.useAllCols,
+		statement.unscoped, statement.mustColumnMap, statement.TableName(), statement.TableAlias, addedTableName)
+}
+
+func (statement *Statement) genConds(bean interface{}) (string, []interface{}, error) {
 	var table = statement.RefTable
 	var addedTableName = (len(statement.JoinStr) > 0)
 
@@ -1075,11 +1085,17 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 		var err error
 		autoCond, err = statement.buildConds(table, bean, true, true, false, true, addedTableName)
 		if err != nil {
-			panic(err)
+			return "", nil, err
 		}
 	}
 
 	statement.processIdParam()
+
+	return builder.ToSQL(statement.cond.And(autoCond))
+}
+
+func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}) {
+	statement.setRefValue(rValue(bean))
 
 	var columnStr = statement.ColumnStr
 	if len(statement.selectStr) > 0 {
@@ -1105,61 +1121,29 @@ func (statement *Statement) genGetSql(bean interface{}) (string, []interface{}) 
 		}
 	}
 
-	inSQL, inArgs, _ := builder.ToSQL(statement.cond.And(autoCond))
+	condSQL, condArgs, _ := statement.genConds(bean)
 
-	return statement.genSelectSQL(columnStr, inSQL), append(statement.joinArgs, inArgs...)
+	return statement.genSelectSQL(columnStr, condSQL), append(statement.joinArgs, condArgs...)
 }
 
-func (s *Statement) genAddColumnStr(col *core.Column) (string, []interface{}) {
-	quote := s.Engine.Quote
-	sql := fmt.Sprintf("ALTER TABLE %v ADD %v;", quote(s.TableName()),
-		col.String(s.Engine.dialect))
-	return sql, []interface{}{}
-}
-
-func (statement *Statement) buildConds(table *core.Table, bean interface{}, includeVersion bool, includeUpdated bool, includeNil bool, includeAutoIncr bool, addedTableName bool) (builder.Cond, error) {
-	return buildConds(statement.Engine, table, bean, includeVersion, includeUpdated, includeNil, includeAutoIncr, statement.allUseBool, statement.useAllCols,
-		statement.unscoped, statement.mustColumnMap, statement.TableName(), statement.TableAlias, addedTableName)
-}
-
-func (statement *Statement) genCountSql(bean interface{}) (string, []interface{}) {
+func (statement *Statement) genCountSQL(bean interface{}) (string, []interface{}) {
 	statement.setRefValue(rValue(bean))
 
-	var autoCond builder.Cond
-	if !statement.noAutoCondition {
-		var err error
-		var addedTableName = (len(statement.JoinStr) > 0)
-		autoCond, err = statement.buildConds(statement.RefTable, bean, true, true, false, true, addedTableName)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	// count(index fieldname) > count(0) > count(*)
-	condSQL, condArgs, _ := builder.ToSQL(statement.cond.And(autoCond))
+	condSQL, condArgs, _ := statement.genConds(bean)
 
 	return statement.genSelectSQL("count(*)", condSQL), append(statement.joinArgs, condArgs...)
 }
 
-func (statement *Statement) genSumSql(bean interface{}, columns ...string) (string, []interface{}) {
+func (statement *Statement) genSumSQL(bean interface{}, columns ...string) (string, []interface{}) {
 	statement.setRefValue(rValue(bean))
-
-	var addedTableName = (len(statement.JoinStr) > 0)
-	var autoCond builder.Cond
-	if !statement.noAutoCondition {
-		var err error
-		autoCond, err = statement.buildConds(statement.RefTable, bean, true, true, false, true, addedTableName)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	condSQL, condArgs, _ := builder.ToSQL(statement.cond.And(autoCond))
 
 	var sumStrs = make([]string, 0, len(columns))
 	for _, colName := range columns {
 		sumStrs = append(sumStrs, fmt.Sprintf("COALESCE(sum(%s),0)", colName))
 	}
+
+	condSQL, condArgs, _ := statement.genConds(bean)
+
 	return statement.genSelectSQL(strings.Join(sumStrs, ", "), condSQL), append(statement.joinArgs, condArgs...)
 }
 
@@ -1262,19 +1246,21 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string) (a string) {
 }
 
 func (statement *Statement) processIdParam() {
-	if statement.IdParam != nil {
-		for i, col := range statement.RefTable.PKColumns() {
-			var colName = statement.colName(col, statement.TableName())
-			if i < len(*(statement.IdParam)) {
-				statement.cond = statement.cond.And(builder.Eq{colName: (*(statement.IdParam))[i]})
-			} else {
-				statement.cond = statement.cond.And(builder.Eq{colName: ""})
-			}
+	if statement.IdParam == nil {
+		return
+	}
+
+	for i, col := range statement.RefTable.PKColumns() {
+		var colName = statement.colName(col, statement.TableName())
+		if i < len(*(statement.IdParam)) {
+			statement.cond = statement.cond.And(builder.Eq{colName: (*(statement.IdParam))[i]})
+		} else {
+			statement.cond = statement.cond.And(builder.Eq{colName: ""})
 		}
 	}
 }
 
-func (statement *Statement) JoinColumns(cols []*core.Column, includeTableName bool) string {
+func (statement *Statement) joinColumns(cols []*core.Column, includeTableName bool) string {
 	var colnames = make([]string, len(cols))
 	for i, col := range cols {
 		if includeTableName {
@@ -1287,21 +1273,19 @@ func (statement *Statement) JoinColumns(cols []*core.Column, includeTableName bo
 	return strings.Join(colnames, ", ")
 }
 
-func (statement *Statement) convertIdSql(sqlStr string) string {
+func (statement *Statement) convertIDSQL(sqlStr string) string {
 	if statement.RefTable != nil {
 		cols := statement.RefTable.PKColumns()
 		if len(cols) == 0 {
 			return ""
 		}
 
-		colstrs := statement.JoinColumns(cols, false)
+		colstrs := statement.joinColumns(cols, false)
 		sqls := splitNNoCase(sqlStr, " from ", 2)
 		if len(sqls) != 2 {
 			return ""
 		}
-		if statement.Engine.dialect.DBType() == "ql" {
-			return fmt.Sprintf("SELECT id() FROM %v", sqls[1])
-		}
+
 		return fmt.Sprintf("SELECT %s FROM %v", colstrs, sqls[1])
 	}
 	return ""
@@ -1312,7 +1296,7 @@ func (statement *Statement) convertUpdateSQL(sqlStr string) (string, string) {
 		return "", ""
 	}
 
-	colstrs := statement.JoinColumns(statement.RefTable.PKColumns(), true)
+	colstrs := statement.joinColumns(statement.RefTable.PKColumns(), true)
 	sqls := splitNNoCase(sqlStr, "where", 2)
 	if len(sqls) != 2 {
 		if len(sqls) == 1 {
