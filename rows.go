@@ -41,7 +41,7 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 	}
 
 	if rows.session.Statement.RawSQL == "" {
-		sqlStr, args = rows.session.Statement.genGetSql(bean)
+		sqlStr, args = rows.session.Statement.genGetSQL(bean)
 	} else {
 		sqlStr = rows.session.Statement.RawSQL
 		args = rows.session.Statement.RawParams

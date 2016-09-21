@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/core"
 )
 
@@ -112,7 +113,7 @@ func (session *Session) Prepare() *Session {
 	return session
 }
 
-// Sql will be deprecated, please use SQL instead.
+// Sql !DEPRECIATED! will be deprecated, please use SQL instead.
 func (session *Session) Sql(querystring string, args ...interface{}) *Session {
 	session.Statement.Sql(querystring, args...)
 	return session
@@ -126,20 +127,20 @@ func (session *Session) SQL(querystring string, args ...interface{}) *Session {
 }
 
 // Where provides custom query condition.
-func (session *Session) Where(querystring string, args ...interface{}) *Session {
-	session.Statement.Where(querystring, args...)
+func (session *Session) Where(query interface{}, args ...interface{}) *Session {
+	session.Statement.Where(query, args...)
 	return session
 }
 
 // And provides custom query condition.
-func (session *Session) And(querystring string, args ...interface{}) *Session {
-	session.Statement.And(querystring, args...)
+func (session *Session) And(query interface{}, args ...interface{}) *Session {
+	session.Statement.And(query, args...)
 	return session
 }
 
 // Or provides custom query condition.
-func (session *Session) Or(querystring string, args ...interface{}) *Session {
-	session.Statement.Or(querystring, args...)
+func (session *Session) Or(query interface{}, args ...interface{}) *Session {
+	session.Statement.Or(query, args...)
 	return session
 }
 
@@ -186,6 +187,12 @@ func (session *Session) Alias(alias string) *Session {
 // In provides a query string like "id in (1, 2, 3)"
 func (session *Session) In(column string, args ...interface{}) *Session {
 	session.Statement.In(column, args...)
+	return session
+}
+
+// NotIn provides a query string like "id in (1, 2, 3)"
+func (session *Session) NotIn(column string, args ...interface{}) *Session {
+	session.Statement.NotIn(column, args...)
 	return session
 }
 
@@ -688,7 +695,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 	for _, filter := range session.Engine.dialect.Filters() {
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
-	newsql := session.Statement.convertIdSql(sqlStr)
+	newsql := session.Statement.convertIDSQL(sqlStr)
 	if newsql == "" {
 		return false, ErrCacheFailed
 	}
@@ -789,7 +796,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
 
-	newsql := session.Statement.convertIdSql(sqlStr)
+	newsql := session.Statement.convertIDSQL(sqlStr)
 	if newsql == "" {
 		return ErrCacheFailed
 	}
@@ -892,15 +899,14 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 				ff = append(ff, ie[0])
 			}
 
-			newSession.In(table.PrimaryKeys[0], ff...)
+			newSession.In("`"+table.PrimaryKeys[0]+"`", ff...)
 		} else {
-			var kn = make([]string, 0)
-			for _, name := range table.PrimaryKeys {
-				kn = append(kn, name+" = ?")
-			}
-			condi := "(" + strings.Join(kn, " AND ") + ")"
 			for _, ie := range ides {
-				newSession.Or(condi, ie...)
+				cond := builder.NewCond()
+				for i, name := range table.PrimaryKeys {
+					cond = cond.And(builder.Eq{"`" + name + "`": ie[i]})
+				}
+				newSession.Or(cond)
 			}
 		}
 
@@ -1036,7 +1042,7 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 			return false, ErrTableNotFound
 		}
 		session.Statement.Limit(1)
-		sqlStr, args = session.Statement.genGetSql(bean)
+		sqlStr, args = session.Statement.genGetSQL(bean)
 	} else {
 		sqlStr = session.Statement.RawSQL
 		args = session.Statement.RawParams
@@ -1087,7 +1093,7 @@ func (session *Session) Count(bean interface{}) (int64, error) {
 	var sqlStr string
 	var args []interface{}
 	if session.Statement.RawSQL == "" {
-		sqlStr, args = session.Statement.genCountSql(bean)
+		sqlStr, args = session.Statement.genCountSQL(bean)
 	} else {
 		sqlStr = session.Statement.RawSQL
 		args = session.Statement.RawParams
@@ -1119,7 +1125,7 @@ func (session *Session) Sum(bean interface{}, columnName string) (float64, error
 	var sqlStr string
 	var args []interface{}
 	if len(session.Statement.RawSQL) == 0 {
-		sqlStr, args = session.Statement.genSumSql(bean, columnName)
+		sqlStr, args = session.Statement.genSumSQL(bean, columnName)
 	} else {
 		sqlStr = session.Statement.RawSQL
 		args = session.Statement.RawParams
@@ -1151,7 +1157,7 @@ func (session *Session) Sums(bean interface{}, columnNames ...string) ([]float64
 	var sqlStr string
 	var args []interface{}
 	if len(session.Statement.RawSQL) == 0 {
-		sqlStr, args = session.Statement.genSumSql(bean, columnNames...)
+		sqlStr, args = session.Statement.genSumSQL(bean, columnNames...)
 	} else {
 		sqlStr = session.Statement.RawSQL
 		args = session.Statement.RawParams
@@ -1183,7 +1189,7 @@ func (session *Session) SumsInt(bean interface{}, columnNames ...string) ([]int6
 	var sqlStr string
 	var args []interface{}
 	if len(session.Statement.RawSQL) == 0 {
-		sqlStr, args = session.Statement.genSumSql(bean, columnNames...)
+		sqlStr, args = session.Statement.genSumSQL(bean, columnNames...)
 	} else {
 		sqlStr = session.Statement.RawSQL
 		args = session.Statement.RawParams
@@ -1240,10 +1246,13 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	var table = session.Statement.RefTable
 
 	var addedTableName = (len(session.Statement.JoinStr) > 0)
+	var autoCond builder.Cond
 	if !session.Statement.noAutoCondition && len(condiBean) > 0 {
-		colNames, args := session.Statement.buildConditions(table, condiBean[0], true, true, false, true, addedTableName)
-		session.Statement.ConditionStr = strings.Join(colNames, " AND ")
-		session.Statement.BeanArgs = args
+		var err error
+		autoCond, err = session.Statement.buildConds(table, condiBean[0], true, true, false, true, addedTableName)
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		// !oinume! Add "<col> IS NULL" to WHERE whatever condiBean is given.
 		// See https://github.com/go-xorm/xorm/issues/179
@@ -1256,8 +1265,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 				}
 				colName = session.Engine.Quote(nm) + "." + colName
 			}
-			session.Statement.ConditionStr = fmt.Sprintf("(%v IS NULL OR %v = '0001-01-01 00:00:00')",
-				colName, colName)
+			autoCond = builder.IsNull{colName}.Or(builder.Eq{colName: "0001-01-01 00:00:00"})
 		}
 	}
 
@@ -1291,12 +1299,10 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 			}
 		}
 
-		session.Statement.attachInSql()
-		session.Statement.Params = append(append(append(session.Statement.joinArgs, session.Statement.Params...),
-			session.Statement.BeanArgs...), session.Statement.inParams...)
+		condSQL, condArgs, _ := builder.ToSQL(session.Statement.cond.And(autoCond))
 
-		sqlStr = session.Statement.genSelectSQL(columnStr)
-		args = session.Statement.Params
+		args = append(session.Statement.joinArgs, condArgs...)
+		sqlStr = session.Statement.genSelectSQL(columnStr, condSQL)
 		// for mssql and use limit
 		qs := strings.Count(sqlStr, "?")
 		if len(args)*2 == qs {
@@ -3567,97 +3573,68 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		colNames = append(colNames, session.Engine.Quote(v.colName)+" = "+v.expr)
 	}
 
-	var condiColNames []string
-	var condiArgs []interface{}
+	session.Statement.processIdParam()
 
+	var autoCond builder.Cond
 	if !session.Statement.noAutoCondition && len(condiBean) > 0 {
-		condiColNames, condiArgs = session.Statement.buildConditions(session.Statement.RefTable, condiBean[0], true, true, false, true, false)
+		var err error
+		autoCond, err = session.Statement.buildConds(session.Statement.RefTable, condiBean[0], true, true, false, true, false)
+		if err != nil {
+			return 0, err
+		}
 	}
 
-	var condition = ""
-	session.Statement.processIdParam()
 	st := session.Statement
 	defer session.resetStatement()
-	if st.WhereStr != "" {
-		condition = fmt.Sprintf("%v", st.WhereStr)
-	}
 
-	if condition == "" {
-		if len(condiColNames) > 0 {
-			condition = fmt.Sprintf("%v", strings.Join(condiColNames, " "+session.Engine.Dialect().AndStr()+" "))
-		}
-	} else {
-		if len(condiColNames) > 0 {
-			condition = fmt.Sprintf("(%v) %v (%v)", condition,
-				session.Engine.Dialect().AndStr(), strings.Join(condiColNames, " "+session.Engine.Dialect().AndStr()+" "))
-		}
-	}
+	var sqlStr string
+	var condArgs []interface{}
+	var condSQL string
+	cond := session.Statement.cond.And(autoCond)
 
-	var sqlStr, inSQL string
-	var inArgs []interface{}
 	doIncVer := false
 	var verValue *reflect.Value
 	if table != nil && table.Version != "" && session.Statement.checkVersion {
-		if condition != "" {
-			condition = fmt.Sprintf("WHERE (%v) %v %v = ?", condition, session.Engine.Dialect().AndStr(),
-				session.Engine.Quote(table.Version))
-		} else {
-			condition = fmt.Sprintf("WHERE %v = ?", session.Engine.Quote(table.Version))
+		verValue, err = table.VersionColumn().ValueOf(bean)
+		if err != nil {
+			return 0, err
 		}
-		inSQL, inArgs = session.Statement.genInSql()
-		if len(inSQL) > 0 {
-			if condition != "" {
-				condition += " " + session.Engine.Dialect().AndStr() + " " + inSQL
-			} else {
-				condition = "WHERE " + inSQL
-			}
+
+		cond = cond.And(builder.Eq{session.Engine.Quote(table.Version): verValue.Interface()})
+		condSQL, condArgs, _ = builder.ToSQL(cond)
+
+		if len(condSQL) > 0 {
+			condSQL = "WHERE " + condSQL
 		}
 
 		if st.LimitN > 0 {
-			condition = condition + fmt.Sprintf(" LIMIT %d", st.LimitN)
+			condSQL = condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
 		}
 
 		sqlStr = fmt.Sprintf("UPDATE %v SET %v, %v %v",
 			session.Engine.Quote(session.Statement.TableName()),
 			strings.Join(colNames, ", "),
 			session.Engine.Quote(table.Version)+" = "+session.Engine.Quote(table.Version)+" + 1",
-			condition)
+			condSQL)
 
-		verValue, err = table.VersionColumn().ValueOf(bean)
-		if err != nil {
-			return 0, err
-		}
-
-		condiArgs = append(condiArgs, verValue.Interface())
 		doIncVer = true
 	} else {
-		if condition != "" {
-			condition = "WHERE " + condition
-		}
-		inSQL, inArgs = session.Statement.genInSql()
-		if len(inSQL) > 0 {
-			if condition != "" {
-				condition += " " + session.Engine.Dialect().AndStr() + " " + inSQL
-			} else {
-				condition = "WHERE " + inSQL
-			}
+		condSQL, condArgs, _ = builder.ToSQL(cond)
+		if len(condSQL) > 0 {
+			condSQL = "WHERE " + condSQL
 		}
 
 		if st.LimitN > 0 {
-			condition = condition + fmt.Sprintf(" LIMIT %d", st.LimitN)
+			condSQL = condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
 		}
 
 		sqlStr = fmt.Sprintf("UPDATE %v SET %v %v",
 			session.Engine.Quote(session.Statement.TableName()),
 			strings.Join(colNames, ", "),
-			condition)
+			condSQL)
 	}
 
-	args = append(args, st.Params...)
-	args = append(args, inArgs...)
-	args = append(args, condiArgs...)
-
-	res, err := session.exec(sqlStr, args...)
+	res, err := session.exec(sqlStr, append(args, condArgs...)...)
 	if err != nil {
 		return 0, err
 	} else if doIncVer {
@@ -3716,7 +3693,7 @@ func (session *Session) cacheDelete(sqlStr string, args ...interface{}) error {
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
 	}
 
-	newsql := session.Statement.convertIdSql(sqlStr)
+	newsql := session.Statement.convertIDSQL(sqlStr)
 	if newsql == "" {
 		return ErrCacheFailed
 	}
@@ -3791,41 +3768,27 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	}
 	// --
 
-	var colNames []string
-	var args []interface{}
-
+	var autoCond builder.Cond
 	if !session.Statement.noAutoCondition {
-		colNames, args = session.Statement.buildConditions(table, bean, true, true, false, true, false)
+		var err error
+		autoCond, err = session.Statement.buildConds(table, bean, true, true, false, true, false)
+		if err != nil {
+			return 0, err
+		}
 	}
-	var condition = ""
-	var andStr = session.Engine.dialect.AndStr()
 
 	session.Statement.processIdParam()
-	if session.Statement.WhereStr != "" {
-		condition = session.Statement.WhereStr
-		if len(colNames) > 0 {
-			condition += " " + andStr + " " + strings.Join(colNames, " "+andStr+" ")
-		}
-	} else {
-		condition = strings.Join(colNames, " "+andStr+" ")
-	}
-	inSQL, inArgs := session.Statement.genInSql()
-	if len(inSQL) > 0 {
-		if len(condition) > 0 {
-			condition += " " + andStr + " "
-		}
-		condition += inSQL
-		args = append(args, inArgs...)
-	}
-	if len(condition) == 0 && session.Statement.LimitN == 0 {
+
+	condSQL, condArgs, _ := builder.ToSQL(session.Statement.cond.And(autoCond))
+	if len(condSQL) == 0 && session.Statement.LimitN == 0 {
 		return 0, ErrNeedDeletedCond
 	}
 
 	var deleteSQL, realSQL string
 	var tableName = session.Engine.Quote(session.Statement.TableName())
 
-	if len(condition) > 0 {
-		deleteSQL = fmt.Sprintf("DELETE FROM %v WHERE %v", tableName, condition)
+	if len(condSQL) > 0 {
+		deleteSQL = fmt.Sprintf("DELETE FROM %v WHERE %v", tableName, condSQL)
 	} else {
 		deleteSQL = fmt.Sprintf("DELETE FROM %v", tableName)
 	}
@@ -3842,14 +3805,14 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		switch session.Engine.dialect.DBType() {
 		case core.POSTGRES:
 			inSQL := fmt.Sprintf("ctid IN (SELECT ctid FROM %s%s)", tableName, orderSQL)
-			if len(condition) > 0 {
+			if len(condSQL) > 0 {
 				deleteSQL += " AND " + inSQL
 			} else {
 				deleteSQL += " WHERE " + inSQL
 			}
 		case core.SQLITE:
 			inSQL := fmt.Sprintf("rowid IN (SELECT rowid FROM %s%s)", tableName, orderSQL)
-			if len(condition) > 0 {
+			if len(condSQL) > 0 {
 				deleteSQL += " AND " + inSQL
 			} else {
 				deleteSQL += " WHERE " + inSQL
@@ -3862,34 +3825,34 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		}
 	}
 
-	argsForCache := make([]interface{}, 0, len(args)*2)
+	argsForCache := make([]interface{}, 0, len(condArgs)*2)
 	if session.Statement.unscoped || table.DeletedColumn() == nil { // tag "deleted" is disabled
 		realSQL = deleteSQL
-		copy(argsForCache, args)
-		argsForCache = append(session.Statement.Params, argsForCache...)
+		copy(argsForCache, condArgs)
+		argsForCache = append(condArgs, argsForCache...)
 	} else {
 		// !oinume! sqlStrForCache and argsForCache is needed to behave as executing "DELETE FROM ..." for cache.
-		copy(argsForCache, args)
-		argsForCache = append(session.Statement.Params, argsForCache...)
+		copy(argsForCache, condArgs)
+		argsForCache = append(condArgs, argsForCache...)
 
 		deletedColumn := table.DeletedColumn()
 		realSQL = fmt.Sprintf("UPDATE %v SET %v = ? WHERE %v",
 			session.Engine.Quote(session.Statement.TableName()),
 			session.Engine.Quote(deletedColumn.Name),
-			condition)
+			condSQL)
 
 		if len(orderSQL) > 0 {
 			switch session.Engine.dialect.DBType() {
 			case core.POSTGRES:
 				inSQL := fmt.Sprintf("ctid IN (SELECT ctid FROM %s%s)", tableName, orderSQL)
-				if len(condition) > 0 {
+				if len(condSQL) > 0 {
 					realSQL += " AND " + inSQL
 				} else {
 					realSQL += " WHERE " + inSQL
 				}
 			case core.SQLITE:
 				inSQL := fmt.Sprintf("rowid IN (SELECT rowid FROM %s%s)", tableName, orderSQL)
-				if len(condition) > 0 {
+				if len(condSQL) > 0 {
 					realSQL += " AND " + inSQL
 				} else {
 					realSQL += " WHERE " + inSQL
@@ -3903,12 +3866,12 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		}
 
 		// !oinume! Insert NowTime to the head of session.Statement.Params
-		session.Statement.Params = append(session.Statement.Params, "")
-		paramsLen := len(session.Statement.Params)
-		copy(session.Statement.Params[1:paramsLen], session.Statement.Params[0:paramsLen-1])
+		condArgs = append(condArgs, "")
+		paramsLen := len(condArgs)
+		copy(condArgs[1:paramsLen], condArgs[0:paramsLen-1])
 
 		val, t := session.Engine.NowTime2(deletedColumn.SQLType.Name)
-		session.Statement.Params[0] = val
+		condArgs[0] = val
 
 		var colName = deletedColumn.Name
 		session.afterClosures = append(session.afterClosures, func(bean interface{}) {
@@ -3917,13 +3880,11 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		})
 	}
 
-	args = append(session.Statement.Params, args...)
-
 	if cacher := session.Engine.getCacher2(session.Statement.RefTable); cacher != nil && session.Statement.UseCache {
 		session.cacheDelete(deleteSQL, argsForCache...)
 	}
 
-	res, err := session.exec(realSQL, args...)
+	res, err := session.exec(realSQL, condArgs...)
 	if err != nil {
 		return 0, err
 	}

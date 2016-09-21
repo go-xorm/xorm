@@ -641,10 +641,10 @@ func (engine *Engine) Cascade(trueOrFalse ...bool) *Session {
 }
 
 // Where method provide a condition query
-func (engine *Engine) Where(querystring string, args ...interface{}) *Session {
+func (engine *Engine) Where(query interface{}, args ...interface{}) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
-	return session.Where(querystring, args...)
+	return session.Where(query, args...)
 }
 
 // Id will be depracated, please use ID instead
