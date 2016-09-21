@@ -330,9 +330,11 @@ func (db *mssql) TableCheckSql(tableName string) (string, []interface{}) {
 
 func (db *mssql) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{}
-	s := `select a.name as name, b.name as ctype,a.max_length,a.precision,a.scale
-from sys.columns a left join sys.types b on a.user_type_id=b.user_type_id
-where a.object_id=object_id('` + tableName + `')`
+	s := `select a.name as name, b.name as ctype,a.max_length,a.precision,a.scale,a.is_nullable as nullable,
+	      replace(replace(isnull(c.text,''),'(',''),')','') as vdefault   
+          from sys.columns a left join sys.types b on a.user_type_id=b.user_type_id 
+          left join  sys.syscomments c  on a.default_object_id=c.id 
+          where a.object_id=object_id('` + tableName + `')`
 	db.LogSQL(s, args)
 
 	rows, err := db.DB().Query(s, args...)
@@ -344,19 +346,26 @@ where a.object_id=object_id('` + tableName + `')`
 	cols := make(map[string]*core.Column)
 	colSeq := make([]string, 0)
 	for rows.Next() {
-		var name, ctype, precision, scale string
-		var maxLen int
-		err = rows.Scan(&name, &ctype, &maxLen, &precision, &scale)
+		var name, ctype, vdefault string
+		var maxLen, precision, scale int
+		var nullable bool
+		err = rows.Scan(&name, &ctype, &maxLen, &precision, &scale, &nullable, &vdefault)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		col := new(core.Column)
 		col.Indexes = make(map[string]int)
-		col.Length = maxLen
 		col.Name = strings.Trim(name, "` ")
-
+		col.Nullable = nullable
+		col.Default = vdefault
 		ct := strings.ToUpper(ctype)
+		if ct == "DECIMAL" {
+			col.Length = precision
+			col.Length2 = scale
+		} else {
+			col.Length = maxLen
+		}
 		switch ct {
 		case "DATETIMEOFFSET":
 			col.SQLType = core.SQLType{core.TimeStampz, 0, 0}
@@ -458,7 +467,7 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 		colName = strings.Trim(colName, "` ")
 
 		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
-			indexName = indexName[5+len(tableName) : len(indexName)]
+			indexName = indexName[5+len(tableName):]
 		}
 
 		var index *core.Index
