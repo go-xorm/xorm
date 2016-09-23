@@ -114,15 +114,14 @@ func (session *Session) Prepare() *Session {
 }
 
 // Sql !DEPRECIATED! will be deprecated, please use SQL instead.
-func (session *Session) Sql(querystring string, args ...interface{}) *Session {
-	session.Statement.Sql(querystring, args...)
-	return session
+func (session *Session) Sql(query string, args ...interface{}) *Session {
+	return session.SQL(query, args...)
 }
 
 // SQL provides raw sql input parameter. When you have a complex SQL statement
 // and cannot use Where, Id, In and etc. Methods to describe, you can use SQL.
-func (session *Session) SQL(querystring string, args ...interface{}) *Session {
-	session.Statement.Sql(querystring, args...)
+func (session *Session) SQL(query interface{}, args ...interface{}) *Session {
+	session.Statement.SQL(query, args...)
 	return session
 }
 
@@ -992,7 +991,7 @@ func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
 		return err
 	}
 	defer rows.Close()
-	//b := reflect.New(iterator.beanType).Interface()
+
 	i := 0
 	for rows.Next() {
 		b := reflect.New(rows.beanType).Interface()
@@ -3766,27 +3765,15 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	if processor, ok := interface{}(bean).(BeforeDeleteProcessor); ok {
 		processor.BeforeDelete()
 	}
+
 	// --
-
-	var autoCond builder.Cond
-	if !session.Statement.noAutoCondition {
-		var err error
-		autoCond, err = session.Statement.buildConds(table, bean, true, true, false, true, false)
-		if err != nil {
-			return 0, err
-		}
-	}
-
-	session.Statement.processIdParam()
-
-	condSQL, condArgs, _ := builder.ToSQL(session.Statement.cond.And(autoCond))
+	condSQL, condArgs, _ := session.Statement.genConds(bean)
 	if len(condSQL) == 0 && session.Statement.LimitN == 0 {
 		return 0, ErrNeedDeletedCond
 	}
 
-	var deleteSQL, realSQL string
 	var tableName = session.Engine.Quote(session.Statement.TableName())
-
+	var deleteSQL string
 	if len(condSQL) > 0 {
 		deleteSQL = fmt.Sprintf("DELETE FROM %v WHERE %v", tableName, condSQL)
 	} else {
@@ -3825,6 +3812,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		}
 	}
 
+	var realSQL string
 	argsForCache := make([]interface{}, 0, len(condArgs)*2)
 	if session.Statement.unscoped || table.DeletedColumn() == nil { // tag "deleted" is disabled
 		realSQL = deleteSQL

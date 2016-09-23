@@ -292,9 +292,7 @@ func (engine *Engine) logSQLExecutionTime(sqlStr string, args []interface{}, exe
 
 // Sql will be depracated, please use SQL instead
 func (engine *Engine) Sql(querystring string, args ...interface{}) *Session {
-	session := engine.NewSession()
-	session.IsAutoClose = true
-	return session.Sql(querystring, args...)
+	return engine.SQL(querystring, args...)
 }
 
 // SQL method let's you manualy write raw SQL and operate
@@ -303,10 +301,10 @@ func (engine *Engine) Sql(querystring string, args ...interface{}) *Session {
 //         engine.SQL("select * from user").Find(&users)
 //
 // This    code will execute "select * from user" and set the records to users
-func (engine *Engine) SQL(querystring string, args ...interface{}) *Session {
+func (engine *Engine) SQL(query interface{}, args ...interface{}) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
-	return session.SQL(querystring, args...)
+	return session.SQL(query, args...)
 }
 
 // NoAutoTime Default if your struct has "created" or "updated" filed tag, the fields

@@ -129,9 +129,21 @@ func (statement *Statement) Alias(alias string) *Statement {
 }
 
 // Sql add the raw sql statement
-func (statement *Statement) Sql(querystring string, args ...interface{}) *Statement {
-	statement.RawSQL = querystring
-	statement.RawParams = args
+func (statement *Statement) SQL(query interface{}, args ...interface{}) *Statement {
+	switch query.(type) {
+	case (*builder.Builder):
+		var err error
+		statement.RawSQL, statement.RawParams, err = query.(*builder.Builder).ToSQL()
+		if err != nil {
+			statement.Engine.logger.Error(err)
+		}
+	case string:
+		statement.RawSQL = query.(string)
+		statement.RawParams = args
+	default:
+		statement.Engine.logger.Error("unsupported sql type")
+	}
+
 	return statement
 }
 
@@ -1077,21 +1089,18 @@ func (statement *Statement) buildConds(table *core.Table, bean interface{}, incl
 }
 
 func (statement *Statement) genConds(bean interface{}) (string, []interface{}, error) {
-	var table = statement.RefTable
-	var addedTableName = (len(statement.JoinStr) > 0)
-
-	var autoCond builder.Cond
 	if !statement.noAutoCondition {
-		var err error
-		autoCond, err = statement.buildConds(table, bean, true, true, false, true, addedTableName)
+		var addedTableName = (len(statement.JoinStr) > 0)
+		autoCond, err := statement.buildConds(statement.RefTable, bean, true, true, false, true, addedTableName)
 		if err != nil {
 			return "", nil, err
 		}
+		statement.cond = statement.cond.And(autoCond)
 	}
 
 	statement.processIdParam()
 
-	return builder.ToSQL(statement.cond.And(autoCond))
+	return builder.ToSQL(statement.cond)
 }
 
 func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}) {
