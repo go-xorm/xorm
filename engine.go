@@ -848,6 +848,7 @@ func (engine *Engine) Having(conditions string) *Session {
 func (engine *Engine) autoMapType(v reflect.Value) *core.Table {
 	t := v.Type()
 	engine.mutex.Lock()
+	defer engine.mutex.Unlock()
 	table, ok := engine.Tables[t]
 	if !ok {
 		table = engine.mapType(v)
@@ -860,7 +861,6 @@ func (engine *Engine) autoMapType(v reflect.Value) *core.Table {
 			}
 		}
 	}
-	engine.mutex.Unlock()
 	return table
 }
 
