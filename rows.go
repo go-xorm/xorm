@@ -51,7 +51,7 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, rows.session.Statement.RefTable)
 	}
 
-	rows.session.saveLastSQL(sqlStr, args)
+	rows.session.saveLastSQL(sqlStr, args...)
 	var err error
 	if rows.session.prepareStmt {
 		rows.stmt, err = rows.session.DB().Prepare(sqlStr)
