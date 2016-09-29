@@ -1140,7 +1140,11 @@ func (statement *Statement) genCountSQL(bean interface{}) (string, []interface{}
 
 	condSQL, condArgs, _ := statement.genConds(bean)
 
-	return statement.genSelectSQL("count(*)", condSQL), append(statement.joinArgs, condArgs...)
+	var selectSql = statement.selectStr
+	if len(selectSql) <= 0 {
+		selectSql = "count(*)"
+	}
+	return statement.genSelectSQL(selectSql, condSQL), append(statement.joinArgs, condArgs...)
 }
 
 func (statement *Statement) genSumSQL(bean interface{}, columns ...string) (string, []interface{}) {
