@@ -290,11 +290,6 @@ func (engine *Engine) logSQLExecutionTime(sqlStr string, args []interface{}, exe
 	return executionBlock()
 }
 
-// Sql will be depracated, please use SQL instead
-func (engine *Engine) Sql(querystring string, args ...interface{}) *Session {
-	return engine.SQL(querystring, args...)
-}
-
 // SQL method let's you manualy write raw SQL and operate
 // For example:
 //

@@ -56,7 +56,7 @@ func main() {
 	fmt.Println(info)
 
 	infos := make([]LoginInfo1, 0)
-	err = Orm.Sql(`select *, (select name from user where id = login_info.user_id) as user_name from
+	err = Orm.SQL(`select *, (select name from user where id = login_info.user_id) as user_name from
              login_info limit 10`).Find(&infos)
 	if err != nil {
 		fmt.Println(err)
