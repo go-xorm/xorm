@@ -132,21 +132,6 @@ func (engine *Engine) quote(sql string) string {
 	return engine.dialect.QuoteStr() + sql + engine.dialect.QuoteStr()
 }
 
-func (engine *Engine) quoteColumn(keyName string) string {
-	if len(keyName) == 0 {
-		return keyName
-	}
-
-	keyName = strings.TrimSpace(keyName)
-	keyName = strings.Replace(keyName, "`", "", -1)
-	keyName = strings.Replace(keyName, engine.QuoteStr(), "", -1)
-
-	keyName = strings.Replace(keyName, ",", engine.dialect.QuoteStr()+","+engine.dialect.QuoteStr(), -1)
-	keyName = strings.Replace(keyName, ".", engine.dialect.QuoteStr()+"."+engine.dialect.QuoteStr(), -1)
-
-	return engine.dialect.QuoteStr() + keyName + engine.dialect.QuoteStr()
-}
-
 func (engine *Engine) quoteTable(keyName string) string {
 	keyName = strings.TrimSpace(keyName)
 	if len(keyName) == 0 {
