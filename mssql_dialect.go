@@ -247,6 +247,9 @@ func (db *mssql) SqlType(c *core.Column) string {
 		res = core.Text
 	case core.Double:
 		res = core.Real
+	case core.Uuid:
+		res = core.Varchar
+		c.Length = 40
 	default:
 		res = t
 	}
