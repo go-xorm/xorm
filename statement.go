@@ -204,7 +204,7 @@ func (statement *Statement) In(column string, args ...interface{}) *Statement {
 	return statement
 }
 
-// NotIn generate "Where column IN (?) " statment
+// NotIn generate "Where column NOT IN (?) " statment
 func (statement *Statement) NotIn(column string, args ...interface{}) *Statement {
 	if len(args) == 0 {
 		return statement
