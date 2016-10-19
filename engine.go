@@ -336,7 +336,7 @@ func (engine *Engine) DBMetas() ([]*core.Table, error) {
 				if col := table.GetColumn(name); col != nil {
 					col.Indexes[index.Name] = index.Type
 				} else {
-					return nil, fmt.Errorf("Unknown col "+name+" in indexes %v of table", index, table.ColumnsSeq())
+					return nil, fmt.Errorf("Unknown col %s in indexe %v of table %v, columns %v", name, index.Name, table.Name, table.ColumnsSeq())
 				}
 			}
 		}
