@@ -550,7 +550,7 @@ func genCols(table *core.Table, session *Session, bean interface{}, useCol bool,
 			}
 		}
 
-		if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime && isZero(fieldValue.Interface()) {
+		if (col.IsCreated || col.IsUpdated) && session.Statement.UseAutoTime /*&& isZero(fieldValue.Interface())*/ {
 			// if time is non-empty, then set to auto time
 			val, t := session.Engine.NowTime2(col.SQLType.Name)
 			args = append(args, val)

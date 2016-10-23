@@ -1315,16 +1315,13 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 			}
 		} else {
 			for _, col := range table.Columns() {
-				session := engine.NewSession()
-				session.Statement.RefTable = table
-				defer session.Close()
-				isExist, err := session.Engine.dialect.IsColumnExist(tableName, col.Name)
+				isExist, err := engine.dialect.IsColumnExist(tableName, col.Name)
 				if err != nil {
 					return err
 				}
 				if !isExist {
 					session := engine.NewSession()
-					session.Statement.RefTable = table
+					session.Statement.setRefValue(v)
 					defer session.Close()
 					err = session.addColumn(col.Name)
 					if err != nil {
@@ -1335,7 +1332,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 
 			for name, index := range table.Indexes {
 				session := engine.NewSession()
-				session.Statement.RefTable = table
+				session.Statement.setRefValue(v)
 				defer session.Close()
 				if index.Type == core.UniqueType {
 					//isExist, err := session.isIndexExist(table.Name, name, true)
@@ -1345,7 +1342,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 					}
 					if !isExist {
 						session := engine.NewSession()
-						session.Statement.RefTable = table
+						session.Statement.setRefValue(v)
 						defer session.Close()
 						err = session.addUnique(tableName, name)
 						if err != nil {
@@ -1359,7 +1356,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 					}
 					if !isExist {
 						session := engine.NewSession()
-						session.Statement.RefTable = table
+						session.Statement.setRefValue(v)
 						defer session.Close()
 						err = session.addIndex(tableName, name)
 						if err != nil {
