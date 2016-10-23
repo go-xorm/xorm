@@ -929,13 +929,13 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 			if rv.Kind() != reflect.Ptr {
 				rv = rv.Addr()
 			}
-			bean := rv.Interface()
-			id := session.Engine.IdOf(bean)
+			id := session.Engine.IdOfV(rv)
 			sid, err := id.ToString()
 			if err != nil {
 				return err
 			}
 
+			bean := rv.Interface()
 			temps[ididxes[sid]] = bean
 			session.Engine.logger.Debug("[cacheFind] cache bean:", tableName, id, bean, temps)
 			cacher.PutBean(tableName, sid, bean)
@@ -1222,6 +1222,61 @@ func (session *Session) SumsInt(bean interface{}, columnNames ...string) ([]int6
 	return res, nil
 }
 
+func (session *Session) noCacheFind(sliceValue reflect.Value, sqlStr string, args ...interface{}) error {
+	var rawRows *core.Rows
+	var err error
+
+	session.queryPreprocess(&sqlStr, args...)
+	if session.IsAutoCommit {
+		_, rawRows, err = session.innerQuery(sqlStr, args...)
+	} else {
+		rawRows, err = session.Tx.Query(sqlStr, args...)
+	}
+	if err != nil {
+		return err
+	}
+	defer rawRows.Close()
+
+	fields, err := rawRows.Columns()
+	if err != nil {
+		return err
+	}
+
+	var newElemFunc func() reflect.Value
+	sliceElementType := sliceValue.Type().Elem()
+	if sliceElementType.Kind() == reflect.Ptr {
+		newElemFunc = func() reflect.Value {
+			return reflect.New(sliceElementType.Elem())
+		}
+	} else {
+		newElemFunc = func() reflect.Value {
+			return reflect.New(sliceElementType)
+		}
+	}
+
+	var sliceValueSetFunc func(*reflect.Value)
+
+	if sliceValue.Kind() == reflect.Slice {
+		if sliceElementType.Kind() == reflect.Ptr {
+			sliceValueSetFunc = func(newValue *reflect.Value) {
+				sliceValue.Set(reflect.Append(sliceValue, reflect.ValueOf(newValue.Interface())))
+			}
+		} else {
+			sliceValueSetFunc = func(newValue *reflect.Value) {
+				sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(newValue.Interface()))))
+			}
+		}
+	}
+
+	var newValue = newElemFunc()
+	dataStruct := rValue(newValue.Interface())
+	if dataStruct.Kind() != reflect.Struct {
+		return errors.New("Expected a pointer to a struct")
+	}
+
+	return session.rows2Beans(rawRows, fields, len(fields), session.Engine.autoMapType(dataStruct), newElemFunc, sliceValueSetFunc)
+}
+
 // Find retrieve records from table, condiBeans's non-empty fields
 // are conditions. beans could be []Struct, []*Struct, map[int64]Struct
 // map[int64]*Struct
@@ -1325,9 +1380,8 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	}
 
 	var err error
-	if session.Statement.JoinStr == "" {
+	if session.canCache() {
 		if cacher := session.Engine.getCacher2(table); cacher != nil &&
-			session.Statement.UseCache &&
 			!session.Statement.IsDistinct &&
 			!session.Statement.unscoped {
 			err = session.cacheFind(sliceElementType, sqlStr, rowsSlicePtr, args...)
@@ -1340,56 +1394,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	}
 
 	if sliceValue.Kind() != reflect.Map {
-		var rawRows *core.Rows
-
-		session.queryPreprocess(&sqlStr, args...)
-		if session.IsAutoCommit {
-			_, rawRows, err = session.innerQuery(sqlStr, args...)
-		} else {
-			rawRows, err = session.Tx.Query(sqlStr, args...)
-		}
-		if err != nil {
-			return err
-		}
-		defer rawRows.Close()
-
-		fields, err := rawRows.Columns()
-		if err != nil {
-			return err
-		}
-
-		var newElemFunc func() reflect.Value
-		if sliceElementType.Kind() == reflect.Ptr {
-			newElemFunc = func() reflect.Value {
-				return reflect.New(sliceElementType.Elem())
-			}
-		} else {
-			newElemFunc = func() reflect.Value {
-				return reflect.New(sliceElementType)
-			}
-		}
-
-		var sliceValueSetFunc func(*reflect.Value)
-
-		if sliceValue.Kind() == reflect.Slice {
-			if sliceElementType.Kind() == reflect.Ptr {
-				sliceValueSetFunc = func(newValue *reflect.Value) {
-					sliceValue.Set(reflect.Append(sliceValue, reflect.ValueOf(newValue.Interface())))
-				}
-			} else {
-				sliceValueSetFunc = func(newValue *reflect.Value) {
-					sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(newValue.Interface()))))
-				}
-			}
-		}
-
-		var newValue = newElemFunc()
-		dataStruct := rValue(newValue.Interface())
-		if dataStruct.Kind() != reflect.Struct {
-			return errors.New("Expected a pointer to a struct")
-		}
-
-		return session.rows2Beans(rawRows, fields, len(fields), session.Engine.autoMapType(dataStruct), newElemFunc, sliceValueSetFunc)
+		return session.noCacheFind(sliceValue, sqlStr, args...)
 	}
 
 	resultsSlice, err := session.query(sqlStr, args...)
