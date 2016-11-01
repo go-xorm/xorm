@@ -2630,9 +2630,9 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			x, err = strconv.ParseInt(sdata, 16, 64)
 		} else if strings.HasPrefix(sdata, "0") {
 			x, err = strconv.ParseInt(sdata, 8, 64)
-		} else if strings.ToLower(sdata) == "true" {
+		} else if strings.EqualFold(sdata, "true") {
 			x = 1
-		} else if strings.ToLower(sdata) == "false" {
+		} else if strings.EqualFold(sdata, "false") {
 			x = 0
 		} else {
 			x, err = strconv.ParseInt(sdata, 10, 64)
@@ -3964,7 +3964,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 
 		var oriTable *core.Table
 		for _, tb := range tables {
-			if equalNoCase(tb.Name, tbName) {
+			if strings.EqualFold(tb.Name, tbName) {
 				oriTable = tb
 				break
 			}
@@ -3989,7 +3989,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 			for _, col := range table.Columns() {
 				var oriCol *core.Column
 				for _, col2 := range oriTable.Columns() {
-					if equalNoCase(col.Name, col2.Name) {
+					if strings.EqualFold(col.Name, col2.Name) {
 						oriCol = col2
 						break
 					}
@@ -4117,7 +4117,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 	for _, table := range tables {
 		var oriTable *core.Table
 		for _, structTable := range structTables {
-			if equalNoCase(table.Name, session.tbNameNoSchema(structTable)) {
+			if strings.EqualFold(table.Name, session.tbNameNoSchema(structTable)) {
 				oriTable = structTable
 				break
 			}

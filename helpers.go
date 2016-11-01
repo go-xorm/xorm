@@ -207,10 +207,6 @@ func isPKZero(pk core.PK) bool {
 	return false
 }
 
-func equalNoCase(s1, s2 string) bool {
-	return strings.ToLower(s1) == strings.ToLower(s2)
-}
-
 func indexNoCase(s, sep string) int {
 	return strings.Index(strings.ToLower(s), strings.ToLower(sep))
 }
