@@ -985,41 +985,46 @@ func (statement *Statement) Unscoped() *Statement {
 }
 
 func (statement *Statement) genColumnStr() string {
-	table := statement.RefTable
-	var colNames []string
-	for _, col := range table.Columns() {
+
+	var buf bytes.Buffer
+
+	columns := statement.RefTable.Columns()
+	columnsCount := len(columns)
+
+	for ndx, col := range columns {
+
 		if statement.OmitStr != "" {
 			if _, ok := statement.columnMap[strings.ToLower(col.Name)]; ok {
 				continue
 			}
 		}
+
 		if col.MapType == core.ONLYTODB {
 			continue
 		}
 
+		if col.IsPrimaryKey && statement.Engine.Dialect().DBType() == "ql" {
+			buf.WriteString("id() AS ")
+		}
+
 		if statement.JoinStr != "" {
-			var name string
 			if statement.TableAlias != "" {
-				name = statement.Engine.Quote(statement.TableAlias)
+				buf.WriteString(statement.TableAlias)
 			} else {
-				name = statement.Engine.Quote(statement.TableName())
+				buf.WriteString(statement.TableName())
 			}
-			name += "." + statement.Engine.Quote(col.Name)
-			if col.IsPrimaryKey && statement.Engine.Dialect().DBType() == "ql" {
-				colNames = append(colNames, "id() AS "+name)
-			} else {
-				colNames = append(colNames, name)
-			}
-		} else {
-			name := statement.Engine.Quote(col.Name)
-			if col.IsPrimaryKey && statement.Engine.Dialect().DBType() == "ql" {
-				colNames = append(colNames, "id() AS "+name)
-			} else {
-				colNames = append(colNames, name)
-			}
+
+			buf.WriteString(".")
+		}
+
+		statement.Engine.QuoteTo(&buf, col.Name)
+
+		if ndx < columnsCount-1 {
+			buf.WriteString(", ")
 		}
 	}
-	return strings.Join(colNames, ", ")
+
+	return buf.String()
 }
 
 func (statement *Statement) genCreateTableSQL() string {
