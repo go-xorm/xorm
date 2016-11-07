@@ -733,23 +733,23 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Colum
 
 		switch dt {
 		case "VARCHAR2":
-			col.SQLType = core.SQLType{core.Varchar, len1, len2}
+			col.SQLType = core.SQLType{Name: core.Varchar, DefaultLength: len1, DefaultLength2: len2}
 		case "NVARCHAR2":
-			col.SQLType = core.SQLType{core.NVarchar, len1, len2}
+			col.SQLType = core.SQLType{Name: core.NVarchar, DefaultLength: len1, DefaultLength2: len2}
 		case "TIMESTAMP WITH TIME ZONE":
-			col.SQLType = core.SQLType{core.TimeStampz, 0, 0}
+			col.SQLType = core.SQLType{Name: core.TimeStampz, DefaultLength: 0, DefaultLength2: 0}
 		case "NUMBER":
-			col.SQLType = core.SQLType{core.Double, len1, len2}
+			col.SQLType = core.SQLType{Name: core.Double, DefaultLength: len1, DefaultLength2: len2}
 		case "LONG", "LONG RAW":
-			col.SQLType = core.SQLType{core.Text, 0, 0}
+			col.SQLType = core.SQLType{Name: core.Text, DefaultLength: 0, DefaultLength2: 0}
 		case "RAW":
-			col.SQLType = core.SQLType{core.Binary, 0, 0}
+			col.SQLType = core.SQLType{Name: core.Binary, DefaultLength: 0, DefaultLength2: 0}
 		case "ROWID":
-			col.SQLType = core.SQLType{core.Varchar, 18, 0}
+			col.SQLType = core.SQLType{Name: core.Varchar, DefaultLength: 18, DefaultLength2: 0}
 		case "AQ$_SUBSCRIBERS":
 			ignore = true
 		default:
-			col.SQLType = core.SQLType{strings.ToUpper(dt), len1, len2}
+			col.SQLType = core.SQLType{Name: strings.ToUpper(dt), DefaultLength: len1, DefaultLength2: len2}
 		}
 
 		if ignore {
@@ -842,5 +842,5 @@ func (db *oracle) GetIndexes(tableName string) (map[string]*core.Index, error) {
 }
 
 func (db *oracle) Filters() []core.Filter {
-	return []core.Filter{&core.QuoteFilter{}, &core.SeqFilter{":", 1}, &core.IdFilter{}}
+	return []core.Filter{&core.QuoteFilter{}, &core.SeqFilter{Prefix: ":", Start: 1}, &core.IdFilter{}}
 }

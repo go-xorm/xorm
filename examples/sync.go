@@ -60,7 +60,7 @@ func main() {
 	engines := []engineFunc{postgresEngine}
 	for _, enginefunc := range engines {
 		Orm, err := enginefunc()
-		fmt.Println("--------", Orm.DriverName, "----------")
+		fmt.Println("--------", Orm.DriverName(), "----------")
 		if err != nil {
 			fmt.Println(err)
 			return

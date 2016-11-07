@@ -373,7 +373,7 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 		col.Length = len1
 		col.Length2 = len2
 		if _, ok := core.SqlTypes[colType]; ok {
-			col.SQLType = core.SQLType{colType, len1, len2}
+			col.SQLType = core.SQLType{Name: colType, DefaultLength: len1, DefaultLength2: len2}
 		} else {
 			return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v", colType))
 		}
