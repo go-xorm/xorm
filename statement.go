@@ -989,9 +989,8 @@ func (statement *Statement) genColumnStr() string {
 	var buf bytes.Buffer
 
 	columns := statement.RefTable.Columns()
-	columnsCount := len(columns)
 
-	for ndx, col := range columns {
+	for _, col := range columns {
 
 		if statement.OmitStr != "" {
 			if _, ok := statement.columnMap[strings.ToLower(col.Name)]; ok {
@@ -1001,6 +1000,10 @@ func (statement *Statement) genColumnStr() string {
 
 		if col.MapType == core.ONLYTODB {
 			continue
+		}
+
+		if buf.Len() != 0 {
+			buf.WriteString(", ")
 		}
 
 		if col.IsPrimaryKey && statement.Engine.Dialect().DBType() == "ql" {
@@ -1018,10 +1021,6 @@ func (statement *Statement) genColumnStr() string {
 		}
 
 		statement.Engine.QuoteTo(&buf, col.Name)
-
-		if ndx < columnsCount-1 {
-			buf.WriteString(", ")
-		}
 	}
 
 	return buf.String()
