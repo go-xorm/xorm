@@ -371,14 +371,14 @@ func (db *mssql) GetColumns(tableName string) ([]string, map[string]*core.Column
 		}
 		switch ct {
 		case "DATETIMEOFFSET":
-			col.SQLType = core.SQLType{core.TimeStampz, 0, 0}
+			col.SQLType = core.SQLType{Name: core.TimeStampz, DefaultLength: 0, DefaultLength2: 0}
 		case "NVARCHAR":
-			col.SQLType = core.SQLType{core.NVarchar, 0, 0}
+			col.SQLType = core.SQLType{Name: core.NVarchar, DefaultLength: 0, DefaultLength2: 0}
 		case "IMAGE":
-			col.SQLType = core.SQLType{core.VarBinary, 0, 0}
+			col.SQLType = core.SQLType{Name: core.VarBinary, DefaultLength: 0, DefaultLength2: 0}
 		default:
 			if _, ok := core.SqlTypes[ct]; ok {
-				col.SQLType = core.SQLType{ct, 0, 0}
+				col.SQLType = core.SQLType{Name: ct, DefaultLength: 0, DefaultLength2: 0}
 			} else {
 				return nil, nil, errors.New(fmt.Sprintf("unknow colType %v for %v - %v",
 					ct, tableName, col.Name))

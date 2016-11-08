@@ -973,21 +973,21 @@ WHERE c.relkind = 'r'::char AND c.relname = $1 AND s.table_schema = $2 AND f.att
 
 		switch dataType {
 		case "character varying", "character":
-			col.SQLType = core.SQLType{core.Varchar, 0, 0}
+			col.SQLType = core.SQLType{Name: core.Varchar, DefaultLength: 0, DefaultLength2: 0}
 		case "timestamp without time zone":
-			col.SQLType = core.SQLType{core.DateTime, 0, 0}
+			col.SQLType = core.SQLType{Name: core.DateTime, DefaultLength: 0, DefaultLength2: 0}
 		case "timestamp with time zone":
-			col.SQLType = core.SQLType{core.TimeStampz, 0, 0}
+			col.SQLType = core.SQLType{Name: core.TimeStampz, DefaultLength: 0, DefaultLength2: 0}
 		case "double precision":
-			col.SQLType = core.SQLType{core.Double, 0, 0}
+			col.SQLType = core.SQLType{Name: core.Double, DefaultLength: 0, DefaultLength2: 0}
 		case "boolean":
-			col.SQLType = core.SQLType{core.Bool, 0, 0}
+			col.SQLType = core.SQLType{Name: core.Bool, DefaultLength: 0, DefaultLength2: 0}
 		case "time without time zone":
-			col.SQLType = core.SQLType{core.Time, 0, 0}
+			col.SQLType = core.SQLType{Name: core.Time, DefaultLength: 0, DefaultLength2: 0}
 		case "oid":
-			col.SQLType = core.SQLType{core.BigInt, 0, 0}
+			col.SQLType = core.SQLType{Name: core.BigInt, DefaultLength: 0, DefaultLength2: 0}
 		default:
-			col.SQLType = core.SQLType{strings.ToUpper(dataType), 0, 0}
+			col.SQLType = core.SQLType{Name: strings.ToUpper(dataType), DefaultLength: 0, DefaultLength2: 0}
 		}
 		if _, ok := core.SqlTypes[col.SQLType.Name]; !ok {
 			return nil, nil, errors.New(fmt.Sprintf("unknow colType: %v", dataType))
@@ -1087,5 +1087,5 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error)
 }
 
 func (db *postgres) Filters() []core.Filter {
-	return []core.Filter{&core.IdFilter{}, &core.QuoteFilter{}, &core.SeqFilter{"$", 1}}
+	return []core.Filter{&core.IdFilter{}, &core.QuoteFilter{}, &core.SeqFilter{Prefix: "$", Start: 1}}
 }
