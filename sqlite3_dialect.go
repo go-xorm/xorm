@@ -319,7 +319,7 @@ func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Colu
 				col.Name = strings.Trim(field, "`[] ")
 				continue
 			} else if idx == 1 {
-				col.SQLType = core.SQLType{field, 0, 0}
+				col.SQLType = core.SQLType{Name: field, DefaultLength: 0, DefaultLength2: 0}
 			}
 			switch field {
 			case "PRIMARY":
