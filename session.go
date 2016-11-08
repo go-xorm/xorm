@@ -371,7 +371,7 @@ func (session *Session) DB() *core.DB {
 	return session.db
 }
 
-// Cond return session's conditions
+// Conds returns session query conditions
 func (session *Session) Conds() builder.Cond {
 	return session.Statement.cond
 }
