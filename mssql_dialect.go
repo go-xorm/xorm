@@ -5,7 +5,6 @@
 package xorm
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -380,8 +379,7 @@ func (db *mssql) GetColumns(tableName string) ([]string, map[string]*core.Column
 			if _, ok := core.SqlTypes[ct]; ok {
 				col.SQLType = core.SQLType{Name: ct, DefaultLength: 0, DefaultLength2: 0}
 			} else {
-				return nil, nil, errors.New(fmt.Sprintf("unknow colType %v for %v - %v",
-					ct, tableName, col.Name))
+				return nil, nil, fmt.Errorf("Unknown colType %v for %v - %v", ct, tableName, col.Name)
 			}
 		}
 
