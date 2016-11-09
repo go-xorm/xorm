@@ -237,9 +237,10 @@ func (db *sqlite3) TableCheckSql(tableName string) (string, []interface{}) {
 }
 
 func (db *sqlite3) DropIndexSql(tableName string, index *core.Index) string {
-	quote := db.Quote
 	//var unique string
-	var idxName string = index.Name
+	quote := db.Quote
+	idxName := index.Name
+
 	if !strings.HasPrefix(idxName, "UQE_") &&
 		!strings.HasPrefix(idxName, "IDX_") {
 		if index.Type == core.UniqueType {

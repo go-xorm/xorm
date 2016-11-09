@@ -201,7 +201,7 @@ func (db *mysql) SqlType(c *core.Column) string {
 		res = core.Enum
 		res += "("
 		opts := ""
-		for v, _ := range c.EnumOptions {
+		for v := range c.EnumOptions {
 			opts += fmt.Sprintf(",'%v'", v)
 		}
 		res += strings.TrimLeft(opts, ",")
@@ -210,7 +210,7 @@ func (db *mysql) SqlType(c *core.Column) string {
 		res = core.Set
 		res += "("
 		opts := ""
-		for v, _ := range c.SetOptions {
+		for v := range c.SetOptions {
 			opts += fmt.Sprintf(",'%v'", v)
 		}
 		res += strings.TrimLeft(opts, ",")
@@ -226,8 +226,8 @@ func (db *mysql) SqlType(c *core.Column) string {
 		res = t
 	}
 
-	var hasLen1 bool = (c.Length > 0)
-	var hasLen2 bool = (c.Length2 > 0)
+	hasLen1 := (c.Length > 0)
+	hasLen2 := (c.Length2 > 0)
 
 	if res == core.BigInt && !hasLen1 && !hasLen2 {
 		c.Length = 20

@@ -24,7 +24,7 @@ func mysqlEngine() (*xorm.Engine, error) {
 	return xorm.NewEngine("mysql", "root:@/test?charset=utf8")
 }
 
-var u *User = &User{}
+var u = &User{}
 
 func test(engine *xorm.Engine) {
 	err := engine.CreateTables(u)

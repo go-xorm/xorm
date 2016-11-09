@@ -15,10 +15,10 @@ type Status struct {
 }
 
 var (
-	Registed Status            = Status{"Registed", "white"}
-	Approved Status            = Status{"Approved", "green"}
-	Removed  Status            = Status{"Removed", "red"}
-	Statuses map[string]Status = map[string]Status{
+	Registed = Status{"Registed", "white"}
+	Approved = Status{"Approved", "green"}
+	Removed  = Status{"Removed", "red"}
+	Statuses = map[string]Status{
 		Registed.Name: Registed,
 		Approved.Name: Approved,
 		Removed.Name:  Removed,
