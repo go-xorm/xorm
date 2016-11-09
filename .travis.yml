@@ -1,0 +1,18 @@
+language: go
+
+go:
+  - 1.6
+  - 1.7
+
+env:
+  TAGS: cert sqlite pam miniwinsvc
+
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -y libpam-dev
+
+script:
+  - go build
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
