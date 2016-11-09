@@ -128,7 +128,7 @@ func (statement *Statement) Alias(alias string) *Statement {
 	return statement
 }
 
-// Sql add the raw sql statement
+// SQL adds raw sql statement
 func (statement *Statement) SQL(query interface{}, args ...interface{}) *Statement {
 	switch query.(type) {
 	case (*builder.Builder):
@@ -795,14 +795,14 @@ func (statement *Statement) col2NewColsWithQuote(columns ...string) []string {
 	return newColumns
 }
 
-// Generate "Distince col1, col2 " statment
+// Distinct generates "DISTINCT col1, col2 " statement
 func (statement *Statement) Distinct(columns ...string) *Statement {
 	statement.IsDistinct = true
 	statement.Cols(columns...)
 	return statement
 }
 
-// Generate "SELECT ... FOR UPDATE" statment
+// ForUpdate generates "SELECT ... FOR UPDATE" statement
 func (statement *Statement) ForUpdate() *Statement {
 	statement.IsForUpdate = true
 	return statement
