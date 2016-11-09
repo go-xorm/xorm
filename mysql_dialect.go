@@ -6,7 +6,6 @@ package xorm
 
 import (
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -375,7 +374,7 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 		if _, ok := core.SqlTypes[colType]; ok {
 			col.SQLType = core.SQLType{Name: colType, DefaultLength: len1, DefaultLength2: len2}
 		} else {
-			return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v", colType))
+			return nil, nil, fmt.Errorf("Unknown colType %v", colType)
 		}
 
 		if colKey == "PRI" {

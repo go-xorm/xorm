@@ -5,7 +5,6 @@
 package xorm
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -990,7 +989,7 @@ WHERE c.relkind = 'r'::char AND c.relname = $1 AND s.table_schema = $2 AND f.att
 			col.SQLType = core.SQLType{Name: strings.ToUpper(dataType), DefaultLength: 0, DefaultLength2: 0}
 		}
 		if _, ok := core.SqlTypes[col.SQLType.Name]; !ok {
-			return nil, nil, errors.New(fmt.Sprintf("unknow colType: %v", dataType))
+			return nil, nil, fmt.Errorf("Unknown colType: %v", dataType)
 		}
 
 		col.Length = maxLen

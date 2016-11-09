@@ -5,7 +5,6 @@
 package xorm
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -757,7 +756,7 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Colum
 		}
 
 		if _, ok := core.SqlTypes[col.SQLType.Name]; !ok {
-			return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v %v", *dataType, col.SQLType))
+			return nil, nil, fmt.Errorf("Unknown colType %v %v", *dataType, col.SQLType)
 		}
 
 		col.Length = dataLen
