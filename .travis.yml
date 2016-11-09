@@ -4,15 +4,16 @@ go:
   - 1.6
   - 1.7
 
-env:
-  TAGS: cert sqlite pam miniwinsvc
-
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y libpam-dev
 
+install:
+  - go get github.com/go-xorm/core
+  - go get github.com/go-xorm/builder
+
 script:
-  - go build
+  - go test
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
