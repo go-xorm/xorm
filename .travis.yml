@@ -5,8 +5,6 @@ go:
   - 1.7
 
 before_install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -y libpam-dev
 
 install:
   - go get github.com/go-xorm/core
