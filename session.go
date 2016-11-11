@@ -2314,12 +2314,12 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 					continue
 				}
 				if session.Statement.ColumnStr != "" {
-					if _, ok := session.Statement.columnMap[strings.ToLower(col.Name)]; !ok {
+					if _, ok := getFlagForColumn(session.Statement.columnMap, col); !ok {
 						continue
 					}
 				}
 				if session.Statement.OmitStr != "" {
-					if _, ok := session.Statement.columnMap[strings.ToLower(col.Name)]; ok {
+					if _, ok := getFlagForColumn(session.Statement.columnMap, col); ok {
 						continue
 					}
 				}
@@ -2369,12 +2369,12 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 					continue
 				}
 				if session.Statement.ColumnStr != "" {
-					if _, ok := session.Statement.columnMap[strings.ToLower(col.Name)]; !ok {
+					if _, ok := getFlagForColumn(session.Statement.columnMap, col); !ok {
 						continue
 					}
 				}
 				if session.Statement.OmitStr != "" {
-					if _, ok := session.Statement.columnMap[strings.ToLower(col.Name)]; ok {
+					if _, ok := getFlagForColumn(session.Statement.columnMap, col); ok {
 						continue
 					}
 				}
