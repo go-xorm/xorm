@@ -273,9 +273,8 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 
 		requiredField := useAllCols
 		includeNil := useAllCols
-		lColName := strings.ToLower(col.Name)
 
-		if b, ok := mustColumnMap[lColName]; ok {
+		if b, ok := getFlagForColumn(mustColumnMap, col); ok {
 			if b {
 				requiredField = true
 			} else {
@@ -284,7 +283,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 		}
 
 		// !evalphobia! set fieldValue as nil when column is nullable and zero-value
-		if b, ok := nullableMap[lColName]; ok {
+		if b, ok := getFlagForColumn(nullableMap, col); ok {
 			if b && col.Nullable && isZero(fieldValue.Interface()) {
 				var nilValue *int
 				fieldValue = reflect.ValueOf(nilValue)
@@ -533,7 +532,8 @@ func buildConds(engine *Engine, table *core.Table, bean interface{},
 
 		fieldType := reflect.TypeOf(fieldValue.Interface())
 		requiredField := useAllCols
-		if b, ok := mustColumnMap[strings.ToLower(col.Name)]; ok {
+
+		if b, ok := getFlagForColumn(mustColumnMap, col); ok {
 			if b {
 				requiredField = true
 			} else {
@@ -993,7 +993,7 @@ func (statement *Statement) genColumnStr() string {
 	for _, col := range columns {
 
 		if statement.OmitStr != "" {
-			if _, ok := statement.columnMap[strings.ToLower(col.Name)]; ok {
+			if _, ok := getFlagForColumn(statement.columnMap, col); ok {
 				continue
 			}
 		}

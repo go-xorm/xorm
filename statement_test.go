@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"strings"
+
 	"github.com/go-xorm/core"
 )
 
@@ -79,6 +81,70 @@ func BenchmarkColumnsStringGeneration(b *testing.B) {
 
 		if actual != testCase.expected {
 			b.Errorf("Unexpected columns string:\nwant:\t%s\nhave:\t%s", testCase.expected, actual)
+		}
+	}
+}
+
+func BenchmarkGetFlagForColumnWithICKey_ContainsKey(b *testing.B) {
+
+	b.StopTimer()
+
+	mapCols := make(map[string]bool)
+	cols := []*core.Column{
+		&core.Column{Name: `ID`},
+		&core.Column{Name: `IsDeleted`},
+		&core.Column{Name: `Caption`},
+		&core.Column{Name: `Code1`},
+		&core.Column{Name: `Code2`},
+		&core.Column{Name: `Code3`},
+		&core.Column{Name: `ParentID`},
+		&core.Column{Name: `Latitude`},
+		&core.Column{Name: `Longitude`},
+	}
+
+	for _, col := range cols {
+		mapCols[strings.ToLower(col.Name)] = true
+	}
+
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+
+		for _, col := range cols {
+
+			if _, ok := getFlagForColumn(mapCols, col); !ok {
+				b.Fatal("Unexpected result")
+			}
+		}
+	}
+}
+
+func BenchmarkGetFlagForColumnWithICKey_EmptyMap(b *testing.B) {
+
+	b.StopTimer()
+
+	mapCols := make(map[string]bool)
+	cols := []*core.Column{
+		&core.Column{Name: `ID`},
+		&core.Column{Name: `IsDeleted`},
+		&core.Column{Name: `Caption`},
+		&core.Column{Name: `Code1`},
+		&core.Column{Name: `Code2`},
+		&core.Column{Name: `Code3`},
+		&core.Column{Name: `ParentID`},
+		&core.Column{Name: `Latitude`},
+		&core.Column{Name: `Longitude`},
+	}
+
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+
+		for _, col := range cols {
+
+			if _, ok := getFlagForColumn(mapCols, col); ok {
+				b.Fatal("Unexpected result")
+			}
 		}
 	}
 }
