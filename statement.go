@@ -258,7 +258,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 		if col.IsDeleted && !unscoped {
 			continue
 		}
-		if use, ok := columnMap[col.Name]; ok && !use {
+		if use, ok := columnMap[strings.ToLower(col.Name)]; ok && !use {
 			continue
 		}
 
