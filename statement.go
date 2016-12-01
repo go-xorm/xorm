@@ -497,7 +497,7 @@ func buildConds(engine *Engine, table *core.Table, bean interface{},
 			continue
 		}
 
-		if engine.dialect.DBType() == core.MSSQL && col.SQLType.Name == core.Text {
+		if engine.dialect.DBType() == core.MSSQL && (col.SQLType.Name == core.Text || col.SQLType.IsBlob() || col.SQLType.Name == core.TimeStampz) {
 			continue
 		}
 		if col.SQLType.IsJson() {
@@ -522,7 +522,11 @@ func buildConds(engine *Engine, table *core.Table, bean interface{},
 		}
 
 		if col.IsDeleted && !unscoped { // tag "deleted" is enabled
-			conds = append(conds, builder.IsNull{colName}.Or(builder.Eq{colName: "0001-01-01 00:00:00"}))
+			if engine.dialect.DBType() == core.MSSQL {
+				conds = append(conds, builder.IsNull{colName})
+			} else {
+				conds = append(conds, builder.IsNull{colName}.Or(builder.Eq{colName: "0001-01-01 00:00:00"}))
+			}
 		}
 
 		fieldValue := *fieldValuePtr
@@ -1316,7 +1320,12 @@ func (statement *Statement) convertIDSQL(sqlStr string) string {
 			return ""
 		}
 
-		return fmt.Sprintf("SELECT %s FROM %v", colstrs, sqls[1])
+		var top string
+		if statement.LimitN > 0 && statement.Engine.dialect.DBType() == core.MSSQL {
+			top = fmt.Sprintf("TOP %d ", statement.LimitN)
+		}
+
+		return fmt.Sprintf("SELECT %s%s FROM %v", top, colstrs, sqls[1])
 	}
 	return ""
 }
