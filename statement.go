@@ -1152,8 +1152,9 @@ func (statement *Statement) genCountSQL(bean interface{}) (string, []interface{}
 	if len(selectSql) <= 0 {
 		if statement.IsDistinct {
 			selectSql = fmt.Sprintf("count(DISTINCT %s)", statement.ColumnStr)
+		} else {
+			selectSql = "count(*)"
 		}
-		selectSql = "count(*)"
 	}
 	return statement.genSelectSQL(selectSql, condSQL), append(statement.joinArgs, condArgs...)
 }
