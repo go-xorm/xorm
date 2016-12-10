@@ -127,10 +127,10 @@ Attention: the above 7 methods should be the last chainable method.
     // SELECT TOP 5 * FROM user // for mssql
     // SELECT * FROM user LIMIT .. OFFSET 0 //for other databases
 
-5. Sql, let you custom SQL
+5. SQL, let you custom SQL
 
     var users []User
-    engine.Sql("select * from user").Find(&users)
+    engine.SQL("select * from user").Find(&users)
 
 6. Cols, Omit, Distinct
 
