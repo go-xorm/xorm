@@ -168,8 +168,10 @@ func (engine *Engine) quote(sql string) string {
 }
 
 // SqlType will be depracated, please use SQLType instead
+//
+// Deprecated: use SQLType instead
 func (engine *Engine) SqlType(c *core.Column) string {
-	return engine.dialect.SqlType(c)
+	return engine.SQLType(c)
 }
 
 // SQLType A simple wrapper to dialect's core.SqlType method
@@ -295,7 +297,10 @@ func (engine *Engine) logSQLExecutionTime(sqlStr string, args []interface{}, exe
 	return executionBlock()
 }
 
-// Sql will be depracated, please use SQL instead
+// Sql provides raw sql input parameter. When you have a complex SQL statement
+// and cannot use Where, Id, In and etc. Methods to describe, you can use SQL.
+//
+// Deprecated: use SQL instead.
 func (engine *Engine) Sql(querystring string, args ...interface{}) *Session {
 	return engine.SQL(querystring, args...)
 }
@@ -434,7 +439,7 @@ func (engine *Engine) dumpAll(w io.Writer, tp ...core.DbType) error {
 	} else {
 		dialect = core.QueryDialect(tp[0])
 		if dialect == nil {
-			return errors.New("Unsupported database type.")
+			return errors.New("Unsupported database type")
 		}
 		dialect.Init(nil, engine.dialect.URI(), "", "")
 	}
@@ -535,7 +540,7 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 	} else {
 		dialect = core.QueryDialect(tp[0])
 		if dialect == nil {
-			return errors.New("Unsupported database type.")
+			return errors.New("Unsupported database type")
 		}
 		dialect.Init(nil, engine.dialect.URI(), "", "")
 	}
@@ -1208,12 +1213,26 @@ func (engine *Engine) IsTableExist(beanOrTableName interface{}) (bool, error) {
 }
 
 // IdOf get id from one struct
+//
+// Deprecated: use IDOf instead.
 func (engine *Engine) IdOf(bean interface{}) core.PK {
+	return engine.IDOf(bean)
+}
+
+// IDOf get id from one struct
+func (engine *Engine) IDOf(bean interface{}) core.PK {
 	return engine.IdOfV(reflect.ValueOf(bean))
 }
 
 // IdOfV get id from one value of struct
+//
+// Deprecated: use IDOfV instead.
 func (engine *Engine) IdOfV(rv reflect.Value) core.PK {
+	return engine.IDOfV(rv)
+}
+
+// IDOfV get id from one value of struct
+func (engine *Engine) IDOfV(rv reflect.Value) core.PK {
 	v := reflect.Indirect(rv)
 	table := engine.autoMapType(v)
 	pk := make([]interface{}, len(table.PrimaryKeys))

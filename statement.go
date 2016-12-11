@@ -707,7 +707,14 @@ func (statement *Statement) TableName() string {
 }
 
 // Id generate "where id = ? " statment or for composite key "where key1 = ? and key2 = ?"
+//
+// Deprecated: use ID instead
 func (statement *Statement) Id(id interface{}) *Statement {
+	return statement.ID(id)
+}
+
+// ID generate "where id = ? " statment or for composite key "where key1 = ? and key2 = ?"
+func (statement *Statement) ID(id interface{}) *Statement {
 	idValue := reflect.ValueOf(id)
 	idType := reflect.TypeOf(idValue.Interface())
 
@@ -1106,7 +1113,7 @@ func (statement *Statement) genConds(bean interface{}) (string, []interface{}, e
 		statement.cond = statement.cond.And(autoCond)
 	}
 
-	statement.processIdParam()
+	statement.processIDParam()
 
 	return builder.ToSQL(statement.cond)
 }
@@ -1148,15 +1155,15 @@ func (statement *Statement) genCountSQL(bean interface{}) (string, []interface{}
 
 	condSQL, condArgs, _ := statement.genConds(bean)
 
-	var selectSql = statement.selectStr
-	if len(selectSql) <= 0 {
+	var selectSQL = statement.selectStr
+	if len(selectSQL) <= 0 {
 		if statement.IsDistinct {
-			selectSql = fmt.Sprintf("count(DISTINCT %s)", statement.ColumnStr)
+			selectSQL = fmt.Sprintf("count(DISTINCT %s)", statement.ColumnStr)
 		} else {
-			selectSql = "count(*)"
+			selectSQL = "count(*)"
 		}
 	}
-	return statement.genSelectSQL(selectSql, condSQL), append(statement.joinArgs, condArgs...)
+	return statement.genSelectSQL(selectSQL, condSQL), append(statement.joinArgs, condArgs...)
 }
 
 func (statement *Statement) genSumSQL(bean interface{}, columns ...string) (string, []interface{}) {
@@ -1183,7 +1190,7 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string) (a string) {
 	var top string
 	var mssqlCondi string
 
-	statement.processIdParam()
+	statement.processIDParam()
 
 	var buf bytes.Buffer
 	if len(condSQL) > 0 {
@@ -1280,7 +1287,7 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string) (a string) {
 	return
 }
 
-func (statement *Statement) processIdParam() {
+func (statement *Statement) processIDParam() {
 	if statement.IdParam == nil {
 		return
 	}
