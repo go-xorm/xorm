@@ -11,10 +11,10 @@ database:
     - mysql -u root -e "CREATE DATABASE xorm_test1 DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci"
     - mysql -u root -e "CREATE DATABASE xorm_test2 DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci"
     - mysql -u root -e "CREATE DATABASE xorm_test3 DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci"
-    - createdb -p 5432 -e -U ubuntu xorm_test
-    - createdb -p 5432 -e -U ubuntu xorm_test1
-    - createdb -p 5432 -e -U ubuntu xorm_test2
-    - createdb -p 5432 -e -U ubuntu xorm_test3
+    - createdb -p 5432 -e -U postgres xorm_test
+    - createdb -p 5432 -e -U postgres xorm_test1
+    - createdb -p 5432 -e -U postgres xorm_test2
+    - createdb -p 5432 -e -U postgres xorm_test3
 
 test:
   override:
