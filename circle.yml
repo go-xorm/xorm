@@ -1,0 +1,17 @@
+dependencies:
+  override:
+    # './...' is a relative pattern which means all subdirectories
+    - go get -t -d -v ./...
+    - go get -t -d -v github.com/go-xorm/tests
+    - go build -v
+
+database:
+  override:
+    #- echo "CREATE DATABASE xorm_test DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci" | mysql -u root -p
+
+test:
+  override:
+    # './...' is a relative pattern which means all subdirectories
+    - go test -v -race ./...
+    - /home/ubuntu/.go_project/src/github.com/go-xorm/tests/sqlite.sh
+    #- /home/ubuntu/.go_project/src/github.com/go-xorm/tests/mysql.sh
