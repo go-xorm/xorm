@@ -4,9 +4,7 @@
 
 xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作非常简便。
 
-[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-xorm/xorm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-
-[![CircleCI](https://circleci.com/gh/go-xorm/xorm/tree/master.svg?style=svg)](https://circleci.com/gh/go-xorm/xorm/tree/master)
+[![CircleCI](https://circleci.com/gh/go-xorm/xorm/tree/master.svg?style=svg)](https://circleci.com/gh/go-xorm/xorm/tree/master)  [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-xorm/xorm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 # 注意
 
