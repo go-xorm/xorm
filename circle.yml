@@ -7,11 +7,11 @@ dependencies:
 
 database:
   override:
-    - echo "CREATE DATABASE xorm_test DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci" | mysql -u root -p
-    - echo "CREATE DATABASE xorm_test1 DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci" | mysql -u root -p
-    - echo "CREATE DATABASE xorm_test2 DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci" | mysql -u root -p
-    - echo "CREATE DATABASE xorm_test3 DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci" | mysql -u root -p
-
+    - mysql -u root -e "CREATE DATABASE xorm_test DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci"
+    - mysql -u root -e "CREATE DATABASE xorm_test1 DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci"
+    - mysql -u root -e "CREATE DATABASE xorm_test2 DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci"
+    - mysql -u root -e "CREATE DATABASE xorm_test3 DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci"
+    
 test:
   override:
     # './...' is a relative pattern which means all subdirectories
