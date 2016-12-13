@@ -13,6 +13,5 @@ test:
   override:
     # './...' is a relative pattern which means all subdirectories
     - go test -v -race
-    - cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests/
-    - ./sqlite3.sh
-    #- /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests/mysql.sh
+    - cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests && ./sqlite3.sh
+    #- cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests && ./mysql.sh
