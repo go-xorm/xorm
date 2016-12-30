@@ -3088,7 +3088,9 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 				pkField := reflect.Indirect(fieldValue).FieldByName(fieldTable.PKColumns()[0].FieldName)
 				return pkField.Interface(), nil
 			}
-			return 0, fmt.Errorf("no primary key for col %v", col.Name)
+			if fieldTable.Type == nil {
+				return 0, fmt.Errorf("no primary key for col %v", col.Name)
+			}
 		}
 
 		if col.SQLType.IsText() {
