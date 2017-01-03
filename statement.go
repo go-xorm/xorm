@@ -996,13 +996,14 @@ func (statement *Statement) Unscoped() *Statement {
 }
 
 func (statement *Statement) genColumnStr() string {
-
 	var buf bytes.Buffer
+	if statement.RefTable == nil {
+		return ""
+	}
 
 	columns := statement.RefTable.Columns()
 
 	for _, col := range columns {
-
 		if statement.OmitStr != "" {
 			if _, ok := getFlagForColumn(statement.columnMap, col); ok {
 				continue
