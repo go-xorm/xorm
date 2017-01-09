@@ -32,9 +32,8 @@ func (s *Status) FromDB(bytes []byte) error {
 	if r, ok := Statuses[string(bytes)]; ok {
 		*s = r
 		return nil
-	} else {
-		return errors.New("no this data")
 	}
+	return errors.New("no this data")
 }
 
 // ToDB implemented xorm.Conversion convent to database data
