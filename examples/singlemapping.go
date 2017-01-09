@@ -14,7 +14,7 @@ type User struct {
 	Name string
 }
 
-// LoginInfo describes a login infomation
+// LoginInfo describes a login information
 type LoginInfo struct {
 	Id     int64
 	IP     string
