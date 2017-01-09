@@ -9,6 +9,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// SyncUser2 describes a user
 type SyncUser2 struct {
 	Id      int64
 	Name    string `xorm:"unique"`
@@ -20,6 +21,7 @@ type SyncUser2 struct {
 	Date    int
 }
 
+// SyncLoginInfo2 describes a login information
 type SyncLoginInfo2 struct {
 	Id       int64
 	IP       string `xorm:"index"`

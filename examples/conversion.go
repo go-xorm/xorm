@@ -9,19 +9,21 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// Status describes a status
 type Status struct {
 	Name  string
 	Color string
 }
 
+// defines some statuses
 var (
-	Registed = Status{"Registed", "white"}
-	Approved = Status{"Approved", "green"}
-	Removed  = Status{"Removed", "red"}
-	Statuses = map[string]Status{
-		Registed.Name: Registed,
-		Approved.Name: Approved,
-		Removed.Name:  Removed,
+	Registered = Status{"Registered", "white"}
+	Approved   = Status{"Approved", "green"}
+	Removed    = Status{"Removed", "red"}
+	Statuses   = map[string]Status{
+		Registered.Name: Registered,
+		Approved.Name:   Approved,
+		Removed.Name:    Removed,
 	}
 )
 
@@ -38,6 +40,7 @@ func (s *Status) ToDB() ([]byte, error) {
 	return []byte(s.Name), nil
 }
 
+// User describes a user
 type User struct {
 	Id     int64
 	Name   string
@@ -60,7 +63,7 @@ func main() {
 		return
 	}
 
-	_, err = Orm.Insert(&User{1, "xlw", Registed})
+	_, err = Orm.Insert(&User{1, "xlw", Registered})
 	if err != nil {
 		fmt.Println(err)
 		return

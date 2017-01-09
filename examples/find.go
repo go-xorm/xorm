@@ -8,6 +8,7 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
+// User describes a user
 type User struct {
 	Id      int64
 	Name    string
@@ -19,27 +20,27 @@ func main() {
 	f := "conversion.db"
 	os.Remove(f)
 
-	Orm, err := xorm.NewEngine("sqlite3", f)
+	orm, err := xorm.NewEngine("sqlite3", f)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	Orm.ShowSQL(true)
+	orm.ShowSQL(true)
 
-	err = Orm.CreateTables(&User{})
+	err = orm.CreateTables(&User{})
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	_, err = Orm.Insert(&User{Id: 1, Name: "xlw"})
+	_, err = orm.Insert(&User{Id: 1, Name: "xlw"})
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	users := make([]User, 0)
-	err = Orm.Find(&users)
+	err = orm.Find(&users)
 	if err != nil {
 		fmt.Println(err)
 		return
