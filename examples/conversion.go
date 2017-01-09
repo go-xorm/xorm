@@ -27,6 +27,7 @@ var (
 	}
 )
 
+// FromDB implemented xorm.Conversion convent database data to self
 func (s *Status) FromDB(bytes []byte) error {
 	if r, ok := Statuses[string(bytes)]; ok {
 		*s = r
@@ -36,6 +37,7 @@ func (s *Status) FromDB(bytes []byte) error {
 	}
 }
 
+// ToDB implemented xorm.Conversion convent to database data
 func (s *Status) ToDB() ([]byte, error) {
 	return []byte(s.Name), nil
 }
