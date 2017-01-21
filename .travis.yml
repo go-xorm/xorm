@@ -1,0 +1,17 @@
+language: go
+
+go:
+  - 1.6
+  - 1.7
+
+before_install:
+
+install:
+  - go get github.com/go-xorm/core
+  - go get github.com/go-xorm/builder
+
+script:
+  - go test
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

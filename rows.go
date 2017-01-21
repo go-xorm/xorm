@@ -41,7 +41,7 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 	}
 
 	if rows.session.Statement.RawSQL == "" {
-		sqlStr, args = rows.session.Statement.genGetSql(bean)
+		sqlStr, args = rows.session.Statement.genGetSQL(bean)
 	} else {
 		sqlStr = rows.session.Statement.RawSQL
 		args = rows.session.Statement.RawParams
@@ -51,7 +51,7 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 		sqlStr = filter.Do(sqlStr, session.Engine.dialect, rows.session.Statement.RefTable)
 	}
 
-	rows.session.saveLastSQL(sqlStr, args)
+	rows.session.saveLastSQL(sqlStr, args...)
 	var err error
 	if rows.session.prepareStmt {
 		rows.stmt, err = rows.session.DB().Prepare(sqlStr)

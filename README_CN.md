@@ -4,9 +4,7 @@
 
 xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作非常简便。
 
-[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-xorm/xorm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-
-[![Build Status](https://drone.io/github.com/go-xorm/tests/status.png)](https://drone.io/github.com/go-xorm/tests/latest)  [![Go Walker](http://gowalker.org/api/v1/badge)](http://gowalker.org/github.com/go-xorm/xorm)
+[![CircleCI](https://circleci.com/gh/go-xorm/xorm/tree/master.svg?style=svg)](https://circleci.com/gh/go-xorm/xorm/tree/master)  [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-xorm/xorm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 # 注意
 
@@ -32,6 +30,8 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * 支持记录版本（即乐观锁）
 
+* 内置SQL Builder支持
+
 ## 驱动支持
 
 目前支持的Go数据库驱动和对应的数据库如下：
@@ -52,9 +52,14 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * Oracle: [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (试验性支持)
 
-* ql: [github.com/cznic/ql](https://github.com/cznic/ql) (试验性支持)
-
 ## 更新日志
+
+* **v0.6.0**
+    * 去除对 ql 的支持
+    * 新增条件查询分析器 [github.com/go-xorm/builder](https://github.com/go-xorm/builder), 从因此 `Where, And, Or` 函数
+将可以用 `builder.Cond` 作为条件组合
+    * 新增 Sum, SumInt, SumInt64 和 NotIn 函数
+    * Bug修正
 
 * **v0.5.0**
     * logging接口进行不兼容改变
@@ -232,6 +237,13 @@ affected, err := engine.Where(...).Delete(&user)
 ```Go
 counts, err := engine.Count(&user)
 // SELECT count(*) AS total FROM user
+```
+
+* 条件编辑器
+
+```Go
+err := engine.Where(builder.NotIn("a", 1, 2).And(builder.In("b", "c", "d", "e"))).Find(&users)
+// SELECT id, name ... FROM user WHERE a NOT IN (?, ?) AND b IN (?, ?, ?)
 ```
 
 # 案例

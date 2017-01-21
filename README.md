@@ -2,9 +2,7 @@
 
 Xorm is a simple and powerful ORM for Go.
 
-[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-xorm/xorm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-
-[![Build Status](https://drone.io/github.com/go-xorm/tests/status.png)](https://drone.io/github.com/go-xorm/tests/latest)
+[![CircleCI](https://circleci.com/gh/go-xorm/xorm/tree/master.svg?style=svg)](https://circleci.com/gh/go-xorm/xorm/tree/master)  [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-xorm/xorm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 # Notice
 
@@ -30,6 +28,7 @@ The last master version is not backwards compatible. You should use `engine.Show
 
 * Optimistic Locking support
 
+* SQL Builder support via [github.com/go-xorm/builder](https://github.com/go-xorm/builder)
 
 # Drivers Support
 
@@ -51,9 +50,14 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * Oracle: [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (experiment)
 
-* ql: [github.com/cznic/ql](https://github.com/cznic/ql) (experiment)
-
 # Changelog
+
+* **v0.6.0**
+    * remove support for ql
+    * add query condition builder support via [github.com/go-xorm/builder](https://github.com/go-xorm/builder), so `Where`, `And`, `Or` 
+methods can use `builder.Cond` as parameter
+    * add Sum, SumInt, SumInt64 and NotIn methods
+    * some bugs fixed
 
 * **v0.5.0**
     * logging interface changed
@@ -232,6 +236,13 @@ affected, err := engine.Id(2).Delete(&user)
 ```Go
 counts, err := engine.Count(&user)
 // SELECT count(*) AS total FROM user
+```
+
+* Query conditions builder
+
+```Go
+err := engine.Where(builder.NotIn("a", 1, 2).And(builder.In("b", "c", "d", "e"))).Find(&users)
+// SELECT id, name ... FROM user WHERE a NOT IN (?, ?) AND b IN (?, ?, ?)
 ```
 
 # Cases

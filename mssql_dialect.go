@@ -5,7 +5,6 @@
 package xorm
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -243,10 +242,13 @@ func (db *mssql) SqlType(c *core.Column) string {
 		c.Length = 7
 	case core.MediumInt:
 		res = core.Int
-	case core.MediumText, core.TinyText, core.LongText, core.Json:
-		res = core.Text
+	case core.Text, core.MediumText, core.TinyText, core.LongText, core.Json:
+		res = core.Varchar + "(MAX)"
 	case core.Double:
 		res = core.Real
+	case core.Uuid:
+		res = core.Varchar
+		c.Length = 40
 	default:
 		res = t
 	}
@@ -255,8 +257,9 @@ func (db *mssql) SqlType(c *core.Column) string {
 		return core.Int
 	}
 
-	var hasLen1 bool = (c.Length > 0)
-	var hasLen2 bool = (c.Length2 > 0)
+	hasLen1 := (c.Length > 0)
+	hasLen2 := (c.Length2 > 0)
+
 	if hasLen2 {
 		res += "(" + strconv.Itoa(c.Length) + "," + strconv.Itoa(c.Length2) + ")"
 	} else if hasLen1 {
@@ -330,9 +333,11 @@ func (db *mssql) TableCheckSql(tableName string) (string, []interface{}) {
 
 func (db *mssql) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{}
-	s := `select a.name as name, b.name as ctype,a.max_length,a.precision,a.scale
-from sys.columns a left join sys.types b on a.user_type_id=b.user_type_id
-where a.object_id=object_id('` + tableName + `')`
+	s := `select a.name as name, b.name as ctype,a.max_length,a.precision,a.scale,a.is_nullable as nullable,
+	      replace(replace(isnull(c.text,''),'(',''),')','') as vdefault   
+          from sys.columns a left join sys.types b on a.user_type_id=b.user_type_id 
+          left join  sys.syscomments c  on a.default_object_id=c.id 
+          where a.object_id=object_id('` + tableName + `')`
 	db.LogSQL(s, args)
 
 	rows, err := db.DB().Query(s, args...)
@@ -344,32 +349,38 @@ where a.object_id=object_id('` + tableName + `')`
 	cols := make(map[string]*core.Column)
 	colSeq := make([]string, 0)
 	for rows.Next() {
-		var name, ctype, precision, scale string
-		var maxLen int
-		err = rows.Scan(&name, &ctype, &maxLen, &precision, &scale)
+		var name, ctype, vdefault string
+		var maxLen, precision, scale int
+		var nullable bool
+		err = rows.Scan(&name, &ctype, &maxLen, &precision, &scale, &nullable, &vdefault)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		col := new(core.Column)
 		col.Indexes = make(map[string]int)
-		col.Length = maxLen
 		col.Name = strings.Trim(name, "` ")
-
+		col.Nullable = nullable
+		col.Default = vdefault
 		ct := strings.ToUpper(ctype)
+		if ct == "DECIMAL" {
+			col.Length = precision
+			col.Length2 = scale
+		} else {
+			col.Length = maxLen
+		}
 		switch ct {
 		case "DATETIMEOFFSET":
-			col.SQLType = core.SQLType{core.TimeStampz, 0, 0}
+			col.SQLType = core.SQLType{Name: core.TimeStampz, DefaultLength: 0, DefaultLength2: 0}
 		case "NVARCHAR":
-			col.SQLType = core.SQLType{core.NVarchar, 0, 0}
+			col.SQLType = core.SQLType{Name: core.NVarchar, DefaultLength: 0, DefaultLength2: 0}
 		case "IMAGE":
-			col.SQLType = core.SQLType{core.VarBinary, 0, 0}
+			col.SQLType = core.SQLType{Name: core.VarBinary, DefaultLength: 0, DefaultLength2: 0}
 		default:
 			if _, ok := core.SqlTypes[ct]; ok {
-				col.SQLType = core.SQLType{ct, 0, 0}
+				col.SQLType = core.SQLType{Name: ct, DefaultLength: 0, DefaultLength2: 0}
 			} else {
-				return nil, nil, errors.New(fmt.Sprintf("unknow colType %v for %v - %v",
-					ct, tableName, col.Name))
+				return nil, nil, fmt.Errorf("Unknown colType %v for %v - %v", ct, tableName, col.Name)
 			}
 		}
 
@@ -458,7 +469,7 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 		colName = strings.Trim(colName, "` ")
 
 		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
-			indexName = indexName[5+len(tableName) : len(indexName)]
+			indexName = indexName[5+len(tableName):]
 		}
 
 		var index *core.Index
