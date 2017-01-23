@@ -91,15 +91,15 @@ func BenchmarkGetFlagForColumnWithICKey_ContainsKey(b *testing.B) {
 
 	mapCols := make(map[string]bool)
 	cols := []*core.Column{
-		&core.Column{Name: `ID`},
-		&core.Column{Name: `IsDeleted`},
-		&core.Column{Name: `Caption`},
-		&core.Column{Name: `Code1`},
-		&core.Column{Name: `Code2`},
-		&core.Column{Name: `Code3`},
-		&core.Column{Name: `ParentID`},
-		&core.Column{Name: `Latitude`},
-		&core.Column{Name: `Longitude`},
+		{Name: `ID`},
+		{Name: `IsDeleted`},
+		{Name: `Caption`},
+		{Name: `Code1`},
+		{Name: `Code2`},
+		{Name: `Code3`},
+		{Name: `ParentID`},
+		{Name: `Latitude`},
+		{Name: `Longitude`},
 	}
 
 	for _, col := range cols {
@@ -125,15 +125,15 @@ func BenchmarkGetFlagForColumnWithICKey_EmptyMap(b *testing.B) {
 
 	mapCols := make(map[string]bool)
 	cols := []*core.Column{
-		&core.Column{Name: `ID`},
-		&core.Column{Name: `IsDeleted`},
-		&core.Column{Name: `Caption`},
-		&core.Column{Name: `Code1`},
-		&core.Column{Name: `Code2`},
-		&core.Column{Name: `Code3`},
-		&core.Column{Name: `ParentID`},
-		&core.Column{Name: `Latitude`},
-		&core.Column{Name: `Longitude`},
+		{Name: `ID`},
+		{Name: `IsDeleted`},
+		{Name: `Caption`},
+		{Name: `Code1`},
+		{Name: `Code2`},
+		{Name: `Code3`},
+		{Name: `ParentID`},
+		{Name: `Latitude`},
+		{Name: `Longitude`},
 	}
 
 	b.StartTimer()

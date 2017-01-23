@@ -10,6 +10,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// User describes a user
 type User struct {
 	Id   int64
 	Name string
