@@ -1599,6 +1599,8 @@ func (engine *Engine) formatTime(tz *time.Location, sqlTypeName string, t time.T
 		return t
 	}
 	if tz != nil {
+		t = t.In(tz)
+	} else {
 		t = engine.TZTime(t)
 	}
 	switch sqlTypeName {
