@@ -438,10 +438,10 @@ func (session *Session) getField(dataStruct *reflect.Value, key string, table *c
 type Cell *interface{}
 
 func (session *Session) rows2Beans(rows *core.Rows, fields []string, fieldsCount int,
-	table *core.Table, newElemFunc func() reflect.Value,
+	table *core.Table, newElemFunc func([]string) reflect.Value,
 	sliceValueSetFunc func(*reflect.Value, core.PK) error) error {
 	for rows.Next() {
-		var newValue = newElemFunc()
+		var newValue = newElemFunc(fields)
 		bean := newValue.Interface()
 		dataStruct := rValue(bean)
 		pk, err := session._row2Bean(rows, fields, fieldsCount, bean, &dataStruct, table)
