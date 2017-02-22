@@ -196,7 +196,9 @@ func (statement *Statement) Or(query interface{}, args ...interface{}) *Statemen
 // In generate "Where column IN (?) " statement
 func (statement *Statement) In(column string, args ...interface{}) *Statement {
 	if len(args) == 0 {
-		return statement
+		// use a false condition, since there isn't an easy way to have
+		// an empty list in SQL
+		return statement.And("0=1")
 	}
 
 	in := builder.In(column, args...)
