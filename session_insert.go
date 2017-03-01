@@ -210,7 +210,12 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 	}
 	cleanupProcessorsClosures(&session.beforeClosures)
 
-	statement := fmt.Sprintf("INSERT INTO %s (%v%v%v) VALUES (%v)",
+	var sql = "INSERT INTO %s (%v%v%v) VALUES (%v)"
+	if session.Engine.dialect.DBType() == core.ORACLE {
+		sql = "INSERT ALL INTO %s (%v%v%v) VALUES (%v) SELECT 1 FROM DUAL"
+	}
+
+	statement := fmt.Sprintf(sql,
 		session.Engine.Quote(session.Statement.TableName()),
 		session.Engine.QuoteStr(),
 		strings.Join(colNames, session.Engine.QuoteStr()+", "+session.Engine.QuoteStr()),
