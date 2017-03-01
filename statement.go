@@ -39,7 +39,7 @@ type Statement struct {
 	Engine          *Engine
 	Start           int
 	LimitN          int
-	IdParam         *core.PK
+	idParam         *core.PK
 	OrderStr        string
 	JoinStr         string
 	joinArgs        []interface{}
@@ -91,7 +91,7 @@ func (statement *Statement) Init() {
 	statement.columnMap = make(map[string]bool)
 	statement.AltTableName = ""
 	statement.tableName = ""
-	statement.IdParam = nil
+	statement.idParam = nil
 	statement.RawSQL = ""
 	statement.RawParams = make([]interface{}, 0)
 	statement.UseCache = true
@@ -698,13 +698,6 @@ func (statement *Statement) TableName() string {
 	return statement.tableName
 }
 
-// Id generate "where id = ? " statement or for composite key "where key1 = ? and key2 = ?"
-//
-// Deprecated: use ID instead
-func (statement *Statement) Id(id interface{}) *Statement {
-	return statement.ID(id)
-}
-
 // ID generate "where id = ? " statement or for composite key "where key1 = ? and key2 = ?"
 func (statement *Statement) ID(id interface{}) *Statement {
 	idValue := reflect.ValueOf(id)
@@ -713,23 +706,23 @@ func (statement *Statement) ID(id interface{}) *Statement {
 	switch idType {
 	case ptrPkType:
 		if pkPtr, ok := (id).(*core.PK); ok {
-			statement.IdParam = pkPtr
+			statement.idParam = pkPtr
 			return statement
 		}
 	case pkType:
 		if pk, ok := (id).(core.PK); ok {
-			statement.IdParam = &pk
+			statement.idParam = &pk
 			return statement
 		}
 	}
 
 	switch idType.Kind() {
 	case reflect.String:
-		statement.IdParam = &core.PK{idValue.Convert(reflect.TypeOf("")).Interface()}
+		statement.idParam = &core.PK{idValue.Convert(reflect.TypeOf("")).Interface()}
 		return statement
 	}
 
-	statement.IdParam = &core.PK{id}
+	statement.idParam = &core.PK{id}
 	return statement
 }
 
@@ -1281,14 +1274,14 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string) (a string) {
 }
 
 func (statement *Statement) processIDParam() {
-	if statement.IdParam == nil {
+	if statement.idParam == nil {
 		return
 	}
 
 	for i, col := range statement.RefTable.PKColumns() {
 		var colName = statement.colName(col, statement.TableName())
-		if i < len(*(statement.IdParam)) {
-			statement.cond = statement.cond.And(builder.Eq{colName: (*(statement.IdParam))[i]})
+		if i < len(*(statement.idParam)) {
+			statement.cond = statement.cond.And(builder.Eq{colName: (*(statement.idParam))[i]})
 		} else {
 			statement.cond = statement.cond.And(builder.Eq{colName: ""})
 		}
