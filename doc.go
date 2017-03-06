@@ -58,7 +58,7 @@ There are 7 major ORM methods and many helpful methods to use to operate databas
 
 3. Query multiple records from database
 
-    sliceOfStructs := new(Struct)
+    var sliceOfStructs []Struct
     err := engine.Find(sliceOfStructs)
     // SELECT * FROM user
 
