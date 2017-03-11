@@ -1167,7 +1167,7 @@ func (statement *Statement) genSumSQL(bean interface{}, columns ...string) (stri
 
 func (statement *Statement) genSelectSQL(columnStr, condSQL string) (a string) {
 	var distinct string
-	if statement.IsDistinct {
+	if statement.IsDistinct && !strings.HasPrefix(columnStr, "count") {
 		distinct = "DISTINCT "
 	}
 
