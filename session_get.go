@@ -85,7 +85,9 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, bean interface{}, sqlS
 
 		switch beanKind {
 		case reflect.Struct:
-			_, err = session.row2Bean(rawRows, fields, len(fields), bean)
+			dataStruct := rValue(bean)
+			session.Statement.setRefValue(dataStruct)
+			_, err = session.row2Bean(rawRows, fields, len(fields), bean, &dataStruct, session.Statement.RefTable)
 		case reflect.Slice:
 			err = rawRows.ScanSlice(bean)
 		case reflect.Map:

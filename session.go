@@ -380,7 +380,7 @@ func (session *Session) rows2Beans(rows *core.Rows, fields []string, fieldsCount
 		var newValue = newElemFunc(fields)
 		bean := newValue.Interface()
 		dataStruct := rValue(bean)
-		pk, err := session._row2Bean(rows, fields, fieldsCount, bean, &dataStruct, table)
+		pk, err := session.row2Bean(rows, fields, fieldsCount, bean, &dataStruct, table)
 		if err != nil {
 			return err
 		}
@@ -393,18 +393,7 @@ func (session *Session) rows2Beans(rows *core.Rows, fields []string, fieldsCount
 	return nil
 }
 
-func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount int, bean interface{}) (core.PK, error) {
-	dataStruct := rValue(bean)
-	if dataStruct.Kind() != reflect.Struct {
-		return nil, errors.New("Expected a pointer to a struct")
-	}
-
-	session.Statement.setRefValue(dataStruct)
-
-	return session._row2Bean(rows, fields, fieldsCount, bean, &dataStruct, session.Statement.RefTable)
-}
-
-func (session *Session) _row2Bean(rows *core.Rows, fields []string, fieldsCount int, bean interface{}, dataStruct *reflect.Value, table *core.Table) (core.PK, error) {
+func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount int, bean interface{}, dataStruct *reflect.Value, table *core.Table) (core.PK, error) {
 	scanResults := make([]interface{}, fieldsCount)
 	for i := 0; i < len(fields); i++ {
 		var cell interface{}
