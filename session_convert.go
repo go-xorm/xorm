@@ -203,11 +203,11 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 				}
 				v = x
 				fieldValue.Set(reflect.ValueOf(v).Convert(fieldType))
-			} else if session.statement.UseCascade {
-				table, err := session.engine.autoMapType(*fieldValue)
-				if err != nil {
-					return err
-				}
+			} else if (col.AssociateType == core.AssociateNone &&
+				session.statement.cascadeMode == cascadeCompitable) ||
+				(col.AssociateType == core.AssociateBelongsTo &&
+					session.statement.cascadeMode == cascadeAutoLoad) {
+				table := col.AssociateTable
 
 				// TODO: current only support 1 primary key
 				if len(table.PrimaryKeys) > 1 {
@@ -216,6 +216,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 
 				var pk = make(core.PK, len(table.PrimaryKeys))
 				rawValueType := table.ColumnType(table.PKColumns()[0].FieldName)
+				var err error
 				pk[0], err = str2PK(string(data), rawValueType)
 				if err != nil {
 					return err
@@ -485,18 +486,17 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 				v = x
 				fieldValue.Set(reflect.ValueOf(&x))
 			default:
-				if session.statement.UseCascade {
-					structInter := reflect.New(fieldType.Elem())
-					table, err := session.engine.autoMapType(structInter.Elem())
-					if err != nil {
-						return err
-					}
-
+				if (col.AssociateType == core.AssociateNone &&
+					session.statement.cascadeMode == cascadeCompitable) ||
+					(col.AssociateType == core.AssociateBelongsTo &&
+						session.statement.cascadeMode == cascadeAutoLoad) {
+					table := col.AssociateTable
 					if len(table.PrimaryKeys) > 1 {
 						return errors.New("unsupported composited primary key cascade")
 					}
 
 					var pk = make(core.PK, len(table.PrimaryKeys))
+					var err error
 					rawValueType := table.ColumnType(table.PKColumns()[0].FieldName)
 					pk[0], err = str2PK(string(data), rawValueType)
 					if err != nil {
@@ -504,6 +504,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 					}
 
 					if !isPKZero(pk) {
+						structInter := reflect.New(fieldType.Elem())
 						// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
 						// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
 						// property to be fetched lazily
@@ -518,8 +519,6 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 							return errors.New("cascade obj is not exist")
 						}
 					}
-				} else {
-					return fmt.Errorf("unsupported struct type in Scan: %s", fieldValue.Type().String())
 				}
 			}
 		default:

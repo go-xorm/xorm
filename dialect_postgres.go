@@ -811,7 +811,7 @@ func (db *postgres) SqlType(c *core.Column) string {
 	case core.NVarchar:
 		res = core.Varchar
 	case core.Uuid:
-		res = core.Uuid
+		return core.Uuid
 	case core.Blob, core.TinyBlob, core.MediumBlob, core.LongBlob:
 		return core.Bytea
 	case core.Double:

@@ -16,6 +16,14 @@ import (
 	"github.com/go-xorm/core"
 )
 
+func isStruct(t reflect.Type) bool {
+	return t.Kind() == reflect.Struct || isPtrStruct(t)
+}
+
+func isPtrStruct(t reflect.Type) bool {
+	return t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct
+}
+
 // str2PK convert string value to primary key value according to tp
 func str2PKValue(s string, tp reflect.Type) (reflect.Value, error) {
 	var err error

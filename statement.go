@@ -33,6 +33,14 @@ type exprParam struct {
 	expr    string
 }
 
+type cascadeMode int
+
+const (
+	cascadeCompitable cascadeMode = iota
+	cascadeAutoLoad
+	cascadeManuallyLoad
+)
+
 // Statement save all the sql info for executing SQL
 type Statement struct {
 	RefTable        *core.Table
@@ -54,7 +62,7 @@ type Statement struct {
 	tableName       string
 	RawSQL          string
 	RawParams       []interface{}
-	UseCascade      bool
+	cascadeMode     cascadeMode
 	UseAutoJoin     bool
 	StoreEngine     string
 	Charset         string
@@ -82,7 +90,7 @@ func (statement *Statement) Init() {
 	statement.Start = 0
 	statement.LimitN = 0
 	statement.OrderStr = ""
-	statement.UseCascade = true
+	statement.cascadeMode = cascadeCompitable
 	statement.JoinStr = ""
 	statement.joinArgs = make([]interface{}, 0)
 	statement.GroupByStr = ""
