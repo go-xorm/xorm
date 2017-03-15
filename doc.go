@@ -36,7 +36,7 @@ Xorm also support raw sql execution:
 
 ORM Methods
 
-There are 7 major ORM methods and many helpful methods to use to operate database.
+There are 8 major ORM methods and many helpful methods to use to operate database.
 
 1. Insert one or multiple records to database
 
