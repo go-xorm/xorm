@@ -59,8 +59,16 @@ There are 7 major ORM methods and many helpful methods to use to operate databas
 3. Query multiple records from database
 
     var sliceOfStructs []Struct
-    err := engine.Find(sliceOfStructs)
+    err := engine.Find(&sliceOfStructs)
     // SELECT * FROM user
+
+    var mapOfStructs = make(map[int64]Struct)
+    err := engine.Find(&mapOfStructs)
+    // SELECT * FROM user
+
+    var int64s []int64
+    err := engine.Table("user").Cols("id").Find(&int64s)
+    // SELECT id FROM user
 
 4. Query multiple records and record by record handle, there two methods, one is Iterate,
 another is Rows
@@ -91,10 +99,21 @@ another is Rows
     counts, err := engine.Count(&user)
     // SELECT count(*) AS total FROM user
 
+8. Sum records
+
+    sumFloat64, err := engine.Sum(&user, "id")
+    // SELECT sum(id) from user
+
+    sumFloat64s, err := engine.Sums(&user, "id1", "id2")
+    // SELECT sum(id1), sum(id2) from user
+
+    sumInt64s, err := engine.SumsInt(&user, "id1", "id2")
+    // SELECT sum(id1), sum(id2) from user
+
 Conditions
 
-The above 7 methods could use with condition methods chainable.
-Attention: the above 7 methods should be the last chainable method.
+The above 8 methods could use with condition methods chainable.
+Attention: the above 8 methods should be the last chainable method.
 
 1. Id, In
 
@@ -104,7 +123,7 @@ Attention: the above 7 methods should be the last chainable method.
     // SELECT * FROM user WHERE id1 = 1 AND id2 = 2
     engine.In("id", 1, 2, 3).Find(&users)
     // SELECT * FROM user WHERE id IN (1, 2, 3)
-    engine.In("id", []int{1, 2, 3})
+    engine.In("id", []int{1, 2, 3}).Find(&users)
     // SELECT * FROM user WHERE id IN (1, 2, 3)
 
 2. Where, And, Or
@@ -130,7 +149,7 @@ Attention: the above 7 methods should be the last chainable method.
 5. Sql, let you custom SQL
 
     var users []User
-    engine.Sql("select * from user").Find(&users)
+    engine.SQL("select * from user").Find(&users)
 
 6. Cols, Omit, Distinct
 
