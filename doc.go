@@ -24,7 +24,7 @@ Generally, one engine for an application is enough. You can set it as package va
 
 Raw Methods
 
-Xorm also support raw sql execution:
+XORM also support raw SQL execution:
 
 1. query a SQL string, the returned results is []map[string][]byte
 
@@ -115,11 +115,11 @@ Conditions
 The above 8 methods could use with condition methods chainable.
 Attention: the above 8 methods should be the last chainable method.
 
-1. Id, In
+1. ID, In
 
-    engine.Id(1).Get(&user) // for single primary key
+    engine.ID(1).Get(&user) // for single primary key
     // SELECT * FROM user WHERE id = 1
-    engine.Id(core.PK{1, 2}).Get(&user) // for composite primary keys
+    engine.ID(core.PK{1, 2}).Get(&user) // for composite primary keys
     // SELECT * FROM user WHERE id1 = 1 AND id2 = 2
     engine.In("id", 1, 2, 3).Find(&users)
     // SELECT * FROM user WHERE id IN (1, 2, 3)
@@ -146,7 +146,7 @@ Attention: the above 8 methods should be the last chainable method.
     // SELECT TOP 5 * FROM user // for mssql
     // SELECT * FROM user LIMIT .. OFFSET 0 //for other databases
 
-5. Sql, let you custom SQL
+5. SQL, let you custom SQL
 
     var users []User
     engine.SQL("select * from user").Find(&users)
