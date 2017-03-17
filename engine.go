@@ -260,9 +260,9 @@ func (engine *Engine) Ping() error {
 func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
 	if engine.showSQL && !engine.showExecTime {
 		if len(sqlArgs) > 0 {
-			engine.logger.Infof("[sql] %v [args] %v", sqlStr, sqlArgs)
+			engine.logger.Infof("[SQL] %v %v", sqlStr, sqlArgs)
 		} else {
-			engine.logger.Infof("[sql] %v", sqlStr)
+			engine.logger.Infof("[SQL] %v", sqlStr)
 		}
 	}
 }
@@ -273,9 +273,9 @@ func (engine *Engine) logSQLQueryTime(sqlStr string, args []interface{}, executi
 		stmt, res, err := executionBlock()
 		execDuration := time.Since(b4ExecTime)
 		if len(args) > 0 {
-			engine.logger.Infof("[sql] %s [args] %v - took: %v", sqlStr, args, execDuration)
+			engine.logger.Infof("[SQL] %s %v - took: %v", sqlStr, args, execDuration)
 		} else {
-			engine.logger.Infof("[sql] %s - took: %v", sqlStr, execDuration)
+			engine.logger.Infof("[SQL] %s - took: %v", sqlStr, execDuration)
 		}
 		return stmt, res, err
 	}
