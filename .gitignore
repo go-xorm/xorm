@@ -27,3 +27,4 @@ vendor
 .vendor
 temp_test.go
 .vscode
+xorm.test

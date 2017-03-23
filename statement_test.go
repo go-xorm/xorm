@@ -2,11 +2,8 @@ package xorm
 
 import (
 	"reflect"
-	"sync"
-	"testing"
-	"time"
-
 	"strings"
+	"testing"
 
 	"github.com/go-xorm/core"
 )
@@ -24,14 +21,6 @@ var colStrTests = []struct {
 	{"", 8, "`ID`, `IsDeleted`, `Caption`, `Code1`, `Code2`, `Code3`, `ParentID`, `Latitude`"},
 }
 
-// !nemec784! Only for Statement object creation
-const driverName = "mysql"
-const dataSourceName = "Server=TestServer;Database=TestDB;Uid=testUser;Pwd=testPassword;"
-
-func init() {
-	core.RegisterDriver(driverName, &mysqlDriver{})
-}
-
 func TestColumnsStringGeneration(t *testing.T) {
 
 	var statement *Statement
@@ -41,18 +30,21 @@ func TestColumnsStringGeneration(t *testing.T) {
 		statement = createTestStatement()
 
 		if testCase.omitColumn != "" {
-			statement.Omit(testCase.omitColumn) // !nemec784! Column must be skipped
+			statement.Omit(testCase.omitColumn)
 		}
 
+		columns := statement.RefTable.Columns()
 		if testCase.onlyToDBColumnNdx >= 0 {
-			columns := statement.RefTable.Columns()
-			columns[testCase.onlyToDBColumnNdx].MapType = core.ONLYTODB // !nemec784! Column must be skipped
+			columns[testCase.onlyToDBColumnNdx].MapType = core.ONLYTODB
 		}
 
 		actual := statement.genColumnStr()
 
 		if actual != testCase.expected {
 			t.Errorf("[test #%d] Unexpected columns string:\nwant:\t%s\nhave:\t%s", ndx, testCase.expected, actual)
+		}
+		if testCase.onlyToDBColumnNdx >= 0 {
+			columns[testCase.onlyToDBColumnNdx].MapType = core.TWOSIDES
 		}
 	}
 }
@@ -166,40 +158,10 @@ func (TestType) TableName() string {
 }
 
 func createTestStatement() *Statement {
-
-	engine := createTestEngine()
-
 	statement := &Statement{}
 	statement.Init()
-	statement.Engine = engine
+	statement.Engine = testEngine
 	statement.setRefValue(reflect.ValueOf(TestType{}))
 
 	return statement
-}
-
-func createTestEngine() *Engine {
-	driver := core.QueryDriver(driverName)
-	uri, err := driver.Parse(driverName, dataSourceName)
-
-	if err != nil {
-		panic(err)
-	}
-
-	dialect := &mysql{}
-	err = dialect.Init(nil, uri, driverName, dataSourceName)
-
-	if err != nil {
-		panic(err)
-	}
-
-	engine := &Engine{
-		dialect:       dialect,
-		Tables:        make(map[reflect.Type]*core.Table),
-		mutex:         &sync.RWMutex{},
-		TagIdentifier: "xorm",
-		TZLocation:    time.Local,
-	}
-	engine.SetMapper(core.NewCacheMapper(new(core.SnakeMapper)))
-
-	return engine
 }
