@@ -195,14 +195,14 @@ func (statement *Statement) Or(query interface{}, args ...interface{}) *Statemen
 
 // In generate "Where column IN (?) " statement
 func (statement *Statement) In(column string, args ...interface{}) *Statement {
-	in := builder.In(statement.Engine.quote(column), args...)
+	in := builder.In(statement.Engine.Quote(column), args...)
 	statement.cond = statement.cond.And(in)
 	return statement
 }
 
 // NotIn generate "Where column NOT IN (?) " statement
 func (statement *Statement) NotIn(column string, args ...interface{}) *Statement {
-	notIn := builder.NotIn(statement.Engine.quote(column), args...)
+	notIn := builder.NotIn(statement.Engine.Quote(column), args...)
 	statement.cond = statement.cond.And(notIn)
 	return statement
 }
