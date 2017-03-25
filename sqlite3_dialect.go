@@ -434,3 +434,10 @@ func (db *sqlite3) GetIndexes(tableName string) (map[string]*core.Index, error) 
 func (db *sqlite3) Filters() []core.Filter {
 	return []core.Filter{&core.IdFilter{}}
 }
+
+type sqlite3Driver struct {
+}
+
+func (p *sqlite3Driver) Parse(driverName, dataSourceName string) (*core.Uri, error) {
+	return &core.Uri{DbType: core.SQLITE, DbName: dataSourceName}, nil
+}
