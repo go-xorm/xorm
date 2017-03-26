@@ -46,17 +46,17 @@ func TestSum(t *testing.T) {
 	colInt := testEngine.ColumnMapper.Obj2Table("Int")
 	colFloat := testEngine.ColumnMapper.Obj2Table("Float")
 
-	sumInt, err := testEngine.Sum(new(SumStruct), "`"+colInt+"`")
+	sumInt, err := testEngine.Sum(new(SumStruct), colInt)
 	assert.NoError(t, err)
 	assert.EqualValues(t, int(sumInt), i)
 
-	sumFloat, err := testEngine.Sum(new(SumStruct), "`"+colFloat+"`")
+	sumFloat, err := testEngine.Sum(new(SumStruct), colFloat)
 	assert.NoError(t, err)
 	assert.Condition(t, func() bool {
 		return isFloatEq(sumFloat, float64(f), 2)
 	})
 
-	sums, err := testEngine.Sums(new(SumStruct), "`"+colInt+"`", "`"+colFloat+"`")
+	sums, err := testEngine.Sums(new(SumStruct), colInt, colFloat)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(sums))
 	assert.EqualValues(t, i, int(sums[0]))
@@ -64,7 +64,7 @@ func TestSum(t *testing.T) {
 		return isFloatEq(sums[1], float64(f), 2)
 	})
 
-	sumsInt, err := testEngine.SumsInt(new(SumStruct), "`"+colInt+"`")
+	sumsInt, err := testEngine.SumsInt(new(SumStruct), colInt)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(sumsInt))
 	assert.EqualValues(t, i, int(sumsInt[0]))
