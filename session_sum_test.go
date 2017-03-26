@@ -17,6 +17,8 @@ func isFloatEq(i, j float64, precision int) bool {
 }
 
 func TestSum(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
 	type SumStruct struct {
 		Int   int
 		Float float32
