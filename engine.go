@@ -44,6 +44,8 @@ type Engine struct {
 	DatabaseTZ *time.Location // The timezone of the database
 
 	disableGlobalCache bool
+
+	tagHandlers map[string]tagHandler
 }
 
 // ShowSQL show SQL statement or not on logger if log level is great than INFO
@@ -780,13 +782,18 @@ func (engine *Engine) autoMapType(v reflect.Value) *core.Table {
 	defer engine.mutex.Unlock()
 	table, ok := engine.Tables[t]
 	if !ok {
-		table = engine.mapType(v)
-		engine.Tables[t] = table
-		if engine.Cacher != nil {
-			if v.CanAddr() {
-				engine.GobRegister(v.Addr().Interface())
-			} else {
-				engine.GobRegister(v.Interface())
+		var err error
+		table, err = engine.mapType(v)
+		if err != nil {
+			engine.logger.Error(err)
+		} else {
+			engine.Tables[t] = table
+			if engine.Cacher != nil {
+				if v.CanAddr() {
+					engine.GobRegister(v.Addr().Interface())
+				} else {
+					engine.GobRegister(v.Interface())
+				}
 			}
 		}
 	}
@@ -842,7 +849,7 @@ var (
 	tpTableName = reflect.TypeOf((*TableName)(nil)).Elem()
 )
 
-func (engine *Engine) mapType(v reflect.Value) *core.Table {
+func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 	t := v.Type()
 	table := engine.newTable()
 	if tb, ok := v.Interface().(TableName); ok {
@@ -861,7 +868,6 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 	table.Type = t
 
 	var idFieldColName string
-	var err error
 	var hasCacheTag, hasNoCacheTag bool
 
 	for i := 0; i < t.NumField(); i++ {
@@ -881,186 +887,92 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 				if tags[0] == "-" {
 					continue
 				}
-				if strings.ToUpper(tags[0]) == "EXTENDS" {
-					switch fieldValue.Kind() {
-					case reflect.Ptr:
-						f := fieldValue.Type().Elem()
-						if f.Kind() == reflect.Struct {
-							fieldPtr := fieldValue
-							fieldValue = fieldValue.Elem()
-							if !fieldValue.IsValid() || fieldPtr.IsNil() {
-								fieldValue = reflect.New(f).Elem()
-							}
-						}
-						fallthrough
-					case reflect.Struct:
-						parentTable := engine.mapType(fieldValue)
-						for _, col := range parentTable.Columns() {
-							col.FieldName = fmt.Sprintf("%v.%v", t.Field(i).Name, col.FieldName)
-							table.AddColumn(col)
-							for indexName, indexType := range col.Indexes {
-								addIndex(indexName, table, col, indexType)
-							}
-						}
-						continue
-					default:
-						//TODO: warning
-					}
+
+				var ctx = tagContext{
+					table:      table,
+					col:        col,
+					fieldValue: fieldValue,
+					indexNames: make(map[string]int),
+					engine:     engine,
 				}
 
-				indexNames := make(map[string]int)
-				var isIndex, isUnique bool
-				var preKey string
+				if strings.ToUpper(tags[0]) == "EXTENDS" {
+					if err := ExtendsTagHandler(&ctx); err != nil {
+						return nil, err
+					}
+					continue
+				}
+
 				for j, key := range tags {
 					k := strings.ToUpper(key)
-					switch {
-					case k == "<-":
-						col.MapType = core.ONLYFROMDB
-					case k == "->":
-						col.MapType = core.ONLYTODB
-					case k == "PK":
-						col.IsPrimaryKey = true
-						col.Nullable = false
-					case k == "NULL":
-						if j == 0 {
-							col.Nullable = true
-						} else {
-							col.Nullable = (strings.ToUpper(tags[j-1]) != "NOT")
-						}
-					// TODO: for postgres how add autoincr?
-					/*case strings.HasPrefix(k, "AUTOINCR(") && strings.HasSuffix(k, ")"):
-					col.IsAutoIncrement = true
+					ctx.tagName = k
 
-					autoStart := k[len("AUTOINCR")+1 : len(k)-1]
-					autoStartInt, err := strconv.Atoi(autoStart)
-					if err != nil {
-						engine.LogError(err)
+					pStart := strings.Index(k, "(")
+					if pStart == 0 {
+						return nil, errors.New("( could not be the first charactor")
 					}
-					col.AutoIncrStart = autoStartInt*/
-					case k == "AUTOINCR":
-						col.IsAutoIncrement = true
-						//col.AutoIncrStart = 1
-					case k == "DEFAULT":
-						col.Default = tags[j+1]
-					case k == "CREATED":
-						col.IsCreated = true
-					case k == "VERSION":
-						col.IsVersion = true
-						col.Default = "1"
-					case k == "UTC":
-						col.TimeZone = time.UTC
-					case k == "LOCAL":
-						col.TimeZone = time.Local
-					case strings.HasPrefix(k, "LOCALE(") && strings.HasSuffix(k, ")"):
-						location := k[len("LOCALE")+1 : len(k)-1]
-						col.TimeZone, err = time.LoadLocation(location)
-						if err != nil {
-							engine.logger.Error(err)
+					if pStart > -1 {
+						if !strings.HasSuffix(k, ")") {
+							return nil, errors.New("cannot match ) charactor")
 						}
-					case k == "UPDATED":
-						col.IsUpdated = true
-					case k == "DELETED":
-						col.IsDeleted = true
-					case strings.HasPrefix(k, "INDEX(") && strings.HasSuffix(k, ")"):
-						indexName := k[len("INDEX")+1 : len(k)-1]
-						indexNames[indexName] = core.IndexType
-					case k == "INDEX":
-						isIndex = true
-					case strings.HasPrefix(k, "UNIQUE(") && strings.HasSuffix(k, ")"):
-						indexName := k[len("UNIQUE")+1 : len(k)-1]
-						indexNames[indexName] = core.UniqueType
-					case k == "UNIQUE":
-						isUnique = true
-					case k == "NOTNULL":
-						col.Nullable = false
-					case k == "CACHE":
-						if !hasCacheTag {
-							hasCacheTag = true
-						}
-					case k == "NOCACHE":
-						if !hasNoCacheTag {
-							hasNoCacheTag = true
-						}
-					case k == "NOT":
-					default:
-						if strings.HasPrefix(k, "'") && strings.HasSuffix(k, "'") {
-							if preKey != "DEFAULT" {
-								col.Name = key[1 : len(key)-1]
-							}
-						} else if strings.Contains(k, "(") && strings.HasSuffix(k, ")") {
-							fs := strings.Split(k, "(")
 
-							if _, ok := core.SqlTypes[fs[0]]; !ok {
-								preKey = k
-								continue
-							}
-							col.SQLType = core.SQLType{Name: fs[0]}
-							if fs[0] == core.Enum && fs[1][0] == '\'' { //enum
-								options := strings.Split(fs[1][0:len(fs[1])-1], ",")
-								col.EnumOptions = make(map[string]int)
-								for k, v := range options {
-									v = strings.TrimSpace(v)
-									v = strings.Trim(v, "'")
-									col.EnumOptions[v] = k
-								}
-							} else if fs[0] == core.Set && fs[1][0] == '\'' { //set
-								options := strings.Split(fs[1][0:len(fs[1])-1], ",")
-								col.SetOptions = make(map[string]int)
-								for k, v := range options {
-									v = strings.TrimSpace(v)
-									v = strings.Trim(v, "'")
-									col.SetOptions[v] = k
-								}
-							} else {
-								fs2 := strings.Split(fs[1][0:len(fs[1])-1], ",")
-								if len(fs2) == 2 {
-									col.Length, err = strconv.Atoi(fs2[0])
-									if err != nil {
-										engine.logger.Error(err)
-									}
-									col.Length2, err = strconv.Atoi(fs2[1])
-									if err != nil {
-										engine.logger.Error(err)
-									}
-								} else if len(fs2) == 1 {
-									col.Length, err = strconv.Atoi(fs2[0])
-									if err != nil {
-										engine.logger.Error(err)
-									}
-								}
-							}
-						} else {
-							if _, ok := core.SqlTypes[k]; ok {
-								col.SQLType = core.SQLType{Name: k}
-							} else if key != col.Default {
-								col.Name = key
-							}
-						}
-						engine.dialect.SqlType(col)
+						ctx.tagName = k[:pStart]
+						ctx.params = strings.Split(k[pStart+1:len(k)-1], ",")
 					}
-					preKey = k
+
+					if j > 0 {
+						ctx.preTag = strings.ToUpper(tags[j-1])
+					}
+					if j < len(tags)-1 {
+						ctx.nextTag = strings.ToUpper(tags[j+1])
+					} else {
+						ctx.nextTag = ""
+					}
+
+					if h, ok := engine.tagHandlers[ctx.tagName]; ok {
+						if err := h(&ctx); err != nil {
+							return nil, err
+						}
+					} else {
+						if ctx.preTag == "DEFAULT" {
+							continue
+						}
+						if strings.HasPrefix(key, "'") && strings.HasSuffix(key, "'") {
+							col.Name = key[1 : len(key)-1]
+						} else {
+							col.Name = key
+						}
+					}
+
+					if ctx.hasCacheTag {
+						hasCacheTag = true
+					}
+					if ctx.hasNoCacheTag {
+						hasNoCacheTag = true
+					}
 				}
+
 				if col.SQLType.Name == "" {
 					col.SQLType = core.Type2SQLType(fieldType)
 				}
+				engine.dialect.SqlType(col)
 				if col.Length == 0 {
 					col.Length = col.SQLType.DefaultLength
 				}
 				if col.Length2 == 0 {
 					col.Length2 = col.SQLType.DefaultLength2
 				}
-
 				if col.Name == "" {
 					col.Name = engine.ColumnMapper.Obj2Table(t.Field(i).Name)
 				}
 
-				if isUnique {
-					indexNames[col.Name] = core.UniqueType
-				} else if isIndex {
-					indexNames[col.Name] = core.IndexType
+				if ctx.isUnique {
+					ctx.indexNames[col.Name] = core.UniqueType
+				} else if ctx.isIndex {
+					ctx.indexNames[col.Name] = core.IndexType
 				}
 
-				for indexName, indexType := range indexNames {
+				for indexName, indexType := range ctx.indexNames {
 					addIndex(indexName, table, col, indexType)
 				}
 			}
@@ -1114,7 +1026,7 @@ func (engine *Engine) mapType(v reflect.Value) *core.Table {
 		table.Cacher = nil
 	}
 
-	return table
+	return table, nil
 }
 
 // IsTableEmpty if a table has any reocrd
