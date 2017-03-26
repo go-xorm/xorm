@@ -146,4 +146,14 @@ func TestBelongsTo_Find(t *testing.T) {
 	//assert.Equal(t, face2.Id, noses1[1].Face.Id)
 	assert.Equal(t, "", noses1[0].Face.Name)
 	assert.Equal(t, "", noses1[1].Face.Name)
+
+	var noses2 []Nose
+	err = testEngine.Cascade().Find(&noses2)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(noses2))
+	// FIXME:
+	//assert.Equal(t, face1.Id, noses2[0].Face.Id)
+	//assert.Equal(t, face2.Id, noses2[1].Face.Id)
+	assert.Equal(t, "face1", noses2[0].Face.Name)
+	assert.Equal(t, "face2", noses2[1].Face.Name)
 }
