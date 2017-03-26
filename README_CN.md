@@ -81,12 +81,6 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 ## 安装
 
-推荐使用 [gopm](https://github.com/gpmgo/gopm) 进行安装：
-
-	gopm get github.com/go-xorm/xorm
-
-或者您也可以使用go工具进行安装：
-
 	go get github.com/go-xorm/xorm
 
 ## 文档

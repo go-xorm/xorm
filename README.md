@@ -46,8 +46,6 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * MsSql: [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
-* MsSql: [github.com/lunny/godbc](https://github.com/lunny/godbc)
-
 * Oracle: [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (experiment)
 
 # Changelog
@@ -78,12 +76,6 @@ methods can use `builder.Cond` as parameter
 [More changes ...](https://github.com/go-xorm/manual-en-US/tree/master/chapter-16)
 
 # Installation
-
-If you have [gopm](https://github.com/gpmgo/gopm) installed,
-
-	gopm get github.com/go-xorm/xorm
-
-Or
 
 	go get github.com/go-xorm/xorm
 
