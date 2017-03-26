@@ -1157,7 +1157,7 @@ func (statement *Statement) genSumSQL(bean interface{}, columns ...string) (stri
 
 	var sumStrs = make([]string, 0, len(columns))
 	for _, colName := range columns {
-		sumStrs = append(sumStrs, fmt.Sprintf("COALESCE(sum(%s),0)", colName))
+		sumStrs = append(sumStrs, fmt.Sprintf("COALESCE(sum(%s),0)", statement.Engine.Quote(colName)))
 	}
 
 	condSQL, condArgs, _ := statement.genConds(bean)
