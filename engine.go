@@ -23,6 +23,16 @@ import (
 	"github.com/go-xorm/core"
 )
 
+// QuoteMode describes quote handle mode
+type QuoteMode int
+
+// All QuoteModes
+const (
+	QuoteAddAlways QuoteMode = iota
+	QuoteNoAdd
+	//QuoteAddNonReserved
+)
+
 // Engine is the major struct of xorm, it means a database manager.
 // Commonly, an application only need one engine
 type Engine struct {
@@ -45,8 +55,8 @@ type Engine struct {
 	DatabaseTZ *time.Location // The timezone of the database
 
 	disableGlobalCache bool
-
-	tagHandlers map[string]tagHandler
+	tagHandlers        map[string]tagHandler
+	QuoteMode          QuoteMode
 }
 
 // ShowSQL show SQL statement or not on logger if log level is great than INFO
@@ -123,6 +133,9 @@ func (engine *Engine) SupportInsertMany() bool {
 // QuoteStr Engine's database use which character as quote.
 // mysql, sqlite use ` and postgres use "
 func (engine *Engine) QuoteStr() string {
+	if engine.QuoteMode == QuoteNoAdd {
+		return ""
+	}
 	return engine.dialect.QuoteStr()
 }
 
@@ -137,9 +150,9 @@ func (engine *Engine) Quote(value string) string {
 		return value
 	}
 
-	value = strings.Replace(value, ".", engine.dialect.QuoteStr()+"."+engine.dialect.QuoteStr(), -1)
+	value = strings.Replace(value, ".", engine.QuoteStr()+"."+engine.QuoteStr(), -1)
 
-	return engine.dialect.QuoteStr() + value + engine.dialect.QuoteStr()
+	return engine.QuoteStr() + value + engine.QuoteStr()
 }
 
 // QuoteTo quotes string and writes into the buffer
@@ -158,15 +171,15 @@ func (engine *Engine) QuoteTo(buf *bytes.Buffer, value string) {
 		return
 	}
 
-	value = strings.Replace(value, ".", engine.dialect.QuoteStr()+"."+engine.dialect.QuoteStr(), -1)
+	value = strings.Replace(value, ".", engine.QuoteStr()+"."+engine.QuoteStr(), -1)
 
-	buf.WriteString(engine.dialect.QuoteStr())
+	buf.WriteString(engine.QuoteStr())
 	buf.WriteString(value)
-	buf.WriteString(engine.dialect.QuoteStr())
+	buf.WriteString(engine.QuoteStr())
 }
 
 func (engine *Engine) quote(sql string) string {
-	return engine.dialect.QuoteStr() + sql + engine.dialect.QuoteStr()
+	return engine.QuoteStr() + sql + engine.QuoteStr()
 }
 
 // SqlType will be depracated, please use SQLType instead
