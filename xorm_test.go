@@ -16,15 +16,15 @@ var (
 )
 
 func prepareSqlite3Engine() error {
-	if testEngine == nil {
-		os.Remove("./test.db")
-		var err error
-		testEngine, err = NewEngine("sqlite3", "./test.db")
-		if err != nil {
-			return err
-		}
-		testEngine.ShowSQL(*showSQL)
+	//if testEngine == nil {
+	os.Remove("./test.db")
+	var err error
+	testEngine, err = NewEngine("sqlite3", "./test.db")
+	if err != nil {
+		return err
 	}
+	testEngine.ShowSQL(*showSQL)
+	//}
 	return nil
 }
 

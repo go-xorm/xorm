@@ -262,38 +262,39 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		}
 
 		cond = cond.And(builder.Eq{session.Engine.Quote(table.Version): verValue.Interface()})
-		condSQL, condArgs, _ = builder.ToSQL(cond)
-
-		if len(condSQL) > 0 {
-			condSQL = "WHERE " + condSQL
-		}
-
-		if st.LimitN > 0 {
-			condSQL = condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
-		}
-
-		sqlStr = fmt.Sprintf("UPDATE %v SET %v, %v %v",
-			session.Engine.Quote(session.Statement.TableName()),
-			strings.Join(colNames, ", "),
-			session.Engine.Quote(table.Version)+" = "+session.Engine.Quote(table.Version)+" + 1",
-			condSQL)
-
+		colNames = append(colNames, session.Engine.Quote(table.Version)+" = "+session.Engine.Quote(table.Version)+" + 1")
 		doIncVer = true
-	} else {
-		condSQL, condArgs, _ = builder.ToSQL(cond)
-		if len(condSQL) > 0 {
-			condSQL = "WHERE " + condSQL
-		}
-
-		if st.LimitN > 0 {
-			condSQL = condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
-		}
-
-		sqlStr = fmt.Sprintf("UPDATE %v SET %v %v",
-			session.Engine.Quote(session.Statement.TableName()),
-			strings.Join(colNames, ", "),
-			condSQL)
 	}
+
+	condSQL, condArgs, _ = builder.ToSQL(cond)
+	if len(condSQL) > 0 {
+		condSQL = "WHERE " + condSQL
+	}
+
+	if st.OrderStr != "" {
+		condSQL = condSQL + fmt.Sprintf(" ORDER BY %v", st.OrderStr)
+	}
+
+	// TODO: Only Mysql support
+	// MSSQL: update top (100) table1 set field1 = 1
+	if st.LimitN > 0 {
+		if st.Engine.dialect.DBType() == core.MYSQL {
+			condSQL = condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
+		} else if st.Engine.dialect.DBType() == core.SQLITE {
+			tempCondSQL := condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
+			cond = cond.And(builder.Expr(fmt.Sprintf("rowid IN (SELECT rowid FROM %v %v)",
+				session.Engine.Quote(session.Statement.TableName()), tempCondSQL), condArgs...))
+			condSQL, condArgs, _ = builder.ToSQL(cond)
+			if len(condSQL) > 0 {
+				condSQL = "WHERE " + condSQL
+			}
+		}
+	}
+
+	sqlStr = fmt.Sprintf("UPDATE %v SET %v %v",
+		session.Engine.Quote(session.Statement.TableName()),
+		strings.Join(colNames, ", "),
+		condSQL)
 
 	res, err := session.exec(sqlStr, append(args, condArgs...)...)
 	if err != nil {

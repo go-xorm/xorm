@@ -34,3 +34,41 @@ func TestUpdateMap(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 }
+
+func TestUpdateLimit(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type UpdateTable struct {
+		Id   int64
+		Name string
+		Age  int
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(UpdateTable)))
+	var tb = UpdateTable{
+		Name: "test1",
+		Age:  35,
+	}
+	cnt, err := testEngine.Insert(&tb)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	tb.Name = "test2"
+	tb.Id = 0
+	cnt, err = testEngine.Insert(&tb)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	cnt, err = testEngine.OrderBy("name desc").Limit(1).Update(&UpdateTable{
+		Age: 30,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var uts []UpdateTable
+	err = testEngine.Find(&uts)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(uts))
+	assert.EqualValues(t, 35, uts[0].Age)
+	assert.EqualValues(t, 30, uts[1].Age)
+}
