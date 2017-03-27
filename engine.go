@@ -904,6 +904,11 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 				}
 
 				for j, key := range tags {
+					if ctx.ignoreNext {
+						ctx.ignoreNext = false
+						continue
+					}
+
 					k := strings.ToUpper(key)
 					ctx.tagName = k
 
@@ -934,9 +939,6 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 							return nil, err
 						}
 					} else {
-						if ctx.preTag == "DEFAULT" {
-							continue
-						}
 						if strings.HasPrefix(key, "'") && strings.HasSuffix(key, "'") {
 							col.Name = key[1 : len(key)-1]
 						} else {
