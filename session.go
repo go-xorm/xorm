@@ -458,7 +458,21 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 					case reflect.Uint8:
 						if fieldType.Elem().Kind() == reflect.Uint8 {
 							hasAssigned = true
-							fieldValue.Set(vv)
+							if col.SQLType.IsText() {
+								x := reflect.New(fieldType)
+								err := json.Unmarshal(vv.Bytes(), x.Interface())
+								if err != nil {
+									session.Engine.logger.Error(err)
+									return nil, err
+								}
+								fieldValue.Set(x.Elem())
+							} else {
+								for i := 0; i < fieldValue.Len(); i++ {
+									if i < vv.Len() {
+										fieldValue.Index(i).Set(vv.Index(i))
+									}
+								}
+							}
 						}
 					}
 				}

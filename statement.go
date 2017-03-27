@@ -410,7 +410,11 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 				if fieldValue == reflect.Zero(fieldType) {
 					continue
 				}
-				if fieldValue.IsNil() || !fieldValue.IsValid() || fieldValue.Len() == 0 {
+				if fieldType.Kind() == reflect.Array {
+					if isArrayValueZero(fieldValue) {
+						continue
+					}
+				} else if fieldValue.IsNil() || !fieldValue.IsValid() || fieldValue.Len() == 0 {
 					continue
 				}
 			}
@@ -425,13 +429,16 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			} else if col.SQLType.IsBlob() {
 				var bytes []byte
 				var err error
-				if (fieldType.Kind() == reflect.Array || fieldType.Kind() == reflect.Slice) &&
+				if fieldType.Kind() == reflect.Slice &&
 					fieldType.Elem().Kind() == reflect.Uint8 {
 					if fieldValue.Len() > 0 {
 						val = fieldValue.Bytes()
 					} else {
 						continue
 					}
+				} else if fieldType.Kind() == reflect.Array &&
+					fieldType.Elem().Kind() == reflect.Uint8 {
+					val = fieldValue.Slice(0, 0).Interface()
 				} else {
 					bytes, err = json.Marshal(fieldValue.Interface())
 					if err != nil {
@@ -643,7 +650,9 @@ func buildConds(engine *Engine, table *core.Table, bean interface{},
 					}
 				}
 			}
-		case reflect.Array, reflect.Slice, reflect.Map:
+		case reflect.Array:
+			continue
+		case reflect.Slice, reflect.Map:
 			if fieldValue == reflect.Zero(fieldType) {
 				continue
 			}

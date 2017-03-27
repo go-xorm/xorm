@@ -12,6 +12,7 @@ import (
 var (
 	testEngine *Engine
 	dbType     string
+	connStr    string
 )
 
 func prepareSqlite3Engine() error {
@@ -27,9 +28,27 @@ func prepareSqlite3Engine() error {
 	return nil
 }
 
+func prepareMysqlEngine() error {
+	if testEngine == nil {
+		var err error
+		testEngine, err = NewEngine("mysql", connStr)
+		if err != nil {
+			return err
+		}
+		testEngine.ShowSQL(*showSQL)
+		_, err = testEngine.Exec("DROP DATABASE")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func prepareEngine() error {
 	if dbType == "sqlite" {
 		return prepareSqlite3Engine()
+	} else if dbType == "mysql" {
+		return prepareMysqlEngine()
 	}
 	return errors.New("Unknown test database driver")
 }
