@@ -15,18 +15,6 @@
 			"revisionTime": "2013-03-24T15:51:38Z"
 		},
 		{
-			"checksumSHA1": "5nvKyr87pTK3kklv6cfFEW/6/Ac=",
-			"path": "github.com/go-xorm/builder",
-			"revision": "c6e604e9c7b7461715091e14ad0c242ec44c26e4",
-			"revisionTime": "2017-02-24T04:30:50Z"
-		},
-		{
-			"checksumSHA1": "5Hmt4OFn9e52IpMJUeHDWhts2zU=",
-			"path": "github.com/go-xorm/core",
-			"revision": "6c857c278a22be4947aca85b698efc14cc1dde95",
-			"revisionTime": "2017-03-25T14:16:13Z"
-		},
-		{
 			"checksumSHA1": "nQ1LgGMfbEff5JsbR80oPpyOAGY=",
 			"path": "github.com/lib/pq",
 			"revision": "d8eeeb8bae8896dd8e1b7e514ab0d396c4f12a1b",
