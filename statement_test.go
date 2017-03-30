@@ -26,11 +26,9 @@ var colStrTests = []struct {
 }
 
 func TestColumnsStringGeneration(t *testing.T) {
-
 	var statement *Statement
 
 	for ndx, testCase := range colStrTests {
-
 		statement = createTestStatement()
 
 		if testCase.omitColumn != "" {
@@ -54,7 +52,6 @@ func TestColumnsStringGeneration(t *testing.T) {
 }
 
 func BenchmarkColumnsStringGeneration(b *testing.B) {
-
 	b.StopTimer()
 
 	statement := createTestStatement()

@@ -86,6 +86,7 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		mutex:         &sync.RWMutex{},
 		TagIdentifier: "xorm",
 		TZLocation:    time.Local,
+		tagHandlers:   defaultTagHandlers,
 	}
 
 	logger := NewSimpleLogger(os.Stdout)
