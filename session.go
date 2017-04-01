@@ -337,6 +337,15 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 		}
 	}()
 
+	dbTZ := session.Engine.DatabaseTZ
+	if dbTZ == nil {
+		if session.Engine.dialect.DBType() == core.SQLITE {
+			dbTZ = time.UTC
+		} else {
+			dbTZ = time.Local
+		}
+	}
+
 	var tempMap = make(map[string]int)
 	var pk core.PK
 	for ii, key := range fields {
@@ -509,21 +518,19 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 				}
 			case reflect.Struct:
 				if fieldType.ConvertibleTo(core.TimeType) {
+					var tz *time.Location
+					if col.TimeZone == nil {
+						tz = session.Engine.TZLocation
+					} else {
+						tz = col.TimeZone
+					}
+
 					if rawValueType == core.TimeType {
 						hasAssigned = true
 
 						t := vv.Convert(core.TimeType).Interface().(time.Time)
 
 						z, _ := t.Zone()
-						dbTZ := session.Engine.DatabaseTZ
-						if dbTZ == nil {
-							if session.Engine.dialect.DBType() == core.SQLITE {
-								dbTZ = time.UTC
-							} else {
-								dbTZ = time.Local
-							}
-						}
-
 						// set new location if database don't save timezone or give an incorrect timezone
 						if len(z) == 0 || t.Year() == 0 || t.Location().String() != dbTZ.String() { // !nashtsai! HACK tmp work around for lib/pq doesn't properly time with location
 							session.Engine.logger.Debugf("empty zone key[%v] : %v | zone: %v | location: %+v\n", key, t, z, *t.Location())
@@ -532,11 +539,7 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 						}
 
 						// !nashtsai! convert to engine location
-						if col.TimeZone == nil {
-							t = t.In(session.Engine.TZLocation)
-						} else {
-							t = t.In(col.TimeZone)
-						}
+						t = t.In(tz)
 						fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
 
 						// t = fieldValue.Interface().(time.Time)
@@ -545,12 +548,7 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 					} else if rawValueType == core.IntType || rawValueType == core.Int64Type ||
 						rawValueType == core.Int32Type {
 						hasAssigned = true
-						var tz *time.Location
-						if col.TimeZone == nil {
-							tz = session.Engine.TZLocation
-						} else {
-							tz = col.TimeZone
-						}
+
 						t := time.Unix(vv.Int(), 0).In(tz)
 						//vv = reflect.ValueOf(t)
 						fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
