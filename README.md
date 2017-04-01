@@ -50,6 +50,11 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 # Changelog
 
+* **v0.6.2**
+    * refactor tag parse methods
+    * add Scan features to Get
+    * add QueryString method
+
 * **v0.6.0**
     * remove support for ql
     * add query condition builder support via [github.com/go-xorm/builder](https://github.com/go-xorm/builder), so `Where`, `And`, `Or` 
@@ -111,19 +116,21 @@ type User struct {
 err := engine.Sync2(new(User))
 ```
 
-* Query a SQL string, the returned results is []map[string][]byte
+* `Query` runs a SQL string, the returned results is `[]map[string][]byte`, `QueryString` returns `[]map[string]string`.
 
 ```Go
 results, err := engine.Query("select * from user")
+
+results, err := engine.QueryString("select * from user")
 ```
 
-* Execute a SQL string, the returned results
+* `Execute` runs a SQL string, it returns `affetcted` and `error`
 
 ```Go
 affected, err := engine.Exec("update user set age = ? where name = ?", age, name)
 ```
 
-* Insert one or multiple records to database
+* `Insert` one or multiple records to database
 
 ```Go
 affected, err := engine.Insert(&user)

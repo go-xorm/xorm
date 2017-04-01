@@ -54,6 +54,11 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 ## 更新日志
 
+* **v0.6.2**
+    * 重构Tag解析方式
+    * Get方法新增类似Sacn的特性
+    * 新增 QueryString 方法
+
 * **v0.6.0**
     * 去除对 ql 的支持
     * 新增条件查询分析器 [github.com/go-xorm/builder](https://github.com/go-xorm/builder), 从因此 `Where, And, Or` 函数
@@ -115,13 +120,15 @@ type User struct {
 err := engine.Sync2(new(User))
 ```
 
-* 最原始的也支持SQL语句查询，返回的结果类型为 []map[string][]byte
+* `Query` 最原始的也支持SQL语句查询，返回的结果类型为 []map[string][]byte。`QueryString` 返回 []map[string]string
 
 ```Go
 results, err := engine.Query("select * from user")
+
+results, err := engine.QueryString("select * from user")
 ```
 
-* 执行一个SQL语句
+* `Exec` 执行一个SQL语句
 
 ```Go
 affected, err := engine.Exec("update user set age = ? where name = ?", age, name)

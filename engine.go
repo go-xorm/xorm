@@ -1340,6 +1340,13 @@ func (engine *Engine) Query(sql string, paramStr ...interface{}) (resultsSlice [
 	return session.Query(sql, paramStr...)
 }
 
+// QueryString runs a raw sql and return records as []map[string]string
+func (engine *Engine) QueryString(sqlStr string, args ...interface{}) ([]map[string]string, error) {
+	session := engine.NewSession()
+	defer session.Close()
+	return session.QueryString(sqlStr, args...)
+}
+
 // Insert one or more records
 func (engine *Engine) Insert(beans ...interface{}) (int64, error) {
 	session := engine.NewSession()
