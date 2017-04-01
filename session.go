@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"hash/crc32"
 	"reflect"
-	"strconv"
 	"strings"
 	"time"
 
@@ -614,34 +613,10 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 							panic("unsupported non or composited primary key cascade")
 						}
 						var pk = make(core.PK, len(table.PrimaryKeys))
-
-						switch rawValueType.Kind() {
-						case reflect.Int64:
-							pk[0] = vv.Int()
-						case reflect.Int:
-							pk[0] = int(vv.Int())
-						case reflect.Int32:
-							pk[0] = int32(vv.Int())
-						case reflect.Int16:
-							pk[0] = int16(vv.Int())
-						case reflect.Int8:
-							pk[0] = int8(vv.Int())
-						case reflect.Uint64:
-							pk[0] = vv.Uint()
-						case reflect.Uint:
-							pk[0] = uint(vv.Uint())
-						case reflect.Uint32:
-							pk[0] = uint32(vv.Uint())
-						case reflect.Uint16:
-							pk[0] = uint16(vv.Uint())
-						case reflect.Uint8:
-							pk[0] = uint8(vv.Uint())
-						case reflect.String:
-							pk[0] = vv.String()
-						case reflect.Slice:
-							pk[0], _ = strconv.ParseInt(string(rawValue.Interface().([]byte)), 10, 64)
-						default:
-							panic(fmt.Sprintf("unsupported primary key type: %v, %v", rawValueType, fieldValue))
+						var err error
+						pk[0], err = asKind(vv, rawValueType)
+						if err != nil {
+							return nil, err
 						}
 
 						if !isPKZero(pk) {
