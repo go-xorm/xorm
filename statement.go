@@ -1114,7 +1114,11 @@ func (statement *Statement) genConds(bean interface{}) (string, []interface{}, e
 }
 
 func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}) {
-	statement.setRefValue(rValue(bean))
+	v := rValue(bean)
+	isStruct := v.Kind() == reflect.Struct
+	if isStruct {
+		statement.setRefValue(v)
+	}
 
 	var columnStr = statement.ColumnStr
 	if len(statement.selectStr) > 0 {
@@ -1133,14 +1137,22 @@ func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}) 
 			if len(columnStr) == 0 {
 				if len(statement.GroupByStr) > 0 {
 					columnStr = statement.Engine.Quote(strings.Replace(statement.GroupByStr, ",", statement.Engine.Quote(","), -1))
-				} else {
-					columnStr = "*"
 				}
 			}
 		}
 	}
 
-	condSQL, condArgs, _ := statement.genConds(bean)
+	if len(columnStr) == 0 {
+		columnStr = "*"
+	}
+
+	var condSQL string
+	var condArgs []interface{}
+	if isStruct {
+		condSQL, condArgs, _ = statement.genConds(bean)
+	} else {
+		condSQL, condArgs, _ = builder.ToSQL(statement.cond)
+	}
 
 	return statement.genSelectSQL(columnStr, condSQL), append(statement.joinArgs, condArgs...)
 }
