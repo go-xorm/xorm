@@ -208,40 +208,39 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 				v = x
 				fieldValue.Set(reflect.ValueOf(v).Convert(fieldType))
 			} else if session.Statement.UseCascade {
-				table := session.Engine.autoMapType(*fieldValue)
-				if table != nil {
-					// TODO: current only support 1 primary key
-					if len(table.PrimaryKeys) > 1 {
-						panic("unsupported composited primary key cascade")
-					}
-					var pk = make(core.PK, len(table.PrimaryKeys))
-					rawValueType := table.ColumnType(table.PKColumns()[0].FieldName)
-					var err error
-					pk[0], err = str2PK(string(data), rawValueType)
+				table, err := session.Engine.autoMapType(*fieldValue)
+				if err != nil {
+					return err
+				}
+
+				// TODO: current only support 1 primary key
+				if len(table.PrimaryKeys) > 1 {
+					panic("unsupported composited primary key cascade")
+				}
+				var pk = make(core.PK, len(table.PrimaryKeys))
+				rawValueType := table.ColumnType(table.PKColumns()[0].FieldName)
+				pk[0], err = str2PK(string(data), rawValueType)
+				if err != nil {
+					return err
+				}
+
+				if !isPKZero(pk) {
+					// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
+					// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
+					// property to be fetched lazily
+					structInter := reflect.New(fieldValue.Type())
+					newsession := session.Engine.NewSession()
+					defer newsession.Close()
+					has, err := newsession.Id(pk).NoCascade().Get(structInter.Interface())
 					if err != nil {
 						return err
 					}
-
-					if !isPKZero(pk) {
-						// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
-						// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
-						// property to be fetched lazily
-						structInter := reflect.New(fieldValue.Type())
-						newsession := session.Engine.NewSession()
-						defer newsession.Close()
-						has, err := newsession.Id(pk).NoCascade().Get(structInter.Interface())
-						if err != nil {
-							return err
-						}
-						if has {
-							v = structInter.Elem().Interface()
-							fieldValue.Set(reflect.ValueOf(v))
-						} else {
-							return errors.New("cascade obj is not exist")
-						}
+					if has {
+						v = structInter.Elem().Interface()
+						fieldValue.Set(reflect.ValueOf(v))
+					} else {
+						return errors.New("cascade obj is not exist")
 					}
-				} else {
-					return fmt.Errorf("unsupported struct type in Scan: %s", fieldValue.Type().String())
 				}
 			}
 		}
@@ -493,35 +492,36 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			default:
 				if session.Statement.UseCascade {
 					structInter := reflect.New(fieldType.Elem())
-					table := session.Engine.autoMapType(structInter.Elem())
-					if table != nil {
-						if len(table.PrimaryKeys) > 1 {
-							panic("unsupported composited primary key cascade")
-						}
-						var pk = make(core.PK, len(table.PrimaryKeys))
-						var err error
-						rawValueType := table.ColumnType(table.PKColumns()[0].FieldName)
-						pk[0], err = str2PK(string(data), rawValueType)
+					table, err := session.Engine.autoMapType(structInter.Elem())
+					if err != nil {
+						return err
+					}
+
+					if len(table.PrimaryKeys) > 1 {
+						panic("unsupported composited primary key cascade")
+					}
+					var pk = make(core.PK, len(table.PrimaryKeys))
+					rawValueType := table.ColumnType(table.PKColumns()[0].FieldName)
+					pk[0], err = str2PK(string(data), rawValueType)
+					if err != nil {
+						return err
+					}
+
+					if !isPKZero(pk) {
+						// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
+						// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
+						// property to be fetched lazily
+						newsession := session.Engine.NewSession()
+						defer newsession.Close()
+						has, err := newsession.Id(pk).NoCascade().Get(structInter.Interface())
 						if err != nil {
 							return err
 						}
-
-						if !isPKZero(pk) {
-							// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
-							// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
-							// property to be fetched lazily
-							newsession := session.Engine.NewSession()
-							defer newsession.Close()
-							has, err := newsession.Id(pk).NoCascade().Get(structInter.Interface())
-							if err != nil {
-								return err
-							}
-							if has {
-								v = structInter.Interface()
-								fieldValue.Set(reflect.ValueOf(v))
-							} else {
-								return errors.New("cascade obj is not exist")
-							}
+						if has {
+							v = structInter.Interface()
+							fieldValue.Set(reflect.ValueOf(v))
+						} else {
+							return errors.New("cascade obj is not exist")
 						}
 					}
 				} else {
@@ -603,7 +603,10 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 				return v.Value()
 			}
 
-			fieldTable := session.Engine.autoMapType(fieldValue)
+			fieldTable, err := session.Engine.autoMapType(fieldValue)
+			if err != nil {
+				return nil, err
+			}
 			if len(fieldTable.PrimaryKeys) == 1 {
 				pkField := reflect.Indirect(fieldValue).FieldByName(fieldTable.PKColumns()[0].FieldName)
 				return pkField.Interface(), nil

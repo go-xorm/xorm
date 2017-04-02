@@ -207,9 +207,14 @@ func (statement *Statement) NotIn(column string, args ...interface{}) *Statement
 	return statement
 }
 
-func (statement *Statement) setRefValue(v reflect.Value) {
-	statement.RefTable = statement.Engine.autoMapType(reflect.Indirect(v))
+func (statement *Statement) setRefValue(v reflect.Value) error {
+	var err error
+	statement.RefTable, err = statement.Engine.autoMapType(reflect.Indirect(v))
+	if err != nil {
+		return err
+	}
 	statement.tableName = statement.Engine.tbName(v)
+	return nil
 }
 
 // Table tempororily set table name, the parameter could be a string or a pointer of struct
@@ -219,7 +224,12 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 	if t.Kind() == reflect.String {
 		statement.AltTableName = tableNameOrBean.(string)
 	} else if t.Kind() == reflect.Struct {
-		statement.RefTable = statement.Engine.autoMapType(v)
+		var err error
+		statement.RefTable, err = statement.Engine.autoMapType(v)
+		if err != nil {
+			statement.Engine.logger.Error(err)
+			return statement
+		}
 		statement.AltTableName = statement.Engine.tbName(v)
 	}
 	return statement

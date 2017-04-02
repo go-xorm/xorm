@@ -606,40 +606,39 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 						}
 					}
 				} else if session.Statement.UseCascade {
-					table := session.Engine.autoMapType(*fieldValue)
-					if table != nil {
-						hasAssigned = true
-						if len(table.PrimaryKeys) != 1 {
-							panic("unsupported non or composited primary key cascade")
-						}
-						var pk = make(core.PK, len(table.PrimaryKeys))
-						var err error
-						pk[0], err = asKind(vv, rawValueType)
+					table, err := session.Engine.autoMapType(*fieldValue)
+					if err != nil {
+						return nil, err
+					}
+
+					hasAssigned = true
+					if len(table.PrimaryKeys) != 1 {
+						panic("unsupported non or composited primary key cascade")
+					}
+					var pk = make(core.PK, len(table.PrimaryKeys))
+					pk[0], err = asKind(vv, rawValueType)
+					if err != nil {
+						return nil, err
+					}
+
+					if !isPKZero(pk) {
+						// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
+						// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
+						// property to be fetched lazily
+						structInter := reflect.New(fieldValue.Type())
+						newsession := session.Engine.NewSession()
+						defer newsession.Close()
+						has, err := newsession.Id(pk).NoCascade().Get(structInter.Interface())
 						if err != nil {
 							return nil, err
 						}
-
-						if !isPKZero(pk) {
-							// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
-							// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
-							// property to be fetched lazily
-							structInter := reflect.New(fieldValue.Type())
-							newsession := session.Engine.NewSession()
-							defer newsession.Close()
-							has, err := newsession.Id(pk).NoCascade().Get(structInter.Interface())
-							if err != nil {
-								return nil, err
-							}
-							if has {
-								//v := structInter.Elem().Interface()
-								//fieldValue.Set(reflect.ValueOf(v))
-								fieldValue.Set(structInter.Elem())
-							} else {
-								return nil, errors.New("cascade obj is not exist")
-							}
+						if has {
+							//v := structInter.Elem().Interface()
+							//fieldValue.Set(reflect.ValueOf(v))
+							fieldValue.Set(structInter.Elem())
+						} else {
+							return nil, errors.New("cascade obj is not exist")
 						}
-					} else {
-						session.Engine.logger.Error("unsupported struct type in Scan: ", fieldValue.Type().String())
 					}
 				}
 			case reflect.Ptr:
