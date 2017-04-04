@@ -43,16 +43,21 @@ func TestBelongsTo_Get(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, cfgNose.Id, nose.Id)
-	// FIXME: the id should be set back to the field
-	//assert.Equal(t, cfgNose.Face.Id, nose.Face.Id)
+	assert.Equal(t, cfgNose.Face.Id, nose.Face.Id)
 	assert.Equal(t, "", cfgNose.Face.Name)
+
+	err = testEngine.EagerLoad(&cfgNose)
+	assert.NoError(t, err)
+	assert.Equal(t, cfgNose.Id, nose.Id)
+	assert.Equal(t, nose.Face.Id, cfgNose.Face.Id)
+	assert.Equal(t, "face1", cfgNose.Face.Name)
 
 	var cfgNose2 Nose
 	has, err = testEngine.Cascade().Get(&cfgNose2)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, cfgNose2.Id, nose.Id)
-	assert.Equal(t, cfgNose2.Face.Id, nose.Face.Id)
+	assert.Equal(t, nose.Face.Id, cfgNose2.Face.Id)
 	assert.Equal(t, "face1", cfgNose2.Face.Name)
 }
 
@@ -92,16 +97,21 @@ func TestBelongsTo_GetPtr(t *testing.T) {
 	has, err = testEngine.Get(&cfgNose)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
-	assert.Equal(t, cfgNose.Id, nose.Id)
-	// FIXME: the id should be set back to the field
-	//assert.Equal(t, cfgNose.Face.Id, nose.Face.Id)
+	assert.Equal(t, nose.Id, cfgNose.Id)
+	assert.Equal(t, nose.Face.Id, cfgNose.Face.Id)
+
+	err = testEngine.EagerLoad(&cfgNose)
+	assert.NoError(t, err)
+	assert.Equal(t, nose.Id, cfgNose.Id)
+	assert.Equal(t, nose.Face.Id, cfgNose.Face.Id)
+	assert.Equal(t, "face1", cfgNose.Face.Name)
 
 	var cfgNose2 Nose
 	has, err = testEngine.Cascade().Get(&cfgNose2)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
-	assert.Equal(t, cfgNose2.Id, nose.Id)
-	assert.Equal(t, cfgNose2.Face.Id, nose.Face.Id)
+	assert.Equal(t, nose.Id, cfgNose2.Id)
+	assert.Equal(t, nose.Face.Id, cfgNose2.Face.Id)
 	assert.Equal(t, "face1", cfgNose2.Face.Name)
 }
 

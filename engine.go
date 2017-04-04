@@ -1498,6 +1498,13 @@ func (engine *Engine) Exist(bean ...interface{}) (bool, error) {
 	return session.Exist(bean...)
 }
 
+// EagerLoad loads bean's belongs to tag field immedicatlly
+func (engine *Engine) EagerLoad(bean interface{}, cols ...string) error {
+	session := engine.NewSession()
+	defer session.Close()
+	return session.EagerLoad(bean, cols...)
+}
+
 // Find retrieve records from table, condiBeans's non-empty fields
 // are conditions. beans could be []Struct, []*Struct, map[int64]Struct
 // map[int64]*Struct

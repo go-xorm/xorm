@@ -636,28 +636,6 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 						session.engine.logger.Error("sql.Sanner error:", err.Error())
 						hasAssigned = false
 					}
-					/*} else if col.SQLType.IsJson() {
-					if rawValueType.Kind() == reflect.String {
-						hasAssigned = true
-						x := reflect.New(fieldType)
-						if len([]byte(vv.String())) > 0 {
-							err := json.Unmarshal([]byte(vv.String()), x.Interface())
-							if err != nil {
-								return nil, err
-							}
-							fieldValue.Set(x.Elem())
-						}
-					} else if rawValueType.Kind() == reflect.Slice {
-						hasAssigned = true
-						x := reflect.New(fieldType)
-						if len(vv.Bytes()) > 0 {
-							err := json.Unmarshal(vv.Bytes(), x.Interface())
-							if err != nil {
-								return nil, err
-							}
-							fieldValue.Set(x.Elem())
-						}
-					}*/
 				} else if (col.AssociateType == core.AssociateNone &&
 					session.statement.cascadeMode == cascadeCompitable) ||
 					(col.AssociateType == core.AssociateBelongsTo &&
@@ -690,122 +668,193 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 							return nil, errors.New("cascade obj is not exist")
 						}
 					}
+				} else if col.AssociateType == core.AssociateBelongsTo {
+					hasAssigned = true
+					err := convertAssign(fieldValue.FieldByName(table.PKColumns()[0].FieldName).Addr().Interface(),
+						vv.Interface())
+					if err != nil {
+						return nil, err
+					}
 				}
 			case reflect.Ptr:
-				// !nashtsai! TODO merge duplicated codes above
-				switch fieldType {
-				// following types case matching ptr's native type, therefore assign ptr directly
-				case core.PtrStringType:
-					if rawValueType.Kind() == reflect.String {
-						x := vv.String()
+				if fieldType != core.PtrTimeType && fieldType.Elem().Kind() == reflect.Struct {
+					if (col.AssociateType == core.AssociateNone &&
+						session.statement.cascadeMode == cascadeCompitable) ||
+						(col.AssociateType == core.AssociateBelongsTo &&
+							session.statement.cascadeMode == cascadeAutoLoad) {
+						table := col.AssociateTable
+
 						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrBoolType:
-					if rawValueType.Kind() == reflect.Bool {
-						x := vv.Bool()
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrTimeType:
-					if rawValueType == core.PtrTimeType {
-						hasAssigned = true
-						var x = rawValue.Interface().(time.Time)
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrFloat64Type:
-					if rawValueType.Kind() == reflect.Float64 {
-						x := vv.Float()
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrUint64Type:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = uint64(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrInt64Type:
-					if rawValueType.Kind() == reflect.Int64 {
-						x := vv.Int()
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrFloat32Type:
-					if rawValueType.Kind() == reflect.Float64 {
-						var x = float32(vv.Float())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrIntType:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = int(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrInt32Type:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = int32(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrInt8Type:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = int8(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrInt16Type:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = int16(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrUintType:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = uint(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrUint32Type:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = uint32(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.Uint8Type:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = uint8(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.Uint16Type:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = uint16(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.Complex64Type:
-					var x complex64
-					if len([]byte(vv.String())) > 0 {
-						err := json.Unmarshal([]byte(vv.String()), &x)
+						if len(table.PrimaryKeys) != 1 {
+							panic("unsupported non or composited primary key cascade")
+						}
+						var pk = make(core.PK, len(table.PrimaryKeys))
+						var err error
+						pk[0], err = asKind(vv, rawValueType)
 						if err != nil {
 							return nil, err
 						}
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-					hasAssigned = true
-				case core.Complex128Type:
-					var x complex128
-					if len([]byte(vv.String())) > 0 {
-						err := json.Unmarshal([]byte(vv.String()), &x)
+
+						if !isPKZero(pk) {
+							// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
+							// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
+							// property to be fetched lazily
+							var structInter reflect.Value
+							if fieldValue.Kind() == reflect.Ptr {
+								if fieldValue.IsNil() {
+									structInter = reflect.New(fieldValue.Type().Elem())
+								} else {
+									structInter = *fieldValue
+								}
+							} else {
+								structInter = fieldValue.Addr()
+							}
+
+							has, err := session.ID(pk).NoCascade().get(structInter.Interface())
+							if err != nil {
+								return nil, err
+							}
+							if has {
+								if fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
+									fieldValue.Set(structInter)
+								}
+							} else {
+								return nil, errors.New("cascade obj is not exist")
+							}
+						}
+					} else if col.AssociateType == core.AssociateBelongsTo {
+						hasAssigned = true
+						if fieldValue.IsNil() {
+							structInter := reflect.New(fieldValue.Type().Elem())
+							fieldValue.Set(structInter)
+						}
+
+						//fieldValue.Elem().FieldByName(table.PKColumns()[0].FieldName).Set(vv)
+						err := convertAssign(fieldValue.Elem().FieldByName(table.PKColumns()[0].FieldName).Addr().Interface(),
+							vv.Interface())
 						if err != nil {
 							return nil, err
 						}
-						fieldValue.Set(reflect.ValueOf(&x))
 					}
-					hasAssigned = true
-				} // switch fieldType
+				} else {
+					// !nashtsai! TODO merge duplicated codes above
+					//typeStr := fieldType.String()
+					switch fieldType {
+					// following types case matching ptr's native type, therefore assign ptr directly
+					case core.PtrStringType:
+						if rawValueType.Kind() == reflect.String {
+							x := vv.String()
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrBoolType:
+						if rawValueType.Kind() == reflect.Bool {
+							x := vv.Bool()
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrTimeType:
+						if rawValueType == core.PtrTimeType {
+							hasAssigned = true
+							var x = rawValue.Interface().(time.Time)
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrFloat64Type:
+						if rawValueType.Kind() == reflect.Float64 {
+							x := vv.Float()
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrUint64Type:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = uint64(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrInt64Type:
+						if rawValueType.Kind() == reflect.Int64 {
+							x := vv.Int()
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrFloat32Type:
+						if rawValueType.Kind() == reflect.Float64 {
+							var x = float32(vv.Float())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrIntType:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = int(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrInt32Type:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = int32(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrInt8Type:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = int8(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrInt16Type:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = int16(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrUintType:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = uint(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrUint32Type:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = uint32(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrUint8Type:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = uint8(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrUint16Type:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = uint16(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrComplex64Type:
+						var x complex64
+						if len([]byte(vv.String())) > 0 {
+							err := json.Unmarshal([]byte(vv.String()), &x)
+							if err != nil {
+								session.engine.logger.Error(err)
+							} else {
+								fieldValue.Set(reflect.ValueOf(&x))
+							}
+						}
+						hasAssigned = true
+					case core.PtrComplex128Type:
+						var x complex128
+						if len([]byte(vv.String())) > 0 {
+							err := json.Unmarshal([]byte(vv.String()), &x)
+							if err != nil {
+								session.engine.logger.Error(err)
+							} else {
+								fieldValue.Set(reflect.ValueOf(&x))
+							}
+						}
+						hasAssigned = true
+					} // switch fieldType
+				}
 			} // switch fieldType.Kind()
 
 			// !nashtsai! for value can't be assigned directly fallback to convert to []byte then back to value

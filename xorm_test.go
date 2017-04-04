@@ -33,10 +33,8 @@ var (
 func createEngine(dbType, connStr string) error {
 	if testEngine == nil {
 		var err error
-
 		if !*cluster {
 			testEngine, err = NewEngine(dbType, connStr)
-
 		} else {
 			testEngine, err = NewEngineGroup(dbType, strings.Split(connStr, *splitter))
 		}
