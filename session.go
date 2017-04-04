@@ -149,7 +149,7 @@ func (session *Session) Alias(alias string) *Session {
 
 // NoCascade indicate that no cascade load child object
 func (session *Session) NoCascade() *Session {
-	session.statement.cascadeMode = cascadeManuallyLoad
+	session.statement.cascadeMode = cascadeManually
 	return session
 }
 
@@ -204,12 +204,12 @@ func (session *Session) Charset(charset string) *Session {
 
 // Cascade indicates if loading sub Struct
 func (session *Session) Cascade(trueOrFalse ...bool) *Session {
-	var mode = cascadeAutoLoad
+	var mode = cascadeAuto
 	if len(trueOrFalse) >= 1 {
 		if trueOrFalse[0] {
-			mode = cascadeAutoLoad
+			mode = cascadeAuto
 		} else {
-			mode = cascadeManuallyLoad
+			mode = cascadeManually
 		}
 	}
 
@@ -447,8 +447,8 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 				continue
 			}
 
-			rawValueType := reflect.TypeOf(rawValue.Interface())
 			vv := reflect.ValueOf(rawValue.Interface())
+			rawValueType := vv.Type()
 			col := table.GetColumnIdx(key, idx)
 			if col.IsPrimaryKey {
 				pk = append(pk, rawValue.Interface())
@@ -639,35 +639,25 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 				} else if (col.AssociateType == core.AssociateNone &&
 					session.statement.cascadeMode == cascadeCompitable) ||
 					(col.AssociateType == core.AssociateBelongsTo &&
-						session.statement.cascadeMode == cascadeAutoLoad) {
-					table := col.AssociateTable
-
-					hasAssigned = true
-					if len(table.PrimaryKeys) != 1 {
-						return nil, errors.New("unsupported non or composited primary key cascade")
-					}
-					var pk = make(core.PK, len(table.PrimaryKeys))
+						session.statement.cascadeMode == cascadeAuto) {
+					var pk = make(core.PK, len(col.AssociateTable.PrimaryKeys))
 					var err error
-					pk[0], err = asKind(vv, rawValueType)
+					rawValueType := col.AssociateTable.PKColumns()[0].FieldType
+					if rawValueType.Kind() == reflect.Ptr {
+						pk[0] = reflect.New(rawValueType.Elem()).Interface()
+					} else {
+						pk[0] = reflect.New(rawValueType).Interface()
+					}
+					err = convertAssign(pk[0], vv.Interface())
 					if err != nil {
 						return nil, err
 					}
 
-					if !isPKZero(pk) {
-						// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
-						// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
-						// property to be fetched lazily
-						structInter := reflect.New(fieldValue.Type())
-						has, err := session.ID(pk).NoCascade().get(structInter.Interface())
-						if err != nil {
-							return nil, err
-						}
-						if has {
-							fieldValue.Set(structInter.Elem())
-						} else {
-							return nil, errors.New("cascade obj is not exist")
-						}
+					pk[0] = reflect.ValueOf(pk[0]).Elem().Interface()
+					if err = session.getByPK(pk, fieldValue); err != nil {
+						return nil, err
 					}
+					hasAssigned = true
 				} else if col.AssociateType == core.AssociateBelongsTo {
 					hasAssigned = true
 					err := convertAssign(fieldValue.FieldByName(table.PKColumns()[0].FieldName).Addr().Interface(),
@@ -681,47 +671,25 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 					if (col.AssociateType == core.AssociateNone &&
 						session.statement.cascadeMode == cascadeCompitable) ||
 						(col.AssociateType == core.AssociateBelongsTo &&
-							session.statement.cascadeMode == cascadeAutoLoad) {
-						table := col.AssociateTable
-
-						hasAssigned = true
-						if len(table.PrimaryKeys) != 1 {
-							panic("unsupported non or composited primary key cascade")
-						}
-						var pk = make(core.PK, len(table.PrimaryKeys))
+							session.statement.cascadeMode == cascadeAuto) {
+						var pk = make(core.PK, len(col.AssociateTable.PrimaryKeys))
 						var err error
-						pk[0], err = asKind(vv, rawValueType)
+						rawValueType := col.AssociateTable.ColumnType(col.AssociateTable.PKColumns()[0].FieldName)
+						if rawValueType.Kind() == reflect.Ptr {
+							pk[0] = reflect.New(rawValueType.Elem()).Interface()
+						} else {
+							pk[0] = reflect.New(rawValueType).Interface()
+						}
+						err = convertAssign(pk[0], vv.Interface())
 						if err != nil {
 							return nil, err
 						}
 
-						if !isPKZero(pk) {
-							// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
-							// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
-							// property to be fetched lazily
-							var structInter reflect.Value
-							if fieldValue.Kind() == reflect.Ptr {
-								if fieldValue.IsNil() {
-									structInter = reflect.New(fieldValue.Type().Elem())
-								} else {
-									structInter = *fieldValue
-								}
-							} else {
-								structInter = fieldValue.Addr()
-							}
-
-							has, err := session.ID(pk).NoCascade().get(structInter.Interface())
-							if err != nil {
-								return nil, err
-							}
-							if has {
-								if fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
-									fieldValue.Set(structInter)
-								}
-							} else {
-								return nil, errors.New("cascade obj is not exist")
-							}
+						pk[0] = reflect.ValueOf(pk[0]).Elem().Interface()
+						if err = session.getByPK(pk, fieldValue); err != nil {
+							return nil, err
 						}
+						hasAssigned = true
 					} else if col.AssociateType == core.AssociateBelongsTo {
 						hasAssigned = true
 						if fieldValue.IsNil() {
@@ -871,6 +839,34 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 		}
 	}
 	return pk, nil
+}
+
+func (session *Session) getByPK(pk core.PK, fieldValue *reflect.Value) error {
+	if !isPKZero(pk) {
+		var structInter reflect.Value
+		if fieldValue.Kind() == reflect.Ptr {
+			if fieldValue.IsNil() {
+				structInter = reflect.New(fieldValue.Type().Elem())
+			} else {
+				structInter = *fieldValue
+			}
+		} else {
+			structInter = fieldValue.Addr()
+		}
+
+		has, err := session.ID(pk).NoCascade().get(structInter.Interface())
+		if err != nil {
+			return err
+		}
+		if has {
+			if fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
+				fieldValue.Set(structInter)
+			}
+		} else {
+			return errors.New("cascade obj is not exist")
+		}
+	}
+	return nil
 }
 
 // saveLastSQL stores executed query information

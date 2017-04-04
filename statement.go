@@ -37,8 +37,8 @@ type cascadeMode int
 
 const (
 	cascadeCompitable cascadeMode = iota
-	cascadeAutoLoad
-	cascadeManuallyLoad
+	cascadeAuto
+	cascadeManually
 )
 
 // Statement save all the sql info for executing SQL

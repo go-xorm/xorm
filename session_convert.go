@@ -8,7 +8,6 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -206,37 +205,18 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			} else if (col.AssociateType == core.AssociateNone &&
 				session.statement.cascadeMode == cascadeCompitable) ||
 				(col.AssociateType == core.AssociateBelongsTo &&
-					session.statement.cascadeMode == cascadeAutoLoad) {
-				table := col.AssociateTable
-
-				// TODO: current only support 1 primary key
-				if len(table.PrimaryKeys) > 1 {
-					return errors.New("unsupported composited primary key cascade")
-				}
-
-				var pk = make(core.PK, len(table.PrimaryKeys))
-				rawValueType := table.ColumnType(table.PKColumns()[0].FieldName)
+					session.statement.cascadeMode == cascadeAuto) {
+				var pk = make(core.PK, len(col.AssociateTable.PrimaryKeys))
+				// only 1 PK checked on tag parsing
+				rawValueType := col.AssociateTable.ColumnType(col.AssociateTable.PKColumns()[0].FieldName)
 				var err error
 				pk[0], err = str2PK(string(data), rawValueType)
 				if err != nil {
 					return err
 				}
 
-				if !isPKZero(pk) {
-					// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
-					// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
-					// property to be fetched lazily
-					structInter := reflect.New(fieldValue.Type())
-					has, err := session.ID(pk).NoCascade().get(structInter.Interface())
-					if err != nil {
-						return err
-					}
-					if has {
-						v = structInter.Elem().Interface()
-						fieldValue.Set(reflect.ValueOf(v))
-					} else {
-						return errors.New("cascade obj is not exist")
-					}
+				if err = session.getByPK(pk, fieldValue); err != nil {
+					return err
 				}
 			}
 		}
@@ -489,35 +469,18 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 				if (col.AssociateType == core.AssociateNone &&
 					session.statement.cascadeMode == cascadeCompitable) ||
 					(col.AssociateType == core.AssociateBelongsTo &&
-						session.statement.cascadeMode == cascadeAutoLoad) {
-					table := col.AssociateTable
-					if len(table.PrimaryKeys) > 1 {
-						return errors.New("unsupported composited primary key cascade")
-					}
-
-					var pk = make(core.PK, len(table.PrimaryKeys))
+						session.statement.cascadeMode == cascadeAuto) {
+					var pk = make(core.PK, len(col.AssociateTable.PrimaryKeys))
 					var err error
-					rawValueType := table.ColumnType(table.PKColumns()[0].FieldName)
+					// only 1 PK checked on tag parsing
+					rawValueType := col.AssociateTable.ColumnType(col.AssociateTable.PKColumns()[0].FieldName)
 					pk[0], err = str2PK(string(data), rawValueType)
 					if err != nil {
 						return err
 					}
 
-					if !isPKZero(pk) {
-						structInter := reflect.New(fieldType.Elem())
-						// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
-						// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
-						// property to be fetched lazily
-						has, err := session.ID(pk).NoCascade().get(structInter.Interface())
-						if err != nil {
-							return err
-						}
-						if has {
-							v = structInter.Interface()
-							fieldValue.Set(reflect.ValueOf(v))
-						} else {
-							return errors.New("cascade obj is not exist")
-						}
+					if err = session.getByPK(pk, fieldValue); err != nil {
+						return err
 					}
 				}
 			}
