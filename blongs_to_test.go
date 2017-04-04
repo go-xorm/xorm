@@ -32,7 +32,7 @@ func TestBelongsTo_Get(t *testing.T) {
 	has, err := testEngine.Get(&cfgFace)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
-	assert.Equal(t, cfgFace, face)
+	assert.Equal(t, face, cfgFace)
 
 	var nose = Nose{Face: face}
 	_, err = testEngine.Insert(&nose)
@@ -42,13 +42,13 @@ func TestBelongsTo_Get(t *testing.T) {
 	has, err = testEngine.Get(&cfgNose)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
-	assert.Equal(t, cfgNose.Id, nose.Id)
-	assert.Equal(t, cfgNose.Face.Id, nose.Face.Id)
+	assert.Equal(t, nose.Id, cfgNose.Id)
+	assert.Equal(t, nose.Face.Id, cfgNose.Face.Id)
 	assert.Equal(t, "", cfgNose.Face.Name)
 
 	err = testEngine.EagerLoad(&cfgNose)
 	assert.NoError(t, err)
-	assert.Equal(t, cfgNose.Id, nose.Id)
+	assert.Equal(t, nose.Id, cfgNose.Id)
 	assert.Equal(t, nose.Face.Id, cfgNose.Face.Id)
 	assert.Equal(t, "face1", cfgNose.Face.Name)
 
@@ -56,7 +56,7 @@ func TestBelongsTo_Get(t *testing.T) {
 	has, err = testEngine.Cascade().Get(&cfgNose2)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
-	assert.Equal(t, cfgNose2.Id, nose.Id)
+	assert.Equal(t, nose.Id, cfgNose2.Id)
 	assert.Equal(t, nose.Face.Id, cfgNose2.Face.Id)
 	assert.Equal(t, "face1", cfgNose2.Face.Name)
 }
@@ -87,7 +87,7 @@ func TestBelongsTo_GetPtr(t *testing.T) {
 	has, err := testEngine.Get(&cfgFace)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
-	assert.Equal(t, cfgFace, face)
+	assert.Equal(t, face, cfgFace)
 
 	var nose = Nose{Face: &face}
 	_, err = testEngine.Insert(&nose)
@@ -151,9 +151,8 @@ func TestBelongsTo_Find(t *testing.T) {
 	err = testEngine.Find(&noses1)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(noses1))
-	// FIXME:
-	//assert.Equal(t, face1.Id, noses1[0].Face.Id)
-	//assert.Equal(t, face2.Id, noses1[1].Face.Id)
+	assert.Equal(t, face1.Id, noses1[0].Face.Id)
+	assert.Equal(t, face2.Id, noses1[1].Face.Id)
 	assert.Equal(t, "", noses1[0].Face.Name)
 	assert.Equal(t, "", noses1[1].Face.Name)
 
@@ -161,9 +160,8 @@ func TestBelongsTo_Find(t *testing.T) {
 	err = testEngine.Cascade().Find(&noses2)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(noses2))
-	// FIXME:
-	//assert.Equal(t, face1.Id, noses2[0].Face.Id)
-	//assert.Equal(t, face2.Id, noses2[1].Face.Id)
+	assert.Equal(t, face1.Id, noses2[0].Face.Id)
+	assert.Equal(t, face2.Id, noses2[1].Face.Id)
 	assert.Equal(t, "face1", noses2[0].Face.Name)
 	assert.Equal(t, "face2", noses2[1].Face.Name)
 }
