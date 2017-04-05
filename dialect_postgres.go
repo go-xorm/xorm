@@ -1078,9 +1078,10 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error)
 		}
 		cs := strings.Split(indexdef, "(")
 		colNames = strings.Split(cs[1][0:len(cs[1])-1], ",")
-
+		var isRegular bool
 		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
 			newIdxName := indexName[5+len(tableName):]
+			isRegular = true
 			if newIdxName != "" {
 				indexName = newIdxName
 			}
@@ -1090,6 +1091,7 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error)
 		for _, colName := range colNames {
 			index.Cols = append(index.Cols, strings.Trim(colName, `" `))
 		}
+		index.IsRegular = isRegular
 		indexes[index.Name] = index
 	}
 	return indexes, nil

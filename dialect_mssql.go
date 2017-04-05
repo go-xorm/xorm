@@ -216,9 +216,9 @@ func (db *mssql) SqlType(c *core.Column) string {
 	switch t := c.SQLType.Name; t {
 	case core.Bool:
 		res = core.TinyInt
-		if c.Default == "true" {
+		if strings.EqualFold(c.Default, "true") {
 			c.Default = "1"
-		} else if c.Default == "false" {
+		} else {
 			c.Default = "0"
 		}
 	case core.Serial:
@@ -468,9 +468,10 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 		}
 
 		colName = strings.Trim(colName, "` ")
-
+		var isRegular bool
 		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
 			indexName = indexName[5+len(tableName):]
+			isRegular = true
 		}
 
 		var index *core.Index
@@ -479,6 +480,7 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 			index = new(core.Index)
 			index.Type = indexType
 			index.Name = indexName
+			index.IsRegular = isRegular
 			indexes[indexName] = index
 		}
 		index.AddColumn(colName)

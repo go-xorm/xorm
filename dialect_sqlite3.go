@@ -405,8 +405,10 @@ func (db *sqlite3) GetIndexes(tableName string) (map[string]*core.Index, error) 
 		}
 
 		indexName := strings.Trim(sql[nNStart+6:nNEnd], "` []")
+		var isRegular bool
 		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
 			index.Name = indexName[5+len(tableName):]
+			isRegular = true
 		} else {
 			index.Name = indexName
 		}
@@ -425,6 +427,7 @@ func (db *sqlite3) GetIndexes(tableName string) (map[string]*core.Index, error) 
 		for _, col := range colIndexes {
 			index.Cols = append(index.Cols, strings.Trim(col, "` []"))
 		}
+		index.IsRegular = isRegular
 		indexes[index.Name] = index
 	}
 
