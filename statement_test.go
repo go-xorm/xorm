@@ -26,6 +26,10 @@ var colStrTests = []struct {
 }
 
 func TestColumnsStringGeneration(t *testing.T) {
+	if *db == "postgres" {
+		return
+	}
+
 	var statement *Statement
 
 	for ndx, testCase := range colStrTests {

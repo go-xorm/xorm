@@ -15,7 +15,7 @@ func TestArrayField(t *testing.T) {
 
 	type ArrayStruct struct {
 		Id   int64
-		Name [20]byte `xorm:"char(20)"`
+		Name [20]byte `xorm:"char(80)"`
 	}
 
 	assert.NoError(t, testEngine.Sync2(new(ArrayStruct)))

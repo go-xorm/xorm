@@ -43,7 +43,6 @@ type Session struct {
 
 	prepareStmt bool
 	stmtCache   map[uint32]*core.Stmt //key: hash.Hash32 of (queryStr, len(queryStr))
-	cascadeDeep int
 
 	// !evalphobia! stored the last executed query on this session
 	//beforeSQLExec func(string, ...interface{})
