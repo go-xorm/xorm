@@ -26,7 +26,6 @@ type Session struct {
 	Statement              Statement
 	IsAutoCommit           bool
 	IsCommitedOrRollbacked bool
-	TransType              string
 	IsAutoClose            bool
 
 	// Automatically reset the statement after operations that execute a SQL
