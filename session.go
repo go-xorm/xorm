@@ -311,6 +311,11 @@ func (session *Session) rows2Beans(rows *core.Rows, fields []string, fieldsCount
 }
 
 func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount int, bean interface{}, dataStruct *reflect.Value, table *core.Table) (core.PK, error) {
+	// handle beforeClosures
+	for _, closure := range session.beforeClosures {
+		closure(bean)
+	}
+
 	scanResults := make([]interface{}, fieldsCount)
 	for i := 0; i < len(fields); i++ {
 		var cell interface{}
@@ -331,6 +336,11 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 			for ii, key := range fields {
 				b.AfterSet(key, Cell(scanResults[ii].(*interface{})))
 			}
+		}
+
+		// handle afterClosures
+		for _, closure := range session.afterClosures {
+			closure(bean)
 		}
 	}()
 
