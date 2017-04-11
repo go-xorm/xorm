@@ -6,7 +6,6 @@ package xorm
 
 import (
 	"fmt"
-	"strconv"
 	"testing"
 	"time"
 
@@ -99,54 +98,4 @@ func TestGetVar(t *testing.T) {
 	v4, err := convertFloat(valuesSliceInter[3])
 	assert.NoError(t, err)
 	assert.Equal(t, "1.5", fmt.Sprintf("%v", v4))
-}
-
-func convertFloat(v interface{}) (float64, error) {
-	switch v.(type) {
-	case float32:
-		return float64(v.(float32)), nil
-	case float64:
-		return v.(float64), nil
-	case string:
-		i, err := strconv.ParseFloat(v.(string), 64)
-		if err != nil {
-			return 0, err
-		}
-		return i, nil
-	case []byte:
-		i, err := strconv.ParseFloat(string(v.([]byte)), 64)
-		if err != nil {
-			return 0, err
-		}
-		return i, nil
-	}
-	return 0, fmt.Errorf("unsupported type: %v", v)
-}
-
-func convertInt(v interface{}) (int64, error) {
-	switch v.(type) {
-	case int:
-		return int64(v.(int)), nil
-	case int8:
-		return int64(v.(int8)), nil
-	case int16:
-		return int64(v.(int16)), nil
-	case int32:
-		return int64(v.(int32)), nil
-	case int64:
-		return v.(int64), nil
-	case []byte:
-		i, err := strconv.ParseInt(string(v.([]byte)), 10, 64)
-		if err != nil {
-			return 0, err
-		}
-		return i, nil
-	case string:
-		i, err := strconv.ParseInt(v.(string), 10, 64)
-		if err != nil {
-			return 0, err
-		}
-		return i, nil
-	}
-	return 0, fmt.Errorf("unsupported type: %v", v)
 }

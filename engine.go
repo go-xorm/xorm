@@ -936,7 +936,7 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 						}
 
 						ctx.tagName = k[:pStart]
-						ctx.params = strings.Split(k[pStart+1:len(k)-1], ",")
+						ctx.params = strings.Split(key[pStart+1:len(k)-1], ",")
 					}
 
 					if j > 0 {
