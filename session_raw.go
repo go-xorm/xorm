@@ -86,19 +86,13 @@ func (session *Session) QueryString(sqlStr string, args ...interface{}) ([]map[s
 	if session.IsAutoClose {
 		defer session.Close()
 	}
-	return session.query2(sqlStr, args...)
-}
 
-// =============================
-// for string
-// =============================
-func (session *Session) query2(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string]string, err error) {
-	session.queryPreprocess(&sqlStr, paramStr...)
+	session.queryPreprocess(&sqlStr, args...)
 
 	if session.IsAutoCommit {
-		return query2(session.DB(), sqlStr, paramStr...)
+		return query2(session.DB(), sqlStr, args...)
 	}
-	return txQuery2(session.Tx, sqlStr, paramStr...)
+	return txQuery2(session.Tx, sqlStr, args...)
 }
 
 // Execute sql
