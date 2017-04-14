@@ -1218,8 +1218,14 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string) (a string) {
 		fmt.Fprintf(&buf, " WHERE %v", condSQL)
 	}
 	var whereStr = buf.String()
+	var fromStr = " FROM "
 
-	var fromStr = " FROM " + quote(statement.TableName())
+	if dialect.DBType() == core.MSSQL && strings.Contains(statement.TableName(), "..") {
+		fromStr += statement.TableName()
+	} else {
+		fromStr += quote(statement.TableName())
+	}
+
 	if statement.TableAlias != "" {
 		if dialect.DBType() == core.ORACLE {
 			fromStr += " " + quote(statement.TableAlias)
