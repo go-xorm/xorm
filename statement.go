@@ -1188,12 +1188,16 @@ func (statement *Statement) genSumSQL(bean interface{}, columns ...string) (stri
 
 	var sumStrs = make([]string, 0, len(columns))
 	for _, colName := range columns {
-		sumStrs = append(sumStrs, fmt.Sprintf("COALESCE(sum(%s),0)", statement.Engine.Quote(colName)))
+		if !strings.Contains(colName, " ") && strings.Contains(colName, "(") {
+			colName = statement.Engine.Quote(colName)
+		}
+		sumStrs = append(sumStrs, fmt.Sprintf("COALESCE(sum(%s),0)", colName))
 	}
+	sumSelect := strings.Join(sumStrs, ", ")
 
 	condSQL, condArgs, _ := statement.genConds(bean)
 
-	return statement.genSelectSQL(strings.Join(sumStrs, ", "), condSQL), append(statement.joinArgs, condArgs...)
+	return statement.genSelectSQL(sumSelect, condSQL), append(statement.joinArgs, condArgs...)
 }
 
 func (statement *Statement) genSelectSQL(columnStr, condSQL string) (a string) {

@@ -71,3 +71,31 @@ func TestSum(t *testing.T) {
 	assert.EqualValues(t, 1, len(sumsInt))
 	assert.EqualValues(t, i, int(sumsInt[0]))
 }
+
+func TestSumCustomColumn(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type SumStruct struct {
+		Int   int
+		Float float32
+	}
+
+	var (
+		cases = []SumStruct{
+			{1, 6.2},
+			{2, 5.3},
+			{92, -0.2},
+		}
+	)
+
+	assert.NoError(t, testEngine.Sync2(new(SumStruct)))
+
+	cnt, err := testEngine.Insert(cases)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, cnt)
+
+	sumInt, err := testEngine.Sum(new(SumStruct),
+		"CASE WHEN `int` <= 2 THEN `int` ELSE 0 END")
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, int(sumInt))
+}
