@@ -1291,18 +1291,6 @@ func (engine *Engine) Sync2(beans ...interface{}) error {
 	return s.Sync2(beans...)
 }
 
-func (engine *Engine) unMap(beans ...interface{}) (e error) {
-	engine.mutex.Lock()
-	defer engine.mutex.Unlock()
-	for _, bean := range beans {
-		t := rType(bean)
-		if _, ok := engine.Tables[t]; ok {
-			delete(engine.Tables, t)
-		}
-	}
-	return
-}
-
 // Drop all mapped table
 func (engine *Engine) dropAll() error {
 	session := engine.NewSession()
