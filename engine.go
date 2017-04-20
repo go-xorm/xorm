@@ -943,7 +943,7 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 						ctx.preTag = strings.ToUpper(tags[j-1])
 					}
 					if j < len(tags)-1 {
-						ctx.nextTag = strings.ToUpper(tags[j+1])
+						ctx.nextTag = tags[j+1]
 					} else {
 						ctx.nextTag = ""
 					}
