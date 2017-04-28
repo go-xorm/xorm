@@ -10,6 +10,8 @@ The last master version is not backwards compatible. You should use `engine.Show
 
 # Features
 
+[![Join the chat at https://gitter.im/go-xorm/xorm](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-xorm/xorm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 * Struct <-> Table Mapping Support
 
 * Chainable APIs
