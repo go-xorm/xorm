@@ -26,3 +26,19 @@ func TestInsertOne(t *testing.T) {
 	_, err := testEngine.InsertOne(data)
 	assert.NoError(t, err)
 }
+
+func TestInsertOne2(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type Test2 struct {
+		Id      int64     `xorm:"autoincr pk"`
+		Msg     string    `xorm:"varchar(255)"`
+		Created time.Time `xorm:"datetime created"`
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(Test2)))
+
+	data := Test2{Msg: "hi"}
+	_, err := testEngine.InsertOne(data)
+	assert.NoError(t, err)
+}
