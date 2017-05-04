@@ -72,3 +72,27 @@ func TestUpdateLimit(t *testing.T) {
 	assert.EqualValues(t, 35, uts[0].Age)
 	assert.EqualValues(t, 30, uts[1].Age)
 }
+
+func TestUpdate(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type UpdateTable2 struct {
+		Id      int64     `xorm:"autoincr pk"`
+		Msg     string    `xorm:"varchar(255)"`
+		Created time.Time `xorm:"datetime updated"`
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(UpdateTable2)))
+
+	data := UpdateTable2{Msg: "test1"}
+
+	cnt, err := testEngine.Insert(&data)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	cnt, err = testEngine.Where("id = ?", data.Id).Update(&UpdateTable2{
+		Msg: "test2",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+}
