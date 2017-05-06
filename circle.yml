@@ -3,6 +3,8 @@ dependencies:
     # './...' is a relative pattern which means all subdirectories
     - go get -t -d -v ./...
     - go get -t -d -v github.com/go-xorm/tests
+    - go get -u github.com/go-xorm/core
+    - go get -u github.com/go-xorm/builder
     - go build -v
 
 database:
