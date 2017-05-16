@@ -194,57 +194,31 @@ func isArrayValueZero(v reflect.Value) bool {
 	return true
 }
 
-func int64ToIntValue(id int64, tv *reflect.Value) reflect.Value {
+func int64ToIntValue(id int64, tp reflect.Type) reflect.Value {
 	var v interface{}
-
-	switch tv.Interface().(type) {
-	case int16:
+	switch tp.Kind() {
+	case reflect.Int16:
 		v = int16(id)
-	case int32:
+	case reflect.Int32:
 		v = int32(id)
-	case int:
+	case reflect.Int:
 		v = int(id)
-	case int64:
-		v = int64(id)
-	case uint16:
+	case reflect.Int64:
+		v = id
+	case reflect.Uint16:
 		v = uint16(id)
-	case uint32:
+	case reflect.Uint32:
 		v = uint32(id)
-	case uint64:
+	case reflect.Uint64:
 		v = uint64(id)
-	case uint:
+	case reflect.Uint:
 		v = uint(id)
-	case *int16:
-		temp := int16(id)
-		v = &temp
-	case *int32:
-		temp := int32(id)
-		v = &temp
-	case *int:
-		temp := int(id)
-		v = &temp
-	case *int64:
-		temp := int64(id)
-		v = &temp
-	case *uint16:
-		temp := uint16(id)
-		v = &temp
-	case *uint32:
-		temp := uint32(id)
-		v = &temp
-	case *uint:
-		temp := uint(id)
-		v = &temp
-	case *uint64:
-		temp := uint64(id)
-		v = &temp
 	}
-
-	return reflect.ValueOf(v).Convert(tv.Type())
+	return reflect.ValueOf(v).Convert(tp)
 }
 
-func int64ToInt(id int64, tv *reflect.Value) interface{} {
-	return int64ToIntValue(id, tv).Interface()
+func int64ToInt(id int64, tp reflect.Type) interface{} {
+	return int64ToIntValue(id, tp).Interface()
 }
 
 func isPKZero(pk core.PK) bool {

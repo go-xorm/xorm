@@ -26,19 +26,3 @@ func TestInsertOne(t *testing.T) {
 	_, err := testEngine.InsertOne(data)
 	assert.NoError(t, err)
 }
-
-func TestInsertOneIfPkIsPoint(t *testing.T) {
-	assert.NoError(t, prepareEngine())
-
-	type TestPoint struct {
-		Id	 *int64     `xorm:"autoincr pk notnull 'id'"`
-		Msg      *string    `xorm:"varchar(255)"`
-		Created  *time.Time `xorm:"created"`
-	}
-
-	assert.NoError(t, testEngine.Sync2(new(TestPoint)))
-	msg := "hi"
-	data := TestPoint{Msg: &msg}
-	_, err := testEngine.InsertOne(&data)
-	assert.NoError(t, err)
-}
