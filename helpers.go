@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
 	"github.com/go-xorm/core"
 )
 
@@ -196,25 +195,43 @@ func isArrayValueZero(v reflect.Value) bool {
 
 func int64ToIntValue(id int64, tp reflect.Type) reflect.Value {
 	var v interface{}
-	switch tp.Kind() {
-	case reflect.Int16:
-		v = int16(id)
-	case reflect.Int32:
-		v = int32(id)
-	case reflect.Int:
-		v = int(id)
-	case reflect.Int64:
-		v = id
-	case reflect.Uint16:
-		v = uint16(id)
-	case reflect.Uint32:
-		v = uint32(id)
-	case reflect.Uint64:
-		v = uint64(id)
-	case reflect.Uint:
-		v = uint(id)
+	kind := tp.Kind()
+
+	if kind == reflect.Ptr {
+		kind = tp.Elem().Kind()
 	}
-	return reflect.ValueOf(v).Convert(tp)
+
+	switch kind {
+	case reflect.Int16:
+		temp := int16(id)
+		v = &temp
+	case reflect.Int32:
+		temp := int32(id)
+		v = &temp
+	case reflect.Int:
+		temp := int(id)
+		v = &temp
+	case reflect.Int64:
+		temp := id
+		v = &temp
+	case reflect.Uint16:
+		temp := uint16(id)
+		v = &temp
+	case reflect.Uint32:
+		temp := uint32(id)
+		v = &temp
+	case reflect.Uint64:
+		temp := uint64(id)
+		v = &temp
+	case reflect.Uint:
+		temp := uint(id)
+		v = &temp
+	}
+	fmt.Println(v)
+	if tp.Kind() == reflect.Ptr {
+		return reflect.ValueOf(v).Convert(tp)
+	}
+	return reflect.ValueOf(v).Elem().Convert(tp)
 }
 
 func int64ToInt(id int64, tp reflect.Type) interface{} {
