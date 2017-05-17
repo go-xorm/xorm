@@ -77,7 +77,7 @@ func TestGetBytes(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type Varbinary struct {
-		Data []byte `xorm:"VARBINARY"`
+		Data []byte `xorm:"VARBINARY(250)"`
 	}
 
 	err := testEngine.Sync2(new(Varbinary))
