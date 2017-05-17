@@ -1007,6 +1007,10 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 			col = core.NewColumn(engine.ColumnMapper.Obj2Table(t.Field(i).Name),
 				t.Field(i).Name, sqlType, sqlType.DefaultLength,
 				sqlType.DefaultLength2, true)
+
+			if fieldType.Kind() == reflect.Int64 && (strings.ToUpper(col.FieldName) == "ID" || strings.HasSuffix(strings.ToUpper(col.FieldName), ".ID")) {
+				idFieldColName = col.Name
+			}
 		}
 		if col.IsAutoIncrement {
 			col.Nullable = false
@@ -1014,9 +1018,6 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 
 		table.AddColumn(col)
 
-		if fieldType.Kind() == reflect.Int64 && (strings.ToUpper(col.FieldName) == "ID" || strings.HasSuffix(strings.ToUpper(col.FieldName), ".ID")) {
-			idFieldColName = col.Name
-		}
 	} // end for
 
 	if idFieldColName != "" && len(table.PrimaryKeys) == 0 {
