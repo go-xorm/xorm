@@ -554,6 +554,10 @@ func genCols(table *core.Table, session *Session, bean interface{}, useCol bool,
 				if len(fieldValue.String()) == 0 {
 					continue
 				}
+			case reflect.Ptr:
+				if fieldValue.Pointer() == 0 {
+					continue
+				}
 			}
 		}
 
