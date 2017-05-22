@@ -67,7 +67,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 		return 0, errors.New("could not insert a empty slice")
 	}
 
-	if err := session.Statement.setRefValue(sliceValue.Index(0)); err != nil {
+	if err := session.Statement.setRefValue(reflect.ValueOf(sliceValue.Index(0).Interface())); err != nil {
 		return 0, err
 	}
 
