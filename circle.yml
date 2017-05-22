@@ -3,6 +3,8 @@ dependencies:
     # './...' is a relative pattern which means all subdirectories
     - go get -t -d -v ./...
     - go get -t -d -v github.com/go-xorm/tests
+    - go get -u github.com/go-xorm/core
+    - go get -u github.com/go-xorm/builder
     - go build -v
 
 database:
@@ -20,6 +22,8 @@ test:
   override:
     # './...' is a relative pattern which means all subdirectories
     - go test -v -race
+    - go test -v -race -db=mysql -conn_str="root:@/xorm_test"
+    - go test -v -race -db=postgres -conn_str="dbname=xorm_test sslmode=disable"
     - cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests && ./sqlite3.sh
     - cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests && ./mysql.sh
     - cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests && ./postgres.sh
