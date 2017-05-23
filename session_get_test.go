@@ -45,6 +45,15 @@ func TestGetVar(t *testing.T) {
 	assert.Equal(t, true, has)
 	assert.Equal(t, 28, age)
 
+	var age2 int64
+	has, err = testEngine.Table("get_var").Cols("age").
+		Where("age > ?", 20).
+		And("age < ?", 30).
+		Get(&age2)
+	assert.NoError(t, err)
+	assert.Equal(t, true, has)
+	assert.EqualValues(t, 28, age2)
+
 	var money float64
 	has, err = testEngine.Table("get_var").Cols("money").Get(&money)
 	assert.NoError(t, err)
