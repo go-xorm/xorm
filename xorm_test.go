@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -14,6 +15,7 @@ import (
 
 var (
 	testEngine *Engine
+	dbType     string
 	connString string
 
 	db         = flag.String("db", "sqlite3", "the tested database")
@@ -47,12 +49,13 @@ func createEngine(dbType, connStr string) error {
 }
 
 func prepareEngine() error {
-	return createEngine(*db, connString)
+	return createEngine(dbType, connString)
 }
 
 func TestMain(m *testing.M) {
 	flag.Parse()
 
+	dbType = *db
 	if *db == "sqlite3" {
 		if ptrConnStr == nil {
 			connString = "./test.db"
@@ -67,11 +70,27 @@ func TestMain(m *testing.M) {
 		connString = *ptrConnStr
 	}
 
-	if err := prepareEngine(); err != nil {
-		fmt.Println(err)
-		return
+	dbs := strings.Split(*db, ";")
+	conns := strings.Split(connString, ";")
+
+	var res int
+	for i := 0; i < len(dbs); i++ {
+		dbType = dbs[i]
+		connString = conns[i]
+		testEngine = nil
+
+		if err := prepareEngine(); err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		code := m.Run()
+		if code > 0 {
+			res = code
+		}
 	}
-	os.Exit(m.Run())
+
+	os.Exit(res)
 }
 
 func TestPing(t *testing.T) {
