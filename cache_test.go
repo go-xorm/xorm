@@ -62,7 +62,7 @@ func TestCacheFind(t *testing.T) {
 func TestCacheFind2(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	type MailBox struct {
+	type MailBox2 struct {
 		Id       uint64
 		Username string
 		Password string
@@ -71,9 +71,9 @@ func TestCacheFind2(t *testing.T) {
 	cacher := NewLRUCacher2(NewMemoryStore(), time.Hour, 10000)
 	testEngine.SetDefaultCacher(cacher)
 
-	assert.NoError(t, testEngine.Sync2(new(MailBox)))
+	assert.NoError(t, testEngine.Sync2(new(MailBox2)))
 
-	var inserts = []*MailBox{
+	var inserts = []*MailBox2{
 		{
 			Username: "user1",
 			Password: "pass1",
@@ -86,7 +86,7 @@ func TestCacheFind2(t *testing.T) {
 	_, err := testEngine.Insert(inserts[0], inserts[1])
 	assert.NoError(t, err)
 
-	var boxes []MailBox
+	var boxes []MailBox2
 	assert.NoError(t, testEngine.Find(&boxes))
 	assert.EqualValues(t, 2, len(boxes))
 	for i, box := range boxes {
@@ -95,7 +95,7 @@ func TestCacheFind2(t *testing.T) {
 		assert.Equal(t, inserts[i].Password, box.Password)
 	}
 
-	boxes = make([]MailBox, 0, 2)
+	boxes = make([]MailBox2, 0, 2)
 	assert.NoError(t, testEngine.Find(&boxes))
 	assert.EqualValues(t, 2, len(boxes))
 	for i, box := range boxes {
