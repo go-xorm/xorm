@@ -106,3 +106,43 @@ func TestCacheFind2(t *testing.T) {
 
 	testEngine.SetDefaultCacher(nil)
 }
+
+func TestCacheGet(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type MailBox3 struct {
+		Id       uint64
+		Username string
+		Password string
+	}
+
+	cacher := NewLRUCacher2(NewMemoryStore(), time.Hour, 10000)
+	testEngine.SetDefaultCacher(cacher)
+
+	assert.NoError(t, testEngine.Sync2(new(MailBox3)))
+
+	var inserts = []*MailBox3{
+		{
+			Username: "user1",
+			Password: "pass1",
+		},
+	}
+	_, err := testEngine.Insert(inserts[0])
+	assert.NoError(t, err)
+
+	var box1 MailBox3
+	has, err := testEngine.Where("id = ?", inserts[0].Id).Get(&box1)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "user1", box1.Username)
+	assert.EqualValues(t, "pass1", box1.Password)
+
+	var box2 MailBox3
+	has, err = testEngine.Where("id = ?", inserts[0].Id).Get(&box2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "user1", box2.Username)
+	assert.EqualValues(t, "pass1", box2.Password)
+
+	testEngine.SetDefaultCacher(nil)
+}
