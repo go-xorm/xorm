@@ -1242,7 +1242,6 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 					return err
 				}
 				if index.Type == core.UniqueType {
-					//isExist, err := session.isIndexExist(table.Name, name, true)
 					isExist, err := session.isIndexExist2(tableName, index.Cols, true)
 					if err != nil {
 						return err
@@ -1292,23 +1291,6 @@ func (engine *Engine) Sync2(beans ...interface{}) error {
 	return s.Sync2(beans...)
 }
 
-// Drop all mapped table
-func (engine *Engine) dropAll() error {
-	session := engine.NewSession()
-	defer session.Close()
-
-	err := session.Begin()
-	if err != nil {
-		return err
-	}
-	err = session.dropAll()
-	if err != nil {
-		session.Rollback()
-		return err
-	}
-	return session.Commit()
-}
-
 // CreateTables create tabls according bean
 func (engine *Engine) CreateTables(beans ...interface{}) error {
 	session := engine.NewSession()
@@ -1349,10 +1331,11 @@ func (engine *Engine) DropTables(beans ...interface{}) error {
 	return session.Commit()
 }
 
-func (engine *Engine) createAll() error {
+// DropIndexes drop indexes of a table
+func (engine *Engine) DropIndexes(bean interface{}) error {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.createAll()
+	return session.DropIndexes(bean)
 }
 
 // Exec raw sql

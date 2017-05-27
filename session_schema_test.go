@@ -64,6 +64,46 @@ func TestCreateMultiTables(t *testing.T) {
 	assert.NoError(t, session.Commit())
 }
 
+type SyncTable1 struct {
+	Id   int64
+	Name string
+	Dev  int `xorm:"index"`
+}
+
+type SyncTable2 struct {
+	Id     int64
+	Name   string `xorm:"unique"`
+	Number string `xorm:"index"`
+	Dev    int
+	Age    int
+}
+
+func (SyncTable2) TableName() string {
+	return "sync_table1"
+}
+
+func TestSyncTable(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	assert.NoError(t, testEngine.Sync2(new(SyncTable1)))
+
+	assert.NoError(t, testEngine.Sync2(new(SyncTable2)))
+}
+
+func TestIsTableExist(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	exist, err := testEngine.IsTableExist(new(CustomTableName))
+	assert.NoError(t, err)
+	assert.False(t, exist)
+
+	assert.NoError(t, testEngine.CreateTables(new(CustomTableName)))
+
+	exist, err = testEngine.IsTableExist(new(CustomTableName))
+	assert.NoError(t, err)
+	assert.True(t, exist)
+}
+
 func TestIsTableEmpty(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
@@ -146,6 +186,8 @@ func TestIndexAndUnique(t *testing.T) {
 	assert.NoError(t, testEngine.CreateIndexes(&IndexOrUnique{}))
 
 	assert.NoError(t, testEngine.CreateUniques(&IndexOrUnique{}))
+
+	assert.NoError(t, testEngine.DropIndexes(&IndexOrUnique{}))
 }
 
 func TestMetaInfo(t *testing.T) {
