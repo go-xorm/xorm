@@ -5,6 +5,8 @@
 package xorm
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -71,4 +73,35 @@ func TestUpdateLimit(t *testing.T) {
 	assert.EqualValues(t, 2, len(uts))
 	assert.EqualValues(t, 35, uts[0].Age)
 	assert.EqualValues(t, 30, uts[1].Age)
+}
+
+func TestUpdateMapConcurrently(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type UpdateTable struct {
+		Id   int64
+		Name string
+		Age  int
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(UpdateTable)))
+	var tb = UpdateTable{
+		Name: "test",
+		Age:  35,
+	}
+
+	wg := sync.WaitGroup{}
+	for i := 0; i < 10000; i++ {
+		wg.Add(1)
+		go func() {
+			// We don't check return errors for the sake of simplicity as the main point is data races.
+			testEngine.Insert(&tb)
+			testEngine.Table("update_table").Where("id = ?", tb.Id).Update(map[string]interface{}{
+				"name": "test2",
+				"age":  fmt.Sprintf("%d", i),
+			})
+			wg.Done()
+		}()
+	}
+	wg.Wait()
 }
