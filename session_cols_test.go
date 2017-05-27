@@ -26,7 +26,7 @@ func TestSetExpr(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	cnt, err = testEngine.SetExpr("show", "NOT show").Id(1).Update(new(User))
+	cnt, err = testEngine.SetExpr("show", "NOT `show`").Id(1).Update(new(User))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 }
