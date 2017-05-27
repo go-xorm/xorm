@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-xorm/core"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -31,6 +32,7 @@ func createEngine(dbType, connStr string) error {
 		}
 
 		testEngine.ShowSQL(*showSQL)
+		testEngine.logger.SetLevel(core.LOG_DEBUG)
 	}
 
 	tables, err := testEngine.DBMetas()
