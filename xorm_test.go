@@ -78,6 +78,7 @@ func TestMain(m *testing.M) {
 		dbType = dbs[i]
 		connString = conns[i]
 		testEngine = nil
+		fmt.Println("testing", dbType, connString)
 
 		if err := prepareEngine(); err != nil {
 			fmt.Println(err)
