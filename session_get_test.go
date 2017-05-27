@@ -108,3 +108,44 @@ func TestGetVar(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "1.5", fmt.Sprintf("%v", v4))
 }
+
+func TestGetStruct(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type UserinfoGet struct {
+		Uid   int `xorm:"pk autoincr"`
+		IsMan bool
+	}
+
+	assert.NoError(t, testEngine.Sync(new(UserinfoGet)))
+
+	cnt, err := testEngine.Insert(&UserinfoGet{Uid: 2})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	user := UserinfoGet{Uid: 2}
+	has, err := testEngine.Get(&user)
+	assert.NoError(t, err)
+	assert.True(t, has)
+
+	type NoIdUser struct {
+		User   string `xorm:"unique"`
+		Remain int64
+		Total  int64
+	}
+
+	assert.NoError(t, testEngine.Sync(&NoIdUser{}))
+
+	userCol := testEngine.ColumnMapper.Obj2Table("User")
+	_, err = testEngine.Where("`"+userCol+"` = ?", "xlw").Delete(&NoIdUser{})
+	assert.NoError(t, err)
+
+	cnt, err = testEngine.Insert(&NoIdUser{"xlw", 20, 100})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	noIdUser := new(NoIdUser)
+	has, err = testEngine.Where("`"+userCol+"` = ?", "xlw").Get(noIdUser)
+	assert.NoError(t, err)
+	assert.True(t, has)
+}

@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -40,4 +41,29 @@ func TestQueryString(t *testing.T) {
 	assert.Equal(t, "hi", records[0]["msg"])
 	assert.Equal(t, "28", records[0]["age"])
 	assert.Equal(t, "1.5", records[0]["money"])
+}
+
+func TestQuery(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type UserinfoQuery struct {
+		Uid  int
+		Name string
+	}
+
+	assert.NoError(t, testEngine.Sync(new(UserinfoQuery)))
+
+	res, err := testEngine.Exec("INSERT INTO `userinfo_query` (uid, name) VALUES (?, ?)", 1, "user")
+	assert.NoError(t, err)
+	cnt, err := res.RowsAffected()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	results, err := testEngine.Query("select * from userinfo_query")
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(results))
+	id, err := strconv.Atoi(string(results[0]["uid"]))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, id)
+	assert.Equal(t, "user", string(results[0]["name"]))
 }
