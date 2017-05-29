@@ -35,6 +35,26 @@ type tagContext struct {
 	ignoreNext      bool
 }
 
+func splitTag(tag string) (tags []string) {
+	tag = strings.TrimSpace(tag)
+	var hasQuote = false
+	var lastIdx = 0
+	for i, t := range tag {
+		if t == '\'' {
+			hasQuote = !hasQuote
+		} else if t == ' ' {
+			if lastIdx < i && !hasQuote {
+				tags = append(tags, strings.TrimSpace(tag[lastIdx:i]))
+				lastIdx = i + 1
+			}
+		}
+	}
+	if lastIdx < len(tag) {
+		tags = append(tags, strings.TrimSpace(tag[lastIdx:]))
+	}
+	return
+}
+
 // tagHandler describes tag handler for XORM
 type tagHandler func(ctx *tagContext) error
 

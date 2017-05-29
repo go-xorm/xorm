@@ -654,8 +654,18 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 					}
 
 					pk[0] = reflect.ValueOf(pk[0]).Elem().Interface()
-					if err = session.getByPK(pk, fieldValue); err != nil {
-						return nil, err
+					if fieldValue.Kind() == reflect.Ptr {
+						if fieldValue.IsNil() {
+							fieldValue.Set(reflect.New(fieldValue.Type()))
+						}
+						if err = session.getByPK(pk, fieldValue); err != nil {
+							return nil, err
+						}
+					} else {
+						v := fieldValue.Addr()
+						if err = session.getByPK(pk, &v); err != nil {
+							return nil, err
+						}
 					}
 					hasAssigned = true
 				} else if col.AssociateType == core.AssociateBelongsTo {

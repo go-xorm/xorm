@@ -104,26 +104,6 @@ func str2PK(s string, tp reflect.Type) (interface{}, error) {
 	return v.Interface(), nil
 }
 
-func splitTag(tag string) (tags []string) {
-	tag = strings.TrimSpace(tag)
-	var hasQuote = false
-	var lastIdx = 0
-	for i, t := range tag {
-		if t == '\'' {
-			hasQuote = !hasQuote
-		} else if t == ' ' {
-			if lastIdx < i && !hasQuote {
-				tags = append(tags, strings.TrimSpace(tag[lastIdx:i]))
-				lastIdx = i + 1
-			}
-		}
-	}
-	if lastIdx < len(tag) {
-		tags = append(tags, strings.TrimSpace(tag[lastIdx:]))
-	}
-	return
-}
-
 type zeroable interface {
 	IsZero() bool
 }
@@ -478,4 +458,13 @@ func getFlagForColumn(m map[string]bool, col *core.Column) (val bool, has bool) 
 	}
 
 	return false, false
+}
+
+func isStringInSlice(s string, slice []string) bool {
+	for _, e := range slice {
+		if s == e {
+			return true
+		}
+	}
+	return false
 }

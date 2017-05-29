@@ -28,7 +28,7 @@ type Interface interface {
 	Delete(interface{}) (int64, error)
 	Distinct(columns ...string) *Session
 	DropIndexes(bean interface{}) error
-	EagerLoad(interface{}, ...string) error
+	EagerGet(interface{}, ...string) error
 	Exec(string, ...interface{}) (sql.Result, error)
 	Exist(bean ...interface{}) (bool, error)
 	Find(interface{}, ...interface{}) error
