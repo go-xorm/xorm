@@ -273,10 +273,14 @@ func TestHaving(t *testing.T) {
 
 func TestOrderSameMapper(t *testing.T) {
 	assert.NoError(t, prepareEngine())
+	testEngine.unMapType(rValue(new(Userinfo)).Type())
+
 	mapper := testEngine.TableMapper
-	testEngine.SetTableMapper(core.SameMapper{})
+	testEngine.SetMapper(core.SameMapper{})
+
 	defer func() {
-		testEngine.SetTableMapper(mapper)
+		testEngine.unMapType(rValue(new(Userinfo)).Type())
+		testEngine.SetMapper(mapper)
 	}()
 
 	assertSync(t, new(Userinfo))
@@ -300,10 +304,13 @@ func TestOrderSameMapper(t *testing.T) {
 
 func TestHavingSameMapper(t *testing.T) {
 	assert.NoError(t, prepareEngine())
+	testEngine.unMapType(rValue(new(Userinfo)).Type())
+
 	mapper := testEngine.TableMapper
-	testEngine.SetTableMapper(core.SameMapper{})
+	testEngine.SetMapper(core.SameMapper{})
 	defer func() {
-		testEngine.SetTableMapper(mapper)
+		testEngine.unMapType(rValue(new(Userinfo)).Type())
+		testEngine.SetMapper(mapper)
 	}()
 	assertSync(t, new(Userinfo))
 

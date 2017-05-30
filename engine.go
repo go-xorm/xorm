@@ -143,7 +143,6 @@ func (engine *Engine) Quote(value string) string {
 
 // QuoteTo quotes string and writes into the buffer
 func (engine *Engine) QuoteTo(buf *bytes.Buffer, value string) {
-
 	if buf == nil {
 		return
 	}
@@ -779,6 +778,12 @@ func (engine *Engine) Having(conditions string) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
 	return session.Having(conditions)
+}
+
+func (engine *Engine) unMapType(t reflect.Type) {
+	engine.mutex.Lock()
+	defer engine.mutex.Unlock()
+	delete(engine.Tables, t)
 }
 
 func (engine *Engine) autoMapType(v reflect.Value) (*core.Table, error) {
