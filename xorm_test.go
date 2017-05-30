@@ -58,7 +58,7 @@ func TestMain(m *testing.M) {
 	dbType = *db
 	if *db == "sqlite3" {
 		if ptrConnStr == nil {
-			connString = "./test.db"
+			connString = "./test.db?cache=shared&mode=rwc"
 		} else {
 			connString = *ptrConnStr
 		}
