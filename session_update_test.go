@@ -205,7 +205,7 @@ func TestForUpdate(t *testing.T) {
 
 func TestWithIn(t *testing.T) {
 	type temp3 struct {
-		Id   int64
+		Id   int64  `xorm:"Id pk autoincr"`
 		Name string `xorm:"Name"`
 		Test bool   `xorm:"Test"`
 	}
