@@ -1278,7 +1278,7 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string) (a string) {
 	}
 
 	// !nashtsai! REVIEW Sprintf is considered slowest mean of string concatnation, better to work with builder pattern
-	a = fmt.Sprintf("SELECT %v%v%v%v%v", top, distinct, columnStr, fromStr, whereStr)
+	a = fmt.Sprintf("SELECT %v%v%v%v%v", distinct, top, columnStr, fromStr, whereStr)
 	if len(mssqlCondi) > 0 {
 		if len(whereStr) > 0 {
 			a += " AND " + mssqlCondi
