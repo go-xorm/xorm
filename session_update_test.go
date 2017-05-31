@@ -202,3 +202,30 @@ func TestForUpdate(t *testing.T) {
 
 	wg.Wait()
 }
+
+func TestWithIn(t *testing.T) {
+	type temp3 struct {
+		Id   int64  `xorm:"Id pk autoincr"`
+		Name string `xorm:"Name"`
+		Test bool   `xorm:"Test"`
+	}
+
+	assert.NoError(t, prepareEngine())
+	assert.NoError(t, testEngine.Sync(new(temp3)))
+
+	testEngine.Insert(&[]temp3{
+		{
+			Name: "user1",
+		},
+		{
+			Name: "user1",
+		},
+		{
+			Name: "user1",
+		},
+	})
+
+	cnt, err := testEngine.In("Id", 1, 2, 3, 4).Update(&temp3{Name: "aa"}, &temp3{Name: "user1"})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, cnt)
+}
