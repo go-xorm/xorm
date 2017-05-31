@@ -147,21 +147,25 @@ func TestNullStructUpdate(t *testing.T) {
 		{
 			Name: sql.NullString{
 				String: "name1",
+				Valid:  true,
 			},
 		},
 		{
 			Name: sql.NullString{
 				String: "name2",
+				Valid:  true,
 			},
 		},
 		{
 			Name: sql.NullString{
 				String: "name3",
+				Valid:  true,
 			},
 		},
 		{
 			Name: sql.NullString{
 				String: "name4",
+				Valid:  true,
 			},
 		},
 	})
@@ -172,7 +176,7 @@ func TestNullStructUpdate(t *testing.T) {
 		item.Age = sql.NullInt64{23, true}
 		item.Height = sql.NullFloat64{0, false} // update to NULL
 
-		affected, err := testEngine.Id(2).Cols("height", "is_man").Update(item)
+		affected, err := testEngine.Id(2).Cols("age", "height", "is_man").Update(item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -186,7 +190,8 @@ func TestNullStructUpdate(t *testing.T) {
 
 	if true { // 测试In update
 		item := new(NullType)
-		affected, err := testEngine.In("id", 3, 4).Cols("height", "is_man").Update(item)
+		item.Age = sql.NullInt64{23, true}
+		affected, err := testEngine.In("id", 3, 4).Cols("age", "height", "is_man").Update(item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -237,21 +242,25 @@ func TestNullStructFind(t *testing.T) {
 		{
 			Name: sql.NullString{
 				String: "name1",
+				Valid:  false,
 			},
 		},
 		{
 			Name: sql.NullString{
 				String: "name2",
+				Valid:  true,
 			},
 		},
 		{
 			Name: sql.NullString{
 				String: "name3",
+				Valid:  true,
 			},
 		},
 		{
 			Name: sql.NullString{
 				String: "name4",
+				Valid:  true,
 			},
 		},
 	})
