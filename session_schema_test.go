@@ -200,3 +200,19 @@ func TestMetaInfo(t *testing.T) {
 	assert.EqualValues(t, "customtablename", tables[0].Name)
 	assert.EqualValues(t, "index_or_unique", tables[1].Name)
 }
+
+func TestCharst(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	err := testEngine.DropTables("user_charset")
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = testEngine.Charset("utf8").Table("user_charset").CreateTable(&Userinfo{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+}
