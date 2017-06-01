@@ -40,7 +40,7 @@ type Engine struct {
 	showExecTime bool
 
 	logger     core.ILogger
-	TZLocation *time.Location
+	TZLocation *time.Location // The timezone of the application
 	DatabaseTZ *time.Location // The timezone of the database
 
 	disableGlobalCache bool
@@ -1498,7 +1498,6 @@ func (engine *Engine) Import(r io.Reader) ([]sql.Result, error) {
 			results = append(results, result)
 			if err != nil {
 				return nil, err
-				//lastError = err
 			}
 		}
 	}
@@ -1506,49 +1505,23 @@ func (engine *Engine) Import(r io.Reader) ([]sql.Result, error) {
 	return results, lastError
 }
 
-// TZTime change one time to xorm time location
-func (engine *Engine) TZTime(t time.Time) time.Time {
-	if !t.IsZero() { // if time is not initialized it's not suitable for Time.In()
-		return t.In(engine.TZLocation)
-	}
-	return t
-}
-
-// NowTime return current time
-func (engine *Engine) NowTime(sqlTypeName string) interface{} {
-	t := time.Now()
-	return engine.FormatTime(sqlTypeName, t)
-}
-
 // NowTime2 return current time
 func (engine *Engine) NowTime2(sqlTypeName string) (interface{}, time.Time) {
 	t := time.Now()
-	return engine.FormatTime(sqlTypeName, t), t
-}
-
-// FormatTime format time
-func (engine *Engine) FormatTime(sqlTypeName string, t time.Time) (v interface{}) {
-	return engine.formatTime(engine.TZLocation, sqlTypeName, t)
+	return engine.formatTime(sqlTypeName, t.In(engine.DatabaseTZ)), t.In(engine.TZLocation)
 }
 
 func (engine *Engine) formatColTime(col *core.Column, t time.Time) (v interface{}) {
 	if col.DisableTimeZone {
-		return engine.formatTime(nil, col.SQLType.Name, t)
+		return engine.formatTime(col.SQLType.Name, t)
 	} else if col.TimeZone != nil {
-		return engine.formatTime(col.TimeZone, col.SQLType.Name, t)
+		return engine.formatTime(col.SQLType.Name, t.In(col.TimeZone))
 	}
-	return engine.formatTime(engine.TZLocation, col.SQLType.Name, t)
+	return engine.formatTime(col.SQLType.Name, t.In(engine.DatabaseTZ))
 }
 
-func (engine *Engine) formatTime(tz *time.Location, sqlTypeName string, t time.Time) (v interface{}) {
-	if engine.dialect.DBType() == core.ORACLE {
-		return t
-	}
-	if tz != nil {
-		t = t.In(tz)
-	} else {
-		t = engine.TZTime(t)
-	}
+// formatTime format time as column type
+func (engine *Engine) formatTime(sqlTypeName string, t time.Time) (v interface{}) {
 	switch sqlTypeName {
 	case core.Time:
 		s := t.Format("2006-01-02 15:04:05") //time.RFC3339
@@ -1556,18 +1529,10 @@ func (engine *Engine) formatTime(tz *time.Location, sqlTypeName string, t time.T
 	case core.Date:
 		v = t.Format("2006-01-02")
 	case core.DateTime, core.TimeStamp:
-		if engine.dialect.DBType() == "ql" {
-			v = t
-		} else if engine.dialect.DBType() == "sqlite3" {
-			v = t.UTC().Format("2006-01-02 15:04:05")
-		} else {
-			v = t.Format("2006-01-02 15:04:05")
-		}
+		v = t.Format("2006-01-02 15:04:05")
 	case core.TimeStampz:
 		if engine.dialect.DBType() == core.MSSQL {
 			v = t.Format("2006-01-02T15:04:05.9999999Z07:00")
-		} else if engine.DriverName() == "mssql" {
-			v = t
 		} else {
 			v = t.Format(time.RFC3339Nano)
 		}
