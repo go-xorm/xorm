@@ -1105,3 +1105,15 @@ func TestMyStringId(t *testing.T) {
 		panic(err)
 	}
 }
+
+func TestSingleAutoIncrColumn(t *testing.T) {
+	type Account struct {
+		Id int64 `xorm:"pk autoincr"`
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(Account))
+
+	_, err := testEngine.Insert(&Account{})
+	assert.NoError(t, err)
+}
