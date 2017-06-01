@@ -1560,6 +1560,8 @@ func (engine *Engine) formatTime(tz *time.Location, sqlTypeName string, t time.T
 			v = t
 		} else if engine.dialect.DBType() == "sqlite3" {
 			v = t.UTC().Format("2006-01-02 15:04:05")
+		} else if engine.dialect.DBType() == core.MSSQL {
+			v = engine.TZTime(t).UTC().Format("2006-01-02 15:04:05")
 		} else {
 			v = t.Format("2006-01-02 15:04:05")
 		}
