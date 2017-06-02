@@ -21,7 +21,7 @@ database:
 test:
   override:
     # './...' is a relative pattern which means all subdirectories
-    - go test -v -race -db="sqlite3;mysql;postgres" -conn_str="./test.db;root:@/xorm_test;dbname=xorm_test sslmode=disable" -coverprofile=coverage.txt -covermode=atomic
+    - go test -v -race -db="sqlite3::mysql::postgres" -conn_str="./test.db::root:@/xorm_test::dbname=xorm_test sslmode=disable" -coverprofile=coverage.txt -covermode=atomic
     - cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests && ./sqlite3.sh
     - cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests && ./mysql.sh
     - cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests && ./postgres.sh

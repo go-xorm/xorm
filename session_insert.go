@@ -357,10 +357,10 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			session.Engine.QuoteStr(),
 			colPlaces)
 	} else {
-		if session.Engine.dialect.DBType() == core.SQLITE || session.Engine.dialect.DBType() == core.POSTGRES {
-			sqlStr = fmt.Sprintf("INSERT INTO %s DEFAULT VALUES", session.Engine.Quote(session.Statement.TableName()))
-		} else {
+		if session.Engine.dialect.DBType() == core.MYSQL {
 			sqlStr = fmt.Sprintf("INSERT INTO %s VALUES ()", session.Engine.Quote(session.Statement.TableName()))
+		} else {
+			sqlStr = fmt.Sprintf("INSERT INTO %s DEFAULT VALUES", session.Engine.Quote(session.Statement.TableName()))
 		}
 	}
 

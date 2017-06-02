@@ -1512,9 +1512,14 @@ func (engine *Engine) NowTime2(sqlTypeName string) (interface{}, time.Time) {
 }
 
 func (engine *Engine) formatColTime(col *core.Column, t time.Time) (v interface{}) {
-	if col.DisableTimeZone {
-		return engine.formatTime(col.SQLType.Name, t)
-	} else if col.TimeZone != nil {
+	if t.IsZero() {
+		if col.Nullable {
+			return nil
+		}
+		return ""
+	}
+
+	if col.TimeZone != nil {
 		return engine.formatTime(col.SQLType.Name, t.In(col.TimeZone))
 	}
 	return engine.formatTime(col.SQLType.Name, t.In(engine.DatabaseTZ))

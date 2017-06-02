@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/core"
 	_ "github.com/lib/pq"
@@ -45,7 +46,10 @@ func createEngine(dbType, connStr string) error {
 	for _, table := range tables {
 		tableNames = append(tableNames, table.Name)
 	}
-	return testEngine.DropTables(tableNames...)
+	if err = testEngine.DropTables(tableNames...); err != nil {
+		return err
+	}
+	return nil
 }
 
 func prepareEngine() error {
@@ -70,8 +74,8 @@ func TestMain(m *testing.M) {
 		connString = *ptrConnStr
 	}
 
-	dbs := strings.Split(*db, ";")
-	conns := strings.Split(connString, ";")
+	dbs := strings.Split(*db, "::")
+	conns := strings.Split(connString, "::")
 
 	var res int
 	for i := 0; i < len(dbs); i++ {

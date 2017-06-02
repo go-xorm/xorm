@@ -586,11 +586,6 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 	case reflect.Struct:
 		if fieldType.ConvertibleTo(core.TimeType) {
 			t := fieldValue.Convert(core.TimeType).Interface().(time.Time)
-			if session.Engine.dialect.DBType() == core.MSSQL {
-				if t.IsZero() {
-					return nil, nil
-				}
-			}
 			tf := session.Engine.formatColTime(col, t)
 			return tf, nil
 		}

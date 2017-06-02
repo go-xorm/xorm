@@ -356,7 +356,6 @@ func TestUpdate1(t *testing.T) {
 			And("departname = ?", "").
 			And("detail_id = ?", 0).
 			And("is_man = ?", 0).
-			And("created IS NOT NULL").
 			Get(&Userinfo{})
 		if err != nil {
 			t.Error(err)

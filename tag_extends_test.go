@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-xorm/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -328,6 +329,11 @@ func TestExtends2(t *testing.T) {
 		Uid:     sender.Id,
 		ToUid:   receiver.Id,
 	}
+	if testEngine.dialect.DBType() == core.MSSQL {
+		_, err = testEngine.Exec("SET IDENTITY_INSERT message ON")
+		assert.NoError(t, err)
+	}
+
 	_, err = testEngine.Insert(&msg)
 	if err != nil {
 		t.Error(err)
@@ -394,6 +400,10 @@ func TestExtends3(t *testing.T) {
 		Content: "test",
 		Uid:     sender.Id,
 		ToUid:   receiver.Id,
+	}
+	if testEngine.dialect.DBType() == core.MSSQL {
+		_, err = testEngine.Exec("SET IDENTITY_INSERT message ON")
+		assert.NoError(t, err)
 	}
 	_, err = testEngine.Insert(&msg)
 	if err != nil {
@@ -477,6 +487,10 @@ func TestExtends4(t *testing.T) {
 		Title:   "test",
 		Content: "test",
 		Uid:     sender.Id,
+	}
+	if testEngine.dialect.DBType() == core.MSSQL {
+		_, err = testEngine.Exec("SET IDENTITY_INSERT message ON")
+		assert.NoError(t, err)
 	}
 	_, err = testEngine.Insert(&msg)
 	if err != nil {
