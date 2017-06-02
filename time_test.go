@@ -75,7 +75,7 @@ func TestTimeUserTimeDiffLoc(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, user.OperTime.Unix(), user2.OperTime.Unix())
-	assert.EqualValues(t, formatTime(user.OperTime), formatTime(user2.OperTime))
+	assert.EqualValues(t, formatTime(user.OperTime.In(loc)), formatTime(user2.OperTime))
 	fmt.Println("user2", user2.OperTime)
 }
 
