@@ -89,6 +89,12 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		tagHandlers:   defaultTagHandlers,
 	}
 
+	if uri.DbType == core.SQLITE {
+		engine.DatabaseTZ = time.UTC
+	} else {
+		engine.DatabaseTZ = time.Local
+	}
+
 	logger := NewSimpleLogger(os.Stdout)
 	logger.SetLevel(core.LOG_INFO)
 	engine.SetLogger(logger)

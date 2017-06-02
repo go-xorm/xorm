@@ -38,7 +38,7 @@ func TestGonicMapperID(t *testing.T) {
 
 	for _, tb := range tables {
 		if tb.Name == "id_gonic_mapper" {
-			if len(tb.PKColumns()) != 1 && !tb.PKColumns()[0].IsPrimaryKey && !tb.PKColumns()[0].IsPrimaryKey {
+			if len(tb.PKColumns()) != 1 || tb.PKColumns()[0].Name != "id" {
 				t.Fatal(tb)
 			}
 			return
@@ -75,7 +75,7 @@ func TestSameMapperID(t *testing.T) {
 
 	for _, tb := range tables {
 		if tb.Name == "IDSameMapper" {
-			if len(tb.PKColumns()) != 1 && !tb.PKColumns()[0].IsPrimaryKey && !tb.PKColumns()[0].IsPrimaryKey {
+			if len(tb.PKColumns()) != 1 || tb.PKColumns()[0].Name != "ID" {
 				t.Fatal(tb)
 			}
 			return

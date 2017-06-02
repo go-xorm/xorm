@@ -376,7 +376,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 				if !requiredField && (t.IsZero() || !fieldValue.IsValid()) {
 					continue
 				}
-				val = engine.FormatTime(col.SQLType.Name, t)
+				val = engine.formatColTime(col, t)
 			} else if nulType, ok := fieldValue.Interface().(driver.Valuer); ok {
 				val, _ = nulType.Value()
 			} else {
@@ -612,7 +612,7 @@ func buildConds(engine *Engine, table *core.Table, bean interface{},
 				if !requiredField && (t.IsZero() || !fieldValue.IsValid()) {
 					continue
 				}
-				val = engine.FormatTime(col.SQLType.Name, t)
+				val = engine.formatColTime(col, t)
 			} else if _, ok := reflect.New(fieldType).Interface().(core.Conversion); ok {
 				continue
 			} else if valNul, ok := fieldValue.Interface().(driver.Valuer); ok {

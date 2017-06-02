@@ -7,6 +7,7 @@ package xorm
 import (
 	"testing"
 
+	"github.com/go-xorm/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +27,11 @@ func TestSetExpr(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	cnt, err = testEngine.SetExpr("show", "NOT `show`").Id(1).Update(new(User))
+	var not = "NOT"
+	if testEngine.dialect.DBType() == core.MSSQL {
+		not = "~"
+	}
+	cnt, err = testEngine.SetExpr("show", not+" `show`").Id(1).Update(new(User))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 }

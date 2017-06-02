@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-xorm/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -119,6 +120,11 @@ func TestGetStruct(t *testing.T) {
 
 	assert.NoError(t, testEngine.Sync(new(UserinfoGet)))
 
+	var err error
+	if testEngine.dialect.DBType() == core.MSSQL {
+		_, err = testEngine.Exec("SET IDENTITY_INSERT userinfo_get ON")
+		assert.NoError(t, err)
+	}
 	cnt, err := testEngine.Insert(&UserinfoGet{Uid: 2})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
