@@ -1131,4 +1131,11 @@ func TestCompositePK(t *testing.T) {
 	assertSync(t, new(TaskSolution))
 
 	assert.NoError(t, testEngine.Sync2(new(TaskSolution)))
+	tables, err := testEngine.DBMetas()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(tables))
+	pkCols := tables[0].PKColumns()
+	assert.EqualValues(t, 2, len(pkCols))
+	assert.EqualValues(t, "uid", pkCols[0].Name)
+	assert.EqualValues(t, "tid", pkCols[1].Name)
 }
