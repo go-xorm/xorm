@@ -14,10 +14,6 @@ import (
 	"github.com/go-xorm/core"
 )
 
-// func init() {
-// 	RegisterDialect("sqlite3", &sqlite3{})
-// }
-
 var (
 	sqlite3ReservedWords = map[string]bool{
 		"ABORT":             true,

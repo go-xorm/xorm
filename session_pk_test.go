@@ -7,6 +7,7 @@ package xorm
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/go-xorm/core"
 	"github.com/stretchr/testify/assert"
@@ -1116,4 +1117,18 @@ func TestSingleAutoIncrColumn(t *testing.T) {
 
 	_, err := testEngine.Insert(&Account{})
 	assert.NoError(t, err)
+}
+
+func TestCompositePK(t *testing.T) {
+	type TaskSolution struct {
+		UID     string    `xorm:"notnull pk UUID 'uid'"`
+		TID     string    `xorm:"notnull pk UUID 'tid'"`
+		Created time.Time `xorm:"created"`
+		Updated time.Time `xorm:"updated"`
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(TaskSolution))
+
+	assert.NoError(t, testEngine.Sync2(new(TaskSolution)))
 }
