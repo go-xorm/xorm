@@ -128,3 +128,25 @@ func TestCount(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, total)
 }
+
+func TestSQLCount(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type UserinfoCount2 struct {
+		Id         int64
+		Departname string
+	}
+
+	type UserinfoBooks struct {
+		Id     int64
+		Pid    int64
+		IsOpen bool
+	}
+
+	assertSync(t, new(UserinfoCount2), new(UserinfoBooks))
+
+	total, err := testEngine.SQL("SELECT count(id) FROM userinfo_count2").
+		Count()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, total)
+}
