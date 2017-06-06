@@ -145,7 +145,7 @@ func TestSQLCount(t *testing.T) {
 
 	assertSync(t, new(UserinfoCount2), new(UserinfoBooks))
 
-	total, err := testEngine.SQL("SELECT count(*) FROM userinfo_count2 a LEFT JOIN (SELECT pid,count(id) as s_num FROM userinfo_books where is_open=1 GROUP BY pid) b ON a.id=b.pid ORDER BY a.id asc").
+	total, err := testEngine.SQL("SELECT count(id) FROM userinfo_count2").
 		Count()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, total)
