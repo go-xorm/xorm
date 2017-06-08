@@ -1139,3 +1139,29 @@ func TestCompositePK(t *testing.T) {
 	assert.EqualValues(t, "uid", pkCols[0].Name)
 	assert.EqualValues(t, "tid", pkCols[1].Name)
 }
+
+func TestNoPKIdQueryUpdate(t *testing.T) {
+	type NoPKTable struct {
+		Username string
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(NoPKTable))
+
+	cnt, err := testEngine.Insert(&NoPKTable{
+		Username: "test",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var res NoPKTable
+	has, err := testEngine.ID("test").Get(&res)
+	assert.Error(t, err)
+	assert.False(t, has)
+
+	cnt, err = testEngine.ID("test").Update(&NoPKTable{
+		Username: "test1",
+	})
+	assert.Error(t, err)
+	assert.EqualValues(t, 0, cnt)
+}

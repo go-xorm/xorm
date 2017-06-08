@@ -15,7 +15,7 @@ func TestDelete(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UserinfoDelete struct {
-		Uid   int64
+		Uid   int64 `xorm:"id pk not null autoincr"`
 		IsMan bool
 	}
 

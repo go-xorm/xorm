@@ -33,8 +33,9 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 
 	var sqlStr string
 	var args []interface{}
+	var err error
 
-	if err := rows.session.Statement.setRefValue(rValue(bean)); err != nil {
+	if err = rows.session.Statement.setRefValue(rValue(bean)); err != nil {
 		return nil, err
 	}
 
@@ -43,7 +44,10 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 	}
 
 	if rows.session.Statement.RawSQL == "" {
-		sqlStr, args = rows.session.Statement.genGetSQL(bean)
+		sqlStr, args, err = rows.session.Statement.genGetSQL(bean)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		sqlStr = rows.session.Statement.RawSQL
 		args = rows.session.Statement.RawParams
@@ -54,7 +58,6 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 	}
 
 	rows.session.saveLastSQL(sqlStr, args...)
-	var err error
 	if rows.session.prepareStmt {
 		rows.stmt, err = rows.session.DB().Prepare(sqlStr)
 		if err != nil {

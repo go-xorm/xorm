@@ -91,6 +91,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 
 	var sqlStr string
 	var args []interface{}
+	var err error
 	if session.Statement.RawSQL == "" {
 		if len(session.Statement.TableName()) <= 0 {
 			return ErrTableNotFound
@@ -128,7 +129,10 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		}
 
 		args = append(session.Statement.joinArgs, condArgs...)
-		sqlStr = session.Statement.genSelectSQL(columnStr, condSQL)
+		sqlStr, err = session.Statement.genSelectSQL(columnStr, condSQL)
+		if err != nil {
+			return err
+		}
 		// for mssql and use limit
 		qs := strings.Count(sqlStr, "?")
 		if len(args)*2 == qs {
@@ -139,7 +143,6 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		args = session.Statement.RawParams
 	}
 
-	var err error
 	if session.canCache() {
 		if cacher := session.Engine.getCacher2(table); cacher != nil &&
 			!session.Statement.IsDistinct &&

@@ -236,7 +236,9 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		colNames = append(colNames, session.Engine.Quote(v.colName)+" = "+v.expr)
 	}
 
-	session.Statement.processIDParam()
+	if err = session.Statement.processIDParam(); err != nil {
+		return 0, err
+	}
 
 	var autoCond builder.Cond
 	if !session.Statement.noAutoCondition && len(condiBean) > 0 {
@@ -267,7 +269,11 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		colNames = append(colNames, session.Engine.Quote(table.Version)+" = "+session.Engine.Quote(table.Version)+" + 1")
 	}
 
-	condSQL, condArgs, _ = builder.ToSQL(cond)
+	condSQL, condArgs, err = builder.ToSQL(cond)
+	if err != nil {
+		return 0, err
+	}
+
 	if len(condSQL) > 0 {
 		condSQL = "WHERE " + condSQL
 	}
@@ -285,7 +291,10 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			tempCondSQL := condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
 			cond = cond.And(builder.Expr(fmt.Sprintf("rowid IN (SELECT rowid FROM %v %v)",
 				session.Engine.Quote(session.Statement.TableName()), tempCondSQL), condArgs...))
-			condSQL, condArgs, _ = builder.ToSQL(cond)
+			condSQL, condArgs, err = builder.ToSQL(cond)
+			if err != nil {
+				return 0, err
+			}
 			if len(condSQL) > 0 {
 				condSQL = "WHERE " + condSQL
 			}
@@ -293,7 +302,11 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			tempCondSQL := condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
 			cond = cond.And(builder.Expr(fmt.Sprintf("CTID IN (SELECT CTID FROM %v %v)",
 				session.Engine.Quote(session.Statement.TableName()), tempCondSQL), condArgs...))
-			condSQL, condArgs, _ = builder.ToSQL(cond)
+			condSQL, condArgs, err = builder.ToSQL(cond)
+			if err != nil {
+				return 0, err
+			}
+
 			if len(condSQL) > 0 {
 				condSQL = "WHERE " + condSQL
 			}
@@ -304,7 +317,10 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 					table.PrimaryKeys[0], st.LimitN, table.PrimaryKeys[0],
 					session.Engine.Quote(session.Statement.TableName()), condSQL), condArgs...)
 
-				condSQL, condArgs, _ = builder.ToSQL(cond)
+				condSQL, condArgs, err = builder.ToSQL(cond)
+				if err != nil {
+					return 0, err
+				}
 				if len(condSQL) > 0 {
 					condSQL = "WHERE " + condSQL
 				}

@@ -1118,12 +1118,14 @@ func (statement *Statement) genConds(bean interface{}) (string, []interface{}, e
 		statement.cond = statement.cond.And(autoCond)
 	}
 
-	statement.processIDParam()
+	if err := statement.processIDParam(); err != nil {
+		return "", nil, err
+	}
 
 	return builder.ToSQL(statement.cond)
 }
 
-func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}) {
+func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}, error) {
 	v := rValue(bean)
 	isStruct := v.Kind() == reflect.Struct
 	if isStruct {
@@ -1158,19 +1160,31 @@ func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}) 
 
 	var condSQL string
 	var condArgs []interface{}
+	var err error
 	if isStruct {
-		condSQL, condArgs, _ = statement.genConds(bean)
+		condSQL, condArgs, err = statement.genConds(bean)
 	} else {
-		condSQL, condArgs, _ = builder.ToSQL(statement.cond)
+		condSQL, condArgs, err = builder.ToSQL(statement.cond)
+	}
+	if err != nil {
+		return "", nil, err
 	}
 
-	return statement.genSelectSQL(columnStr, condSQL), append(statement.joinArgs, condArgs...)
+	sqlStr, err := statement.genSelectSQL(columnStr, condSQL)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return sqlStr, append(statement.joinArgs, condArgs...), nil
 }
 
-func (statement *Statement) genCountSQL(bean interface{}) (string, []interface{}) {
+func (statement *Statement) genCountSQL(bean interface{}) (string, []interface{}, error) {
 	statement.setRefValue(rValue(bean))
 
-	condSQL, condArgs, _ := statement.genConds(bean)
+	condSQL, condArgs, err := statement.genConds(bean)
+	if err != nil {
+		return "", nil, err
+	}
 
 	var selectSQL = statement.selectStr
 	if len(selectSQL) <= 0 {
@@ -1180,10 +1194,15 @@ func (statement *Statement) genCountSQL(bean interface{}) (string, []interface{}
 			selectSQL = "count(*)"
 		}
 	}
-	return statement.genSelectSQL(selectSQL, condSQL), append(statement.joinArgs, condArgs...)
+	sqlStr, err := statement.genSelectSQL(selectSQL, condSQL)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return sqlStr, append(statement.joinArgs, condArgs...), nil
 }
 
-func (statement *Statement) genSumSQL(bean interface{}, columns ...string) (string, []interface{}) {
+func (statement *Statement) genSumSQL(bean interface{}, columns ...string) (string, []interface{}, error) {
 	statement.setRefValue(rValue(bean))
 
 	var sumStrs = make([]string, 0, len(columns))
@@ -1195,12 +1214,20 @@ func (statement *Statement) genSumSQL(bean interface{}, columns ...string) (stri
 	}
 	sumSelect := strings.Join(sumStrs, ", ")
 
-	condSQL, condArgs, _ := statement.genConds(bean)
+	condSQL, condArgs, err := statement.genConds(bean)
+	if err != nil {
+		return "", nil, err
+	}
 
-	return statement.genSelectSQL(sumSelect, condSQL), append(statement.joinArgs, condArgs...)
+	sqlStr, err := statement.genSelectSQL(sumSelect, condSQL)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return sqlStr, append(statement.joinArgs, condArgs...), nil
 }
 
-func (statement *Statement) genSelectSQL(columnStr, condSQL string) (a string) {
+func (statement *Statement) genSelectSQL(columnStr, condSQL string) (a string, err error) {
 	var distinct string
 	if statement.IsDistinct && !strings.HasPrefix(columnStr, "count") {
 		distinct = "DISTINCT "
@@ -1211,7 +1238,9 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string) (a string) {
 	var top string
 	var mssqlCondi string
 
-	statement.processIDParam()
+	if err := statement.processIDParam(); err != nil {
+		return "", err
+	}
 
 	var buf bytes.Buffer
 	if len(condSQL) > 0 {
@@ -1314,19 +1343,23 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string) (a string) {
 	return
 }
 
-func (statement *Statement) processIDParam() {
+func (statement *Statement) processIDParam() error {
 	if statement.idParam == nil {
-		return
+		return nil
+	}
+
+	if len(statement.RefTable.PrimaryKeys) != len(*statement.idParam) {
+		return fmt.Errorf("ID condition is error, expect %d primarykeys, there are %d",
+			len(statement.RefTable.PrimaryKeys),
+			len(*statement.idParam),
+		)
 	}
 
 	for i, col := range statement.RefTable.PKColumns() {
 		var colName = statement.colName(col, statement.TableName())
-		if i < len(*(statement.idParam)) {
-			statement.cond = statement.cond.And(builder.Eq{colName: (*(statement.idParam))[i]})
-		} else {
-			statement.cond = statement.cond.And(builder.Eq{colName: ""})
-		}
+		statement.cond = statement.cond.And(builder.Eq{colName: (*(statement.idParam))[i]})
 	}
+	return nil
 }
 
 func (statement *Statement) joinColumns(cols []*core.Column, includeTableName bool) string {
