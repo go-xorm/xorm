@@ -16,11 +16,15 @@ func (session *Session) Count(bean ...interface{}) (int64, error) {
 
 	var sqlStr string
 	var args []interface{}
+	var err error
 	if session.Statement.RawSQL == "" {
 		if len(bean) == 0 {
 			return 0, ErrTableNotFound
 		}
-		sqlStr, args = session.Statement.genCountSQL(bean[0])
+		sqlStr, args, err = session.Statement.genCountSQL(bean[0])
+		if err != nil {
+			return 0, err
+		}
 	} else {
 		sqlStr = session.Statement.RawSQL
 		args = session.Statement.RawParams
@@ -28,7 +32,6 @@ func (session *Session) Count(bean ...interface{}) (int64, error) {
 
 	session.queryPreprocess(&sqlStr, args...)
 
-	var err error
 	var total int64
 	if session.IsAutoCommit {
 		err = session.DB().QueryRow(sqlStr, args...).Scan(&total)
@@ -52,8 +55,12 @@ func (session *Session) Sum(bean interface{}, columnName string) (float64, error
 
 	var sqlStr string
 	var args []interface{}
+	var err error
 	if len(session.Statement.RawSQL) == 0 {
-		sqlStr, args = session.Statement.genSumSQL(bean, columnName)
+		sqlStr, args, err = session.Statement.genSumSQL(bean, columnName)
+		if err != nil {
+			return 0, err
+		}
 	} else {
 		sqlStr = session.Statement.RawSQL
 		args = session.Statement.RawParams
@@ -61,7 +68,6 @@ func (session *Session) Sum(bean interface{}, columnName string) (float64, error
 
 	session.queryPreprocess(&sqlStr, args...)
 
-	var err error
 	var res float64
 	if session.IsAutoCommit {
 		err = session.DB().QueryRow(sqlStr, args...).Scan(&res)
@@ -84,8 +90,12 @@ func (session *Session) Sums(bean interface{}, columnNames ...string) ([]float64
 
 	var sqlStr string
 	var args []interface{}
+	var err error
 	if len(session.Statement.RawSQL) == 0 {
-		sqlStr, args = session.Statement.genSumSQL(bean, columnNames...)
+		sqlStr, args, err = session.Statement.genSumSQL(bean, columnNames...)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		sqlStr = session.Statement.RawSQL
 		args = session.Statement.RawParams
@@ -93,7 +103,6 @@ func (session *Session) Sums(bean interface{}, columnNames ...string) ([]float64
 
 	session.queryPreprocess(&sqlStr, args...)
 
-	var err error
 	var res = make([]float64, len(columnNames), len(columnNames))
 	if session.IsAutoCommit {
 		err = session.DB().QueryRow(sqlStr, args...).ScanSlice(&res)
@@ -116,8 +125,12 @@ func (session *Session) SumsInt(bean interface{}, columnNames ...string) ([]int6
 
 	var sqlStr string
 	var args []interface{}
+	var err error
 	if len(session.Statement.RawSQL) == 0 {
-		sqlStr, args = session.Statement.genSumSQL(bean, columnNames...)
+		sqlStr, args, err = session.Statement.genSumSQL(bean, columnNames...)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		sqlStr = session.Statement.RawSQL
 		args = session.Statement.RawParams
@@ -125,7 +138,6 @@ func (session *Session) SumsInt(bean interface{}, columnNames ...string) ([]int6
 
 	session.queryPreprocess(&sqlStr, args...)
 
-	var err error
 	var res = make([]int64, len(columnNames), len(columnNames))
 	if session.IsAutoCommit {
 		err = session.DB().QueryRow(sqlStr, args...).ScanSlice(&res)

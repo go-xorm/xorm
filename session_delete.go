@@ -98,8 +98,10 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		processor.BeforeDelete()
 	}
 
-	// --
-	condSQL, condArgs, _ := session.Statement.genConds(bean)
+	condSQL, condArgs, err := session.Statement.genConds(bean)
+	if err != nil {
+		return 0, err
+	}
 	if len(condSQL) == 0 && session.Statement.LimitN == 0 {
 		return 0, ErrNeedDeletedCond
 	}

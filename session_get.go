@@ -33,13 +33,17 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 
 	var sqlStr string
 	var args []interface{}
+	var err error
 
 	if session.Statement.RawSQL == "" {
 		if len(session.Statement.TableName()) <= 0 {
 			return false, ErrTableNotFound
 		}
 		session.Statement.Limit(1)
-		sqlStr, args = session.Statement.genGetSQL(bean)
+		sqlStr, args, err = session.Statement.genGetSQL(bean)
+		if err != nil {
+			return false, err
+		}
 	} else {
 		sqlStr = session.Statement.RawSQL
 		args = session.Statement.RawParams
