@@ -1443,6 +1443,13 @@ func (engine *Engine) Sum(bean interface{}, colName string) (float64, error) {
 	return session.Sum(bean, colName)
 }
 
+// SumInt sum the records by some column. bean's non-empty fields are conditions.
+func (engine *Engine) SumInt(bean interface{}, colName string) (int64, error) {
+	session := engine.NewSession()
+	defer session.Close()
+	return session.SumInt(bean, colName)
+}
+
 // Sums sum the records by some columns. bean's non-empty fields are conditions.
 func (engine *Engine) Sums(bean interface{}, colNames ...string) ([]float64, error) {
 	session := engine.NewSession()
