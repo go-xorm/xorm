@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-xorm/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -234,4 +235,38 @@ func TestAutoIncrTag(t *testing.T) {
 	assert.False(t, cols[0].IsAutoIncrement)
 	assert.True(t, cols[0].IsPrimaryKey)
 	assert.Equal(t, "id", cols[0].Name)
+}
+
+func TestTagComment(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+	// FIXME: only support mysql
+	if testEngine.dialect.DriverName() != core.MYSQL {
+		return
+	}
+
+	type TestComment1 struct {
+		Id int64 `xorm:"comment(主键)"`
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(TestComment1)))
+
+	tables, err := testEngine.DBMetas()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(tables))
+	assert.EqualValues(t, 1, len(tables[0].Columns()))
+	assert.EqualValues(t, "主键", tables[0].Columns()[0].Comment)
+
+	assert.NoError(t, testEngine.DropTables(new(TestComment1)))
+
+	type TestComment2 struct {
+		Id int64 `xorm:"comment('主键')"`
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(TestComment2)))
+
+	tables, err = testEngine.DBMetas()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(tables))
+	assert.EqualValues(t, 1, len(tables[0].Columns()))
+	assert.EqualValues(t, "主键", tables[0].Columns()[0].Comment)
 }
