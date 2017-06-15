@@ -28,8 +28,7 @@ func (session *Session) str2Time(col *core.Column, data string) (outTime time.Ti
 		parseLoc = col.TimeZone
 	}
 
-	if sdata == "0000-00-00 00:00:00" ||
-		sdata == "0001-01-01 00:00:00" {
+	if sdata == zeroTime0 || sdata == zeroTime1 {
 	} else if !strings.ContainsAny(sdata, "- :") { // !nashtsai! has only found that mymysql driver is using this for time type column
 		// time stamp
 		sd, err := strconv.ParseInt(sdata, 10, 64)
@@ -213,8 +212,9 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 
 				// TODO: current only support 1 primary key
 				if len(table.PrimaryKeys) > 1 {
-					panic("unsupported composited primary key cascade")
+					return errors.New("unsupported composited primary key cascade")
 				}
+
 				var pk = make(core.PK, len(table.PrimaryKeys))
 				rawValueType := table.ColumnType(table.PKColumns()[0].FieldName)
 				pk[0], err = str2PK(string(data), rawValueType)
@@ -496,8 +496,9 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 					}
 
 					if len(table.PrimaryKeys) > 1 {
-						panic("unsupported composited primary key cascade")
+						return errors.New("unsupported composited primary key cascade")
 					}
+
 					var pk = make(core.PK, len(table.PrimaryKeys))
 					rawValueType := table.ColumnType(table.PKColumns()[0].FieldName)
 					pk[0], err = str2PK(string(data), rawValueType)

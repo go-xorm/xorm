@@ -66,7 +66,7 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 			var err error
 			autoCond, err = session.Statement.buildConds(table, condiBean[0], true, true, false, true, addedTableName)
 			if err != nil {
-				panic(err)
+				return err
 			}
 		} else {
 			// !oinume! Add "<col> IS NULL" to WHERE whatever condiBean is given.
@@ -80,11 +80,8 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 					}
 					colName = session.Engine.Quote(nm) + "." + colName
 				}
-				if session.Engine.dialect.DBType() == core.MSSQL {
-					autoCond = builder.IsNull{colName}
-				} else {
-					autoCond = builder.IsNull{colName}.Or(builder.Eq{colName: "0001-01-01 00:00:00"})
-				}
+
+				autoCond = session.Engine.CondDeleted(colName)
 			}
 		}
 	}
