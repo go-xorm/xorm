@@ -567,7 +567,7 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 								fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
 							}
 						} else {
-							panic(fmt.Sprintf("rawValueType is %v, value is %v", rawValueType, vv.Interface()))
+							return nil, fmt.Errorf("rawValueType is %v, value is %v", rawValueType, vv.Interface())
 						}
 					}
 				} else if nulVal, ok := fieldValue.Addr().Interface().(sql.Scanner); ok {
@@ -607,7 +607,7 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 
 					hasAssigned = true
 					if len(table.PrimaryKeys) != 1 {
-						panic("unsupported non or composited primary key cascade")
+						return nil, errors.New("unsupported non or composited primary key cascade")
 					}
 					var pk = make(core.PK, len(table.PrimaryKeys))
 					pk[0], err = asKind(vv, rawValueType)
