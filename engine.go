@@ -30,7 +30,7 @@ type QuoteMode int
 const (
 	QuoteAddAlways QuoteMode = iota
 	QuoteNoAdd
-	//QuoteAddNonReserved
+	QuoteAddReserved
 )
 
 // Engine is the major struct of xorm, it means a database manager.
@@ -141,18 +141,10 @@ func (engine *Engine) QuoteStr() string {
 
 // Quote Use QuoteStr quote the string sql
 func (engine *Engine) Quote(value string) string {
-	value = strings.TrimSpace(value)
-	if len(value) == 0 {
-		return value
-	}
-
-	if string(value[0]) == engine.dialect.QuoteStr() || value[0] == '`' {
-		return value
-	}
-
-	value = strings.Replace(value, ".", engine.QuoteStr()+"."+engine.QuoteStr(), -1)
-
-	return engine.QuoteStr() + value + engine.QuoteStr()
+	var buf string
+	b := bytes.NewBufferString(buf)
+	engine.QuoteTo(b, value)
+	return b.String()
 }
 
 // QuoteTo quotes string and writes into the buffer
@@ -166,18 +158,15 @@ func (engine *Engine) QuoteTo(buf *bytes.Buffer, value string) {
 		return
 	}
 
-	if engine.QuoteStr() != "" {
-		if string(value[0]) == engine.dialect.QuoteStr() || value[0] == '`' {
-			buf.WriteString(value)
-			return
-		}
+	v := strings.Trim(value, "`"+engine.dialect.QuoteStr())
+	if engine.QuoteMode == QuoteNoAdd ||
+		(engine.QuoteMode == QuoteAddReserved && !engine.dialect.IsReserved(v)) {
+		buf.WriteString(v)
+		return
 	}
 
-	value = strings.Replace(value, ".", engine.QuoteStr()+"."+engine.QuoteStr(), -1)
-
-	buf.WriteString(engine.QuoteStr())
-	buf.WriteString(value)
-	buf.WriteString(engine.QuoteStr())
+	v = strings.Replace(v, ".", engine.QuoteStr()+"."+engine.QuoteStr(), -1)
+	buf.WriteString(engine.dialect.Quote(v))
 }
 
 func (engine *Engine) quote(sql string) string {

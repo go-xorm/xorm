@@ -36,7 +36,7 @@ func createEngine(dbType, connStr string) error {
 
 		testEngine.ShowSQL(*showSQL)
 		testEngine.logger.SetLevel(core.LOG_DEBUG)
-		//testEngine.QuoteMode = QuoteNoAdd
+		//testEngine.QuoteMode = QuoteAddReserved
 	}
 
 	tables, err := testEngine.DBMetas()
