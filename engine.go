@@ -166,9 +166,11 @@ func (engine *Engine) QuoteTo(buf *bytes.Buffer, value string) {
 		return
 	}
 
-	if string(value[0]) == engine.dialect.QuoteStr() || value[0] == '`' {
-		buf.WriteString(value)
-		return
+	if engine.QuoteStr() != "" {
+		if string(value[0]) == engine.dialect.QuoteStr() || value[0] == '`' {
+			buf.WriteString(value)
+			return
+		}
 	}
 
 	value = strings.Replace(value, ".", engine.QuoteStr()+"."+engine.QuoteStr(), -1)
@@ -462,7 +464,7 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 		}
 
 		cols := table.ColumnsSeq()
-		colNames := dialect.Quote(strings.Join(cols, dialect.Quote(", ")))
+		colNames := engine.Quote(strings.Join(cols, engine.Quote(", ")))
 
 		rows, err := engine.DB().Query("SELECT " + colNames + " FROM " + engine.Quote(table.Name))
 		if err != nil {
@@ -477,7 +479,7 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 				return err
 			}
 
-			_, err = io.WriteString(w, "INSERT INTO "+dialect.Quote(table.Name)+" ("+colNames+") VALUES (")
+			_, err = io.WriteString(w, "INSERT INTO "+engine.Quote(table.Name)+" ("+colNames+") VALUES (")
 			if err != nil {
 				return err
 			}
@@ -544,7 +546,7 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 
 		// FIXME: Hack for postgres
 		if string(dialect.DBType()) == core.POSTGRES && table.AutoIncrColumn() != nil {
-			_, err = io.WriteString(w, "SELECT setval('table_id_seq', COALESCE((SELECT MAX("+table.AutoIncrColumn().Name+") FROM "+dialect.Quote(table.Name)+"), 1), false);\n")
+			_, err = io.WriteString(w, "SELECT setval('table_id_seq', COALESCE((SELECT MAX("+table.AutoIncrColumn().Name+") FROM "+engine.Quote(table.Name)+"), 1), false);\n")
 			if err != nil {
 				return err
 			}
