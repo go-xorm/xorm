@@ -249,8 +249,9 @@ type UpdateMustCols struct {
 }
 
 type UpdateIncr struct {
-	Id  int64
-	Cnt int
+	Id   int64
+	Cnt  int
+	Name string
 }
 
 type Article struct {
@@ -545,50 +546,34 @@ func TestUpdate1(t *testing.T) {
 			return
 		}
 	}
+}
 
-	{
+func TestUpdateIncrDecr(t *testing.T) {
+	assert.NoError(t, prepareEngine())
 
-		col1 := &UpdateIncr{}
-		err = testEngine.Sync(col1)
-		if err != nil {
-			t.Error(err)
-			panic(err)
-		}
-
-		_, err = testEngine.Insert(col1)
-		if err != nil {
-			t.Error(err)
-			panic(err)
-		}
-
-		cnt, err := testEngine.Id(col1.Id).Incr(testEngine.ColumnMapper.Obj2Table("Cnt")).Update(col1)
-		if err != nil {
-			t.Error(err)
-			panic(err)
-		}
-		if cnt != 1 {
-			err = errors.New("update incr failed")
-			t.Error(err)
-			panic(err)
-		}
-
-		newCol := new(UpdateIncr)
-		has, err := testEngine.Id(col1.Id).Get(newCol)
-		if err != nil {
-			t.Error(err)
-			panic(err)
-		}
-		if !has {
-			err = errors.New("has incr failed")
-			t.Error(err)
-			panic(err)
-		}
-		if 1 != newCol.Cnt {
-			err = fmt.Errorf("incr failed %v %v %v", newCol.Cnt, newCol, col1)
-			t.Error(err)
-			panic(err)
-		}
+	col1 := &UpdateIncr{
+		Name: "test",
 	}
+	assert.NoError(t, testEngine.Sync(col1))
+
+	_, err := testEngine.Insert(col1)
+	assert.NoError(t, err)
+
+	colName := testEngine.ColumnMapper.Obj2Table("Cnt")
+
+	cnt, err := testEngine.Id(col1.Id).Incr(colName).Update(col1)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	newCol := new(UpdateIncr)
+	has, err := testEngine.Id(col1.Id).Get(newCol)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 1, newCol.Cnt)
+
+	cnt, err = testEngine.Id(col1.Id).Cols(colName).Incr(colName).Update(col1)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
 }
 
 type UpdatedUpdate struct {
