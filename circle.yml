@@ -2,7 +2,6 @@ dependencies:
   override:
     # './...' is a relative pattern which means all subdirectories
     - go get -t -d -v ./...
-    - go get -t -d -v github.com/go-xorm/tests
     - go get -u github.com/go-xorm/core
     - go get -u github.com/go-xorm/builder
     - go build -v
@@ -21,9 +20,13 @@ database:
 test:
   override:
     # './...' is a relative pattern which means all subdirectories
-    - go test -v -race -db="sqlite3::mysql::postgres" -conn_str="./test.db::root:@/xorm_test::dbname=xorm_test sslmode=disable" -coverprofile=coverage.txt -covermode=atomic
-    - cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests && ./sqlite3.sh
-    - cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests && ./mysql.sh
-    - cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests && ./postgres.sh
+    - go test -v -race -db="sqlite3" -conn_str="./test.db" -coverprofile=coverage1.txt -covermode=atomic
+    - go test -v -race -db="mysql" -conn_str="root:@/xorm_test" -coverprofile=coverage2.txt -covermode=atomic
+    - go test -v -race -db="postgres" -conn_str="dbname=xorm_test sslmode=disable" -coverprofile=coverage3.txt -covermode=atomic
+    - go test -v -race -db="sqlite3" -conn_str="./test.db" -quote=2 -coverprofile=coverage4.txt -covermode=atomic
+    - go test -v -race -db="mysql" -conn_str="root:@/xorm_test" -quote=2 -coverprofile=coverage5.txt -covermode=atomic
+    - go test -v -race -db="postgres" -conn_str="dbname=xorm_test sslmode=disable" -quote=2 -coverprofile=coverage6.txt -covermode=atomic
+    - go get github.com/wadey/gocovmerge
+    - gocovmerge coverage1.txt coverage2.txt coverage3.txt coverage4.txt coverage5.txt coverage6.txt > coverage.txt
   post:
     - bash <(curl -s https://codecov.io/bash)

@@ -212,28 +212,16 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 	}
 	cleanupProcessorsClosures(&session.beforeClosures)
 
-	var sql = "INSERT INTO %s (%v%v%v) VALUES (%v)"
+	var sql = "INSERT INTO %s (%v) VALUES (%v)"
 	var statement string
+	var tbName = session.Engine.Quote(session.Statement.TableName())
+	var quoteColNames = session.Engine.Quote(strings.Join(colNames, session.Engine.reverseQuote(", ")))
 	if session.Engine.dialect.DBType() == core.ORACLE {
-		sql = "INSERT ALL INTO %s (%v%v%v) VALUES (%v) SELECT 1 FROM DUAL"
-		temp := fmt.Sprintf(") INTO %s (%v%v%v) VALUES (",
-			session.Engine.Quote(session.Statement.TableName()),
-			session.Engine.QuoteStr(),
-			strings.Join(colNames, session.Engine.QuoteStr()+", "+session.Engine.QuoteStr()),
-			session.Engine.QuoteStr())
-		statement = fmt.Sprintf(sql,
-			session.Engine.Quote(session.Statement.TableName()),
-			session.Engine.QuoteStr(),
-			strings.Join(colNames, session.Engine.QuoteStr()+", "+session.Engine.QuoteStr()),
-			session.Engine.QuoteStr(),
-			strings.Join(colMultiPlaces, temp))
+		sql = "INSERT ALL INTO %s (%v) VALUES (%v) SELECT 1 FROM DUAL"
+		temp := fmt.Sprintf(") INTO %s (%v) VALUES (", tbName, quoteColNames)
+		statement = fmt.Sprintf(sql, tbName, quoteColNames, strings.Join(colMultiPlaces, temp))
 	} else {
-		statement = fmt.Sprintf(sql,
-			session.Engine.Quote(session.Statement.TableName()),
-			session.Engine.QuoteStr(),
-			strings.Join(colNames, session.Engine.QuoteStr()+", "+session.Engine.QuoteStr()),
-			session.Engine.QuoteStr(),
-			strings.Join(colMultiPlaces, "),("))
+		statement = fmt.Sprintf(sql, tbName, quoteColNames, strings.Join(colMultiPlaces, "),("))
 	}
 	res, err := session.exec(statement, args...)
 	if err != nil {
@@ -349,18 +337,17 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	}
 
 	var sqlStr string
+	var tbName = session.Engine.Quote(session.Statement.TableName())
 	if len(colPlaces) > 0 {
-		sqlStr = fmt.Sprintf("INSERT INTO %s (%v%v%v) VALUES (%v)",
-			session.Engine.Quote(session.Statement.TableName()),
-			session.Engine.QuoteStr(),
-			strings.Join(colNames, session.Engine.Quote(", ")),
-			session.Engine.QuoteStr(),
+		sqlStr = fmt.Sprintf("INSERT INTO %s (%v) VALUES (%v)",
+			tbName,
+			session.Engine.Quote(strings.Join(colNames, session.Engine.reverseQuote(", "))),
 			colPlaces)
 	} else {
 		if session.Engine.dialect.DBType() == core.MYSQL {
-			sqlStr = fmt.Sprintf("INSERT INTO %s VALUES ()", session.Engine.Quote(session.Statement.TableName()))
+			sqlStr = fmt.Sprintf("INSERT INTO %s VALUES ()", tbName)
 		} else {
-			sqlStr = fmt.Sprintf("INSERT INTO %s DEFAULT VALUES", session.Engine.Quote(session.Statement.TableName()))
+			sqlStr = fmt.Sprintf("INSERT INTO %s DEFAULT VALUES", tbName)
 		}
 	}
 

@@ -547,7 +547,7 @@ func (db *oracle) SupportInsertMany() bool {
 }
 
 func (db *oracle) IsReserved(name string) bool {
-	_, ok := oracleReservedWords[name]
+	_, ok := oracleReservedWords[strings.ToUpper(name)]
 	return ok
 }
 

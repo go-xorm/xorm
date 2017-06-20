@@ -26,7 +26,7 @@ var colStrTests = []struct {
 }
 
 func TestColumnsStringGeneration(t *testing.T) {
-	if dbType == "postgres" || dbType == "mssql" {
+	if dbType == "postgres" || dbType == "mssql" || *quote != int(QuoteAddAlways) {
 		return
 	}
 

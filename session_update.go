@@ -101,11 +101,9 @@ func (session *Session) cacheUpdate(sqlStr string, args ...interface{}) error {
 				sps := strings.SplitN(kv, "=", 2)
 				sps2 := strings.Split(sps[0], ".")
 				colName := sps2[len(sps2)-1]
-				if strings.Contains(colName, "`") {
-					colName = strings.TrimSpace(strings.Replace(colName, "`", "", -1))
-				} else if strings.Contains(colName, session.Engine.QuoteStr()) {
-					colName = strings.TrimSpace(strings.Replace(colName, session.Engine.QuoteStr(), "", -1))
-				} else {
+				colName = strings.TrimSpace(strings.Replace(colName, "`", "", -1))
+				colName = strings.TrimSpace(session.Engine.removeQuotes(colName))
+				if colName == "" {
 					session.Engine.logger.Debug("[cacheUpdate] cannot find column", tableName, colName)
 					return ErrCacheFailed
 				}

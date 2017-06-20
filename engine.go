@@ -130,21 +130,28 @@ func (engine *Engine) SupportInsertMany() bool {
 	return engine.dialect.SupportInsertMany()
 }
 
-// QuoteStr Engine's database use which character as quote.
-// mysql, sqlite use ` and postgres use "
-func (engine *Engine) QuoteStr() string {
-	if engine.QuoteMode == QuoteNoAdd {
-		return ""
-	}
-	return engine.dialect.QuoteStr()
-}
-
 // Quote Use QuoteStr quote the string sql
 func (engine *Engine) Quote(value string) string {
 	var buf string
 	b := bytes.NewBufferString(buf)
 	engine.QuoteTo(b, value)
 	return b.String()
+}
+
+func (engine *Engine) needQuote(value string) bool {
+	return engine.QuoteMode == QuoteAddAlways ||
+		(engine.QuoteMode == QuoteAddReserved && engine.dialect.IsReserved(value))
+}
+
+func (engine *Engine) reverseQuote(value string) string {
+	if !engine.needQuote(value) {
+		return value
+	}
+	return engine.dialect.QuoteStr() + value + engine.dialect.QuoteStr()
+}
+
+func (engine *Engine) removeQuotes(value string) string {
+	return strings.Replace(strings.Replace(value, "`", "", -1), engine.dialect.QuoteStr(), "", -1)
 }
 
 // QuoteTo quotes string and writes into the buffer
@@ -159,18 +166,13 @@ func (engine *Engine) QuoteTo(buf *bytes.Buffer, value string) {
 	}
 
 	v := strings.Trim(value, "`"+engine.dialect.QuoteStr())
-	if engine.QuoteMode == QuoteNoAdd ||
-		(engine.QuoteMode == QuoteAddReserved && !engine.dialect.IsReserved(v)) {
+	if !engine.needQuote(v) {
 		buf.WriteString(v)
 		return
 	}
 
-	v = strings.Replace(v, ".", engine.QuoteStr()+"."+engine.QuoteStr(), -1)
+	v = strings.Replace(v, ".", engine.reverseQuote("."), -1)
 	buf.WriteString(engine.dialect.Quote(v))
-}
-
-func (engine *Engine) quote(sql string) string {
-	return engine.QuoteStr() + sql + engine.QuoteStr()
 }
 
 // SqlType will be depracated, please use SQLType instead

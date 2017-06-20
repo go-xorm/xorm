@@ -574,16 +574,15 @@ func (statement *Statement) getExpr() map[string]exprParam {
 func (statement *Statement) col2NewColsWithQuote(columns ...string) []string {
 	newColumns := make([]string, 0)
 	for _, col := range columns {
-		col = strings.Replace(col, "`", "", -1)
-		col = strings.Replace(col, statement.Engine.QuoteStr(), "", -1)
+		col = statement.Engine.removeQuotes(col)
 		ccols := strings.Split(col, ",")
 		for _, c := range ccols {
 			fields := strings.Split(strings.TrimSpace(c), ".")
 			if len(fields) == 1 {
-				newColumns = append(newColumns, statement.Engine.quote(fields[0]))
+				newColumns = append(newColumns, statement.Engine.Quote(fields[0]))
 			} else if len(fields) == 2 {
-				newColumns = append(newColumns, statement.Engine.quote(fields[0])+"."+
-					statement.Engine.quote(fields[1]))
+				newColumns = append(newColumns, statement.Engine.Quote(fields[0])+"."+
+					statement.Engine.Quote(fields[1]))
 			} else {
 				panic(errors.New("unwanted colnames"))
 			}
@@ -620,7 +619,7 @@ func (statement *Statement) Cols(columns ...string) *Statement {
 
 	newColumns := statement.col2NewColsWithQuote(columns...)
 	statement.ColumnStr = strings.Join(newColumns, ", ")
-	statement.ColumnStr = strings.Replace(statement.ColumnStr, statement.Engine.quote("*"), "*", -1)
+	statement.ColumnStr = strings.Replace(statement.ColumnStr, statement.Engine.Quote("*"), "*", -1)
 	return statement
 }
 
@@ -836,7 +835,7 @@ func (statement *Statement) genIndexSQL() []string {
 	for idxName, index := range statement.RefTable.Indexes {
 		if index.Type == core.IndexType {
 			sql := fmt.Sprintf("CREATE INDEX %v ON %v (%v);", quote(indexName(tbName, idxName)),
-				quote(tbName), quote(strings.Join(index.Cols, quote(","))))
+				quote(tbName), quote(strings.Join(index.Cols, statement.Engine.reverseQuote(","))))
 			sqls = append(sqls, sql)
 		}
 	}

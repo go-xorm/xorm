@@ -24,6 +24,7 @@ var (
 	ptrConnStr = flag.String("conn_str", "", "test database connection string")
 	mapType    = flag.String("map_type", "snake", "indicate the name mapping")
 	cache      = flag.Bool("cache", false, "if enable cache")
+	quote      = flag.Int("quote", int(QuoteAddAlways), "quote mode")
 )
 
 func createEngine(dbType, connStr string) error {
@@ -36,7 +37,7 @@ func createEngine(dbType, connStr string) error {
 
 		testEngine.ShowSQL(*showSQL)
 		testEngine.logger.SetLevel(core.LOG_DEBUG)
-		//testEngine.QuoteMode = QuoteAddReserved
+		testEngine.QuoteMode = QuoteMode(*quote)
 	}
 
 	tables, err := testEngine.DBMetas()
