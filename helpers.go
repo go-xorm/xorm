@@ -400,6 +400,10 @@ func genCols(table *core.Table, session *Session, bean interface{}, useCol bool,
 		if session.Statement.ColumnStr != "" {
 			if _, ok := getFlagForColumn(session.Statement.columnMap, col); !ok {
 				continue
+			} else if _, ok := session.Statement.incrColumns[col.Name]; ok {
+				continue
+			} else if _, ok := session.Statement.decrColumns[col.Name]; ok {
+				continue
 			}
 		}
 		if session.Statement.OmitStr != "" {
