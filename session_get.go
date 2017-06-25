@@ -78,30 +78,38 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, bean interface{}, sqlS
 
 	defer rawRows.Close()
 
-	if rawRows.Next() {
-		switch beanKind {
-		case reflect.Struct:
-			fields, err := rawRows.Columns()
-			if err != nil {
-				// WARN: Alougth rawRows return true, but get fields failed
-				return true, err
-			}
-			dataStruct := rValue(bean)
-			if err := session.Statement.setRefValue(dataStruct); err != nil {
-				return false, err
-			}
-			_, err = session.row2Bean(rawRows, fields, len(fields), bean, &dataStruct, session.Statement.RefTable)
-		case reflect.Slice:
-			err = rawRows.ScanSlice(bean)
-		case reflect.Map:
-			err = rawRows.ScanMap(bean)
-		default:
-			err = rawRows.Scan(bean)
+	if !rawRows.Next() {
+		return false, nil
+	}
+
+	switch beanKind {
+	case reflect.Struct:
+		fields, err := rawRows.Columns()
+		if err != nil {
+			// WARN: Alougth rawRows return true, but get fields failed
+			return true, err
+		}
+		dataStruct := rValue(bean)
+		if err := session.Statement.setRefValue(dataStruct); err != nil {
+			return false, err
 		}
 
-		return true, err
+		scanResults, err := session.row2Slice(rawRows, fields, len(fields), bean)
+		if err != nil {
+			return false, err
+		}
+		rawRows.Close()
+
+		_, err = session.slice2Bean(scanResults, fields, len(fields), bean, &dataStruct, session.Statement.RefTable)
+	case reflect.Slice:
+		err = rawRows.ScanSlice(bean)
+	case reflect.Map:
+		err = rawRows.ScanMap(bean)
+	default:
+		err = rawRows.Scan(bean)
 	}
-	return false, nil
+
+	return true, err
 }
 
 func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interface{}) (has bool, err error) {

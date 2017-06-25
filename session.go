@@ -299,7 +299,12 @@ func (session *Session) rows2Beans(rows *core.Rows, fields []string, fieldsCount
 		var newValue = newElemFunc(fields)
 		bean := newValue.Interface()
 		dataStruct := rValue(bean)
-		pk, err := session.row2Bean(rows, fields, fieldsCount, bean, &dataStruct, table)
+		// handle beforeClosures
+		scanResults, err := session.row2Slice(rows, fields, fieldsCount, bean)
+		if err != nil {
+			return err
+		}
+		pk, err := session.slice2Bean(scanResults, fields, fieldsCount, bean, &dataStruct, table)
 		if err != nil {
 			return err
 		}
@@ -312,8 +317,7 @@ func (session *Session) rows2Beans(rows *core.Rows, fields []string, fieldsCount
 	return nil
 }
 
-func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount int, bean interface{}, dataStruct *reflect.Value, table *core.Table) (core.PK, error) {
-	// handle beforeClosures
+func (session *Session) row2Slice(rows *core.Rows, fields []string, fieldsCount int, bean interface{}) ([]interface{}, error) {
 	for _, closure := range session.beforeClosures {
 		closure(bean)
 	}
@@ -332,7 +336,10 @@ func (session *Session) row2Bean(rows *core.Rows, fields []string, fieldsCount i
 			b.BeforeSet(key, Cell(scanResults[ii].(*interface{})))
 		}
 	}
+	return scanResults, nil
+}
 
+func (session *Session) slice2Bean(scanResults []interface{}, fields []string, fieldsCount int, bean interface{}, dataStruct *reflect.Value, table *core.Table) (core.PK, error) {
 	defer func() {
 		if b, hasAfterSet := bean.(AfterSetProcessor); hasAfterSet {
 			for ii, key := range fields {

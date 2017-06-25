@@ -122,8 +122,13 @@ func (rows *Rows) Scan(bean interface{}) error {
 	if err := rows.session.Statement.setRefValue(dataStruct); err != nil {
 		return err
 	}
-	_, err := rows.session.row2Bean(rows.rows, rows.fields, len(rows.fields), bean, &dataStruct, rows.session.Statement.RefTable)
 
+	scanResults, err := rows.session.row2Slice(rows.rows, rows.fields, len(rows.fields), bean)
+	if err != nil {
+		return err
+	}
+
+	_, err = rows.session.slice2Bean(scanResults, rows.fields, len(rows.fields), bean, &dataStruct, rows.session.Statement.RefTable)
 	return err
 }
 
