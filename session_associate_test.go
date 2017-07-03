@@ -215,6 +215,8 @@ func TestBelongsTo_FindPtr(t *testing.T) {
 	err = testEngine.Cascade().Find(&noses2)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(noses2))
+	assert.NotNil(t, noses2[0].Face)
+	assert.NotNil(t, noses2[1].Face)
 	assert.Equal(t, face1.Id, noses2[0].Face.Id)
 	assert.Equal(t, face2.Id, noses2[1].Face.Id)
 	assert.Equal(t, "face1", noses2[0].Face.Name)
