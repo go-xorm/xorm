@@ -15,7 +15,7 @@ func TestCacheFind(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type MailBox struct {
-		Id       int64
+		Id       int64 `xorm:"pk"`
 		Username string
 		Password string
 	}
@@ -27,10 +27,12 @@ func TestCacheFind(t *testing.T) {
 
 	var inserts = []*MailBox{
 		{
+			Id:       0,
 			Username: "user1",
 			Password: "pass1",
 		},
 		{
+			Id:       1,
 			Username: "user2",
 			Password: "pass2",
 		},
@@ -63,7 +65,7 @@ func TestCacheFind2(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type MailBox2 struct {
-		Id       uint64
+		Id       uint64 `xorm:"pk"`
 		Username string
 		Password string
 	}
@@ -75,10 +77,12 @@ func TestCacheFind2(t *testing.T) {
 
 	var inserts = []*MailBox2{
 		{
+			Id:       0,
 			Username: "user1",
 			Password: "pass1",
 		},
 		{
+			Id:       1,
 			Username: "user2",
 			Password: "pass2",
 		},
