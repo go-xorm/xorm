@@ -1104,17 +1104,36 @@ func (engine *Engine) idOfV(rv reflect.Value) (core.PK, error) {
 
 	pk := make([]interface{}, len(table.PrimaryKeys))
 	for i, col := range table.PKColumns() {
+		var err error
 		pkField := v.FieldByName(col.FieldName)
 		switch pkField.Kind() {
 		case reflect.String:
-			pk[i] = pkField.String()
+			pk[i], err = engine.idTypeAssertion(col, pkField.String())
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			pk[i] = pkField.Int()
+			pk[i], err = engine.idTypeAssertion(col, strconv.FormatInt(pkField.Int(), 10))
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			pk[i] = pkField.Uint()
+			pk[i], err = engine.idTypeAssertion(col, strconv.FormatUint(pkField.Uint(), 10))
+		}
+
+		if err != nil {
+			return nil, err
 		}
 	}
 	return core.PK(pk), nil
+}
+
+func (engine *Engine) idTypeAssertion(col *core.Column, sid string) (interface{}, error) {
+	if col.SQLType.IsNumeric() {
+		n, err := strconv.ParseInt(sid, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	} else if col.SQLType.IsText() {
+		return sid, nil
+	} else {
+		return nil, errors.New("not supported")
+	}
 }
 
 // CreateIndexes create indexes

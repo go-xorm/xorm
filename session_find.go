@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"github.com/go-xorm/builder"
@@ -323,19 +322,11 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 			if err != nil {
 				return err
 			}
-
 			var pk core.PK = make([]interface{}, len(table.PrimaryKeys))
 			for i, col := range table.PKColumns() {
-				if col.SQLType.IsNumeric() {
-					n, err := strconv.ParseInt(res[i], 10, 64)
-					if err != nil {
-						return err
-					}
-					pk[i] = n
-				} else if col.SQLType.IsText() {
-					pk[i] = res[i]
-				} else {
-					return errors.New("not supported")
+				pk[i], err = session.Engine.idTypeAssertion(col, res[i])
+				if err != nil {
+					return err
 				}
 			}
 
