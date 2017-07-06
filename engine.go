@@ -1112,6 +1112,7 @@ func (engine *Engine) idOfV(rv reflect.Value) (core.PK, error) {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			pk[i], err = engine.idTypeAssertion(col, strconv.FormatInt(pkField.Int(), 10))
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			// id of uint will be converted to int64
 			pk[i], err = engine.idTypeAssertion(col, strconv.FormatUint(pkField.Uint(), 10))
 		}
 
