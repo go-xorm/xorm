@@ -267,7 +267,7 @@ func (engine *Engine) Ping() error {
 func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
 	if engine.showSQL && !engine.showExecTime {
 		if len(sqlArgs) > 0 {
-			engine.logger.Infof("[SQL] %v %v", sqlStr, sqlArgs)
+			engine.logger.Infof("[SQL] %v %#v", sqlStr, sqlArgs)
 		} else {
 			engine.logger.Infof("[SQL] %v", sqlStr)
 		}
