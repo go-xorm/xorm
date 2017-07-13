@@ -1426,6 +1426,13 @@ func (engine *Engine) Get(bean interface{}) (bool, error) {
 	return session.Get(bean)
 }
 
+// Exist returns true if the record exist otherwise return false
+func (engine *Engine) Exist(bean ...interface{}) (bool, error) {
+	session := engine.NewSession()
+	defer session.Close()
+	return session.Exist(bean...)
+}
+
 // Find retrieve records from table, condiBeans's non-empty fields
 // are conditions. beans could be []Struct, []*Struct, map[int64]Struct
 // map[int64]*Struct
