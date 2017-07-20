@@ -519,7 +519,7 @@ func (db *oracle) SqlType(c *core.Column) string {
 		res = "TIMESTAMP WITH TIME ZONE"
 	case core.Float, core.Double, core.Numeric, core.Decimal:
 		res = "NUMBER"
-	case core.Text, core.MediumText, core.LongText, core.Json:
+	case core.Text, core.MediumText, core.LongText:
 		res = "CLOB"
 	case core.Char, core.Varchar, core.TinyText:
 		res = "VARCHAR2"

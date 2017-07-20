@@ -55,12 +55,16 @@ var (
 		"CACHE":    CacheTagHandler,
 		"NOCACHE":  NoCacheTagHandler,
 		"COMMENT":  CommentTagHandler,
+		"JSON":     JSONTagHandler,
 	}
 )
 
 func init() {
 	for k := range core.SqlTypes {
-		defaultTagHandlers[k] = SQLTypeTagHandler
+		// don't overwrite
+		if _, ok := defaultTagHandlers[k]; !ok {
+			defaultTagHandlers[k] = SQLTypeTagHandler
+		}
 	}
 }
 
@@ -241,8 +245,19 @@ func SQLTypeTagHandler(ctx *tagContext) error {
 	return nil
 }
 
+// JSONTagHandler handle json tag
+func JSONTagHandler(ctx *tagContext) error {
+	fmt.Println("fdsfafadfs")
+	ctx.col.IsJSON = true
+	if len(ctx.params) == 0 {
+		ctx.col.SQLType = core.SQLType{Name: core.Text}
+	}
+	return nil
+}
+
 // ExtendsTagHandler describes extends tag handler
 func ExtendsTagHandler(ctx *tagContext) error {
+	ctx.ignoreNext = true
 	var fieldValue = ctx.fieldValue
 	switch fieldValue.Kind() {
 	case reflect.Ptr:

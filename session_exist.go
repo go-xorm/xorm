@@ -37,10 +37,18 @@ func (session *Session) Exist(bean ...interface{}) (bool, error) {
 					return false, err
 				}
 
-				sqlStr = fmt.Sprintf("SELECT * FROM %s WHERE %s LIMIT 1", tableName, condSQL)
+				if session.Engine.dialect.DBType() == core.MSSQL {
+					sqlStr = fmt.Sprintf("SELECT TOP 1 * FROM %s WHERE %s", tableName, condSQL)
+				} else {
+					sqlStr = fmt.Sprintf("SELECT * FROM %s WHERE %s LIMIT 1", tableName, condSQL)
+				}
 				args = condArgs
 			} else {
-				sqlStr = fmt.Sprintf("SELECT * FROM %s LIMIT 1", tableName)
+				if session.Engine.dialect.DBType() == core.MSSQL {
+					sqlStr = fmt.Sprintf("SELECT TOP 1 * FROM %s", tableName)
+				} else {
+					sqlStr = fmt.Sprintf("SELECT * FROM %s LIMIT 1", tableName)
+				}
 				args = []interface{}{}
 			}
 		} else {

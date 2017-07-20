@@ -270,3 +270,48 @@ func TestTagComment(t *testing.T) {
 	assert.EqualValues(t, 1, len(tables[0].Columns()))
 	assert.EqualValues(t, "主键", tables[0].Columns()[0].Comment)
 }
+
+func TestTagJSON(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type TestTagJSON1 struct {
+		Stings []string `xorm:"json"`
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(TestTagJSON1)))
+
+	table := testEngine.TableInfo(new(TestTagJSON1))
+	assert.NotNil(t, table)
+	assert.EqualValues(t, 1, len(table.Columns()))
+	assert.True(t, table.Columns()[0].IsJSON)
+	assert.EqualValues(t, "TEXT", table.Columns()[0].SQLType.Name)
+
+	tables, err := testEngine.DBMetas()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(tables))
+	assert.EqualValues(t, 1, len(tables[0].Columns()))
+	if testEngine.dialect.DBType() != core.MSSQL {
+		assert.EqualValues(t, "TEXT", tables[0].Columns()[0].SQLType.Name)
+	}
+	assert.NoError(t, testEngine.DropTables(new(TestTagJSON1)))
+
+	type TestTagJSON2 struct {
+		Stings []string `xorm:"json MediumText"`
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(TestTagJSON2)))
+
+	table = testEngine.TableInfo(new(TestTagJSON2))
+	assert.NotNil(t, table)
+	assert.EqualValues(t, 1, len(table.Columns()))
+	assert.True(t, table.Columns()[0].IsJSON)
+	assert.EqualValues(t, "MEDIUMTEXT", table.Columns()[0].SQLType.Name)
+
+	tables, err = testEngine.DBMetas()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(tables))
+	assert.EqualValues(t, 1, len(tables[0].Columns()))
+	if testEngine.dialect.DBType() == core.MYSQL {
+		assert.EqualValues(t, "MEDIUMTEXT", tables[0].Columns()[0].SQLType.Name)
+	}
+}
