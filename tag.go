@@ -247,7 +247,6 @@ func SQLTypeTagHandler(ctx *tagContext) error {
 
 // JSONTagHandler handle json tag
 func JSONTagHandler(ctx *tagContext) error {
-	fmt.Println("fdsfafadfs")
 	ctx.col.IsJSON = true
 	if len(ctx.params) == 0 {
 		ctx.col.SQLType = core.SQLType{Name: core.Text}
