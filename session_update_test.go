@@ -1093,3 +1093,23 @@ func TestBool(t *testing.T) {
 		}
 	}
 }
+
+func TestNoUpdate(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type NoUpdate struct {
+		Id      int64
+		Content string
+	}
+
+	assertSync(t, new(NoUpdate))
+
+	_, err := testEngine.Insert(&NoUpdate{
+		Content: "test",
+	})
+	assert.NoError(t, err)
+
+	_, err = testEngine.Id(1).Update(&NoUpdate{})
+	assert.Error(t, err)
+	assert.EqualValues(t, "No content found to be updated", err.Error())
+}
