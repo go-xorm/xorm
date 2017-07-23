@@ -190,34 +190,3 @@ func TestCombineTransactionSameMapper(t *testing.T) {
 		panic(err)
 	}
 }
-
-func TestReuseTransaction(t *testing.T) {
-	assert.NoError(t, prepareEngine())
-	sess := testEngine.NewSession()
-	defer sess.Close()
-
-	type ReuseTx struct {
-		Id   int64
-		Name string
-	}
-
-	assertSync(t, new(ReuseTx))
-
-	records := []ReuseTx{
-		{
-			Name: "1",
-		},
-		{
-			Name: "3",
-		},
-		{
-			Name: "2",
-		},
-	}
-	for _, r := range records {
-		assert.NoError(t, sess.Begin())
-		_, err := sess.Insert(&r)
-		assert.NoError(t, err)
-		assert.NoError(t, sess.Commit())
-	}
-}

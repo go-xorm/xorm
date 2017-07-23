@@ -24,7 +24,6 @@ func (session *Session) Rollback() error {
 	if !session.IsAutoCommit && !session.IsCommitedOrRollbacked {
 		session.saveLastSQL(session.Engine.dialect.RollBackStr())
 		session.IsCommitedOrRollbacked = true
-		session.IsAutoCommit = true
 		return session.Tx.Rollback()
 	}
 	return nil
@@ -35,7 +34,6 @@ func (session *Session) Commit() error {
 	if !session.IsAutoCommit && !session.IsCommitedOrRollbacked {
 		session.saveLastSQL("COMMIT")
 		session.IsCommitedOrRollbacked = true
-		session.IsAutoCommit = true
 		var err error
 		if err = session.Tx.Commit(); err == nil {
 			// handle processors after tx committed
