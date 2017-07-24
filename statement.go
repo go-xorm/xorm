@@ -592,6 +592,22 @@ func (statement *Statement) col2NewColsWithQuote(columns ...string) []string {
 	return newColumns
 }
 
+func (statement *Statement) colmap2NewColsWithQuote() []string {
+	newColumns := make([]string, 0, len(statement.columnMap))
+	for col := range statement.columnMap {
+		fields := strings.Split(strings.TrimSpace(col), ".")
+		if len(fields) == 1 {
+			newColumns = append(newColumns, statement.Engine.quote(fields[0]))
+		} else if len(fields) == 2 {
+			newColumns = append(newColumns, statement.Engine.quote(fields[0])+"."+
+				statement.Engine.quote(fields[1]))
+		} else {
+			panic(errors.New("unwanted colnames"))
+		}
+	}
+	return newColumns
+}
+
 // Distinct generates "DISTINCT col1, col2 " statement
 func (statement *Statement) Distinct(columns ...string) *Statement {
 	statement.IsDistinct = true
@@ -618,7 +634,7 @@ func (statement *Statement) Cols(columns ...string) *Statement {
 		statement.columnMap[strings.ToLower(nc)] = true
 	}
 
-	newColumns := statement.col2NewColsWithQuote(columns...)
+	newColumns := statement.colmap2NewColsWithQuote()
 	statement.ColumnStr = strings.Join(newColumns, ", ")
 	statement.ColumnStr = strings.Replace(statement.ColumnStr, statement.Engine.quote("*"), "*", -1)
 	return statement
