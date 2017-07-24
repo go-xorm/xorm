@@ -890,17 +890,24 @@ func (statement *Statement) buildConds(table *core.Table, bean interface{}, incl
 		statement.unscoped, statement.mustColumnMap, statement.TableName(), statement.TableAlias, addedTableName)
 }
 
-func (statement *Statement) genConds(bean interface{}) (string, []interface{}, error) {
+func (statement *Statement) mergeConds(bean interface{}) error {
 	if !statement.noAutoCondition {
 		var addedTableName = (len(statement.JoinStr) > 0)
 		autoCond, err := statement.buildConds(statement.RefTable, bean, true, true, false, true, addedTableName)
 		if err != nil {
-			return "", nil, err
+			return err
 		}
 		statement.cond = statement.cond.And(autoCond)
 	}
 
 	if err := statement.processIDParam(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (statement *Statement) genConds(bean interface{}) (string, []interface{}, error) {
+	if err := statement.mergeConds(bean); err != nil {
 		return "", nil, err
 	}
 
@@ -940,14 +947,12 @@ func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}, 
 		columnStr = "*"
 	}
 
-	var condSQL string
-	var condArgs []interface{}
-	var err error
 	if isStruct {
-		condSQL, condArgs, err = statement.genConds(bean)
-	} else {
-		condSQL, condArgs, err = builder.ToSQL(statement.cond)
+		if err := statement.mergeConds(bean); err != nil {
+			return "", nil, err
+		}
 	}
+	condSQL, condArgs, err := builder.ToSQL(statement.cond)
 	if err != nil {
 		return "", nil, err
 	}
