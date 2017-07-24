@@ -260,3 +260,35 @@ func TestIn(t *testing.T) {
 		panic(err)
 	}
 }
+
+func TestFindAndCount(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type FindAndCount struct {
+		Id   int64
+		Name string
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(FindAndCount)))
+
+	_, err := testEngine.Insert([]FindAndCount{
+		{
+			Name: "test1",
+		},
+		{
+			Name: "test2",
+		},
+	})
+	assert.NoError(t, err)
+
+	var results []FindAndCount
+	sess := testEngine.Where("name = ?", "test1")
+	conds := sess.Conds()
+	err = sess.Find(&results)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(results))
+
+	total, err := testEngine.Where(conds).Count(new(FindAndCount))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, total)
+}
