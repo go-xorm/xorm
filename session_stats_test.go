@@ -127,6 +127,14 @@ func TestCount(t *testing.T) {
 	total, err = testEngine.Where(cond).Count(new(UserinfoCount))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, total)
+
+	total, err = testEngine.Where(cond).Table("userinfo_count").Count()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, total)
+
+	total, err = testEngine.Table("userinfo_count").Count()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, total)
 }
 
 func TestSQLCount(t *testing.T) {
