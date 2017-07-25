@@ -18,10 +18,7 @@ func (session *Session) Count(bean ...interface{}) (int64, error) {
 	var args []interface{}
 	var err error
 	if session.Statement.RawSQL == "" {
-		if len(bean) == 0 {
-			return 0, ErrTableNotFound
-		}
-		sqlStr, args, err = session.Statement.genCountSQL(bean[0])
+		sqlStr, args, err = session.Statement.genCountSQL(bean...)
 		if err != nil {
 			return 0, err
 		}

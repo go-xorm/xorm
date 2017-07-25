@@ -981,10 +981,16 @@ func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}, 
 	return sqlStr, append(statement.joinArgs, condArgs...), nil
 }
 
-func (statement *Statement) genCountSQL(bean interface{}) (string, []interface{}, error) {
-	statement.setRefValue(rValue(bean))
-
-	condSQL, condArgs, err := statement.genConds(bean)
+func (statement *Statement) genCountSQL(beans ...interface{}) (string, []interface{}, error) {
+	var condSQL string
+	var condArgs []interface{}
+	var err error
+	if len(beans) > 0 {
+		statement.setRefValue(rValue(beans[0]))
+		condSQL, condArgs, err = statement.genConds(beans[0])
+	} else {
+		condSQL, condArgs, err = builder.ToSQL(statement.cond)
+	}
 	if err != nil {
 		return "", nil, err
 	}
