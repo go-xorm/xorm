@@ -26,13 +26,27 @@ func TestDelete(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	cnt, err = testEngine.Delete(&UserinfoDelete{Uid: 1})
+	cnt, err = testEngine.Delete(&UserinfoDelete{Uid: user.Uid})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	user.Uid = 0
 	user.IsMan = true
 	has, err := testEngine.Id(1).Get(&user)
+	assert.NoError(t, err)
+	assert.False(t, has)
+
+	cnt, err = testEngine.Insert(&user)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	cnt, err = testEngine.Where("id=?", user.Uid).Delete(&UserinfoDelete{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	user.Uid = 0
+	user.IsMan = true
+	has, err = testEngine.Id(2).Get(&user)
 	assert.NoError(t, err)
 	assert.False(t, has)
 }
