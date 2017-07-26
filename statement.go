@@ -592,6 +592,22 @@ func (statement *Statement) col2NewColsWithQuote(columns ...string) []string {
 	return newColumns
 }
 
+func (statement *Statement) colmap2NewColsWithQuote() []string {
+	newColumns := make([]string, 0, len(statement.columnMap))
+	for col := range statement.columnMap {
+		fields := strings.Split(strings.TrimSpace(col), ".")
+		if len(fields) == 1 {
+			newColumns = append(newColumns, statement.Engine.quote(fields[0]))
+		} else if len(fields) == 2 {
+			newColumns = append(newColumns, statement.Engine.quote(fields[0])+"."+
+				statement.Engine.quote(fields[1]))
+		} else {
+			panic(errors.New("unwanted colnames"))
+		}
+	}
+	return newColumns
+}
+
 // Distinct generates "DISTINCT col1, col2 " statement
 func (statement *Statement) Distinct(columns ...string) *Statement {
 	statement.IsDistinct = true
@@ -618,7 +634,7 @@ func (statement *Statement) Cols(columns ...string) *Statement {
 		statement.columnMap[strings.ToLower(nc)] = true
 	}
 
-	newColumns := statement.col2NewColsWithQuote(columns...)
+	newColumns := statement.colmap2NewColsWithQuote()
 	statement.ColumnStr = strings.Join(newColumns, ", ")
 	statement.ColumnStr = strings.Replace(statement.ColumnStr, statement.Engine.quote("*"), "*", -1)
 	return statement
@@ -890,17 +906,24 @@ func (statement *Statement) buildConds(table *core.Table, bean interface{}, incl
 		statement.unscoped, statement.mustColumnMap, statement.TableName(), statement.TableAlias, addedTableName)
 }
 
-func (statement *Statement) genConds(bean interface{}) (string, []interface{}, error) {
+func (statement *Statement) mergeConds(bean interface{}) error {
 	if !statement.noAutoCondition {
 		var addedTableName = (len(statement.JoinStr) > 0)
 		autoCond, err := statement.buildConds(statement.RefTable, bean, true, true, false, true, addedTableName)
 		if err != nil {
-			return "", nil, err
+			return err
 		}
 		statement.cond = statement.cond.And(autoCond)
 	}
 
 	if err := statement.processIDParam(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (statement *Statement) genConds(bean interface{}) (string, []interface{}, error) {
+	if err := statement.mergeConds(bean); err != nil {
 		return "", nil, err
 	}
 
@@ -940,14 +963,12 @@ func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}, 
 		columnStr = "*"
 	}
 
-	var condSQL string
-	var condArgs []interface{}
-	var err error
 	if isStruct {
-		condSQL, condArgs, err = statement.genConds(bean)
-	} else {
-		condSQL, condArgs, err = builder.ToSQL(statement.cond)
+		if err := statement.mergeConds(bean); err != nil {
+			return "", nil, err
+		}
 	}
+	condSQL, condArgs, err := builder.ToSQL(statement.cond)
 	if err != nil {
 		return "", nil, err
 	}
@@ -960,10 +981,16 @@ func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}, 
 	return sqlStr, append(statement.joinArgs, condArgs...), nil
 }
 
-func (statement *Statement) genCountSQL(bean interface{}) (string, []interface{}, error) {
-	statement.setRefValue(rValue(bean))
-
-	condSQL, condArgs, err := statement.genConds(bean)
+func (statement *Statement) genCountSQL(beans ...interface{}) (string, []interface{}, error) {
+	var condSQL string
+	var condArgs []interface{}
+	var err error
+	if len(beans) > 0 {
+		statement.setRefValue(rValue(beans[0]))
+		condSQL, condArgs, err = statement.genConds(beans[0])
+	} else {
+		condSQL, condArgs, err = builder.ToSQL(statement.cond)
+	}
 	if err != nil {
 		return "", nil, err
 	}

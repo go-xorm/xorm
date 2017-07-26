@@ -12,6 +12,7 @@ import (
 	"github.com/go-xorm/core"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/ziutek/mymysql/godrv"
 )
 
 var (

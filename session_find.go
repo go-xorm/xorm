@@ -119,7 +119,8 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 			}
 		}
 
-		condSQL, condArgs, err := builder.ToSQL(session.Statement.cond.And(autoCond))
+		session.Statement.cond = session.Statement.cond.And(autoCond)
+		condSQL, condArgs, err := builder.ToSQL(session.Statement.cond)
 		if err != nil {
 			return err
 		}

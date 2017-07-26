@@ -330,6 +330,10 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		}
 	}
 
+	if len(colNames) <= 0 {
+		return 0, errors.New("No content found to be updated")
+	}
+
 	sqlStr = fmt.Sprintf("UPDATE %v%v SET %v %v",
 		top,
 		session.Engine.Quote(session.Statement.TableName()),
