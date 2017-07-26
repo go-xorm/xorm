@@ -205,14 +205,14 @@ func (engine *Engine) SetDefaultCacher(cacher core.Cacher) {
 // you can use NoCache()
 func (engine *Engine) NoCache() *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.NoCache()
 }
 
 // NoCascade If you do not want to auto cascade load object
 func (engine *Engine) NoCascade() *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.NoCascade()
 }
 
@@ -245,7 +245,7 @@ func (engine *Engine) Dialect() core.Dialect {
 
 // NewSession New a session
 func (engine *Engine) NewSession() *Session {
-	session := &Session{Engine: engine}
+	session := &Session{engine: engine}
 	session.Init()
 	return session
 }
@@ -320,7 +320,7 @@ func (engine *Engine) Sql(querystring string, args ...interface{}) *Session {
 // This    code will execute "select * from user" and set the records to users
 func (engine *Engine) SQL(query interface{}, args ...interface{}) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.SQL(query, args...)
 }
 
@@ -329,14 +329,14 @@ func (engine *Engine) SQL(query interface{}, args ...interface{}) *Session {
 // invoked. Call NoAutoTime if you dont' want to fill automatically.
 func (engine *Engine) NoAutoTime() *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.NoAutoTime()
 }
 
 // NoAutoCondition disable auto generate Where condition from bean or not
 func (engine *Engine) NoAutoCondition(no ...bool) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.NoAutoCondition(no...)
 }
 
@@ -570,56 +570,56 @@ func (engine *Engine) tbName(v reflect.Value) string {
 // Cascade use cascade or not
 func (engine *Engine) Cascade(trueOrFalse ...bool) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Cascade(trueOrFalse...)
 }
 
 // Where method provide a condition query
 func (engine *Engine) Where(query interface{}, args ...interface{}) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Where(query, args...)
 }
 
 // Id will be depracated, please use ID instead
 func (engine *Engine) Id(id interface{}) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Id(id)
 }
 
 // ID method provoide a condition as (id) = ?
 func (engine *Engine) ID(id interface{}) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.ID(id)
 }
 
 // Before apply before Processor, affected bean is passed to closure arg
 func (engine *Engine) Before(closures func(interface{})) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Before(closures)
 }
 
 // After apply after insert Processor, affected bean is passed to closure arg
 func (engine *Engine) After(closures func(interface{})) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.After(closures)
 }
 
 // Charset set charset when create table, only support mysql now
 func (engine *Engine) Charset(charset string) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Charset(charset)
 }
 
 // StoreEngine set store engine when create table, only support mysql now
 func (engine *Engine) StoreEngine(storeEngine string) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.StoreEngine(storeEngine)
 }
 
@@ -628,35 +628,35 @@ func (engine *Engine) StoreEngine(storeEngine string) *Session {
 // but distinct will not provide id
 func (engine *Engine) Distinct(columns ...string) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Distinct(columns...)
 }
 
 // Select customerize your select columns or contents
 func (engine *Engine) Select(str string) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Select(str)
 }
 
 // Cols only use the parameters as select or update columns
 func (engine *Engine) Cols(columns ...string) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Cols(columns...)
 }
 
 // AllCols indicates that all columns should be use
 func (engine *Engine) AllCols() *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.AllCols()
 }
 
 // MustCols specify some columns must use even if they are empty
 func (engine *Engine) MustCols(columns ...string) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.MustCols(columns...)
 }
 
@@ -667,77 +667,77 @@ func (engine *Engine) MustCols(columns ...string) *Session {
 // it will use parameters's columns
 func (engine *Engine) UseBool(columns ...string) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.UseBool(columns...)
 }
 
 // Omit only not use the parameters as select or update columns
 func (engine *Engine) Omit(columns ...string) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Omit(columns...)
 }
 
 // Nullable set null when column is zero-value and nullable for update
 func (engine *Engine) Nullable(columns ...string) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Nullable(columns...)
 }
 
 // In will generate "column IN (?, ?)"
 func (engine *Engine) In(column string, args ...interface{}) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.In(column, args...)
 }
 
 // Incr provides a update string like "column = column + ?"
 func (engine *Engine) Incr(column string, arg ...interface{}) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Incr(column, arg...)
 }
 
 // Decr provides a update string like "column = column - ?"
 func (engine *Engine) Decr(column string, arg ...interface{}) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Decr(column, arg...)
 }
 
 // SetExpr provides a update string like "column = {expression}"
 func (engine *Engine) SetExpr(column string, expression string) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.SetExpr(column, expression)
 }
 
 // Table temporarily change the Get, Find, Update's table
 func (engine *Engine) Table(tableNameOrBean interface{}) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Table(tableNameOrBean)
 }
 
 // Alias set the table alias
 func (engine *Engine) Alias(alias string) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Alias(alias)
 }
 
 // Limit will generate "LIMIT start, limit"
 func (engine *Engine) Limit(limit int, start ...int) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Limit(limit, start...)
 }
 
 // Desc will generate "ORDER BY column1 DESC, column2 DESC"
 func (engine *Engine) Desc(colNames ...string) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Desc(colNames...)
 }
 
@@ -749,35 +749,35 @@ func (engine *Engine) Desc(colNames ...string) *Session {
 //
 func (engine *Engine) Asc(colNames ...string) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Asc(colNames...)
 }
 
 // OrderBy will generate "ORDER BY order"
 func (engine *Engine) OrderBy(order string) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.OrderBy(order)
 }
 
 // Join the join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
 func (engine *Engine) Join(joinOperator string, tablename interface{}, condition string, args ...interface{}) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Join(joinOperator, tablename, condition, args...)
 }
 
 // GroupBy generate group by statement
 func (engine *Engine) GroupBy(keys string) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.GroupBy(keys)
 }
 
 // Having generate having statement
 func (engine *Engine) Having(conditions string) *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Having(conditions)
 }
 
@@ -1251,7 +1251,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 				if !isExist {
 					session := engine.NewSession()
 					defer session.Close()
-					if err := session.Statement.setRefValue(v); err != nil {
+					if err := session.statement.setRefValue(v); err != nil {
 						return err
 					}
 					err = session.addColumn(col.Name)
@@ -1264,7 +1264,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 			for name, index := range table.Indexes {
 				session := engine.NewSession()
 				defer session.Close()
-				if err := session.Statement.setRefValue(v); err != nil {
+				if err := session.statement.setRefValue(v); err != nil {
 					return err
 				}
 				if index.Type == core.UniqueType {
@@ -1275,7 +1275,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 					if !isExist {
 						session := engine.NewSession()
 						defer session.Close()
-						if err := session.Statement.setRefValue(v); err != nil {
+						if err := session.statement.setRefValue(v); err != nil {
 							return err
 						}
 
@@ -1292,7 +1292,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 					if !isExist {
 						session := engine.NewSession()
 						defer session.Close()
-						if err := session.Statement.setRefValue(v); err != nil {
+						if err := session.statement.setRefValue(v); err != nil {
 							return err
 						}
 
@@ -1587,7 +1587,7 @@ func (engine *Engine) formatTime(sqlTypeName string, t time.Time) (v interface{}
 // Unscoped always disable struct tag "deleted"
 func (engine *Engine) Unscoped() *Session {
 	session := engine.NewSession()
-	session.IsAutoClose = true
+	session.isAutoClose = true
 	return session.Unscoped()
 }
 

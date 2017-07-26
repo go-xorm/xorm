@@ -16,7 +16,7 @@ import (
 // Exist returns true if the record exist otherwise return false
 func (session *Session) Exist(bean ...interface{}) (bool, error) {
 	defer session.resetStatement()
-	if session.IsAutoClose {
+	if session.isAutoClose {
 		defer session.Close()
 	}
 
@@ -24,15 +24,15 @@ func (session *Session) Exist(bean ...interface{}) (bool, error) {
 	var args []interface{}
 	var err error
 
-	if session.Statement.RawSQL == "" {
+	if session.statement.RawSQL == "" {
 		if len(bean) == 0 {
-			tableName := session.Statement.TableName()
+			tableName := session.statement.TableName()
 			if len(tableName) <= 0 {
 				return false, ErrTableNotFound
 			}
 
-			if session.Statement.cond.IsValid() {
-				condSQL, condArgs, err := builder.ToSQL(session.Statement.cond)
+			if session.statement.cond.IsValid() {
+				condSQL, condArgs, err := builder.ToSQL(session.statement.cond)
 				if err != nil {
 					return false, err
 				}
@@ -50,32 +50,32 @@ func (session *Session) Exist(bean ...interface{}) (bool, error) {
 			}
 
 			if beanValue.Elem().Kind() == reflect.Struct {
-				if err := session.Statement.setRefValue(beanValue.Elem()); err != nil {
+				if err := session.statement.setRefValue(beanValue.Elem()); err != nil {
 					return false, err
 				}
 			}
 
-			if len(session.Statement.TableName()) <= 0 {
+			if len(session.statement.TableName()) <= 0 {
 				return false, ErrTableNotFound
 			}
-			session.Statement.Limit(1)
-			sqlStr, args, err = session.Statement.genGetSQL(bean[0])
+			session.statement.Limit(1)
+			sqlStr, args, err = session.statement.genGetSQL(bean[0])
 			if err != nil {
 				return false, err
 			}
 		}
 	} else {
-		sqlStr = session.Statement.RawSQL
-		args = session.Statement.RawParams
+		sqlStr = session.statement.RawSQL
+		args = session.statement.RawParams
 	}
 
 	session.queryPreprocess(&sqlStr, args...)
 
 	var rawRows *core.Rows
-	if session.IsAutoCommit {
+	if session.isAutoCommit {
 		_, rawRows, err = session.innerQuery(sqlStr, args...)
 	} else {
-		rawRows, err = session.Tx.Query(sqlStr, args...)
+		rawRows, err = session.tx.Query(sqlStr, args...)
 	}
 	if err != nil {
 		return false, err
