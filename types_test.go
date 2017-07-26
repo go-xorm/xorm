@@ -139,12 +139,9 @@ type Nullable struct {
 }
 
 func (s *Nullable) FromDB(data []byte) error {
-
 	if data == nil {
 		return nil
 	}
-
-	fmt.Println("--sd", data)
 
 	*s = Nullable{
 		Data: string(data),
