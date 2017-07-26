@@ -156,6 +156,17 @@ func isZero(k interface{}) bool {
 	return false
 }
 
+func isZeroValue(v reflect.Value) bool {
+	if isZero(v.Interface()) {
+		return true
+	}
+	switch v.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
+		return v.IsNil()
+	}
+	return false
+}
+
 func isStructZero(v reflect.Value) bool {
 	if !v.IsValid() {
 		return true
@@ -414,7 +425,7 @@ func genCols(table *core.Table, session *Session, bean interface{}, useCol bool,
 
 		// !evalphobia! set fieldValue as nil when column is nullable and zero-value
 		if _, ok := getFlagForColumn(session.Statement.nullableMap, col); ok {
-			if col.Nullable && isZero(fieldValue.Interface()) {
+			if col.Nullable && isZeroValue(fieldValue) {
 				var nilValue *int
 				fieldValue = reflect.ValueOf(nilValue)
 			}
