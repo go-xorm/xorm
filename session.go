@@ -93,9 +93,13 @@ func (session *Session) Close() {
 		}
 		session.Tx = nil
 		session.stmtCache = nil
-		session.Init()
 		session.db = nil
 	}
+}
+
+// IsClosed returns if session is closed
+func (session *Session) IsClosed() bool {
+	return session.db == nil
 }
 
 func (session *Session) resetStatement() {
