@@ -110,48 +110,62 @@ func TestStrangeName(t *testing.T) {
 	}
 }
 
-type CreatedUpdated struct {
-	Id       int64
-	Name     string
-	Value    float64   `xorm:"numeric"`
-	Created  time.Time `xorm:"created"`
-	Created2 time.Time `xorm:"created"`
-	Updated  time.Time `xorm:"updated"`
-}
-
 func TestCreatedUpdated(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.Sync(&CreatedUpdated{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
+	type CreatedUpdated struct {
+		Id       int64
+		Name     string
+		Value    float64   `xorm:"numeric"`
+		Created  time.Time `xorm:"created"`
+		Created2 time.Time `xorm:"created"`
+		Updated  time.Time `xorm:"updated"`
 	}
+
+	err := testEngine.Sync(&CreatedUpdated{})
+	assert.NoError(t, err)
 
 	c := &CreatedUpdated{Name: "test"}
 	_, err = testEngine.Insert(c)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	c2 := new(CreatedUpdated)
 	has, err := testEngine.Id(c.Id).Get(c2)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
-	if !has {
-		panic(errors.New("no id"))
-	}
+	assert.True(t, has)
 
 	c2.Value -= 1
 	_, err = testEngine.Id(c2.Id).Update(c2)
-	if err != nil {
-		t.Error(err)
-		panic(err)
+	assert.NoError(t, err)
+}
+
+func TestCreatedUpdatedInt64(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type CreatedUpdatedInt64 struct {
+		Id       int64
+		Name     string
+		Value    float64 `xorm:"numeric"`
+		Created  int64   `xorm:"created"`
+		Created2 int64   `xorm:"created"`
+		Updated  int64   `xorm:"updated"`
 	}
+
+	assertSync(t, &CreatedUpdatedInt64{})
+
+	c := &CreatedUpdatedInt64{Name: "test"}
+	_, err := testEngine.Insert(c)
+	assert.NoError(t, err)
+
+	c2 := new(CreatedUpdatedInt64)
+	has, err := testEngine.ID(c.Id).Get(c2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+
+	c2.Value -= 1
+	_, err = testEngine.ID(c2.Id).Update(c2)
+	assert.NoError(t, err)
 }
 
 type Lowercase struct {
@@ -269,4 +283,78 @@ func TestTagComment(t *testing.T) {
 	assert.EqualValues(t, 1, len(tables))
 	assert.EqualValues(t, 1, len(tables[0].Columns()))
 	assert.EqualValues(t, "主键", tables[0].Columns()[0].Comment)
+}
+
+func TestTagDefault(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type DefaultStruct struct {
+		Id   int64
+		Name string
+		Age  int `xorm:"default(10)"`
+	}
+
+	assertSync(t, new(DefaultStruct))
+
+	cnt, err := testEngine.Omit("age").Insert(&DefaultStruct{
+		Name: "test",
+		Age:  20,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var s DefaultStruct
+	has, err := testEngine.ID(1).Get(&s)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 10, s.Age)
+	assert.EqualValues(t, "test", s.Name)
+}
+
+func TestTagsDirection(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type OnlyFromDBStruct struct {
+		Id   int64
+		Name string
+		Uuid string `xorm:"<- default '1'"`
+	}
+
+	assertSync(t, new(OnlyFromDBStruct))
+
+	cnt, err := testEngine.Insert(&OnlyFromDBStruct{
+		Name: "test",
+		Uuid: "2",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var s OnlyFromDBStruct
+	has, err := testEngine.ID(1).Get(&s)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "1", s.Uuid)
+	assert.EqualValues(t, "test", s.Name)
+
+	type OnlyToDBStruct struct {
+		Id   int64
+		Name string
+		Uuid string `xorm:"->"`
+	}
+
+	assertSync(t, new(OnlyToDBStruct))
+
+	cnt, err = testEngine.Insert(&OnlyToDBStruct{
+		Name: "test",
+		Uuid: "2",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var s2 OnlyToDBStruct
+	has, err = testEngine.ID(1).Get(&s2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "", s2.Uuid)
+	assert.EqualValues(t, "test", s2.Name)
 }

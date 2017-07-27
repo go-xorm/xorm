@@ -692,6 +692,13 @@ func (engine *Engine) In(column string, args ...interface{}) *Session {
 	return session.In(column, args...)
 }
 
+// NotIn will generate "column NOT IN (?, ?)"
+func (engine *Engine) NotIn(column string, args ...interface{}) *Session {
+	session := engine.NewSession()
+	session.isAutoClose = true
+	return session.NotIn(column, args...)
+}
+
 // Incr provides a update string like "column = column + ?"
 func (engine *Engine) Incr(column string, arg ...interface{}) *Session {
 	session := engine.NewSession()
