@@ -38,4 +38,31 @@ func TestRows(t *testing.T) {
 		cnt++
 	}
 	assert.EqualValues(t, 1, cnt)
+
+	sess := testEngine.NewSession()
+	defer sess.Close()
+
+	rows1, err := sess.Prepare().Rows(new(UserRows))
+	assert.NoError(t, err)
+	defer rows1.Close()
+
+	cnt = 0
+	for rows1.Next() {
+		err = rows1.Scan(user)
+		assert.NoError(t, err)
+		cnt++
+	}
+	assert.EqualValues(t, 1, cnt)
+
+	rows2, err := testEngine.SQL("SELECT * FROM user_rows").Rows(new(UserRows))
+	assert.NoError(t, err)
+	defer rows2.Close()
+
+	cnt = 0
+	for rows2.Next() {
+		err = rows2.Scan(user)
+		assert.NoError(t, err)
+		cnt++
+	}
+	assert.EqualValues(t, 1, cnt)
 }
