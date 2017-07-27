@@ -571,6 +571,16 @@ func TestUpdateIncrDecr(t *testing.T) {
 	assert.True(t, has)
 	assert.EqualValues(t, 1, newCol.Cnt)
 
+	cnt, err = testEngine.Id(col1.Id).Decr(colName).Update(col1)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	newCol = new(UpdateIncr)
+	has, err = testEngine.Id(col1.Id).Get(newCol)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 0, newCol.Cnt)
+
 	cnt, err = testEngine.Id(col1.Id).Cols(colName).Incr(colName).Update(col1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
