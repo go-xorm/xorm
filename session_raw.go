@@ -17,10 +17,10 @@ import (
 func (session *Session) query(sqlStr string, paramStr ...interface{}) ([]map[string][]byte, error) {
 	session.queryPreprocess(&sqlStr, paramStr...)
 
-	if session.IsAutoCommit {
+	if session.isAutoCommit {
 		return session.innerQuery2(sqlStr, paramStr...)
 	}
-	return session.txQuery(session.Tx, sqlStr, paramStr...)
+	return session.txQuery(session.tx, sqlStr, paramStr...)
 }
 
 func (session *Session) txQuery(tx *core.Tx, sqlStr string, params ...interface{}) ([]map[string][]byte, error) {
@@ -56,7 +56,7 @@ func (session *Session) innerQuery(sqlStr string, params ...interface{}) (*core.
 			return nil, rows, err
 		}
 	}
-	stmt, rows, err := session.Engine.logSQLQueryTime(sqlStr, params, callback)
+	stmt, rows, err := session.engine.logSQLQueryTime(sqlStr, params, callback)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -131,7 +131,7 @@ func (session *Session) innerQuery2(sqlStr string, params ...interface{}) ([]map
 // Query runs a raw sql and return records as []map[string][]byte
 func (session *Session) Query(sqlStr string, paramStr ...interface{}) ([]map[string][]byte, error) {
 	defer session.resetStatement()
-	if session.IsAutoClose {
+	if session.isAutoClose {
 		defer session.Close()
 	}
 
@@ -256,16 +256,16 @@ func query2(db *core.DB, sqlStr string, params ...interface{}) ([]map[string]str
 // QueryString runs a raw sql and return records as []map[string]string
 func (session *Session) QueryString(sqlStr string, args ...interface{}) ([]map[string]string, error) {
 	defer session.resetStatement()
-	if session.IsAutoClose {
+	if session.isAutoClose {
 		defer session.Close()
 	}
 
 	session.queryPreprocess(&sqlStr, args...)
 
-	if session.IsAutoCommit {
+	if session.isAutoCommit {
 		return query2(session.DB(), sqlStr, args...)
 	}
-	return txQuery2(session.Tx, sqlStr, args...)
+	return txQuery2(session.tx, sqlStr, args...)
 }
 
 // Execute sql
@@ -287,32 +287,32 @@ func (session *Session) innerExec(sqlStr string, args ...interface{}) (sql.Resul
 }
 
 func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, error) {
-	for _, filter := range session.Engine.dialect.Filters() {
+	for _, filter := range session.engine.dialect.Filters() {
 		// TODO: for table name, it's no need to RefTable
-		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
+		sqlStr = filter.Do(sqlStr, session.engine.dialect, session.statement.RefTable)
 	}
 
 	session.saveLastSQL(sqlStr, args...)
 
-	return session.Engine.logSQLExecutionTime(sqlStr, args, func() (sql.Result, error) {
-		if session.IsAutoCommit {
+	return session.engine.logSQLExecutionTime(sqlStr, args, func() (sql.Result, error) {
+		if session.isAutoCommit {
 			// FIXME: oci8 can not auto commit (github.com/mattn/go-oci8)
-			if session.Engine.dialect.DBType() == core.ORACLE {
+			if session.engine.dialect.DBType() == core.ORACLE {
 				session.Begin()
-				r, err := session.Tx.Exec(sqlStr, args...)
+				r, err := session.tx.Exec(sqlStr, args...)
 				session.Commit()
 				return r, err
 			}
 			return session.innerExec(sqlStr, args...)
 		}
-		return session.Tx.Exec(sqlStr, args...)
+		return session.tx.Exec(sqlStr, args...)
 	})
 }
 
 // Exec raw sql
 func (session *Session) Exec(sqlStr string, args ...interface{}) (sql.Result, error) {
 	defer session.resetStatement()
-	if session.IsAutoClose {
+	if session.isAutoClose {
 		defer session.Close()
 	}
 

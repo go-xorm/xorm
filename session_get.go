@@ -16,7 +16,7 @@ import (
 // will be as conditions
 func (session *Session) Get(bean interface{}) (bool, error) {
 	defer session.resetStatement()
-	if session.IsAutoClose {
+	if session.isAutoClose {
 		defer session.Close()
 	}
 
@@ -26,7 +26,7 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	}
 
 	if beanValue.Elem().Kind() == reflect.Struct {
-		if err := session.Statement.setRefValue(beanValue.Elem()); err != nil {
+		if err := session.statement.setRefValue(beanValue.Elem()); err != nil {
 			return false, err
 		}
 	}
@@ -35,23 +35,23 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	var args []interface{}
 	var err error
 
-	if session.Statement.RawSQL == "" {
-		if len(session.Statement.TableName()) <= 0 {
+	if session.statement.RawSQL == "" {
+		if len(session.statement.TableName()) <= 0 {
 			return false, ErrTableNotFound
 		}
-		session.Statement.Limit(1)
-		sqlStr, args, err = session.Statement.genGetSQL(bean)
+		session.statement.Limit(1)
+		sqlStr, args, err = session.statement.genGetSQL(bean)
 		if err != nil {
 			return false, err
 		}
 	} else {
-		sqlStr = session.Statement.RawSQL
-		args = session.Statement.RawParams
+		sqlStr = session.statement.RawSQL
+		args = session.statement.RawParams
 	}
 
 	if session.canCache() && beanValue.Elem().Kind() == reflect.Struct {
-		if cacher := session.Engine.getCacher2(session.Statement.RefTable); cacher != nil &&
-			!session.Statement.unscoped {
+		if cacher := session.engine.getCacher2(session.statement.RefTable); cacher != nil &&
+			!session.statement.unscoped {
 			has, err := session.cacheGet(bean, sqlStr, args...)
 			if err != ErrCacheFailed {
 				return has, err
@@ -67,10 +67,10 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, bean interface{}, sqlS
 
 	var rawRows *core.Rows
 	var err error
-	if session.IsAutoCommit {
+	if session.isAutoCommit {
 		_, rawRows, err = session.innerQuery(sqlStr, args...)
 	} else {
-		rawRows, err = session.Tx.Query(sqlStr, args...)
+		rawRows, err = session.tx.Query(sqlStr, args...)
 	}
 	if err != nil {
 		return false, err
@@ -90,7 +90,7 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, bean interface{}, sqlS
 			return true, err
 		}
 		dataStruct := rValue(bean)
-		if err := session.Statement.setRefValue(dataStruct); err != nil {
+		if err := session.statement.setRefValue(dataStruct); err != nil {
 			return false, err
 		}
 
@@ -100,7 +100,7 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, bean interface{}, sqlS
 		}
 		rawRows.Close()
 
-		_, err = session.slice2Bean(scanResults, fields, len(fields), bean, &dataStruct, session.Statement.RefTable)
+		_, err = session.slice2Bean(scanResults, fields, len(fields), bean, &dataStruct, session.statement.RefTable)
 	case reflect.Slice:
 		err = rawRows.ScanSlice(bean)
 	case reflect.Map:
@@ -118,19 +118,19 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 		return false, ErrCacheFailed
 	}
 
-	for _, filter := range session.Engine.dialect.Filters() {
-		sqlStr = filter.Do(sqlStr, session.Engine.dialect, session.Statement.RefTable)
+	for _, filter := range session.engine.dialect.Filters() {
+		sqlStr = filter.Do(sqlStr, session.engine.dialect, session.statement.RefTable)
 	}
-	newsql := session.Statement.convertIDSQL(sqlStr)
+	newsql := session.statement.convertIDSQL(sqlStr)
 	if newsql == "" {
 		return false, ErrCacheFailed
 	}
 
-	cacher := session.Engine.getCacher2(session.Statement.RefTable)
-	tableName := session.Statement.TableName()
-	session.Engine.logger.Debug("[cacheGet] find sql:", newsql, args)
+	cacher := session.engine.getCacher2(session.statement.RefTable)
+	tableName := session.statement.TableName()
+	session.engine.logger.Debug("[cacheGet] find sql:", newsql, args)
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args)
-	table := session.Statement.RefTable
+	table := session.statement.RefTable
 	if err != nil {
 		var res = make([]string, len(table.PrimaryKeys))
 		rows, err := session.DB().Query(newsql, args...)
@@ -164,19 +164,19 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 		}
 
 		ids = []core.PK{pk}
-		session.Engine.logger.Debug("[cacheGet] cache ids:", newsql, ids)
+		session.engine.logger.Debug("[cacheGet] cache ids:", newsql, ids)
 		err = core.PutCacheSql(cacher, ids, tableName, newsql, args)
 		if err != nil {
 			return false, err
 		}
 	} else {
-		session.Engine.logger.Debug("[cacheGet] cache hit sql:", newsql)
+		session.engine.logger.Debug("[cacheGet] cache hit sql:", newsql)
 	}
 
 	if len(ids) > 0 {
 		structValue := reflect.Indirect(reflect.ValueOf(bean))
 		id := ids[0]
-		session.Engine.logger.Debug("[cacheGet] get bean:", tableName, id)
+		session.engine.logger.Debug("[cacheGet] get bean:", tableName, id)
 		sid, err := id.ToString()
 		if err != nil {
 			return false, err
@@ -189,10 +189,10 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 				return has, err
 			}
 
-			session.Engine.logger.Debug("[cacheGet] cache bean:", tableName, id, cacheBean)
+			session.engine.logger.Debug("[cacheGet] cache bean:", tableName, id, cacheBean)
 			cacher.PutBean(tableName, sid, cacheBean)
 		} else {
-			session.Engine.logger.Debug("[cacheGet] cache hit bean:", tableName, id, cacheBean)
+			session.engine.logger.Debug("[cacheGet] cache hit bean:", tableName, id, cacheBean)
 			has = true
 		}
 		structValue.Set(reflect.Indirect(reflect.ValueOf(cacheBean)))

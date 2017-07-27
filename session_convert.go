@@ -23,7 +23,7 @@ func (session *Session) str2Time(col *core.Column, data string) (outTime time.Ti
 	var x time.Time
 	var err error
 
-	var parseLoc = session.Engine.DatabaseTZ
+	var parseLoc = session.engine.DatabaseTZ
 	if col.TimeZone != nil {
 		parseLoc = col.TimeZone
 	}
@@ -34,27 +34,27 @@ func (session *Session) str2Time(col *core.Column, data string) (outTime time.Ti
 		sd, err := strconv.ParseInt(sdata, 10, 64)
 		if err == nil {
 			x = time.Unix(sd, 0)
-			session.Engine.logger.Debugf("time(0) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+			session.engine.logger.Debugf("time(0) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		} else {
-			session.Engine.logger.Debugf("time(0) err key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+			session.engine.logger.Debugf("time(0) err key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		}
 	} else if len(sdata) > 19 && strings.Contains(sdata, "-") {
 		x, err = time.ParseInLocation(time.RFC3339Nano, sdata, parseLoc)
-		session.Engine.logger.Debugf("time(1) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+		session.engine.logger.Debugf("time(1) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		if err != nil {
 			x, err = time.ParseInLocation("2006-01-02 15:04:05.999999999", sdata, parseLoc)
-			session.Engine.logger.Debugf("time(2) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+			session.engine.logger.Debugf("time(2) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		}
 		if err != nil {
 			x, err = time.ParseInLocation("2006-01-02 15:04:05.9999999 Z07:00", sdata, parseLoc)
-			session.Engine.logger.Debugf("time(3) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+			session.engine.logger.Debugf("time(3) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 		}
 	} else if len(sdata) == 19 && strings.Contains(sdata, "-") {
 		x, err = time.ParseInLocation("2006-01-02 15:04:05", sdata, parseLoc)
-		session.Engine.logger.Debugf("time(4) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+		session.engine.logger.Debugf("time(4) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 	} else if len(sdata) == 10 && sdata[4] == '-' && sdata[7] == '-' {
 		x, err = time.ParseInLocation("2006-01-02", sdata, parseLoc)
-		session.Engine.logger.Debugf("time(5) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+		session.engine.logger.Debugf("time(5) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 	} else if col.SQLType.Name == core.Time {
 		if strings.Contains(sdata, " ") {
 			ssd := strings.Split(sdata, " ")
@@ -62,13 +62,13 @@ func (session *Session) str2Time(col *core.Column, data string) (outTime time.Ti
 		}
 
 		sdata = strings.TrimSpace(sdata)
-		if session.Engine.dialect.DBType() == core.MYSQL && len(sdata) > 8 {
+		if session.engine.dialect.DBType() == core.MYSQL && len(sdata) > 8 {
 			sdata = sdata[len(sdata)-8:]
 		}
 
 		st := fmt.Sprintf("2006-01-02 %v", sdata)
 		x, err = time.ParseInLocation("2006-01-02 15:04:05", st, parseLoc)
-		session.Engine.logger.Debugf("time(6) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
+		session.engine.logger.Debugf("time(6) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
 	} else {
 		outErr = fmt.Errorf("unsupported time format %v", sdata)
 		return
@@ -77,7 +77,7 @@ func (session *Session) str2Time(col *core.Column, data string) (outTime time.Ti
 		outErr = fmt.Errorf("unsupported time format %v: %v", sdata, err)
 		return
 	}
-	outTime = x.In(session.Engine.TZLocation)
+	outTime = x.In(session.engine.TZLocation)
 	return
 }
 
@@ -105,7 +105,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 		if len(data) > 0 {
 			err := json.Unmarshal(data, x.Interface())
 			if err != nil {
-				session.Engine.logger.Error(err)
+				session.engine.logger.Error(err)
 				return err
 			}
 			fieldValue.Set(x.Elem())
@@ -119,7 +119,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			if len(data) > 0 {
 				err := json.Unmarshal(data, x.Interface())
 				if err != nil {
-					session.Engine.logger.Error(err)
+					session.engine.logger.Error(err)
 					return err
 				}
 				fieldValue.Set(x.Elem())
@@ -132,7 +132,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 				if len(data) > 0 {
 					err := json.Unmarshal(data, x.Interface())
 					if err != nil {
-						session.Engine.logger.Error(err)
+						session.engine.logger.Error(err)
 						return err
 					}
 					fieldValue.Set(x.Elem())
@@ -156,7 +156,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 		var err error
 		// for mysql, when use bit, it returned \x01
 		if col.SQLType.Name == core.Bit &&
-			session.Engine.dialect.DBType() == core.MYSQL { // !nashtsai! TODO dialect needs to provide conversion interface API
+			session.engine.dialect.DBType() == core.MYSQL { // !nashtsai! TODO dialect needs to provide conversion interface API
 			if len(data) == 1 {
 				x = int64(data[0])
 			} else {
@@ -204,8 +204,8 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 				}
 				v = x
 				fieldValue.Set(reflect.ValueOf(v).Convert(fieldType))
-			} else if session.Statement.UseCascade {
-				table, err := session.Engine.autoMapType(*fieldValue)
+			} else if session.statement.UseCascade {
+				table, err := session.engine.autoMapType(*fieldValue)
 				if err != nil {
 					return err
 				}
@@ -227,7 +227,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 					// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
 					// property to be fetched lazily
 					structInter := reflect.New(fieldValue.Type())
-					newsession := session.Engine.NewSession()
+					newsession := session.engine.NewSession()
 					defer newsession.Close()
 					has, err := newsession.Id(pk).NoCascade().Get(structInter.Interface())
 					if err != nil {
@@ -264,7 +264,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			if len(data) > 0 {
 				err := json.Unmarshal(data, &x)
 				if err != nil {
-					session.Engine.logger.Error(err)
+					session.engine.logger.Error(err)
 					return err
 				}
 				fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
@@ -275,7 +275,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			if len(data) > 0 {
 				err := json.Unmarshal(data, &x)
 				if err != nil {
-					session.Engine.logger.Error(err)
+					session.engine.logger.Error(err)
 					return err
 				}
 				fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
@@ -347,7 +347,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			var err error
 			// for mysql, when use bit, it returned \x01
 			if col.SQLType.Name == core.Bit &&
-				strings.Contains(session.Engine.DriverName(), "mysql") {
+				strings.Contains(session.engine.DriverName(), "mysql") {
 				if len(data) == 1 {
 					x = int64(data[0])
 				} else {
@@ -372,7 +372,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			var err error
 			// for mysql, when use bit, it returned \x01
 			if col.SQLType.Name == core.Bit &&
-				strings.Contains(session.Engine.DriverName(), "mysql") {
+				strings.Contains(session.engine.DriverName(), "mysql") {
 				if len(data) == 1 {
 					x = int(data[0])
 				} else {
@@ -400,7 +400,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			var err error
 			// for mysql, when use bit, it returned \x01
 			if col.SQLType.Name == core.Bit &&
-				session.Engine.dialect.DBType() == core.MYSQL {
+				session.engine.dialect.DBType() == core.MYSQL {
 				if len(data) == 1 {
 					x = int32(data[0])
 				} else {
@@ -428,7 +428,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			var err error
 			// for mysql, when use bit, it returned \x01
 			if col.SQLType.Name == core.Bit &&
-				strings.Contains(session.Engine.DriverName(), "mysql") {
+				strings.Contains(session.engine.DriverName(), "mysql") {
 				if len(data) == 1 {
 					x = int8(data[0])
 				} else {
@@ -456,7 +456,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			var err error
 			// for mysql, when use bit, it returned \x01
 			if col.SQLType.Name == core.Bit &&
-				strings.Contains(session.Engine.DriverName(), "mysql") {
+				strings.Contains(session.engine.DriverName(), "mysql") {
 				if len(data) == 1 {
 					x = int16(data[0])
 				} else {
@@ -488,9 +488,9 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 				v = x
 				fieldValue.Set(reflect.ValueOf(&x))
 			default:
-				if session.Statement.UseCascade {
+				if session.statement.UseCascade {
 					structInter := reflect.New(fieldType.Elem())
-					table, err := session.Engine.autoMapType(structInter.Elem())
+					table, err := session.engine.autoMapType(structInter.Elem())
 					if err != nil {
 						return err
 					}
@@ -510,7 +510,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 						// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
 						// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
 						// property to be fetched lazily
-						newsession := session.Engine.NewSession()
+						newsession := session.engine.NewSession()
 						defer newsession.Close()
 						has, err := newsession.Id(pk).NoCascade().Get(structInter.Interface())
 						if err != nil {
@@ -569,7 +569,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		if fieldValue.IsNil() {
 			return nil, nil
 		} else if !fieldValue.IsValid() {
-			session.Engine.logger.Warn("the field[", col.FieldName, "] is invalid")
+			session.engine.logger.Warn("the field[", col.FieldName, "] is invalid")
 			return nil, nil
 		} else {
 			// !nashtsai! deference pointer type to instance type
@@ -587,7 +587,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 	case reflect.Struct:
 		if fieldType.ConvertibleTo(core.TimeType) {
 			t := fieldValue.Convert(core.TimeType).Interface().(time.Time)
-			tf := session.Engine.formatColTime(col, t)
+			tf := session.engine.formatColTime(col, t)
 			return tf, nil
 		}
 
@@ -597,7 +597,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 				return v.Value()
 			}
 
-			fieldTable, err := session.Engine.autoMapType(fieldValue)
+			fieldTable, err := session.engine.autoMapType(fieldValue)
 			if err != nil {
 				return nil, err
 			}
@@ -611,14 +611,14 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		if col.SQLType.IsText() {
 			bytes, err := json.Marshal(fieldValue.Interface())
 			if err != nil {
-				session.Engine.logger.Error(err)
+				session.engine.logger.Error(err)
 				return 0, err
 			}
 			return string(bytes), nil
 		} else if col.SQLType.IsBlob() {
 			bytes, err := json.Marshal(fieldValue.Interface())
 			if err != nil {
-				session.Engine.logger.Error(err)
+				session.engine.logger.Error(err)
 				return 0, err
 			}
 			return bytes, nil
@@ -627,7 +627,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 	case reflect.Complex64, reflect.Complex128:
 		bytes, err := json.Marshal(fieldValue.Interface())
 		if err != nil {
-			session.Engine.logger.Error(err)
+			session.engine.logger.Error(err)
 			return 0, err
 		}
 		return string(bytes), nil
@@ -639,7 +639,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		if col.SQLType.IsText() {
 			bytes, err := json.Marshal(fieldValue.Interface())
 			if err != nil {
-				session.Engine.logger.Error(err)
+				session.engine.logger.Error(err)
 				return 0, err
 			}
 			return string(bytes), nil
@@ -652,7 +652,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 			} else {
 				bytes, err = json.Marshal(fieldValue.Interface())
 				if err != nil {
-					session.Engine.logger.Error(err)
+					session.engine.logger.Error(err)
 					return 0, err
 				}
 			}
