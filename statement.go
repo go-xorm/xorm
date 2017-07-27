@@ -380,7 +380,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 			} else if nulType, ok := fieldValue.Interface().(driver.Valuer); ok {
 				val, _ = nulType.Value()
 			} else {
-				if !col.SQLType.IsJson() {
+				if !(col.IsJSON || col.SQLType.IsJson()) {
 					engine.autoMapType(fieldValue)
 					if table, ok := engine.Tables[fieldValue.Type()]; ok {
 						if len(table.PrimaryKeys) == 1 {

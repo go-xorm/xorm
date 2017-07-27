@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-xorm/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,6 +21,12 @@ func TestDelete(t *testing.T) {
 	}
 
 	assert.NoError(t, testEngine.Sync2(new(UserinfoDelete)))
+
+	var err error
+	if testEngine.dialect.DBType() == core.MSSQL {
+		_, err = testEngine.Exec("SET IDENTITY_INSERT " + testEngine.TableMapper.Obj2Table("UserinfoDelete") + " ON")
+		assert.NoError(t, err)
+	}
 
 	user := UserinfoDelete{Uid: 1}
 	cnt, err := testEngine.Insert(&user)

@@ -591,7 +591,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 			return tf, nil
 		}
 
-		if !col.SQLType.IsJson() {
+		if !(col.IsJSON || col.SQLType.IsJson()) {
 			// !<winxxp>! 增加支持driver.Valuer接口的结构，如sql.NullString
 			if v, ok := fieldValue.Interface().(driver.Valuer); ok {
 				return v.Value()
