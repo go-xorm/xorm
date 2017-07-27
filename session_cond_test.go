@@ -83,6 +83,11 @@ func TestBuilder(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(conds), "records should exist")
 
+	conds = make([]Condition, 0)
+	err = testEngine.NotIn("col_name", "col1", "col2").Find(&conds)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, len(conds), "records should not exist")
+
 	// complex condtions
 	var where = builder.NewCond()
 	if true {
