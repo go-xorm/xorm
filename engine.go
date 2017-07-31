@@ -169,7 +169,7 @@ func (engine *Engine) quote(sql string) string {
 	return engine.dialect.QuoteStr() + sql + engine.dialect.QuoteStr()
 }
 
-// SqlType will be depracated, please use SQLType instead
+// SqlType will be deprecated, please use SQLType instead
 //
 // Deprecated: use SQLType instead
 func (engine *Engine) SqlType(c *core.Column) string {
@@ -581,7 +581,7 @@ func (engine *Engine) Where(query interface{}, args ...interface{}) *Session {
 	return session.Where(query, args...)
 }
 
-// Id will be depracated, please use ID instead
+// Id will be deprecated, please use ID instead
 func (engine *Engine) Id(id interface{}) *Session {
 	session := engine.NewSession()
 	session.isAutoClose = true
