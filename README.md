@@ -118,7 +118,7 @@ results, err := engine.Query("select * from user")
 results, err := engine.QueryString("select * from user")
 ```
 
-* `Execute` runs a SQL string, it returns `affetcted` and `error`
+* `Execute` runs a SQL string, it returns `affected` and `error`
 
 ```Go
 affected, err := engine.Exec("update user set age = ? where name = ?", age, name)
