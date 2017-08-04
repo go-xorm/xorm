@@ -1123,3 +1123,33 @@ func TestNoUpdate(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualValues(t, "No content found to be updated", err.Error())
 }
+
+func TestNewUpdate(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type TbUserInfo struct {
+		Id       int64       `xorm:"pk autoincr unique BIGINT" json:"id"`
+		Phone    string      `xorm:"not null unique VARCHAR(20)" json:"phone"`
+		UserName string      `xorm:"VARCHAR(20)" json:"user_name"`
+		Gender   int         `xorm:"default 0 INTEGER" json:"gender"`
+		Pw       string      `xorm:"VARCHAR(100)" json:"pw"`
+		Token    string      `xorm:"TEXT" json:"token"`
+		Avatar   string      `xorm:"TEXT" json:"avatar"`
+		Extras   interface{} `xorm:"JSON" json:"extras"`
+		Created  time.Time   `xorm:"DATETIME created"`
+		Updated  time.Time   `xorm:"DATETIME updated"`
+		Deleted  time.Time   `xorm:"DATETIME deleted"`
+	}
+
+	assertSync(t, new(TbUserInfo))
+
+	targetUsr := TbUserInfo{Phone: "13126564922"}
+	changeUsr := TbUserInfo{Token: "ABCDEFG"}
+	af, err := testEngine.Update(&changeUsr, &targetUsr)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, af)
+
+	af, err = testEngine.Table(new(TbUserInfo)).Where("phone=?", 13126564922).Update(&changeUsr)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, af)
+}
