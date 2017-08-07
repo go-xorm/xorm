@@ -50,10 +50,13 @@ func close(engine *Engine) {
 	engine.Close()
 }
 
+func init() {
+	regDrvsNDialects()
+}
+
 // NewEngine new a db manager according to the parameter. Currently support four
 // drivers
 func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
-	regDrvsNDialects()
 	driver := core.QueryDriver(driverName)
 	if driver == nil {
 		return nil, fmt.Errorf("Unsupported driver name: %v", driverName)
