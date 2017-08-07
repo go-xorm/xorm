@@ -22,7 +22,9 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 
 	beanValue := reflect.ValueOf(bean)
 	if beanValue.Kind() != reflect.Ptr {
-		return false, errors.New("needs a pointer")
+		return false, errors.New("needs a pointer to a value")
+	} else if beanValue.Elem().Kind() == reflect.Ptr {
+		return false, errors.New("a pointer to a pointer is not allowed")
 	}
 
 	if beanValue.Elem().Kind() == reflect.Struct {

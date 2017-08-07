@@ -174,3 +174,23 @@ func TestGetSlice(t *testing.T) {
 	assert.False(t, has)
 	assert.Error(t, err)
 }
+
+func TestGetError(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type GetError struct {
+		Uid   int `xorm:"pk autoincr"`
+		IsMan bool
+	}
+
+	assertSync(t, new(GetError))
+
+	var info = new(GetError)
+	has, err := testEngine.Get(&info)
+	assert.False(t, has)
+	assert.Error(t, err)
+
+	has, err = testEngine.Get(info)
+	assert.False(t, has)
+	assert.NoError(t, err)
+}
