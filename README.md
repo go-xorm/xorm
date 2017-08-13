@@ -68,10 +68,6 @@ methods can use `builder.Cond` as parameter
     * add Sum, SumInt, SumInt64 and NotIn methods
     * some bugs fixed
 
-* **v0.5.0**
-    * logging interface changed
-    * some bugs fixed
-
 [More changes ...](https://github.com/go-xorm/manual-en-US/tree/master/chapter-16)
 
 # Installation
@@ -270,6 +266,8 @@ err := engine.Where(builder.NotIn("a", 1, 2).And(builder.In("b", "c", "d", "e"))
 ```
 
 # Cases
+
+* [studygolang](http://studygolang.com/) - [github.com/studygolang/studygolang](https://github.com/studygolang/studygolang)
 
 * [Gitea](http://gitea.io) - [github.com/go-gitea/gitea](http://github.com/go-gitea/gitea)
 
