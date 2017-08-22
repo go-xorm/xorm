@@ -31,7 +31,7 @@ func (session *Session) cacheDelete(sqlStr string, args ...interface{}) error {
 	tableName := session.statement.TableName()
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args)
 	if err != nil {
-		resultsSlice, err := session.query(newsql, args...)
+		resultsSlice, err := session.queryBytes(newsql, args...)
 		if err != nil {
 			return err
 		}

@@ -142,7 +142,7 @@ func (session *Session) dropTable(beanOrTableName interface{}) error {
 	var needDrop = true
 	if !session.engine.dialect.SupportDropIfExists() {
 		sqlStr, args := session.engine.dialect.TableCheckSql(tableName)
-		results, err := session.query(sqlStr, args...)
+		results, err := session.queryBytes(sqlStr, args...)
 		if err != nil {
 			return err
 		}
@@ -174,7 +174,7 @@ func (session *Session) IsTableExist(beanOrTableName interface{}) (bool, error) 
 func (session *Session) isTableExist(tableName string) (bool, error) {
 	defer session.resetStatement()
 	sqlStr, args := session.engine.dialect.TableCheckSql(tableName)
-	results, err := session.query(sqlStr, args...)
+	results, err := session.queryBytes(sqlStr, args...)
 	return len(results) > 0, err
 }
 
@@ -200,8 +200,7 @@ func (session *Session) isTableEmpty(tableName string) (bool, error) {
 
 	var total int64
 	sqlStr := fmt.Sprintf("select count(*) from %s", session.engine.Quote(tableName))
-	err := session.DB().QueryRow(sqlStr).Scan(&total)
-	session.saveLastSQL(sqlStr)
+	err := session.queryRow(sqlStr).Scan(&total)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			err = nil

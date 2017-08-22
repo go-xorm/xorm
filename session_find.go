@@ -157,21 +157,13 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 }
 
 func (session *Session) noCacheFind(table *core.Table, containerValue reflect.Value, sqlStr string, args ...interface{}) error {
-	var rawRows *core.Rows
-	var err error
-
-	session.queryPreprocess(&sqlStr, args...)
-	if session.isAutoCommit {
-		_, rawRows, err = session.innerQuery(sqlStr, args...)
-	} else {
-		rawRows, err = session.tx.Query(sqlStr, args...)
-	}
+	rows, err := session.queryRows(sqlStr, args...)
 	if err != nil {
 		return err
 	}
-	defer rawRows.Close()
+	defer rows.Close()
 
-	fields, err := rawRows.Columns()
+	fields, err := rows.Columns()
 	if err != nil {
 		return err
 	}
@@ -245,20 +237,20 @@ func (session *Session) noCacheFind(table *core.Table, containerValue reflect.Va
 		if err != nil {
 			return err
 		}
-		return session.rows2Beans(rawRows, fields, len(fields), tb, newElemFunc, containerValueSetFunc)
+		return session.rows2Beans(rows, fields, len(fields), tb, newElemFunc, containerValueSetFunc)
 	}
 
-	for rawRows.Next() {
+	for rows.Next() {
 		var newValue = newElemFunc(fields)
 		bean := newValue.Interface()
 
 		switch elemType.Kind() {
 		case reflect.Slice:
-			err = rawRows.ScanSlice(bean)
+			err = rows.ScanSlice(bean)
 		case reflect.Map:
-			err = rawRows.ScanMap(bean)
+			err = rows.ScanMap(bean)
 		default:
-			err = rawRows.Scan(bean)
+			err = rows.Scan(bean)
 		}
 
 		if err != nil {

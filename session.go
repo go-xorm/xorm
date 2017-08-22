@@ -777,14 +777,6 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, f
 	return pk, nil
 }
 
-func (session *Session) queryPreprocess(sqlStr *string, paramStr ...interface{}) {
-	for _, filter := range session.engine.dialect.Filters() {
-		*sqlStr = filter.Do(*sqlStr, session.engine.dialect, session.statement.RefTable)
-	}
-
-	session.saveLastSQL(*sqlStr, paramStr...)
-}
-
 // saveLastSQL stores executed query information
 func (session *Session) saveLastSQL(sql string, args ...interface{}) {
 	session.lastSQL = sql

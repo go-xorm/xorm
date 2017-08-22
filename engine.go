@@ -273,21 +273,6 @@ func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
 	}
 }
 
-func (engine *Engine) logSQLQueryTime(sqlStr string, args []interface{}, executionBlock func() (*core.Stmt, *core.Rows, error)) (*core.Stmt, *core.Rows, error) {
-	if engine.showSQL && engine.showExecTime {
-		b4ExecTime := time.Now()
-		stmt, res, err := executionBlock()
-		execDuration := time.Since(b4ExecTime)
-		if len(args) > 0 {
-			engine.logger.Infof("[SQL] %s %v - took: %v", sqlStr, args, execDuration)
-		} else {
-			engine.logger.Infof("[SQL] %s - took: %v", sqlStr, execDuration)
-		}
-		return stmt, res, err
-	}
-	return executionBlock()
-}
-
 func (engine *Engine) logSQLExecutionTime(sqlStr string, args []interface{}, executionBlock func() (sql.Result, error)) (sql.Result, error) {
 	if engine.showSQL && engine.showExecTime {
 		b4ExecTime := time.Now()
