@@ -273,21 +273,6 @@ func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
 	}
 }
 
-func (engine *Engine) logSQLExecutionTime(sqlStr string, args []interface{}, executionBlock func() (sql.Result, error)) (sql.Result, error) {
-	if engine.showSQL && engine.showExecTime {
-		b4ExecTime := time.Now()
-		res, err := executionBlock()
-		execDuration := time.Since(b4ExecTime)
-		if len(args) > 0 {
-			engine.logger.Infof("[sql] %s [args] %v - took: %v", sqlStr, args, execDuration)
-		} else {
-			engine.logger.Infof("[sql] %s - took: %v", sqlStr, execDuration)
-		}
-		return res, err
-	}
-	return executionBlock()
-}
-
 // Sql provides raw sql input parameter. When you have a complex SQL statement
 // and cannot use Where, Id, In and etc. Methods to describe, you can use SQL.
 //
