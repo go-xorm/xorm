@@ -219,16 +219,16 @@ func row2mapStr(rows *core.Rows, fields []string) (resultsMap map[string]string,
 
 	for ii, key := range fields {
 		rawValue := reflect.Indirect(reflect.ValueOf(scanResultContainers[ii]))
-		//if row is null then ignore
+		// if row is null then as empty string
 		if rawValue.Interface() == nil {
-			//fmt.Println("ignore ...", key, rawValue)
+			result[key] = ""
 			continue
 		}
 
 		if data, err := value2String(&rawValue); err == nil {
 			result[key] = data
 		} else {
-			return nil, err // !nashtsai! REVIEW, should return err or just error log?
+			return nil, err
 		}
 	}
 	return result, nil
