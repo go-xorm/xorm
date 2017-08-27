@@ -6,6 +6,7 @@ package xorm
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -53,6 +54,32 @@ func toString(i interface{}) string {
 	return fmt.Sprintf("%v", i)
 }
 
+func toInt64(i interface{}) int64 {
+	switch i.(type) {
+	case []byte:
+		n, _ := strconv.ParseInt(string(i.([]byte)), 10, 64)
+		return n
+	case int:
+		return int64(i.(int))
+	case int64:
+		return i.(int64)
+	}
+	return 0
+}
+
+func toFloat64(i interface{}) float64 {
+	switch i.(type) {
+	case []byte:
+		n, _ := strconv.ParseFloat(string(i.([]byte)), 64)
+		return n
+	case float64:
+		return i.(float64)
+	case float32:
+		return float64(i.(float32))
+	}
+	return 0
+}
+
 func TestQueryInterface(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
@@ -78,8 +105,8 @@ func TestQueryInterface(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(records))
 	assert.Equal(t, 5, len(records[0]))
-	assert.EqualValues(t, 1, records[0]["id"])
+	assert.EqualValues(t, 1, toInt64(records[0]["id"]))
 	assert.Equal(t, "hi", toString(records[0]["msg"]))
-	assert.EqualValues(t, 28, records[0]["age"])
-	assert.EqualValues(t, 1.5, records[0]["money"])
+	assert.EqualValues(t, 28, toInt64(records[0]["age"]))
+	assert.EqualValues(t, 1.5, toFloat64(records[0]["money"]))
 }
