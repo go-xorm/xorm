@@ -15,7 +15,6 @@ import (
 // Get retrieve one record from database, bean's non-empty fields
 // will be as conditions
 func (session *Session) Get(bean interface{}) (bool, error) {
-	defer session.resetStatement()
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -127,7 +126,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 	table := session.statement.RefTable
 	if err != nil {
 		var res = make([]string, len(table.PrimaryKeys))
-		rows, err := session.DB().Query(newsql, args...)
+		rows, err := session.NoCache().queryRows(newsql, args...)
 		if err != nil {
 			return false, err
 		}

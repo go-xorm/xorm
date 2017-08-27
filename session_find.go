@@ -23,11 +23,13 @@ const (
 // are conditions. beans could be []Struct, []*Struct, map[int64]Struct
 // map[int64]*Struct
 func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{}) error {
-	defer session.resetStatement()
 	if session.isAutoClose {
 		defer session.Close()
 	}
+	return session.find(rowsSlicePtr, condiBean...)
+}
 
+func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{}) error {
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
 	if sliceValue.Kind() != reflect.Slice && sliceValue.Kind() != reflect.Map {
 		return errors.New("needs a pointer to a slice or a map")
@@ -296,7 +298,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 	cacher := session.engine.getCacher2(table)
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args)
 	if err != nil {
-		rows, err := session.DB().Query(newsql, args...)
+		rows, err := session.NoCache().queryRows(newsql, args...)
 		if err != nil {
 			return err
 		}
@@ -368,9 +370,6 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 	}
 
 	if len(ides) > 0 {
-		newSession := session.engine.NewSession()
-		defer newSession.Close()
-
 		slices := reflect.New(reflect.SliceOf(t))
 		beans := slices.Interface()
 
@@ -380,18 +379,18 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 				ff = append(ff, ie[0])
 			}
 
-			newSession.In("`"+table.PrimaryKeys[0]+"`", ff...)
+			session.In("`"+table.PrimaryKeys[0]+"`", ff...)
 		} else {
 			for _, ie := range ides {
 				cond := builder.NewCond()
 				for i, name := range table.PrimaryKeys {
 					cond = cond.And(builder.Eq{"`" + name + "`": ie[i]})
 				}
-				newSession.Or(cond)
+				session.Or(cond)
 			}
 		}
 
-		err = newSession.NoCache().Find(beans)
+		err = session.NoCache().find(beans)
 		if err != nil {
 			return err
 		}

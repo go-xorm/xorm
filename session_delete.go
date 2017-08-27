@@ -78,7 +78,6 @@ func (session *Session) cacheDelete(sqlStr string, args ...interface{}) error {
 
 // Delete records, bean's non-empty fields are conditions
 func (session *Session) Delete(bean interface{}) (int64, error) {
-	defer session.resetStatement()
 	if session.isAutoClose {
 		defer session.Close()
 	}

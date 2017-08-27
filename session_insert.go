@@ -22,7 +22,6 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
-	defer session.resetStatement()
 
 	for _, bean := range beans {
 		sliceValue := reflect.Indirect(reflect.ValueOf(bean))
@@ -280,7 +279,6 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 
 // InsertMulti insert multiple records
 func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
-	defer session.resetStatement()
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -532,7 +530,6 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 // The in parameter bean must a struct or a point to struct. The return
 // parameter is inserted and error
 func (session *Session) InsertOne(bean interface{}) (int64, error) {
-	defer session.resetStatement()
 	if session.isAutoClose {
 		defer session.Close()
 	}
