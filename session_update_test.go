@@ -298,7 +298,7 @@ func TestUpdate1(t *testing.T) {
 
 	// update by id
 	user := Userinfo{Username: "xxx", Height: 1.2}
-	cnt, err := testEngine.Id(ori.Uid).Update(&user)
+	cnt, err := testEngine.ID(ori.Uid).Update(&user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -311,7 +311,7 @@ func TestUpdate1(t *testing.T) {
 	}
 
 	condi := Condi{"username": "zzz", "departname": ""}
-	cnt, err = testEngine.Table(&user).Id(ori.Uid).Update(&condi)
+	cnt, err = testEngine.Table(&user).ID(ori.Uid).Update(&condi)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -351,7 +351,7 @@ func TestUpdate1(t *testing.T) {
 		}
 		userID := user.Uid
 
-		has, err := testEngine.Id(userID).
+		has, err := testEngine.ID(userID).
 			And("username = ?", user.Username).
 			And("height = ?", user.Height).
 			And("departname = ?", "").
@@ -369,7 +369,7 @@ func TestUpdate1(t *testing.T) {
 		}
 
 		updatedUser := &Userinfo{Username: "null data"}
-		cnt, err = testEngine.Id(userID).
+		cnt, err = testEngine.ID(userID).
 			Nullable("height", "departname", "is_man", "created").
 			Update(updatedUser)
 		if err != nil {
@@ -382,7 +382,7 @@ func TestUpdate1(t *testing.T) {
 			panic(err)
 		}
 
-		has, err = testEngine.Id(userID).
+		has, err = testEngine.ID(userID).
 			And("username = ?", updatedUser.Username).
 			And("height IS NULL").
 			And("departname IS NULL").
@@ -400,7 +400,7 @@ func TestUpdate1(t *testing.T) {
 			panic(err)
 		}
 
-		cnt, err = testEngine.Id(userID).Delete(&Userinfo{})
+		cnt, err = testEngine.ID(userID).Delete(&Userinfo{})
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -445,7 +445,7 @@ func TestUpdate1(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.Id(a.Id).Update(&Article{Name: "6"})
+	cnt, err = testEngine.ID(a.Id).Update(&Article{Name: "6"})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -474,14 +474,14 @@ func TestUpdate1(t *testing.T) {
 	}
 
 	col2 := &UpdateAllCols{col1.Id, true, "", nil}
-	_, err = testEngine.Id(col2.Id).AllCols().Update(col2)
+	_, err = testEngine.ID(col2.Id).AllCols().Update(col2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	col3 := &UpdateAllCols{}
-	has, err = testEngine.Id(col2.Id).Get(col3)
+	has, err = testEngine.ID(col2.Id).Get(col3)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -519,14 +519,14 @@ func TestUpdate1(t *testing.T) {
 		col2 := &UpdateMustCols{col1.Id, true, ""}
 		boolStr := testEngine.ColumnMapper.Obj2Table("Bool")
 		stringStr := testEngine.ColumnMapper.Obj2Table("String")
-		_, err = testEngine.Id(col2.Id).MustCols(boolStr, stringStr).Update(col2)
+		_, err = testEngine.ID(col2.Id).MustCols(boolStr, stringStr).Update(col2)
 		if err != nil {
 			t.Error(err)
 			panic(err)
 		}
 
 		col3 := &UpdateMustCols{}
-		has, err := testEngine.Id(col2.Id).Get(col3)
+		has, err := testEngine.ID(col2.Id).Get(col3)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -561,27 +561,27 @@ func TestUpdateIncrDecr(t *testing.T) {
 
 	colName := testEngine.ColumnMapper.Obj2Table("Cnt")
 
-	cnt, err := testEngine.Id(col1.Id).Incr(colName).Update(col1)
+	cnt, err := testEngine.ID(col1.Id).Incr(colName).Update(col1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	newCol := new(UpdateIncr)
-	has, err := testEngine.Id(col1.Id).Get(newCol)
+	has, err := testEngine.ID(col1.Id).Get(newCol)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 1, newCol.Cnt)
 
-	cnt, err = testEngine.Id(col1.Id).Decr(colName).Update(col1)
+	cnt, err = testEngine.ID(col1.Id).Decr(colName).Update(col1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	newCol = new(UpdateIncr)
-	has, err = testEngine.Id(col1.Id).Get(newCol)
+	has, err = testEngine.ID(col1.Id).Get(newCol)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 0, newCol.Cnt)
 
-	cnt, err = testEngine.Id(col1.Id).Cols(colName).Incr(colName).Update(col1)
+	cnt, err = testEngine.ID(col1.Id).Cols(colName).Incr(colName).Update(col1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 }
@@ -626,12 +626,12 @@ func TestUpdateUpdated(t *testing.T) {
 	}
 
 	ci := &UpdatedUpdate{}
-	_, err = testEngine.Id(1).Update(ci)
+	_, err = testEngine.ID(1).Update(ci)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	has, err := testEngine.Id(1).Get(di)
+	has, err := testEngine.ID(1).Get(di)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -654,11 +654,11 @@ func TestUpdateUpdated(t *testing.T) {
 		t.Fatal(err)
 	}
 	ci2 := &UpdatedUpdate2{}
-	_, err = testEngine.Id(1).Update(ci2)
+	_, err = testEngine.ID(1).Update(ci2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	has, err = testEngine.Id(1).Get(di2)
+	has, err = testEngine.ID(1).Get(di2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -681,12 +681,12 @@ func TestUpdateUpdated(t *testing.T) {
 		t.Fatal(err)
 	}
 	ci3 := &UpdatedUpdate3{}
-	_, err = testEngine.Id(1).Update(ci3)
+	_, err = testEngine.ID(1).Update(ci3)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	has, err = testEngine.Id(1).Get(di3)
+	has, err = testEngine.ID(1).Get(di3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -710,12 +710,12 @@ func TestUpdateUpdated(t *testing.T) {
 	}
 
 	ci4 := &UpdatedUpdate4{}
-	_, err = testEngine.Id(1).Update(ci4)
+	_, err = testEngine.ID(1).Update(ci4)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	has, err = testEngine.Id(1).Get(di4)
+	has, err = testEngine.ID(1).Get(di4)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -738,12 +738,12 @@ func TestUpdateUpdated(t *testing.T) {
 		t.Fatal(err)
 	}
 	ci5 := &UpdatedUpdate5{}
-	_, err = testEngine.Id(1).Update(ci5)
+	_, err = testEngine.ID(1).Update(ci5)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	has, err = testEngine.Id(1).Get(di5)
+	has, err = testEngine.ID(1).Get(di5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -796,7 +796,7 @@ func TestUpdateSameMapper(t *testing.T) {
 	}
 	// update by id
 	user := Userinfo{Username: "xxx", Height: 1.2}
-	cnt, err := testEngine.Id(ori.Uid).Update(&user)
+	cnt, err := testEngine.ID(ori.Uid).Update(&user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -809,7 +809,7 @@ func TestUpdateSameMapper(t *testing.T) {
 	}
 
 	condi := Condi{"Username": "zzz", "Departname": ""}
-	cnt, err = testEngine.Table(&user).Id(ori.Uid).Update(&condi)
+	cnt, err = testEngine.Table(&user).ID(ori.Uid).Update(&condi)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -874,7 +874,7 @@ func TestUpdateSameMapper(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.Id(a.Id).Update(&Article{Name: "6"})
+	cnt, err = testEngine.ID(a.Id).Update(&Article{Name: "6"})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -901,14 +901,14 @@ func TestUpdateSameMapper(t *testing.T) {
 	}
 
 	col2 := &UpdateAllCols{col1.Id, true, "", nil}
-	_, err = testEngine.Id(col2.Id).AllCols().Update(col2)
+	_, err = testEngine.ID(col2.Id).AllCols().Update(col2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	col3 := &UpdateAllCols{}
-	has, err = testEngine.Id(col2.Id).Get(col3)
+	has, err = testEngine.ID(col2.Id).Get(col3)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -945,14 +945,14 @@ func TestUpdateSameMapper(t *testing.T) {
 		col2 := &UpdateMustCols{col1.Id, true, ""}
 		boolStr := testEngine.ColumnMapper.Obj2Table("Bool")
 		stringStr := testEngine.ColumnMapper.Obj2Table("String")
-		_, err = testEngine.Id(col2.Id).MustCols(boolStr, stringStr).Update(col2)
+		_, err = testEngine.ID(col2.Id).MustCols(boolStr, stringStr).Update(col2)
 		if err != nil {
 			t.Error(err)
 			panic(err)
 		}
 
 		col3 := &UpdateMustCols{}
-		has, err := testEngine.Id(col2.Id).Get(col3)
+		has, err := testEngine.ID(col2.Id).Get(col3)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -988,7 +988,7 @@ func TestUpdateSameMapper(t *testing.T) {
 			panic(err)
 		}
 
-		cnt, err := testEngine.Id(col1.Id).Incr("`Cnt`").Update(col1)
+		cnt, err := testEngine.ID(col1.Id).Incr("`Cnt`").Update(col1)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -1000,7 +1000,7 @@ func TestUpdateSameMapper(t *testing.T) {
 		}
 
 		newCol := new(UpdateIncr)
-		has, err := testEngine.Id(col1.Id).Get(newCol)
+		has, err := testEngine.ID(col1.Id).Get(newCol)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -1119,7 +1119,7 @@ func TestNoUpdate(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_, err = testEngine.Id(1).Update(&NoUpdate{})
+	_, err = testEngine.ID(1).Update(&NoUpdate{})
 	assert.Error(t, err)
 	assert.EqualValues(t, "No content found to be updated", err.Error())
 }

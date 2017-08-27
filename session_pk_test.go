@@ -127,7 +127,7 @@ func TestIntId(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.Id(bean.Id).Delete(&IntId{})
+	cnt, err = testEngine.ID(bean.Id).Delete(&IntId{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -202,7 +202,7 @@ func TestInt16Id(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.Id(bean.Id).Delete(&Int16Id{})
+	cnt, err = testEngine.ID(bean.Id).Delete(&Int16Id{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -277,7 +277,7 @@ func TestInt32Id(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.Id(bean.Id).Delete(&Int32Id{})
+	cnt, err = testEngine.ID(bean.Id).Delete(&Int32Id{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -366,7 +366,7 @@ func TestUintId(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.Id(bean.Id).Delete(&UintId{})
+	cnt, err = testEngine.ID(bean.Id).Delete(&UintId{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -441,7 +441,7 @@ func TestUint16Id(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.Id(bean.Id).Delete(&Uint16Id{})
+	cnt, err = testEngine.ID(bean.Id).Delete(&Uint16Id{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -516,7 +516,7 @@ func TestUint32Id(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.Id(bean.Id).Delete(&Uint32Id{})
+	cnt, err = testEngine.ID(bean.Id).Delete(&Uint32Id{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -604,7 +604,7 @@ func TestUint64Id(t *testing.T) {
 		panic(errors.New("should be equal"))
 	}
 
-	cnt, err = testEngine.Id(bean.Id).Delete(&Uint64Id{})
+	cnt, err = testEngine.ID(bean.Id).Delete(&Uint64Id{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -679,7 +679,7 @@ func TestStringPK(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.Id(bean.Id).Delete(&StringPK{})
+	cnt, err = testEngine.ID(bean.Id).Delete(&StringPK{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -725,7 +725,7 @@ func TestCompositeKey(t *testing.T) {
 	}
 
 	var compositeKeyVal CompositeKey
-	has, err := testEngine.Id(core.PK{11, 22}).Get(&compositeKeyVal)
+	has, err := testEngine.ID(core.PK{11, 22}).Get(&compositeKeyVal)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -734,7 +734,7 @@ func TestCompositeKey(t *testing.T) {
 
 	var compositeKeyVal2 CompositeKey
 	// test passing PK ptr, this test seem failed withCache
-	has, err = testEngine.Id(&core.PK{11, 22}).Get(&compositeKeyVal2)
+	has, err = testEngine.ID(&core.PK{11, 22}).Get(&compositeKeyVal2)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -781,14 +781,14 @@ func TestCompositeKey(t *testing.T) {
 	}
 
 	compositeKeyVal = CompositeKey{UpdateStr: "test1"}
-	cnt, err = testEngine.Id(core.PK{11, 22}).Update(&compositeKeyVal)
+	cnt, err = testEngine.ID(core.PK{11, 22}).Update(&compositeKeyVal)
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
 		t.Error(errors.New("can't update CompositeKey{11, 22}"))
 	}
 
-	cnt, err = testEngine.Id(core.PK{11, 22}).Delete(&CompositeKey{})
+	cnt, err = testEngine.ID(core.PK{11, 22}).Delete(&CompositeKey{})
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
@@ -832,7 +832,7 @@ func TestCompositeKey2(t *testing.T) {
 	}
 
 	var user User
-	has, err := testEngine.Id(core.PK{"11", 22}).Get(&user)
+	has, err := testEngine.ID(core.PK{"11", 22}).Get(&user)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -840,7 +840,7 @@ func TestCompositeKey2(t *testing.T) {
 	}
 
 	// test passing PK ptr, this test seem failed withCache
-	has, err = testEngine.Id(&core.PK{"11", 22}).Get(&user)
+	has, err = testEngine.ID(&core.PK{"11", 22}).Get(&user)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -848,14 +848,14 @@ func TestCompositeKey2(t *testing.T) {
 	}
 
 	user = User{NickName: "test1"}
-	cnt, err = testEngine.Id(core.PK{"11", 22}).Update(&user)
+	cnt, err = testEngine.ID(core.PK{"11", 22}).Update(&user)
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
 		t.Error(errors.New("can't update User{11, 22}"))
 	}
 
-	cnt, err = testEngine.Id(core.PK{"11", 22}).Delete(&User{})
+	cnt, err = testEngine.ID(core.PK{"11", 22}).Delete(&User{})
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
@@ -900,7 +900,7 @@ func TestCompositeKey3(t *testing.T) {
 	}
 
 	var user UserPK2
-	has, err := testEngine.Id(core.PK{"11", 22}).Get(&user)
+	has, err := testEngine.ID(core.PK{"11", 22}).Get(&user)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -908,7 +908,7 @@ func TestCompositeKey3(t *testing.T) {
 	}
 
 	// test passing PK ptr, this test seem failed withCache
-	has, err = testEngine.Id(&core.PK{"11", 22}).Get(&user)
+	has, err = testEngine.ID(&core.PK{"11", 22}).Get(&user)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -916,14 +916,14 @@ func TestCompositeKey3(t *testing.T) {
 	}
 
 	user = UserPK2{NickName: "test1"}
-	cnt, err = testEngine.Id(core.PK{"11", 22}).Update(&user)
+	cnt, err = testEngine.ID(core.PK{"11", 22}).Update(&user)
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
 		t.Error(errors.New("can't update User{11, 22}"))
 	}
 
-	cnt, err = testEngine.Id(core.PK{"11", 22}).Delete(&UserPK2{})
+	cnt, err = testEngine.ID(core.PK{"11", 22}).Delete(&UserPK2{})
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
@@ -1007,7 +1007,7 @@ func TestMyIntId(t *testing.T) {
 		panic(errors.New("should be equal"))
 	}
 
-	cnt, err = testEngine.Id(bean.ID).Delete(&MyIntPK{})
+	cnt, err = testEngine.ID(bean.ID).Delete(&MyIntPK{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -1095,7 +1095,7 @@ func TestMyStringId(t *testing.T) {
 		panic(errors.New("should be equal"))
 	}
 
-	cnt, err = testEngine.Id(bean.ID).Delete(&MyStringPK{})
+	cnt, err = testEngine.ID(bean.ID).Delete(&MyStringPK{})
 	if err != nil {
 		t.Error(err)
 		panic(err)

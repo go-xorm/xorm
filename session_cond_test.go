@@ -227,7 +227,7 @@ func TestIn(t *testing.T) {
 	}
 
 	user := new(Userinfo)
-	has, err := testEngine.Id(ids[0]).Get(user)
+	has, err := testEngine.ID(ids[0]).Get(user)
 	if err != nil {
 		t.Error(err)
 		panic(err)

@@ -173,7 +173,7 @@ func TestProcessors(t *testing.T) {
 	}
 
 	p2 := &ProcessorsStruct{}
-	_, err = testEngine.Id(p.Id).Get(p2)
+	_, err = testEngine.ID(p.Id).Get(p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -308,7 +308,7 @@ func TestProcessors(t *testing.T) {
 	}
 
 	p2 = &ProcessorsStruct{}
-	_, err = testEngine.Id(p.Id).Get(p2)
+	_, err = testEngine.ID(p.Id).Get(p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -402,7 +402,7 @@ func TestProcessors(t *testing.T) {
 
 	for _, elem := range pslice {
 		p = &ProcessorsStruct{}
-		_, err = testEngine.Id(elem.Id).Get(p)
+		_, err = testEngine.ID(elem.Id).Get(p)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -508,7 +508,7 @@ func TestProcessorsTx(t *testing.T) {
 	}
 	session.Close()
 	p2 := &ProcessorsStruct{}
-	_, err = testEngine.Id(p.Id).Get(p2)
+	_, err = testEngine.ID(p.Id).Get(p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -569,7 +569,7 @@ func TestProcessorsTx(t *testing.T) {
 	}
 	session.Close()
 	p2 = &ProcessorsStruct{}
-	_, err = testEngine.Id(p.Id).Get(p2)
+	_, err = testEngine.ID(p.Id).Get(p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -616,7 +616,7 @@ func TestProcessorsTx(t *testing.T) {
 
 	p = p2 // reset
 
-	_, err = session.Id(insertedId).Before(b4UpdateFunc).After(afterUpdateFunc).Update(p)
+	_, err = session.ID(insertedId).Before(b4UpdateFunc).After(afterUpdateFunc).Update(p)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -656,7 +656,7 @@ func TestProcessorsTx(t *testing.T) {
 	session.Close()
 
 	p2 = &ProcessorsStruct{}
-	_, err = testEngine.Id(insertedId).Get(p2)
+	_, err = testEngine.ID(insertedId).Get(p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -729,7 +729,7 @@ func TestProcessorsTx(t *testing.T) {
 
 	p = &ProcessorsStruct{}
 
-	_, err = session.Id(insertedId).Before(b4UpdateFunc).After(afterUpdateFunc).Update(p)
+	_, err = session.ID(insertedId).Before(b4UpdateFunc).After(afterUpdateFunc).Update(p)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -767,7 +767,7 @@ func TestProcessorsTx(t *testing.T) {
 	}
 	session.Close()
 	p2 = &ProcessorsStruct{}
-	_, err = testEngine.Id(insertedId).Get(p2)
+	_, err = testEngine.ID(insertedId).Get(p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -813,7 +813,7 @@ func TestProcessorsTx(t *testing.T) {
 
 	p = &ProcessorsStruct{} // reset
 
-	_, err = session.Id(insertedId).Before(b4DeleteFunc).After(afterDeleteFunc).Delete(p)
+	_, err = session.ID(insertedId).Before(b4DeleteFunc).After(afterDeleteFunc).Delete(p)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -852,7 +852,7 @@ func TestProcessorsTx(t *testing.T) {
 	session.Close()
 
 	p2 = &ProcessorsStruct{}
-	_, err = testEngine.Id(insertedId).Get(p2)
+	_, err = testEngine.ID(insertedId).Get(p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -882,7 +882,7 @@ func TestProcessorsTx(t *testing.T) {
 
 	p = &ProcessorsStruct{}
 
-	_, err = session.Id(insertedId).Before(b4DeleteFunc).After(afterDeleteFunc).Delete(p)
+	_, err = session.ID(insertedId).Before(b4DeleteFunc).After(afterDeleteFunc).Delete(p)
 	if err != nil {
 		t.Error(err)
 		panic(err)

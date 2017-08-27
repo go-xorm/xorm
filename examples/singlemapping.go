@@ -48,7 +48,7 @@ func main() {
 	}
 
 	info := LoginInfo{}
-	_, err = orm.Id(1).Get(&info)
+	_, err = orm.ID(1).Get(&info)
 	if err != nil {
 		fmt.Println(err)
 		return

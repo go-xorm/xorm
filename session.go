@@ -631,9 +631,7 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, f
 						// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
 						// property to be fetched lazily
 						structInter := reflect.New(fieldValue.Type())
-						newsession := session.engine.NewSession()
-						defer newsession.Close()
-						has, err := newsession.ID(pk).NoCascade().Get(structInter.Interface())
+						has, err := session.ID(pk).NoCascade().get(structInter.Interface())
 						if err != nil {
 							return nil, err
 						}

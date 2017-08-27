@@ -18,7 +18,10 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
+	return session.get(bean)
+}
 
+func (session *Session) get(bean interface{}) (bool, error) {
 	beanValue := reflect.ValueOf(bean)
 	if beanValue.Kind() != reflect.Ptr {
 		return false, errors.New("needs a pointer to a value")
