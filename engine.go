@@ -1354,6 +1354,13 @@ func (engine *Engine) QueryString(sqlStr string, args ...interface{}) ([]map[str
 	return session.QueryString(sqlStr, args...)
 }
 
+// QueryInterface runs a raw sql and return records as []map[string]interface{}
+func (engine *Engine) QueryInterface(sqlStr string, args ...interface{}) ([]map[string]interface{}, error) {
+	session := engine.NewSession()
+	defer session.Close()
+	return session.QueryInterface(sqlStr, args...)
+}
+
 // Insert one or more records
 func (engine *Engine) Insert(beans ...interface{}) (int64, error) {
 	session := engine.NewSession()
