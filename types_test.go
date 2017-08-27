@@ -37,7 +37,7 @@ func TestArrayField(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 
 	var arr ArrayStruct
-	has, err := testEngine.Id(1).Get(&arr)
+	has, err := testEngine.ID(1).Get(&arr)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, as.Name, arr.Name)
@@ -320,7 +320,7 @@ func TestCustomType2(t *testing.T) {
 	assert.NoError(t, err)
 
 	user := UserCus{}
-	exist, err := testEngine.Id(1).Get(&user)
+	exist, err := testEngine.ID(1).Get(&user)
 	assert.NoError(t, err)
 	assert.True(t, exist)
 

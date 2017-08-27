@@ -49,7 +49,7 @@ func TestVersion1(t *testing.T) {
 	}
 
 	newVer := new(VersionS)
-	has, err := testEngine.Id(ver.Id).Get(newVer)
+	has, err := testEngine.ID(ver.Id).Get(newVer)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -67,7 +67,7 @@ func TestVersion1(t *testing.T) {
 	}
 
 	newVer.Name = "-------"
-	_, err = testEngine.Id(ver.Id).Update(newVer)
+	_, err = testEngine.ID(ver.Id).Update(newVer)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -78,7 +78,7 @@ func TestVersion1(t *testing.T) {
 	}
 
 	newVer = new(VersionS)
-	has, err = testEngine.Id(ver.Id).Get(newVer)
+	has, err = testEngine.ID(ver.Id).Get(newVer)
 	if err != nil {
 		t.Error(err)
 		panic(err)

@@ -15,11 +15,13 @@ import (
 // Get retrieve one record from database, bean's non-empty fields
 // will be as conditions
 func (session *Session) Get(bean interface{}) (bool, error) {
-	defer session.resetStatement()
 	if session.isAutoClose {
 		defer session.Close()
 	}
+	return session.get(bean)
+}
 
+func (session *Session) get(bean interface{}) (bool, error) {
 	beanValue := reflect.ValueOf(bean)
 	if beanValue.Kind() != reflect.Ptr {
 		return false, errors.New("needs a pointer to a value")
@@ -65,30 +67,21 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 }
 
 func (session *Session) nocacheGet(beanKind reflect.Kind, bean interface{}, sqlStr string, args ...interface{}) (bool, error) {
-	session.queryPreprocess(&sqlStr, args...)
-
-	var rawRows *core.Rows
-	var err error
-	if session.isAutoCommit {
-		_, rawRows, err = session.innerQuery(sqlStr, args...)
-	} else {
-		rawRows, err = session.tx.Query(sqlStr, args...)
-	}
+	rows, err := session.queryRows(sqlStr, args...)
 	if err != nil {
 		return false, err
 	}
+	defer rows.Close()
 
-	defer rawRows.Close()
-
-	if !rawRows.Next() {
+	if !rows.Next() {
 		return false, nil
 	}
 
 	switch beanKind {
 	case reflect.Struct:
-		fields, err := rawRows.Columns()
+		fields, err := rows.Columns()
 		if err != nil {
-			// WARN: Alougth rawRows return true, but get fields failed
+			// WARN: Alougth rows return true, but get fields failed
 			return true, err
 		}
 		dataStruct := rValue(bean)
@@ -96,19 +89,20 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, bean interface{}, sqlS
 			return false, err
 		}
 
-		scanResults, err := session.row2Slice(rawRows, fields, len(fields), bean)
+		scanResults, err := session.row2Slice(rows, fields, len(fields), bean)
 		if err != nil {
 			return false, err
 		}
-		rawRows.Close()
+		// close it before covert data
+		rows.Close()
 
 		_, err = session.slice2Bean(scanResults, fields, len(fields), bean, &dataStruct, session.statement.RefTable)
 	case reflect.Slice:
-		err = rawRows.ScanSlice(bean)
+		err = rows.ScanSlice(bean)
 	case reflect.Map:
-		err = rawRows.ScanMap(bean)
+		err = rows.ScanMap(bean)
 	default:
-		err = rawRows.Scan(bean)
+		err = rows.Scan(bean)
 	}
 
 	return true, err
@@ -135,7 +129,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 	table := session.statement.RefTable
 	if err != nil {
 		var res = make([]string, len(table.PrimaryKeys))
-		rows, err := session.DB().Query(newsql, args...)
+		rows, err := session.NoCache().queryRows(newsql, args...)
 		if err != nil {
 			return false, err
 		}

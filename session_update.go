@@ -45,7 +45,7 @@ func (session *Session) cacheUpdate(sqlStr string, args ...interface{}) error {
 	session.engine.logger.Debug("[cacheUpdate] get cache sql", newsql, args[nStart:])
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args[nStart:])
 	if err != nil {
-		rows, err := session.DB().Query(newsql, args[nStart:]...)
+		rows, err := session.NoCache().queryRows(newsql, args[nStart:]...)
 		if err != nil {
 			return err
 		}
@@ -144,7 +144,6 @@ func (session *Session) cacheUpdate(sqlStr string, args ...interface{}) error {
 //         You should call UseBool if you have bool to use.
 //        2.float32 & float64 may be not inexact as conditions
 func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int64, error) {
-	defer session.resetStatement()
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -249,8 +248,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		}
 	}
 
-	st := session.statement
-	defer session.resetStatement()
+	st := &session.statement
 
 	var sqlStr string
 	var condArgs []interface{}

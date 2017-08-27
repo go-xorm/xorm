@@ -176,7 +176,7 @@ func TestNullStructUpdate(t *testing.T) {
 		item.Age = sql.NullInt64{23, true}
 		item.Height = sql.NullFloat64{0, false} // update to NULL
 
-		affected, err := testEngine.Id(2).Cols("age", "height", "is_man").Update(item)
+		affected, err := testEngine.ID(2).Cols("age", "height", "is_man").Update(item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -224,7 +224,7 @@ func TestNullStructUpdate(t *testing.T) {
 			// IsMan:  sql.NullBool{true, true},
 		}
 
-		_, err := testEngine.AllCols().Id(6).Update(item)
+		_, err := testEngine.AllCols().ID(6).Update(item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -268,7 +268,7 @@ func TestNullStructFind(t *testing.T) {
 
 	if true {
 		item := new(NullType)
-		has, err := testEngine.Id(1).Get(item)
+		has, err := testEngine.ID(1).Get(item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -305,7 +305,7 @@ func TestNullStructFind(t *testing.T) {
 	if true {
 		item := make([]NullType, 0)
 
-		err := testEngine.Id(2).Find(&item)
+		err := testEngine.ID(2).Find(&item)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -390,7 +390,7 @@ func TestNullStructDelete(t *testing.T) {
 
 	item := new(NullType)
 
-	_, err := testEngine.Id(1).Delete(item)
+	_, err := testEngine.ID(1).Delete(item)
 	if err != nil {
 		t.Error(err)
 		panic(err)

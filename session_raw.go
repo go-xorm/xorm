@@ -14,55 +14,6 @@ import (
 	"github.com/go-xorm/core"
 )
 
-func (session *Session) query(sqlStr string, paramStr ...interface{}) ([]map[string][]byte, error) {
-	session.queryPreprocess(&sqlStr, paramStr...)
-
-	if session.isAutoCommit {
-		return session.innerQuery2(sqlStr, paramStr...)
-	}
-	return session.txQuery(session.tx, sqlStr, paramStr...)
-}
-
-func (session *Session) txQuery(tx *core.Tx, sqlStr string, params ...interface{}) ([]map[string][]byte, error) {
-	rows, err := tx.Query(sqlStr, params...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return rows2maps(rows)
-}
-
-func (session *Session) innerQuery(sqlStr string, params ...interface{}) (*core.Stmt, *core.Rows, error) {
-	var callback func() (*core.Stmt, *core.Rows, error)
-	if session.prepareStmt {
-		callback = func() (*core.Stmt, *core.Rows, error) {
-			stmt, err := session.doPrepare(sqlStr)
-			if err != nil {
-				return nil, nil, err
-			}
-			rows, err := stmt.Query(params...)
-			if err != nil {
-				return nil, nil, err
-			}
-			return stmt, rows, nil
-		}
-	} else {
-		callback = func() (*core.Stmt, *core.Rows, error) {
-			rows, err := session.DB().Query(sqlStr, params...)
-			if err != nil {
-				return nil, nil, err
-			}
-			return nil, rows, err
-		}
-	}
-	stmt, rows, err := session.engine.logSQLQueryTime(sqlStr, params, callback)
-	if err != nil {
-		return nil, nil, err
-	}
-	return stmt, rows, nil
-}
-
 func rows2maps(rows *core.Rows) (resultsSlice []map[string][]byte, err error) {
 	fields, err := rows.Columns()
 	if err != nil {
@@ -115,27 +66,6 @@ func row2map(rows *core.Rows, fields []string) (resultsMap map[string][]byte, er
 		}
 	}
 	return result, nil
-}
-
-func (session *Session) innerQuery2(sqlStr string, params ...interface{}) ([]map[string][]byte, error) {
-	_, rows, err := session.innerQuery(sqlStr, params...)
-	if rows != nil {
-		defer rows.Close()
-	}
-	if err != nil {
-		return nil, err
-	}
-	return rows2maps(rows)
-}
-
-// Query runs a raw sql and return records as []map[string][]byte
-func (session *Session) Query(sqlStr string, paramStr ...interface{}) ([]map[string][]byte, error) {
-	defer session.resetStatement()
-	if session.isAutoClose {
-		defer session.Close()
-	}
-
-	return session.query(sqlStr, paramStr...)
 }
 
 func rows2Strings(rows *core.Rows) (resultsSlice []map[string]string, err error) {
@@ -234,42 +164,136 @@ func row2mapStr(rows *core.Rows, fields []string) (resultsMap map[string]string,
 	return result, nil
 }
 
-func txQuery2(tx *core.Tx, sqlStr string, params ...interface{}) ([]map[string]string, error) {
-	rows, err := tx.Query(sqlStr, params...)
-	if err != nil {
-		return nil, err
+func (session *Session) queryPreprocess(sqlStr *string, paramStr ...interface{}) {
+	for _, filter := range session.engine.dialect.Filters() {
+		*sqlStr = filter.Do(*sqlStr, session.engine.dialect, session.statement.RefTable)
 	}
-	defer rows.Close()
 
-	return rows2Strings(rows)
+	session.lastSQL = *sqlStr
+	session.lastSQLArgs = paramStr
 }
 
-func query2(db *core.DB, sqlStr string, params ...interface{}) ([]map[string]string, error) {
-	rows, err := db.Query(sqlStr, params...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return rows2Strings(rows)
-}
-
-// QueryString runs a raw sql and return records as []map[string]string
-func (session *Session) QueryString(sqlStr string, args ...interface{}) ([]map[string]string, error) {
+func (session *Session) queryRows(sqlStr string, args ...interface{}) (*core.Rows, error) {
 	defer session.resetStatement()
+
+	session.queryPreprocess(&sqlStr, args...)
+
+	if session.engine.showSQL {
+		if session.engine.showExecTime {
+			b4ExecTime := time.Now()
+			defer func() {
+				execDuration := time.Since(b4ExecTime)
+				if len(args) > 0 {
+					session.engine.logger.Infof("[SQL] %s %#v - took: %v", sqlStr, args, execDuration)
+				} else {
+					session.engine.logger.Infof("[SQL] %s - took: %v", sqlStr, execDuration)
+				}
+			}()
+		} else {
+			if len(args) > 0 {
+				session.engine.logger.Infof("[SQL] %v %#v", sqlStr, args)
+			} else {
+				session.engine.logger.Infof("[SQL] %v", sqlStr)
+			}
+		}
+	}
+
+	if session.isAutoCommit {
+		if session.prepareStmt {
+			// don't clear stmt since session will cache them
+			stmt, err := session.doPrepare(sqlStr)
+			if err != nil {
+				return nil, err
+			}
+
+			rows, err := stmt.Query(args...)
+			if err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}
+
+		rows, err := session.DB().Query(sqlStr, args...)
+		if err != nil {
+			return nil, err
+		}
+		return rows, nil
+	}
+
+	rows, err := session.tx.Query(sqlStr, args...)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+func (session *Session) queryRow(sqlStr string, args ...interface{}) *core.Row {
+	return core.NewRow(session.queryRows(sqlStr, args...))
+}
+
+func (session *Session) queryBytes(sqlStr string, args ...interface{}) ([]map[string][]byte, error) {
+	rows, err := session.queryRows(sqlStr, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return rows2maps(rows)
+}
+
+// Query runs a raw sql and return records as []map[string][]byte
+func (session *Session) Query(sqlStr string, args ...interface{}) ([]map[string][]byte, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
 
-	session.queryPreprocess(&sqlStr, args...)
-
-	if session.isAutoCommit {
-		return query2(session.DB(), sqlStr, args...)
-	}
-	return txQuery2(session.tx, sqlStr, args...)
+	return session.queryBytes(sqlStr, args...)
 }
 
-// Execute sql
-func (session *Session) innerExec(sqlStr string, args ...interface{}) (sql.Result, error) {
+// QueryString runs a raw sql and return records as []map[string]string
+func (session *Session) QueryString(sqlStr string, args ...interface{}) ([]map[string]string, error) {
+	if session.isAutoClose {
+		defer session.Close()
+	}
+
+	rows, err := session.queryRows(sqlStr, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return rows2Strings(rows)
+}
+
+func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, error) {
+	defer session.resetStatement()
+
+	session.queryPreprocess(&sqlStr, args...)
+
+	if session.engine.showSQL {
+		if session.engine.showExecTime {
+			b4ExecTime := time.Now()
+			defer func() {
+				execDuration := time.Since(b4ExecTime)
+				if len(args) > 0 {
+					session.engine.logger.Infof("[SQL] %s %#v - took: %v", sqlStr, args, execDuration)
+				} else {
+					session.engine.logger.Infof("[SQL] %s - took: %v", sqlStr, execDuration)
+				}
+			}()
+		} else {
+			if len(args) > 0 {
+				session.engine.logger.Infof("[SQL] %v %#v", sqlStr, args)
+			} else {
+				session.engine.logger.Infof("[SQL] %v", sqlStr)
+			}
+		}
+	}
+
+	if !session.isAutoCommit {
+		return session.tx.Exec(sqlStr, args...)
+	}
+
 	if session.prepareStmt {
 		stmt, err := session.doPrepare(sqlStr)
 		if err != nil {
@@ -286,32 +310,8 @@ func (session *Session) innerExec(sqlStr string, args ...interface{}) (sql.Resul
 	return session.DB().Exec(sqlStr, args...)
 }
 
-func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, error) {
-	for _, filter := range session.engine.dialect.Filters() {
-		// TODO: for table name, it's no need to RefTable
-		sqlStr = filter.Do(sqlStr, session.engine.dialect, session.statement.RefTable)
-	}
-
-	session.saveLastSQL(sqlStr, args...)
-
-	return session.engine.logSQLExecutionTime(sqlStr, args, func() (sql.Result, error) {
-		if session.isAutoCommit {
-			// FIXME: oci8 can not auto commit (github.com/mattn/go-oci8)
-			if session.engine.dialect.DBType() == core.ORACLE {
-				session.Begin()
-				r, err := session.tx.Exec(sqlStr, args...)
-				session.Commit()
-				return r, err
-			}
-			return session.innerExec(sqlStr, args...)
-		}
-		return session.tx.Exec(sqlStr, args...)
-	})
-}
-
 // Exec raw sql
 func (session *Session) Exec(sqlStr string, args ...interface{}) (sql.Result, error) {
-	defer session.resetStatement()
 	if session.isAutoClose {
 		defer session.Close()
 	}

@@ -86,7 +86,7 @@ func TestExtends(t *testing.T) {
 	}
 
 	tu3 := &tempUser2{tempUser{0, "extends update"}, ""}
-	_, err = testEngine.Id(tu2.TempUser.Id).Update(tu3)
+	_, err = testEngine.ID(tu2.TempUser.Id).Update(tu3)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -124,7 +124,7 @@ func TestExtends(t *testing.T) {
 	}
 
 	tu10 := &tempUser4{tempUser2{tempUser{0, "extends update"}, ""}}
-	_, err = testEngine.Id(tu9.TempUser2.TempUser.Id).Update(tu10)
+	_, err = testEngine.ID(tu9.TempUser2.TempUser.Id).Update(tu10)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -168,7 +168,7 @@ func TestExtends(t *testing.T) {
 	}
 
 	tu6 := &tempUser3{&tempUser{0, "extends update"}, ""}
-	_, err = testEngine.Id(tu5.Temp.Id).Update(tu6)
+	_, err = testEngine.ID(tu5.Temp.Id).Update(tu6)
 	if err != nil {
 		t.Error(err)
 		panic(err)

@@ -51,7 +51,7 @@ func TestCreatedAndUpdated(t *testing.T) {
 	}
 
 	u.Name = "xxx"
-	cnt, err = testEngine.Id(u.Id).Update(u)
+	cnt, err = testEngine.ID(u.Id).Update(u)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -130,13 +130,13 @@ func TestCreatedUpdated(t *testing.T) {
 	assert.NoError(t, err)
 
 	c2 := new(CreatedUpdated)
-	has, err := testEngine.Id(c.Id).Get(c2)
+	has, err := testEngine.ID(c.Id).Get(c2)
 	assert.NoError(t, err)
 
 	assert.True(t, has)
 
 	c2.Value -= 1
-	_, err = testEngine.Id(c2.Id).Update(c2)
+	_, err = testEngine.ID(c2.Id).Update(c2)
 	assert.NoError(t, err)
 }
 

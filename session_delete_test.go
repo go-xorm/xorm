@@ -32,7 +32,7 @@ func TestDelete(t *testing.T) {
 
 	user.Uid = 0
 	user.IsMan = true
-	has, err := testEngine.Id(1).Get(&user)
+	has, err := testEngine.ID(1).Get(&user)
 	assert.NoError(t, err)
 	assert.False(t, has)
 
@@ -46,7 +46,7 @@ func TestDelete(t *testing.T) {
 
 	user.Uid = 0
 	user.IsMan = true
-	has, err = testEngine.Id(2).Get(&user)
+	has, err = testEngine.ID(2).Get(&user)
 	assert.NoError(t, err)
 	assert.False(t, has)
 }
@@ -82,16 +82,16 @@ func TestDeleted(t *testing.T) {
 
 	// Test normal Get()
 	record1 := &Deleted{}
-	has, err := testEngine.Id(1).Get(record1)
+	has, err := testEngine.ID(1).Get(record1)
 	assert.NoError(t, err)
 	assert.True(t, has)
 
 	// Test Delete() with deleted
-	affected, err := testEngine.Id(1).Delete(&Deleted{})
+	affected, err := testEngine.ID(1).Delete(&Deleted{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affected)
 
-	has, err = testEngine.Id(1).Get(&Deleted{})
+	has, err = testEngine.ID(1).Get(&Deleted{})
 	assert.NoError(t, err)
 	assert.False(t, has)
 
@@ -101,17 +101,17 @@ func TestDeleted(t *testing.T) {
 	assert.EqualValues(t, 2, len(records2))
 
 	// Test no rows affected after Delete() again.
-	affected, err = testEngine.Id(1).Delete(&Deleted{})
+	affected, err = testEngine.ID(1).Delete(&Deleted{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, affected)
 
 	// Deleted.DeletedAt must not be updated.
-	affected, err = testEngine.Id(2).Update(&Deleted{Name: "2", DeletedAt: time.Now()})
+	affected, err = testEngine.ID(2).Update(&Deleted{Name: "2", DeletedAt: time.Now()})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affected)
 
 	record2 := &Deleted{}
-	has, err = testEngine.Id(2).Get(record2)
+	has, err = testEngine.ID(2).Get(record2)
 	assert.NoError(t, err)
 	assert.True(t, record2.DeletedAt.IsZero())
 
@@ -122,7 +122,7 @@ func TestDeleted(t *testing.T) {
 	assert.EqualValues(t, 3, len(unscopedRecords1))
 
 	// Delete() must really delete a record with Unscoped()
-	affected, err = testEngine.Unscoped().Id(1).Delete(&Deleted{})
+	affected, err = testEngine.Unscoped().ID(1).Delete(&Deleted{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affected)
 

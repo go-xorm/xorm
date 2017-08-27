@@ -22,7 +22,6 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
-	defer session.resetStatement()
 
 	for _, bean := range beans {
 		sliceValue := reflect.Indirect(reflect.ValueOf(bean))
@@ -280,7 +279,6 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 
 // InsertMulti insert multiple records
 func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
-	defer session.resetStatement()
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -395,7 +393,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	// for postgres, many of them didn't implement lastInsertId, so we should
 	// implemented it ourself.
 	if session.engine.dialect.DBType() == core.ORACLE && len(table.AutoIncrement) > 0 {
-		res, err := session.query("select seq_atable.currval from dual", args...)
+		res, err := session.queryBytes("select seq_atable.currval from dual", args...)
 		if err != nil {
 			return 0, err
 		}
@@ -440,7 +438,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	} else if session.engine.dialect.DBType() == core.POSTGRES && len(table.AutoIncrement) > 0 {
 		//assert table.AutoIncrement != ""
 		sqlStr = sqlStr + " RETURNING " + session.engine.Quote(table.AutoIncrement)
-		res, err := session.query(sqlStr, args...)
+		res, err := session.queryBytes(sqlStr, args...)
 
 		if err != nil {
 			return 0, err
@@ -532,7 +530,6 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 // The in parameter bean must a struct or a point to struct. The return
 // parameter is inserted and error
 func (session *Session) InsertOne(bean interface{}) (int64, error) {
-	defer session.resetStatement()
 	if session.isAutoClose {
 		defer session.Close()
 	}
