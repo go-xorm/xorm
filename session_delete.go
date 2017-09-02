@@ -29,6 +29,7 @@ func (session *Session) cacheDelete(sqlStr string, args ...interface{}) error {
 
 	cacher := session.engine.getCacher2(session.statement.RefTable)
 	tableName := session.statement.TableName()
+	pkColumns := session.statement.RefTable.PKColumns()
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args)
 	if err != nil {
 		resultsSlice, err := session.queryBytes(newsql, args...)
@@ -40,7 +41,7 @@ func (session *Session) cacheDelete(sqlStr string, args ...interface{}) error {
 			for _, data := range resultsSlice {
 				var id int64
 				var pk core.PK = make([]interface{}, 0)
-				for _, col := range session.statement.RefTable.PKColumns() {
+				for _, col := range pkColumns {
 					if v, ok := data[col.Name]; !ok {
 						return errors.New("no id")
 					} else if col.SQLType.IsText() {
