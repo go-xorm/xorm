@@ -22,7 +22,7 @@ func (session *Session) Query(sqlStr string, args ...interface{}) ([]map[string]
 	return session.queryBytes(sqlStr, args...)
 }
 
-func reflect2value(rawValue *reflect.Value) (str string, err error) {
+func value2String(rawValue *reflect.Value) (str string, err error) {
 	aa := reflect.TypeOf((*rawValue).Interface())
 	vv := reflect.ValueOf((*rawValue).Interface())
 	switch aa.Kind() {
@@ -65,14 +65,6 @@ func reflect2value(rawValue *reflect.Value) (str string, err error) {
 	*/
 	default:
 		err = fmt.Errorf("Unsupported struct type %v", vv.Type().Name())
-	}
-	return
-}
-
-func value2String(rawValue *reflect.Value) (data string, err error) {
-	data, err = reflect2value(rawValue)
-	if err != nil {
-		return
 	}
 	return
 }

@@ -79,14 +79,12 @@ func (session *Session) queryRow(sqlStr string, args ...interface{}) *core.Row {
 	return core.NewRow(session.queryRows(sqlStr, args...))
 }
 
-func value2Bytes(rawValue *reflect.Value) (data []byte, err error) {
-	var str string
-	str, err = reflect2value(rawValue)
+func value2Bytes(rawValue *reflect.Value) ([]byte, error) {
+	str, err := value2String(rawValue)
 	if err != nil {
-		return
+		return nil, err
 	}
-	data = []byte(str)
-	return
+	return []byte(str), nil
 }
 
 func row2map(rows *core.Rows, fields []string) (resultsMap map[string][]byte, err error) {
