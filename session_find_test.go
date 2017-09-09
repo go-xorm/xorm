@@ -457,10 +457,34 @@ func TestFindMapPtrString(t *testing.T) {
 	userinfo := testEngine.TableMapper.Obj2Table("Userinfo")
 	var ids []map[string]*string
 	err := testEngine.Table(userinfo).Desc("id").Find(&ids)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	for _, record := range ids {
 		fmt.Println(record)
 	}
+}
+
+func TestFindBit(t *testing.T) {
+	type FindBitStruct struct {
+		Id  int64
+		Msg bool `xorm:"bit"`
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(FindBitStruct))
+
+	cnt, err := testEngine.Insert([]FindBitStruct{
+		{
+			Msg: false,
+		},
+		{
+			Msg: true,
+		},
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, cnt)
+
+	var results = make([]FindBitStruct, 0, 2)
+	err = testEngine.Find(&results)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(results))
 }
