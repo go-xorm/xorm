@@ -348,7 +348,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 			return err
 		}
 		bean := cacher.GetBean(tableName, sid)
-		if bean == nil {
+		if bean == nil || reflect.ValueOf(bean).Elem().Type() != t {
 			ides = append(ides, id)
 			ididxes[sid] = idx
 		} else {
@@ -389,7 +389,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 			}
 		}
 
-		err = session.NoCache().find(beans)
+		err = session.NoCache().Table(tableName).find(beans)
 		if err != nil {
 			return err
 		}
