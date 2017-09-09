@@ -144,8 +144,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 	case reflect.String:
 		fieldValue.SetString(string(data))
 	case reflect.Bool:
-		d := string(data)
-		v, err := strconv.ParseBool(d)
+		v, err := asBool(data)
 		if err != nil {
 			return fmt.Errorf("arg %v as bool: %s", key, err.Error())
 		}

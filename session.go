@@ -313,7 +313,6 @@ func (session *Session) rows2Beans(rows *core.Rows, fields []string, fieldsCount
 		if err != nil {
 			return err
 		}
-
 		err = sliceValueSetFunc(&newValue, pk)
 		if err != nil {
 			return err
