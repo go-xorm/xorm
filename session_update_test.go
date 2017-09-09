@@ -43,14 +43,14 @@ func TestUpdateMap(t *testing.T) {
 func TestUpdateLimit(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	type UpdateTable struct {
+	type UpdateTable2 struct {
 		Id   int64
 		Name string
 		Age  int
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UpdateTable)))
-	var tb = UpdateTable{
+	assert.NoError(t, testEngine.Sync2(new(UpdateTable2)))
+	var tb = UpdateTable2{
 		Name: "test1",
 		Age:  35,
 	}
@@ -64,13 +64,13 @@ func TestUpdateLimit(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	cnt, err = testEngine.OrderBy("name desc").Limit(1).Update(&UpdateTable{
+	cnt, err = testEngine.OrderBy("name desc").Limit(1).Update(&UpdateTable2{
 		Age: 30,
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	var uts []UpdateTable
+	var uts []UpdateTable2
 	err = testEngine.Find(&uts)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(uts))

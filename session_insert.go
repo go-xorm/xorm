@@ -213,22 +213,23 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 
 	var sql = "INSERT INTO %s (%v%v%v) VALUES (%v)"
 	var statement string
+	var tableName = session.statement.TableName()
 	if session.engine.dialect.DBType() == core.ORACLE {
 		sql = "INSERT ALL INTO %s (%v%v%v) VALUES (%v) SELECT 1 FROM DUAL"
 		temp := fmt.Sprintf(") INTO %s (%v%v%v) VALUES (",
-			session.engine.Quote(session.statement.TableName()),
+			session.engine.Quote(tableName),
 			session.engine.QuoteStr(),
 			strings.Join(colNames, session.engine.QuoteStr()+", "+session.engine.QuoteStr()),
 			session.engine.QuoteStr())
 		statement = fmt.Sprintf(sql,
-			session.engine.Quote(session.statement.TableName()),
+			session.engine.Quote(tableName),
 			session.engine.QuoteStr(),
 			strings.Join(colNames, session.engine.QuoteStr()+", "+session.engine.QuoteStr()),
 			session.engine.QuoteStr(),
 			strings.Join(colMultiPlaces, temp))
 	} else {
 		statement = fmt.Sprintf(sql,
-			session.engine.Quote(session.statement.TableName()),
+			session.engine.Quote(tableName),
 			session.engine.QuoteStr(),
 			strings.Join(colNames, session.engine.QuoteStr()+", "+session.engine.QuoteStr()),
 			session.engine.QuoteStr(),
@@ -240,7 +241,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 	}
 
 	if cacher := session.engine.getCacher2(table); cacher != nil && session.statement.UseCache {
-		session.cacheInsert(session.statement.TableName())
+		session.cacheInsert(table, tableName)
 	}
 
 	lenAfterClosures := len(session.afterClosures)
@@ -347,18 +348,19 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	}
 
 	var sqlStr string
+	var tableName = session.statement.TableName()
 	if len(colPlaces) > 0 {
 		sqlStr = fmt.Sprintf("INSERT INTO %s (%v%v%v) VALUES (%v)",
-			session.engine.Quote(session.statement.TableName()),
+			session.engine.Quote(tableName),
 			session.engine.QuoteStr(),
 			strings.Join(colNames, session.engine.Quote(", ")),
 			session.engine.QuoteStr(),
 			colPlaces)
 	} else {
 		if session.engine.dialect.DBType() == core.MYSQL {
-			sqlStr = fmt.Sprintf("INSERT INTO %s VALUES ()", session.engine.Quote(session.statement.TableName()))
+			sqlStr = fmt.Sprintf("INSERT INTO %s VALUES ()", session.engine.Quote(tableName))
 		} else {
-			sqlStr = fmt.Sprintf("INSERT INTO %s DEFAULT VALUES", session.engine.Quote(session.statement.TableName()))
+			sqlStr = fmt.Sprintf("INSERT INTO %s DEFAULT VALUES", session.engine.Quote(tableName))
 		}
 	}
 
@@ -401,7 +403,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		handleAfterInsertProcessorFunc(bean)
 
 		if cacher := session.engine.getCacher2(table); cacher != nil && session.statement.UseCache {
-			session.cacheInsert(session.statement.TableName())
+			session.cacheInsert(table, tableName)
 		}
 
 		if table.Version != "" && session.statement.checkVersion {
@@ -446,7 +448,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		handleAfterInsertProcessorFunc(bean)
 
 		if cacher := session.engine.getCacher2(table); cacher != nil && session.statement.UseCache {
-			session.cacheInsert(session.statement.TableName())
+			session.cacheInsert(table, tableName)
 		}
 
 		if table.Version != "" && session.statement.checkVersion {
@@ -489,7 +491,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		defer handleAfterInsertProcessorFunc(bean)
 
 		if cacher := session.engine.getCacher2(table); cacher != nil && session.statement.UseCache {
-			session.cacheInsert(session.statement.TableName())
+			session.cacheInsert(table, tableName)
 		}
 
 		if table.Version != "" && session.statement.checkVersion {
@@ -537,14 +539,12 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 	return session.innerInsert(bean)
 }
 
-func (session *Session) cacheInsert(tables ...string) error {
-	if session.statement.RefTable == nil {
+func (session *Session) cacheInsert(table *core.Table, tables ...string) error {
+	if table == nil {
 		return ErrCacheFailed
 	}
 
-	table := session.statement.RefTable
 	cacher := session.engine.getCacher2(table)
-
 	for _, t := range tables {
 		session.engine.logger.Debug("[cache] clear sql:", t)
 		cacher.ClearIds(t)

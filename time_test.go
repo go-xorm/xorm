@@ -52,14 +52,14 @@ func TestTimeUserTimeDiffLoc(t *testing.T) {
 	assert.NoError(t, err)
 	testEngine.DatabaseTZ = dbLoc
 
-	type TimeUser struct {
+	type TimeUser2 struct {
 		Id       string
 		OperTime time.Time
 	}
 
-	assertSync(t, new(TimeUser))
+	assertSync(t, new(TimeUser2))
 
-	var user = TimeUser{
+	var user = TimeUser2{
 		Id:       "lunny",
 		OperTime: time.Now(),
 	}
@@ -70,7 +70,7 @@ func TestTimeUserTimeDiffLoc(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	var user2 TimeUser
+	var user2 TimeUser2
 	has, err := testEngine.Get(&user2)
 	assert.NoError(t, err)
 	assert.True(t, has)
@@ -117,14 +117,14 @@ func TestTimeUserCreatedDiffLoc(t *testing.T) {
 	assert.NoError(t, err)
 	testEngine.DatabaseTZ = dbLoc
 
-	type UserCreated struct {
+	type UserCreated2 struct {
 		Id        string
 		CreatedAt time.Time `xorm:"created"`
 	}
 
-	assertSync(t, new(UserCreated))
+	assertSync(t, new(UserCreated2))
 
-	var user = UserCreated{
+	var user = UserCreated2{
 		Id: "lunny",
 	}
 
@@ -134,7 +134,7 @@ func TestTimeUserCreatedDiffLoc(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	var user2 UserCreated
+	var user2 UserCreated2
 	has, err := testEngine.Get(&user2)
 	assert.NoError(t, err)
 	assert.True(t, has)
@@ -203,15 +203,15 @@ func TestTimeUserUpdatedDiffLoc(t *testing.T) {
 	assert.NoError(t, err)
 	testEngine.DatabaseTZ = dbLoc
 
-	type UserUpdated struct {
+	type UserUpdated2 struct {
 		Id        string
 		CreatedAt time.Time `xorm:"created"`
 		UpdatedAt time.Time `xorm:"updated"`
 	}
 
-	assertSync(t, new(UserUpdated))
+	assertSync(t, new(UserUpdated2))
 
-	var user = UserUpdated{
+	var user = UserUpdated2{
 		Id: "lunny",
 	}
 
@@ -221,7 +221,7 @@ func TestTimeUserUpdatedDiffLoc(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	var user2 UserUpdated
+	var user2 UserUpdated2
 	has, err := testEngine.Get(&user2)
 	assert.NoError(t, err)
 	assert.True(t, has)
@@ -231,7 +231,7 @@ func TestTimeUserUpdatedDiffLoc(t *testing.T) {
 	assert.EqualValues(t, formatTime(user.UpdatedAt), formatTime(user2.UpdatedAt))
 	fmt.Println("user2", user2.CreatedAt, user2.UpdatedAt)
 
-	var user3 = UserUpdated{
+	var user3 = UserUpdated2{
 		Id: "lunny2",
 	}
 
@@ -240,7 +240,7 @@ func TestTimeUserUpdatedDiffLoc(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 	assert.True(t, user.UpdatedAt.Unix() <= user3.UpdatedAt.Unix())
 
-	var user4 UserUpdated
+	var user4 UserUpdated2
 	has, err = testEngine.Get(&user4)
 	assert.NoError(t, err)
 	assert.True(t, has)
@@ -307,16 +307,16 @@ func TestTimeUserDeletedDiffLoc(t *testing.T) {
 	assert.NoError(t, err)
 	testEngine.DatabaseTZ = dbLoc
 
-	type UserDeleted struct {
+	type UserDeleted2 struct {
 		Id        string
 		CreatedAt time.Time `xorm:"created"`
 		UpdatedAt time.Time `xorm:"updated"`
 		DeletedAt time.Time `xorm:"deleted"`
 	}
 
-	assertSync(t, new(UserDeleted))
+	assertSync(t, new(UserDeleted2))
 
-	var user = UserDeleted{
+	var user = UserDeleted2{
 		Id: "lunny",
 	}
 
@@ -325,7 +325,7 @@ func TestTimeUserDeletedDiffLoc(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 	fmt.Println("user", user.CreatedAt, user.UpdatedAt, user.DeletedAt)
 
-	var user2 UserDeleted
+	var user2 UserDeleted2
 	has, err := testEngine.Get(&user2)
 	assert.NoError(t, err)
 	assert.True(t, has)
@@ -336,13 +336,13 @@ func TestTimeUserDeletedDiffLoc(t *testing.T) {
 	assert.True(t, isTimeZero(user2.DeletedAt))
 	fmt.Println("user2", user2.CreatedAt, user2.UpdatedAt, user2.DeletedAt)
 
-	var user3 UserDeleted
+	var user3 UserDeleted2
 	cnt, err = testEngine.Where("id = ?", "lunny").Delete(&user3)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 	assert.True(t, !isTimeZero(user3.DeletedAt))
 
-	var user4 UserDeleted
+	var user4 UserDeleted2
 	has, err = testEngine.Unscoped().Get(&user4)
 	assert.NoError(t, err)
 	assert.True(t, has)
@@ -378,16 +378,16 @@ func (j *JsonDate) Unix() int64 {
 func TestCustomTimeUserDeleted(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	type UserDeleted struct {
+	type UserDeleted3 struct {
 		Id        string
 		CreatedAt JsonDate `xorm:"created"`
 		UpdatedAt JsonDate `xorm:"updated"`
 		DeletedAt JsonDate `xorm:"deleted"`
 	}
 
-	assertSync(t, new(UserDeleted))
+	assertSync(t, new(UserDeleted3))
 
-	var user = UserDeleted{
+	var user = UserDeleted3{
 		Id: "lunny",
 	}
 
@@ -396,7 +396,7 @@ func TestCustomTimeUserDeleted(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 	fmt.Println("user", user.CreatedAt, user.UpdatedAt, user.DeletedAt)
 
-	var user2 UserDeleted
+	var user2 UserDeleted3
 	has, err := testEngine.Get(&user2)
 	assert.NoError(t, err)
 	assert.True(t, has)
@@ -407,13 +407,13 @@ func TestCustomTimeUserDeleted(t *testing.T) {
 	assert.True(t, isTimeZero(time.Time(user2.DeletedAt)))
 	fmt.Println("user2", user2.CreatedAt, user2.UpdatedAt, user2.DeletedAt)
 
-	var user3 UserDeleted
+	var user3 UserDeleted3
 	cnt, err = testEngine.Where("id = ?", "lunny").Delete(&user3)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 	assert.True(t, !isTimeZero(time.Time(user3.DeletedAt)))
 
-	var user4 UserDeleted
+	var user4 UserDeleted3
 	has, err = testEngine.Unscoped().Get(&user4)
 	assert.NoError(t, err)
 	assert.True(t, has)
@@ -431,16 +431,16 @@ func TestCustomTimeUserDeletedDiffLoc(t *testing.T) {
 	assert.NoError(t, err)
 	testEngine.DatabaseTZ = dbLoc
 
-	type UserDeleted struct {
+	type UserDeleted4 struct {
 		Id        string
 		CreatedAt JsonDate `xorm:"created"`
 		UpdatedAt JsonDate `xorm:"updated"`
 		DeletedAt JsonDate `xorm:"deleted"`
 	}
 
-	assertSync(t, new(UserDeleted))
+	assertSync(t, new(UserDeleted4))
 
-	var user = UserDeleted{
+	var user = UserDeleted4{
 		Id: "lunny",
 	}
 
@@ -449,7 +449,7 @@ func TestCustomTimeUserDeletedDiffLoc(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 	fmt.Println("user", user.CreatedAt, user.UpdatedAt, user.DeletedAt)
 
-	var user2 UserDeleted
+	var user2 UserDeleted4
 	has, err := testEngine.Get(&user2)
 	assert.NoError(t, err)
 	assert.True(t, has)
@@ -460,13 +460,13 @@ func TestCustomTimeUserDeletedDiffLoc(t *testing.T) {
 	assert.True(t, isTimeZero(time.Time(user2.DeletedAt)))
 	fmt.Println("user2", user2.CreatedAt, user2.UpdatedAt, user2.DeletedAt)
 
-	var user3 UserDeleted
+	var user3 UserDeleted4
 	cnt, err = testEngine.Where("id = ?", "lunny").Delete(&user3)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 	assert.True(t, !isTimeZero(time.Time(user3.DeletedAt)))
 
-	var user4 UserDeleted
+	var user4 UserDeleted4
 	has, err = testEngine.Unscoped().Get(&user4)
 	assert.NoError(t, err)
 	assert.True(t, has)

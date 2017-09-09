@@ -37,6 +37,21 @@ func createEngine(dbType, connStr string) error {
 
 		testEngine.ShowSQL(*showSQL)
 		testEngine.logger.SetLevel(core.LOG_DEBUG)
+		if *cache {
+			cacher := NewLRUCacher(NewMemoryStore(), 100000)
+			testEngine.SetDefaultCacher(cacher)
+		}
+
+		if len(*mapType) > 0 {
+			switch *mapType {
+			case "snake":
+				testEngine.SetMapper(core.SnakeMapper{})
+			case "same":
+				testEngine.SetMapper(core.SameMapper{})
+			case "gonic":
+				testEngine.SetMapper(core.LintGonicMapper)
+			}
+		}
 	}
 
 	tables, err := testEngine.DBMetas()

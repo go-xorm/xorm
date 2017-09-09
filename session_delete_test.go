@@ -141,6 +141,7 @@ func TestDeleted(t *testing.T) {
 func TestCacheDelete(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
+	oldCacher := testEngine.Cacher
 	cacher := NewLRUCacher(NewMemoryStore(), 1000)
 	testEngine.SetDefaultCacher(cacher)
 
@@ -165,4 +166,6 @@ func TestCacheDelete(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, aff, 0)
+
+	testEngine.SetDefaultCacher(oldCacher)
 }

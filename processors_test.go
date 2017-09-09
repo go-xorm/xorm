@@ -42,24 +42,24 @@ func TestBefore_Get(t *testing.T) {
 func TestBefore_Find(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	type BeforeTable struct {
+	type BeforeTable2 struct {
 		Id   int64
 		Name string
 		Val  string `xorm:"-"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(BeforeTable)))
+	assert.NoError(t, testEngine.Sync2(new(BeforeTable2)))
 
-	cnt, err := testEngine.Insert([]BeforeTable{
+	cnt, err := testEngine.Insert([]BeforeTable2{
 		{Name: "test1"},
 		{Name: "test2"},
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, cnt)
 
-	var be []BeforeTable
+	var be []BeforeTable2
 	err = testEngine.Before(func(bean interface{}) {
-		bean.(*BeforeTable).Val = "val"
+		bean.(*BeforeTable2).Val = "val"
 	}).Find(&be)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(be))

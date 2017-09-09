@@ -20,6 +20,7 @@ func TestCacheFind(t *testing.T) {
 		Password string
 	}
 
+	oldCacher := testEngine.Cacher
 	cacher := NewLRUCacher2(NewMemoryStore(), time.Hour, 10000)
 	testEngine.SetDefaultCacher(cacher)
 
@@ -58,7 +59,7 @@ func TestCacheFind(t *testing.T) {
 		assert.Equal(t, inserts[i].Password, box.Password)
 	}
 
-	testEngine.SetDefaultCacher(nil)
+	testEngine.SetDefaultCacher(oldCacher)
 }
 
 func TestCacheFind2(t *testing.T) {
@@ -70,6 +71,7 @@ func TestCacheFind2(t *testing.T) {
 		Password string
 	}
 
+	oldCacher := testEngine.Cacher
 	cacher := NewLRUCacher2(NewMemoryStore(), time.Hour, 10000)
 	testEngine.SetDefaultCacher(cacher)
 
@@ -108,7 +110,7 @@ func TestCacheFind2(t *testing.T) {
 		assert.Equal(t, inserts[i].Password, box.Password)
 	}
 
-	testEngine.SetDefaultCacher(nil)
+	testEngine.SetDefaultCacher(oldCacher)
 }
 
 func TestCacheGet(t *testing.T) {
@@ -120,6 +122,7 @@ func TestCacheGet(t *testing.T) {
 		Password string
 	}
 
+	oldCacher := testEngine.Cacher
 	cacher := NewLRUCacher2(NewMemoryStore(), time.Hour, 10000)
 	testEngine.SetDefaultCacher(cacher)
 
@@ -148,5 +151,5 @@ func TestCacheGet(t *testing.T) {
 	assert.EqualValues(t, "user1", box2.Username)
 	assert.EqualValues(t, "pass1", box2.Password)
 
-	testEngine.SetDefaultCacher(nil)
+	testEngine.SetDefaultCacher(oldCacher)
 }

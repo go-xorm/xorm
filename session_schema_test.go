@@ -197,8 +197,9 @@ func TestMetaInfo(t *testing.T) {
 	tables, err := testEngine.DBMetas()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(tables))
-	assert.EqualValues(t, "customtablename", tables[0].Name)
-	assert.EqualValues(t, "index_or_unique", tables[1].Name)
+	tableNames := []string{tables[0].Name, tables[1].Name}
+	assert.Contains(t, tableNames, "customtablename")
+	assert.Contains(t, tableNames, "index_or_unique")
 }
 
 func TestCharst(t *testing.T) {

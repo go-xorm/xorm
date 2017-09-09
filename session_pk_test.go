@@ -764,21 +764,11 @@ func TestCompositeKey(t *testing.T) {
 		t.Error(errors.New("failed to insert CompositeKey{22, 22}"))
 	}
 
-	if testEngine.Cacher != nil {
-		testEngine.Cacher.ClearBeans(testEngine.TableInfo(compositeKeyVal).Name)
-	}
-
 	cps = make([]CompositeKey, 0)
 	err = testEngine.Find(&cps)
-	if err != nil {
-		t.Error(err)
-	}
-	if len(cps) != 2 {
-		t.Error(errors.New("should has two record"))
-	}
-	if cps[0] != compositeKeyVal {
-		t.Error(errors.New("should be equeal"))
-	}
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(cps), "should has two record")
+	assert.EqualValues(t, compositeKeyVal, cps[0], "should be equeal")
 
 	compositeKeyVal = CompositeKey{UpdateStr: "test1"}
 	cnt, err = testEngine.ID(core.PK{11, 22}).Update(&compositeKeyVal)
@@ -796,15 +786,15 @@ func TestCompositeKey(t *testing.T) {
 	}
 }
 
-type User struct {
-	UserId   string `xorm:"varchar(19) not null pk"`
-	NickName string `xorm:"varchar(19) not null"`
-	GameId   uint32 `xorm:"integer pk"`
-	Score    int32  `xorm:"integer"`
-}
-
 func TestCompositeKey2(t *testing.T) {
 	assert.NoError(t, prepareEngine())
+
+	type User struct {
+		UserId   string `xorm:"varchar(19) not null pk"`
+		NickName string `xorm:"varchar(19) not null"`
+		GameId   uint32 `xorm:"integer pk"`
+		Score    int32  `xorm:"integer"`
+	}
 
 	err := testEngine.DropTables(&User{})
 
