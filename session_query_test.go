@@ -44,6 +44,30 @@ func TestQueryString(t *testing.T) {
 	assert.Equal(t, "1.5", records[0]["money"])
 }
 
+func TestQueryString2(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type GetVar3 struct {
+		Id  int64 `xorm:"autoincr pk"`
+		Msg bool  `xorm:"bit"`
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(GetVar3)))
+
+	var data = GetVar3{
+		Msg: false,
+	}
+	_, err := testEngine.Insert(data)
+	assert.NoError(t, err)
+
+	records, err := testEngine.QueryString("select * from get_var3")
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(records))
+	assert.Equal(t, 2, len(records[0]))
+	assert.Equal(t, "1", records[0]["id"])
+	assert.True(t, "0" == records[0]["msg"] || "false" == records[0]["msg"])
+}
+
 func toString(i interface{}) string {
 	switch i.(type) {
 	case []byte:

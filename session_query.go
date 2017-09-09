@@ -39,6 +39,9 @@ func reflect2value(rawValue *reflect.Value) (str string, err error) {
 		case reflect.Uint8:
 			data := rawValue.Interface().([]byte)
 			str = string(data)
+			if str == "\x00" {
+				str = "0"
+			}
 		default:
 			err = fmt.Errorf("Unsupported struct type %v", vv.Type().Name())
 		}
