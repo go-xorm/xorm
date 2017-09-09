@@ -137,3 +137,35 @@ func TestDeleted(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(records3))
 }
+
+func TestCacheDelete(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	oldCacher := testEngine.Cacher
+	cacher := NewLRUCacher(NewMemoryStore(), 1000)
+	testEngine.SetDefaultCacher(cacher)
+
+	type CacheDeleteStruct struct {
+		Id int64
+	}
+
+	err := testEngine.CreateTables(&CacheDeleteStruct{})
+	assert.NoError(t, err)
+
+	_, err = testEngine.Insert(&CacheDeleteStruct{})
+	assert.NoError(t, err)
+
+	aff, err := testEngine.Delete(&CacheDeleteStruct{
+		Id: 1,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, aff, 1)
+
+	aff, err = testEngine.Unscoped().Delete(&CacheDeleteStruct{
+		Id: 1,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, aff, 0)
+
+	testEngine.SetDefaultCacher(oldCacher)
+}

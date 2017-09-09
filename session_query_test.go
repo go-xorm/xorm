@@ -16,7 +16,7 @@ import (
 func TestQueryString(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	type GetVar struct {
+	type GetVar2 struct {
 		Id      int64  `xorm:"autoincr pk"`
 		Msg     string `xorm:"varchar(255)"`
 		Age     int
@@ -24,9 +24,9 @@ func TestQueryString(t *testing.T) {
 		Created time.Time `xorm:"created"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(GetVar)))
+	assert.NoError(t, testEngine.Sync2(new(GetVar2)))
 
-	var data = GetVar{
+	var data = GetVar2{
 		Msg:   "hi",
 		Age:   28,
 		Money: 1.5,
@@ -34,7 +34,7 @@ func TestQueryString(t *testing.T) {
 	_, err := testEngine.InsertOne(data)
 	assert.NoError(t, err)
 
-	records, err := testEngine.QueryString("select * from get_var")
+	records, err := testEngine.QueryString("select * from get_var2")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(records))
 	assert.Equal(t, 5, len(records[0]))

@@ -15,8 +15,8 @@ import (
 	"github.com/go-xorm/core"
 )
 
-func (session *Session) cacheUpdate(sqlStr string, args ...interface{}) error {
-	if session.statement.RefTable == nil ||
+func (session *Session) cacheUpdate(table *core.Table, tableName, sqlStr string, args ...interface{}) error {
+	if table == nil ||
 		session.tx != nil {
 		return ErrCacheFailed
 	}
@@ -26,7 +26,7 @@ func (session *Session) cacheUpdate(sqlStr string, args ...interface{}) error {
 		return ErrCacheFailed
 	}
 	for _, filter := range session.engine.dialect.Filters() {
-		newsql = filter.Do(newsql, session.engine.dialect, session.statement.RefTable)
+		newsql = filter.Do(newsql, session.engine.dialect, table)
 	}
 	session.engine.logger.Debug("[cacheUpdate] new sql", oldhead, newsql)
 
@@ -39,9 +39,8 @@ func (session *Session) cacheUpdate(sqlStr string, args ...interface{}) error {
 			nStart = strings.Count(oldhead, "$")
 		}
 	}
-	table := session.statement.RefTable
+
 	cacher := session.engine.getCacher2(table)
-	tableName := session.statement.TableName()
 	session.engine.logger.Debug("[cacheUpdate] get cache sql", newsql, args[nStart:])
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args[nStart:])
 	if err != nil {
@@ -280,6 +279,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		condSQL = condSQL + fmt.Sprintf(" ORDER BY %v", st.OrderStr)
 	}
 
+	var tableName = session.statement.TableName()
 	// TODO: Oracle support needed
 	var top string
 	if st.LimitN > 0 {
@@ -288,7 +288,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		} else if st.Engine.dialect.DBType() == core.SQLITE {
 			tempCondSQL := condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
 			cond = cond.And(builder.Expr(fmt.Sprintf("rowid IN (SELECT rowid FROM %v %v)",
-				session.engine.Quote(session.statement.TableName()), tempCondSQL), condArgs...))
+				session.engine.Quote(tableName), tempCondSQL), condArgs...))
 			condSQL, condArgs, err = builder.ToSQL(cond)
 			if err != nil {
 				return 0, err
@@ -299,7 +299,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		} else if st.Engine.dialect.DBType() == core.POSTGRES {
 			tempCondSQL := condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
 			cond = cond.And(builder.Expr(fmt.Sprintf("CTID IN (SELECT CTID FROM %v %v)",
-				session.engine.Quote(session.statement.TableName()), tempCondSQL), condArgs...))
+				session.engine.Quote(tableName), tempCondSQL), condArgs...))
 			condSQL, condArgs, err = builder.ToSQL(cond)
 			if err != nil {
 				return 0, err
@@ -313,7 +313,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 				table != nil && len(table.PrimaryKeys) == 1 {
 				cond = builder.Expr(fmt.Sprintf("%s IN (SELECT TOP (%d) %s FROM %v%v)",
 					table.PrimaryKeys[0], st.LimitN, table.PrimaryKeys[0],
-					session.engine.Quote(session.statement.TableName()), condSQL), condArgs...)
+					session.engine.Quote(tableName), condSQL), condArgs...)
 
 				condSQL, condArgs, err = builder.ToSQL(cond)
 				if err != nil {
@@ -334,7 +334,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	sqlStr = fmt.Sprintf("UPDATE %v%v SET %v %v",
 		top,
-		session.engine.Quote(session.statement.TableName()),
+		session.engine.Quote(tableName),
 		strings.Join(colNames, ", "),
 		condSQL)
 
@@ -349,8 +349,9 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	if table != nil {
 		if cacher := session.engine.getCacher2(table); cacher != nil && session.statement.UseCache {
-			cacher.ClearIds(session.statement.TableName())
-			cacher.ClearBeans(session.statement.TableName())
+			//session.cacheUpdate(table, tableName, sqlStr, args...)
+			cacher.ClearIds(tableName)
+			cacher.ClearBeans(tableName)
 		}
 	}
 
@@ -360,7 +361,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			closure(bean)
 		}
 		if processor, ok := interface{}(bean).(AfterUpdateProcessor); ok {
-			session.engine.logger.Debug("[event]", session.statement.TableName(), " has after update processor")
+			session.engine.logger.Debug("[event]", tableName, " has after update processor")
 			processor.AfterUpdate()
 		}
 	} else {

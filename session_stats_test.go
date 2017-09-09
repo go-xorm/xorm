@@ -76,26 +76,26 @@ func TestSum(t *testing.T) {
 func TestSumCustomColumn(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	type SumStruct struct {
+	type SumStruct2 struct {
 		Int   int
 		Float float32
 	}
 
 	var (
-		cases = []SumStruct{
+		cases = []SumStruct2{
 			{1, 6.2},
 			{2, 5.3},
 			{92, -0.2},
 		}
 	)
 
-	assert.NoError(t, testEngine.Sync2(new(SumStruct)))
+	assert.NoError(t, testEngine.Sync2(new(SumStruct2)))
 
 	cnt, err := testEngine.Insert(cases)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, cnt)
 
-	sumInt, err := testEngine.Sum(new(SumStruct),
+	sumInt, err := testEngine.Sum(new(SumStruct2),
 		"CASE WHEN `int` <= 2 THEN `int` ELSE 0 END")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, int(sumInt))

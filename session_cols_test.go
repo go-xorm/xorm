@@ -14,14 +14,14 @@ import (
 func TestSetExpr(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	type User struct {
+	type UserExpr struct {
 		Id   int64
 		Show bool
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(User)))
+	assert.NoError(t, testEngine.Sync2(new(UserExpr)))
 
-	cnt, err := testEngine.Insert(&User{
+	cnt, err := testEngine.Insert(&UserExpr{
 		Show: true,
 	})
 	assert.NoError(t, err)
@@ -31,7 +31,7 @@ func TestSetExpr(t *testing.T) {
 	if testEngine.dialect.DBType() == core.MSSQL {
 		not = "~"
 	}
-	cnt, err = testEngine.SetExpr("show", not+" `show`").ID(1).Update(new(User))
+	cnt, err = testEngine.SetExpr("show", not+" `show`").ID(1).Update(new(UserExpr))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 }
