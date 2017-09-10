@@ -53,8 +53,10 @@ func (session *Session) get(bean interface{}) (bool, error) {
 		args = session.statement.RawParams
 	}
 
+	table := session.statement.RefTable
+
 	if session.canCache() && beanValue.Elem().Kind() == reflect.Struct {
-		if cacher := session.engine.getCacher2(session.statement.RefTable); cacher != nil &&
+		if cacher := session.engine.getCacher2(table); cacher != nil &&
 			!session.statement.unscoped {
 			has, err := session.cacheGet(bean, sqlStr, args...)
 			if err != ErrCacheFailed {
@@ -63,10 +65,10 @@ func (session *Session) get(bean interface{}) (bool, error) {
 		}
 	}
 
-	return session.nocacheGet(beanValue.Elem().Kind(), bean, sqlStr, args...)
+	return session.nocacheGet(beanValue.Elem().Kind(), table, bean, sqlStr, args...)
 }
 
-func (session *Session) nocacheGet(beanKind reflect.Kind, bean interface{}, sqlStr string, args ...interface{}) (bool, error) {
+func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bean interface{}, sqlStr string, args ...interface{}) (bool, error) {
 	rows, err := session.queryRows(sqlStr, args...)
 	if err != nil {
 		return false, err
@@ -84,10 +86,6 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, bean interface{}, sqlS
 			// WARN: Alougth rows return true, but get fields failed
 			return true, err
 		}
-		dataStruct := rValue(bean)
-		if err := session.statement.setRefValue(dataStruct); err != nil {
-			return false, err
-		}
 
 		scanResults, err := session.row2Slice(rows, fields, len(fields), bean)
 		if err != nil {
@@ -96,7 +94,8 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, bean interface{}, sqlS
 		// close it before covert data
 		rows.Close()
 
-		_, err = session.slice2Bean(scanResults, fields, len(fields), bean, &dataStruct, session.statement.RefTable)
+		dataStruct := rValue(bean)
+		_, err = session.slice2Bean(scanResults, fields, len(fields), bean, &dataStruct, table)
 	case reflect.Slice:
 		err = rows.ScanSlice(bean)
 	case reflect.Map:
@@ -180,7 +179,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 		cacheBean := cacher.GetBean(tableName, sid)
 		if cacheBean == nil {
 			cacheBean = bean
-			has, err = session.nocacheGet(reflect.Struct, cacheBean, sqlStr, args...)
+			has, err = session.nocacheGet(reflect.Struct, table, cacheBean, sqlStr, args...)
 			if err != nil || !has {
 				return has, err
 			}
