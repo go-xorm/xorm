@@ -7,6 +7,7 @@ package xorm
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -357,4 +358,38 @@ func TestTagsDirection(t *testing.T) {
 	assert.True(t, has)
 	assert.EqualValues(t, "", s2.Uuid)
 	assert.EqualValues(t, "test", s2.Name)
+}
+
+func TestTagTime(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type TagUTCStruct struct {
+		Id      int64
+		Name    string
+		Created time.Time `xorm:"created utc"`
+	}
+
+	assertSync(t, new(TagUTCStruct))
+
+	assert.EqualValues(t, time.Local.String(), testEngine.TZLocation.String())
+
+	s := TagUTCStruct{
+		Name: "utc",
+	}
+	cnt, err := testEngine.Insert(&s)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var u TagUTCStruct
+	has, err := testEngine.ID(1).Get(&u)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, s.Created.Format("2006-01-02 15:04:05"), u.Created.Format("2006-01-02 15:04:05"))
+
+	var tm string
+	has, err = testEngine.Table("tag_u_t_c_struct").Cols("created").Get(&tm)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, s.Created.UTC().Format("2006-01-02 15:04:05"),
+		strings.Replace(strings.Replace(tm, "T", " ", -1), "Z", "", -1))
 }
