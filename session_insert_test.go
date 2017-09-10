@@ -636,3 +636,29 @@ func TestInsertTwoTable(t *testing.T) {
 		panic(err)
 	}
 }
+
+func TestInsertCreatedInt64(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type TestCreatedInt64 struct {
+		Id      int64  `xorm:"autoincr pk"`
+		Msg     string `xorm:"varchar(255)"`
+		Created int64  `xorm:"created"`
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(TestCreatedInt64)))
+
+	data := TestCreatedInt64{Msg: "hi"}
+	now := time.Now()
+	cnt, err := testEngine.Insert(&data)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+	assert.True(t, now.Unix() <= data.Created)
+
+	var data2 TestCreatedInt64
+	has, err := testEngine.Get(&data2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+
+	assert.EqualValues(t, data.Created, data2.Created)
+}
