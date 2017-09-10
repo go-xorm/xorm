@@ -22,7 +22,7 @@ var (
 
 	db         = flag.String("db", "sqlite3", "the tested database")
 	showSQL    = flag.Bool("show_sql", true, "show generated SQLs")
-	ptrConnStr = flag.String("conn_str", "", "test database connection string")
+	ptrConnStr = flag.String("conn_str", "./test.db?cache=shared&mode=rwc", "test database connection string")
 	mapType    = flag.String("map_type", "snake", "indicate the name mapping")
 	cache      = flag.Bool("cache", false, "if enable cache")
 )
