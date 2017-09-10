@@ -645,30 +645,30 @@ func TestUpdateUpdated(t *testing.T) {
 
 	di2 := new(UpdatedUpdate2)
 	err = testEngine.Sync2(di2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
-	_, err = testEngine.Insert(&UpdatedUpdate2{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	now := time.Now()
+	var di20 UpdatedUpdate2
+	cnt, err := testEngine.Insert(&di20)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+	assert.True(t, now.Unix() <= di20.Updated)
+
+	var di21 UpdatedUpdate2
+	has, err = testEngine.ID(di20.Id).Get(&di21)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, di20.Updated, di21.Updated)
+
 	ci2 := &UpdatedUpdate2{}
 	_, err = testEngine.ID(1).Update(ci2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
 	has, err = testEngine.ID(1).Get(di2)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !has {
-		t.Fatal(ErrNotExist)
-	}
-	if ci2.Updated != di2.Updated {
-		t.Fatal("should equal:", ci2, di2)
-	}
-	fmt.Println("ci2:", ci2, "di2:", di2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, ci2.Updated, di2.Updated)
+	assert.True(t, ci2.Updated >= di21.Updated)
 
 	di3 := new(UpdatedUpdate3)
 	err = testEngine.Sync2(di3)
