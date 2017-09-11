@@ -169,22 +169,12 @@ func TestExtends(t *testing.T) {
 
 	tu6 := &tempUser3{&tempUser{0, "extends update"}, ""}
 	_, err = testEngine.ID(tu5.Temp.Id).Update(tu6)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.Error(t, err)
 
 	users := make([]tempUser3, 0)
 	err = testEngine.Find(&users)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-	if len(users) != 1 {
-		err = errors.New("error get data not 1")
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(users))
 
 	assertSync(t, new(Userinfo), new(Userdetail))
 
@@ -209,21 +199,11 @@ func TestExtends(t *testing.T) {
 	sql := fmt.Sprintf("select * from %s, %s where %s.%s = %s.%s",
 		qt(ui), qt(ud), qt(ui), qt(udid), qt(ud), qt(uiid))
 	b, err := testEngine.SQL(sql).NoCascade().Get(&info)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-	if !b {
-		err = errors.New("should has lest one record")
-		t.Error(err)
-		panic(err)
-	}
-	fmt.Println(info)
-	if info.Userinfo.Uid == 0 || info.Userdetail.Id == 0 {
-		err = errors.New("all of the id should has value")
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+	assert.True(t, b)
+	assert.False(t, info.Userinfo.Uid == 0 || info.Userdetail.Id == 0)
+
+	panic("")
 
 	fmt.Println("----join--info2")
 	var info2 UserAndDetail

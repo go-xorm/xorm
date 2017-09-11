@@ -202,10 +202,10 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 				}
 				v = x
 				fieldValue.Set(reflect.ValueOf(v).Convert(fieldType))
-			} else if (col.AssociateType == core.AssociateNone &&
-				session.statement.cascadeMode == cascadeCompitable) ||
+			} else if session.cascadeLevel > 0 && ((col.AssociateType == core.AssociateNone &&
+				session.cascadeMode == cascadeCompitable) ||
 				(col.AssociateType == core.AssociateBelongsTo &&
-					session.statement.cascadeMode == cascadeAuto) {
+					session.cascadeMode == cascadeEager)) {
 				var pk = make(core.PK, len(col.AssociateTable.PrimaryKeys))
 				// only 1 PK checked on tag parsing
 				rawValueType := col.AssociateTable.ColumnType(col.AssociateTable.PKColumns()[0].FieldName)
@@ -215,6 +215,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 					return err
 				}
 
+				session.cascadeLevel--
 				if err = session.getByPK(pk, fieldValue); err != nil {
 					return err
 				}
@@ -466,10 +467,10 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 				v = x
 				fieldValue.Set(reflect.ValueOf(&x))
 			default:
-				if (col.AssociateType == core.AssociateNone &&
-					session.statement.cascadeMode == cascadeCompitable) ||
+				if session.cascadeLevel > 0 && ((col.AssociateType == core.AssociateNone &&
+					session.cascadeMode == cascadeCompitable) ||
 					(col.AssociateType == core.AssociateBelongsTo &&
-						session.statement.cascadeMode == cascadeAuto) {
+						session.cascadeMode == cascadeEager)) {
 					var pk = make(core.PK, len(col.AssociateTable.PrimaryKeys))
 					var err error
 					// only 1 PK checked on tag parsing
@@ -479,6 +480,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 						return err
 					}
 
+					session.cascadeLevel--
 					if err = session.getByPK(pk, fieldValue); err != nil {
 						return err
 					}

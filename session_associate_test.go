@@ -50,7 +50,7 @@ func TestBelongsTo_Get(t *testing.T) {
 	assert.Equal(t, nose.Face.Id, cfgNose.Face.Id)
 	assert.Equal(t, "", cfgNose.Face.Name)
 
-	err = testEngine.EagerGet(&cfgNose)
+	err = testEngine.Load(&cfgNose)
 	assert.NoError(t, err)
 	assert.Equal(t, nose.Id, cfgNose.Id)
 	assert.Equal(t, nose.Face.Id, cfgNose.Face.Id)
@@ -104,7 +104,7 @@ func TestBelongsTo_GetPtr(t *testing.T) {
 	assert.Equal(t, nose.Id, cfgNose.Id)
 	assert.Equal(t, nose.Face.Id, cfgNose.Face.Id)
 
-	err = testEngine.EagerGet(&cfgNose)
+	err = testEngine.Load(&cfgNose)
 	assert.NoError(t, err)
 	assert.Equal(t, nose.Id, cfgNose.Id)
 	assert.Equal(t, nose.Face.Id, cfgNose.Face.Id)

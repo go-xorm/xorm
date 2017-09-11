@@ -36,9 +36,10 @@ type exprParam struct {
 type cascadeMode int
 
 const (
-	cascadeCompitable cascadeMode = iota
-	cascadeAuto
-	cascadeManually
+	cascadeCompitable cascadeMode = iota // load field beans with another SQL with no
+	cascadeEager                         // load field beans with another SQL
+	cascadeJoin                          // load field beans with join
+	cascadeLazy                          // don't load anything
 )
 
 // Statement save all the sql info for executing SQL
@@ -62,7 +63,6 @@ type Statement struct {
 	tableName       string
 	RawSQL          string
 	RawParams       []interface{}
-	cascadeMode     cascadeMode
 	UseAutoJoin     bool
 	StoreEngine     string
 	Charset         string
@@ -90,7 +90,6 @@ func (statement *Statement) Init() {
 	statement.Start = 0
 	statement.LimitN = 0
 	statement.OrderStr = ""
-	statement.cascadeMode = cascadeCompitable
 	statement.JoinStr = ""
 	statement.joinArgs = make([]interface{}, 0)
 	statement.GroupByStr = ""

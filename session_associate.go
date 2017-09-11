@@ -11,8 +11,22 @@ import (
 	"github.com/go-xorm/core"
 )
 
-// EagerFind load 's belongs to tag field immedicatlly
-func (session *Session) EagerFind(slices interface{}, cols ...string) error {
+// Load loads associated fields from database
+func (session *Session) Load(beanOrSlices interface{}, cols ...string) error {
+	v := reflect.ValueOf(beanOrSlices)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() == reflect.Slice {
+		return session.loadFind(beanOrSlices, cols...)
+	} else if v.Kind() == reflect.Struct {
+		return session.loadGet(beanOrSlices, cols...)
+	}
+	return errors.New("unsupported load type, must struct or slice")
+}
+
+// loadFind load 's belongs to tag field immedicatlly
+func (session *Session) loadFind(slices interface{}, cols ...string) error {
 	/*v := reflect.ValueOf(slices)
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -80,8 +94,8 @@ func (session *Session) EagerFind(slices interface{}, cols ...string) error {
 	return nil
 }
 
-// EagerGet load bean's belongs to tag field immedicatlly
-func (session *Session) EagerGet(bean interface{}, cols ...string) error {
+// loadGet load bean's belongs to tag field immedicatlly
+func (session *Session) loadGet(bean interface{}, cols ...string) error {
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -115,14 +129,15 @@ func (session *Session) EagerGet(bean interface{}, cols ...string) error {
 					colPtr = colV.Addr()
 				}
 
-				if !isZero(pk[0]) {
-					has, err := session.ID(pk).get(colPtr.Interface())
+				if !isZero(pk[0]) && session.cascadeLevel > 0 {
+					has, err := session.ID(pk).NoAutoCondition().get(colPtr.Interface())
 					if err != nil {
 						return err
 					}
 					if !has {
 						return errors.New("load bean does not exist")
 					}
+					session.cascadeLevel--
 				}
 			}
 		}
