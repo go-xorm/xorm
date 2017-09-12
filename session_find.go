@@ -203,7 +203,9 @@ func (session *Session) noCacheFind(table *core.Table, containerValue reflect.Va
 			if isPointer {
 				containerValue.Set(reflect.Append(containerValue, newValue.Elem().Addr()))
 			} else {
+				fmt.Println("---", newValue.Elem())
 				containerValue.Set(reflect.Append(containerValue, newValue.Elem()))
+				fmt.Println("===", containerValue.Interface())
 			}
 			return nil
 		}

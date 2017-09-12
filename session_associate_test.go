@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -164,6 +165,7 @@ func TestBelongsTo_Find(t *testing.T) {
 	err = testEngine.Cascade().Find(&noses2)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(noses2))
+	fmt.Println("noses:", noses2)
 	assert.Equal(t, face1.Id, noses2[0].Face.Id)
 	assert.Equal(t, face2.Id, noses2[1].Face.Id)
 	assert.Equal(t, "face1", noses2[0].Face.Name)

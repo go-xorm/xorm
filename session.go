@@ -886,8 +886,10 @@ func (session *Session) getByPK(pk core.PK, fieldValue *reflect.Value) error {
 		if has {
 			if fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
 				fieldValue.Set(structInter)
+				fmt.Println("getByPK value ptr:", fieldValue.Interface())
 			} else if fieldValue.Kind() == reflect.Struct {
 				fieldValue.Set(structInter.Elem())
+				fmt.Println("getByPK value:", fieldValue.Interface())
 			} else {
 				return errors.New("set value failed")
 			}
