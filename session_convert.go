@@ -585,22 +585,35 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 			tf := session.engine.formatColTime(col, t)
 			return tf, nil
 		}
-
 		if !col.SQLType.IsJson() {
 			// !<winxxp>! 增加支持driver.Valuer接口的结构，如sql.NullString
 			if v, ok := fieldValue.Interface().(driver.Valuer); ok {
 				return v.Value()
 			}
+			var getfiled func(fv reflect.Value) (*reflect.Value, error)
+			getfiled = func(fv reflect.Value) (*reflect.Value, error) {
+				fieldTable, err := session.engine.autoMapType(fv)
+				if err != nil {
+					return nil, err
+				}
+				if len(fieldTable.PrimaryKeys) == 1 {
 
-			fieldTable, err := session.engine.autoMapType(fieldValue)
+					pkField := reflect.Indirect(reflect.Indirect(fv).FieldByName(fieldTable.PKColumns()[0].FieldName))
+
+					if pkField.Kind() == reflect.Struct {
+
+						return getfiled(pkField)
+					}
+					return &pkField, nil
+				}
+				return nil, fmt.Errorf("no primary key for col %v", col.Name)
+			}
+			pkField, err := getfiled(fieldValue)
 			if err != nil {
-				return nil, err
+				return 0, err
 			}
-			if len(fieldTable.PrimaryKeys) == 1 {
-				pkField := reflect.Indirect(fieldValue).FieldByName(fieldTable.PKColumns()[0].FieldName)
-				return pkField.Interface(), nil
-			}
-			return 0, fmt.Errorf("no primary key for col %v", col.Name)
+			return pkField.Interface(), nil
+
 		}
 
 		if col.SQLType.IsText() {
