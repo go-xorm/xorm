@@ -1153,3 +1153,20 @@ func TestNewUpdate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, af)
 }
+
+func TestUpdateUpdate(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type PublicKeyUpdate struct {
+		Id          int64
+		UpdatedUnix int64 `xorm:"updated"`
+	}
+
+	assertSync(t, new(PublicKeyUpdate))
+
+	cnt, err := testEngine.ID(1).Cols("updated_unix").Update(&PublicKeyUpdate{
+		UpdatedUnix: time.Now().Unix(),
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, cnt)
+}
