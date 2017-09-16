@@ -1194,11 +1194,17 @@ func TestCreatedUpdated2(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	cnt, err = testEngine.ID(1).Update(&CreatedUpdatedStruct{
-		Name: "test1",
-	})
+	var s1 = CreatedUpdatedStruct{
+		Name:     "test1",
+		CreateAt: s.CreateAt,
+		UpdateAt: s.UpdateAt,
+	}
+
+	cnt, err = testEngine.ID(1).Update(&s1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
+	assert.EqualValues(t, s.CreateAt.Unix(), s1.CreateAt.Unix())
+	assert.True(t, s1.UpdateAt.Unix() > s.UpdateAt.Unix())
 
 	var s2 CreatedUpdatedStruct
 	has, err := testEngine.ID(1).Get(&s2)
