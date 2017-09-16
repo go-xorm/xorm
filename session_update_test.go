@@ -1114,10 +1114,11 @@ func TestNoUpdate(t *testing.T) {
 
 	assertSync(t, new(NoUpdate))
 
-	_, err := testEngine.Insert(&NoUpdate{
+	cnt, err := testEngine.Insert(&NoUpdate{
 		Content: "test",
 	})
 	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
 
 	_, err = testEngine.ID(1).Update(&NoUpdate{})
 	assert.Error(t, err)
@@ -1169,4 +1170,48 @@ func TestUpdateUpdate(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, cnt)
+}
+
+func TestCreatedUpdated2(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type CreatedUpdatedStruct struct {
+		Id       int64
+		Name     string
+		CreateAt time.Time `xorm:"created" json:"create_at"`
+		UpdateAt time.Time `xorm:"updated" json:"update_at"`
+	}
+
+	assertSync(t, new(CreatedUpdatedStruct))
+
+	var s = CreatedUpdatedStruct{
+		Name: "test",
+	}
+	cnt, err := testEngine.Insert(&s)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+	assert.EqualValues(t, s.UpdateAt.Unix(), s.CreateAt.Unix())
+
+	time.Sleep(time.Second)
+
+	var s1 = CreatedUpdatedStruct{
+		Name:     "test1",
+		CreateAt: s.CreateAt,
+		UpdateAt: s.UpdateAt,
+	}
+
+	cnt, err = testEngine.ID(1).Update(&s1)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+	assert.EqualValues(t, s.CreateAt.Unix(), s1.CreateAt.Unix())
+	assert.True(t, s1.UpdateAt.Unix() > s.UpdateAt.Unix())
+
+	var s2 CreatedUpdatedStruct
+	has, err := testEngine.ID(1).Get(&s2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+
+	assert.EqualValues(t, s.CreateAt.Unix(), s2.CreateAt.Unix())
+	assert.True(t, s2.UpdateAt.Unix() > s.UpdateAt.Unix())
+	assert.True(t, s2.UpdateAt.Unix() > s2.CreateAt.Unix())
 }
