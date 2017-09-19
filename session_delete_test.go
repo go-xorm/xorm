@@ -169,3 +169,54 @@ func TestCacheDelete(t *testing.T) {
 
 	testEngine.SetDefaultCacher(oldCacher)
 }
+
+func TestUnscopeDelete(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type UnscopeDeleteStruct struct {
+		Id        int64
+		Name      string
+		DeletedAt time.Time `xorm:"deleted"`
+	}
+
+	assertSync(t, new(UnscopeDeleteStruct))
+
+	cnt, err := testEngine.Insert(&UnscopeDeleteStruct{
+		Name: "test",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var nowUnix = time.Now().Unix()
+	var s UnscopeDeleteStruct
+	cnt, err = testEngine.ID(1).Delete(&s)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+	assert.EqualValues(t, nowUnix, s.DeletedAt.Unix())
+
+	var s1 UnscopeDeleteStruct
+	has, err := testEngine.ID(1).Get(&s1)
+	assert.NoError(t, err)
+	assert.False(t, has)
+
+	var s2 UnscopeDeleteStruct
+	has, err = testEngine.ID(1).Unscoped().Get(&s2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "test", s2.Name)
+	assert.EqualValues(t, nowUnix, s2.DeletedAt.Unix())
+
+	cnt, err = testEngine.ID(1).Unscoped().Delete(new(UnscopeDeleteStruct))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var s3 UnscopeDeleteStruct
+	has, err = testEngine.ID(1).Get(&s3)
+	assert.NoError(t, err)
+	assert.False(t, has)
+
+	var s4 UnscopeDeleteStruct
+	has, err = testEngine.ID(1).Unscoped().Get(&s4)
+	assert.NoError(t, err)
+	assert.False(t, has)
+}
