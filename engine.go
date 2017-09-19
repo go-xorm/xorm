@@ -1574,3 +1574,10 @@ func (engine *Engine) CondDeleted(colName string) builder.Cond {
 	}
 	return builder.IsNull{colName}.Or(builder.Eq{colName: zeroTime1})
 }
+
+// BufferSize sets buffer size for iterate
+func (engine *Engine) BufferSize(size int) *Session {
+	session := engine.NewSession()
+	session.isAutoClose = true
+	return session.BufferSize(size)
+}
