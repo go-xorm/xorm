@@ -425,6 +425,10 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, f
 				hasAssigned = true
 
 				if len(bs) > 0 {
+					if fieldType.Kind() == reflect.String {
+						fieldValue.SetString(string(bs))
+						continue
+					}
 					if fieldValue.CanAddr() {
 						err := json.Unmarshal(bs, fieldValue.Addr().Interface())
 						if err != nil {
