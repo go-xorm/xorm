@@ -67,7 +67,7 @@ func main() {
 	fmt.Println("users3:", users3)
 
 	user4 := new(User)
-	has, err := Orm.Id(1).Get(user4)
+	has, err := Orm.ID(1).Get(user4)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -76,7 +76,7 @@ func main() {
 	fmt.Println("user4:", has, user4)
 
 	user4.Name = "xiaolunwen"
-	_, err = Orm.Id(1).Update(user4)
+	_, err = Orm.ID(1).Update(user4)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -84,14 +84,14 @@ func main() {
 	fmt.Println("user4:", user4)
 
 	user5 := new(User)
-	has, err = Orm.Id(1).Get(user5)
+	has, err = Orm.ID(1).Get(user5)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	fmt.Println("user5:", has, user5)
 
-	_, err = Orm.Id(1).Delete(new(User))
+	_, err = Orm.ID(1).Delete(new(User))
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -99,7 +99,7 @@ func main() {
 
 	for {
 		user6 := new(User)
-		has, err = Orm.Id(1).Get(user6)
+		has, err = Orm.ID(1).Get(user6)
 		if err != nil {
 			fmt.Println(err)
 			return

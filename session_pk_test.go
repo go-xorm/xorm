@@ -7,6 +7,7 @@ package xorm
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/go-xorm/core"
 	"github.com/stretchr/testify/assert"
@@ -126,7 +127,7 @@ func TestIntId(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.Id(bean.Id).Delete(&IntId{})
+	cnt, err = testEngine.ID(bean.Id).Delete(&IntId{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -201,7 +202,7 @@ func TestInt16Id(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.Id(bean.Id).Delete(&Int16Id{})
+	cnt, err = testEngine.ID(bean.Id).Delete(&Int16Id{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -276,7 +277,7 @@ func TestInt32Id(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.Id(bean.Id).Delete(&Int32Id{})
+	cnt, err = testEngine.ID(bean.Id).Delete(&Int32Id{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -365,7 +366,7 @@ func TestUintId(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.Id(bean.Id).Delete(&UintId{})
+	cnt, err = testEngine.ID(bean.Id).Delete(&UintId{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -440,7 +441,7 @@ func TestUint16Id(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.Id(bean.Id).Delete(&Uint16Id{})
+	cnt, err = testEngine.ID(bean.Id).Delete(&Uint16Id{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -515,7 +516,7 @@ func TestUint32Id(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.Id(bean.Id).Delete(&Uint32Id{})
+	cnt, err = testEngine.ID(bean.Id).Delete(&Uint32Id{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -603,7 +604,7 @@ func TestUint64Id(t *testing.T) {
 		panic(errors.New("should be equal"))
 	}
 
-	cnt, err = testEngine.Id(bean.Id).Delete(&Uint64Id{})
+	cnt, err = testEngine.ID(bean.Id).Delete(&Uint64Id{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -678,7 +679,7 @@ func TestStringPK(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.Id(bean.Id).Delete(&StringPK{})
+	cnt, err = testEngine.ID(bean.Id).Delete(&StringPK{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -724,7 +725,7 @@ func TestCompositeKey(t *testing.T) {
 	}
 
 	var compositeKeyVal CompositeKey
-	has, err := testEngine.Id(core.PK{11, 22}).Get(&compositeKeyVal)
+	has, err := testEngine.ID(core.PK{11, 22}).Get(&compositeKeyVal)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -733,7 +734,7 @@ func TestCompositeKey(t *testing.T) {
 
 	var compositeKeyVal2 CompositeKey
 	// test passing PK ptr, this test seem failed withCache
-	has, err = testEngine.Id(&core.PK{11, 22}).Get(&compositeKeyVal2)
+	has, err = testEngine.ID(&core.PK{11, 22}).Get(&compositeKeyVal2)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -763,31 +764,21 @@ func TestCompositeKey(t *testing.T) {
 		t.Error(errors.New("failed to insert CompositeKey{22, 22}"))
 	}
 
-	if testEngine.Cacher != nil {
-		testEngine.Cacher.ClearBeans(testEngine.TableInfo(compositeKeyVal).Name)
-	}
-
 	cps = make([]CompositeKey, 0)
 	err = testEngine.Find(&cps)
-	if err != nil {
-		t.Error(err)
-	}
-	if len(cps) != 2 {
-		t.Error(errors.New("should has two record"))
-	}
-	if cps[0] != compositeKeyVal {
-		t.Error(errors.New("should be equeal"))
-	}
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(cps), "should has two record")
+	assert.EqualValues(t, compositeKeyVal, cps[0], "should be equeal")
 
 	compositeKeyVal = CompositeKey{UpdateStr: "test1"}
-	cnt, err = testEngine.Id(core.PK{11, 22}).Update(&compositeKeyVal)
+	cnt, err = testEngine.ID(core.PK{11, 22}).Update(&compositeKeyVal)
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
 		t.Error(errors.New("can't update CompositeKey{11, 22}"))
 	}
 
-	cnt, err = testEngine.Id(core.PK{11, 22}).Delete(&CompositeKey{})
+	cnt, err = testEngine.ID(core.PK{11, 22}).Delete(&CompositeKey{})
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
@@ -795,15 +786,15 @@ func TestCompositeKey(t *testing.T) {
 	}
 }
 
-type User struct {
-	UserId   string `xorm:"varchar(19) not null pk"`
-	NickName string `xorm:"varchar(19) not null"`
-	GameId   uint32 `xorm:"integer pk"`
-	Score    int32  `xorm:"integer"`
-}
-
 func TestCompositeKey2(t *testing.T) {
 	assert.NoError(t, prepareEngine())
+
+	type User struct {
+		UserId   string `xorm:"varchar(19) not null pk"`
+		NickName string `xorm:"varchar(19) not null"`
+		GameId   uint32 `xorm:"integer pk"`
+		Score    int32  `xorm:"integer"`
+	}
 
 	err := testEngine.DropTables(&User{})
 
@@ -831,7 +822,7 @@ func TestCompositeKey2(t *testing.T) {
 	}
 
 	var user User
-	has, err := testEngine.Id(core.PK{"11", 22}).Get(&user)
+	has, err := testEngine.ID(core.PK{"11", 22}).Get(&user)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -839,7 +830,7 @@ func TestCompositeKey2(t *testing.T) {
 	}
 
 	// test passing PK ptr, this test seem failed withCache
-	has, err = testEngine.Id(&core.PK{"11", 22}).Get(&user)
+	has, err = testEngine.ID(&core.PK{"11", 22}).Get(&user)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -847,14 +838,14 @@ func TestCompositeKey2(t *testing.T) {
 	}
 
 	user = User{NickName: "test1"}
-	cnt, err = testEngine.Id(core.PK{"11", 22}).Update(&user)
+	cnt, err = testEngine.ID(core.PK{"11", 22}).Update(&user)
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
 		t.Error(errors.New("can't update User{11, 22}"))
 	}
 
-	cnt, err = testEngine.Id(core.PK{"11", 22}).Delete(&User{})
+	cnt, err = testEngine.ID(core.PK{"11", 22}).Delete(&User{})
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
@@ -899,7 +890,7 @@ func TestCompositeKey3(t *testing.T) {
 	}
 
 	var user UserPK2
-	has, err := testEngine.Id(core.PK{"11", 22}).Get(&user)
+	has, err := testEngine.ID(core.PK{"11", 22}).Get(&user)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -907,7 +898,7 @@ func TestCompositeKey3(t *testing.T) {
 	}
 
 	// test passing PK ptr, this test seem failed withCache
-	has, err = testEngine.Id(&core.PK{"11", 22}).Get(&user)
+	has, err = testEngine.ID(&core.PK{"11", 22}).Get(&user)
 	if err != nil {
 		t.Error(err)
 	} else if !has {
@@ -915,14 +906,14 @@ func TestCompositeKey3(t *testing.T) {
 	}
 
 	user = UserPK2{NickName: "test1"}
-	cnt, err = testEngine.Id(core.PK{"11", 22}).Update(&user)
+	cnt, err = testEngine.ID(core.PK{"11", 22}).Update(&user)
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
 		t.Error(errors.New("can't update User{11, 22}"))
 	}
 
-	cnt, err = testEngine.Id(core.PK{"11", 22}).Delete(&UserPK2{})
+	cnt, err = testEngine.ID(core.PK{"11", 22}).Delete(&UserPK2{})
 	if err != nil {
 		t.Error(err)
 	} else if cnt != 1 {
@@ -1006,7 +997,7 @@ func TestMyIntId(t *testing.T) {
 		panic(errors.New("should be equal"))
 	}
 
-	cnt, err = testEngine.Id(bean.ID).Delete(&MyIntPK{})
+	cnt, err = testEngine.ID(bean.ID).Delete(&MyIntPK{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -1094,7 +1085,7 @@ func TestMyStringId(t *testing.T) {
 		panic(errors.New("should be equal"))
 	}
 
-	cnt, err = testEngine.Id(bean.ID).Delete(&MyStringPK{})
+	cnt, err = testEngine.ID(bean.ID).Delete(&MyStringPK{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -1104,4 +1095,63 @@ func TestMyStringId(t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
+}
+
+func TestSingleAutoIncrColumn(t *testing.T) {
+	type Account struct {
+		Id int64 `xorm:"pk autoincr"`
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(Account))
+
+	_, err := testEngine.Insert(&Account{})
+	assert.NoError(t, err)
+}
+
+func TestCompositePK(t *testing.T) {
+	type TaskSolution struct {
+		UID     string    `xorm:"notnull pk UUID 'uid'"`
+		TID     string    `xorm:"notnull pk UUID 'tid'"`
+		Created time.Time `xorm:"created"`
+		Updated time.Time `xorm:"updated"`
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(TaskSolution))
+
+	assert.NoError(t, testEngine.Sync2(new(TaskSolution)))
+	tables, err := testEngine.DBMetas()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(tables))
+	pkCols := tables[0].PKColumns()
+	assert.EqualValues(t, 2, len(pkCols))
+	assert.EqualValues(t, "uid", pkCols[0].Name)
+	assert.EqualValues(t, "tid", pkCols[1].Name)
+}
+
+func TestNoPKIdQueryUpdate(t *testing.T) {
+	type NoPKTable struct {
+		Username string
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(NoPKTable))
+
+	cnt, err := testEngine.Insert(&NoPKTable{
+		Username: "test",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var res NoPKTable
+	has, err := testEngine.ID("test").Get(&res)
+	assert.Error(t, err)
+	assert.False(t, has)
+
+	cnt, err = testEngine.ID("test").Update(&NoPKTable{
+		Username: "test1",
+	})
+	assert.Error(t, err)
+	assert.EqualValues(t, 0, cnt)
 }
