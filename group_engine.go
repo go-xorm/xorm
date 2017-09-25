@@ -167,11 +167,11 @@ func (ge *GroupEngine) NewGESession() *GESession {
 }
 
 type SqlArgs struct {
-	query interface{}
+	query string
 	args  []interface{}
 }
 
-func (ge *GroupEngine) Sql(query interface{}, args ...interface{}) *GESession {
+func (ge *GroupEngine) Sql(query string, args ...interface{}) *GESession {
 	ges := ge.NewGESession()
 	return ges.Sql(query, args...)
 }

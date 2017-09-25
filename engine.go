@@ -1545,11 +1545,7 @@ func (engine *Engine) formatTime(sqlTypeName string, t time.Time) (v interface{}
 	case core.Date:
 		v = t.Format("2006-01-02")
 	case core.DateTime, core.TimeStamp:
-		v = t.Format("2006-01-02 15:04:05.999")
-
-		if engine.dialect.DBType() == "sqlite3" {
-			v = t.UTC().Format("2006-01-02 15:04:05.999")
-		}
+		v = t.Format("2006-01-02 15:04:05")
 	case core.TimeStampz:
 		if engine.dialect.DBType() == core.MSSQL {
 			v = t.Format("2006-01-02T15:04:05.9999999Z07:00")

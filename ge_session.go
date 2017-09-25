@@ -444,7 +444,7 @@ func (ges *GESession) NoAutoTime() *GESession {
 // and cannot use Where, Id, In and etc. Methods to describe, you can use SQL.
 //
 // Deprecated: use SQL instead.
-func (ges *GESession) Sql(query interface{}, args ...interface{}) *GESession {
+func (ges *GESession) Sql(query string, args ...interface{}) *GESession {
 	ges.operation = append(ges.operation, "Sql")
 	sqlArgs := SqlArgs{
 		query: query,
@@ -454,11 +454,16 @@ func (ges *GESession) Sql(query interface{}, args ...interface{}) *GESession {
 	return ges
 }
 
+type SQLArgs struct {
+	query interface{}
+	args  []interface{}
+}
+
 // SQL provides raw sql input parameter. When you have a complex SQL statement
 // and cannot use Where, Id, In and etc. Methods to describe, you can use SQL.
 func (ges *GESession) SQL(query interface{}, args ...interface{}) *GESession {
 	ges.operation = append(ges.operation, "SQL")
-	sqlArgs := SqlArgs{
+	sqlArgs := SQLArgs{
 		query: query,
 		args:  args,
 	}
@@ -577,7 +582,6 @@ func (ges *GESession) Exist(bean ...interface{}) (bool, error) {
 	return session.Exist(bean...)
 }
 
-//TODO 缺少前置session操作链
 // Find retrieve records from table, condiBeans's non-empty fields
 // are conditions. beans could be []Struct, []*Struct, map[int64]Struct
 // map[int64]*Struct
@@ -588,7 +592,6 @@ func (ges *GESession) Find(rowsSlicePtr interface{}, condiBean ...interface{}) e
 	return session.Find(rowsSlicePtr, condiBean...)
 }
 
-//TODO 缺少前置session操作链
 // Get retrieve one record from database, bean's non-empty fields
 // will be as conditions
 func (ges *GESession) Get(bean interface{}) (bool, error) {
@@ -598,7 +601,6 @@ func (ges *GESession) Get(bean interface{}) (bool, error) {
 	return session.Get(bean)
 }
 
-//TODO 缺少前置session操作链
 // Insert insert one or more beans
 func (ges *GESession) Insert(beans ...interface{}) (int64, error) {
 	session := ges.ge.Master().NewSession()
