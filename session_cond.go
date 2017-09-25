@@ -10,7 +10,7 @@ import "github.com/go-xorm/builder"
 // and cannot use Where, Id, In and etc. Methods to describe, you can use SQL.
 //
 // Deprecated: use SQL instead.
-func (session *Session) Sql(query string, args ...interface{}) *Session {
+func (session *Session) Sql(query interface{}, args ...interface{}) *Session {
 	return session.SQL(query, args...)
 }
 

@@ -9,6 +9,7 @@ import (
 	"os"
 	"reflect"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -52,6 +53,22 @@ func close(engine *Engine) {
 
 func init() {
 	regDrvsNDialects()
+}
+
+func NewGroupEngine(driverName string, dataSourceNames string) (*GroupEngine, error) {
+	conns := strings.Split(dataSourceNames, ";")
+	engines := make([]*Engine, len(conns))
+	for i, _ := range conns {
+		engine, err := NewEngine(driverName, conns[i])
+		if err != nil {
+			return nil, err
+		}
+		engines[i] = engine
+	}
+	ge := &GroupEngine{
+		engines: engines,
+	}
+	return ge, nil
 }
 
 // NewEngine new a db manager according to the parameter. Currently support four
