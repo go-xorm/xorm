@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"io"
 	"reflect"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -18,6 +19,36 @@ import (
 type GroupEngine struct {
 	engines []*Engine
 	count   uint64
+}
+
+func NewGroupEngine(driverName string, dataSourceNames string) (*GroupEngine, error) {
+	conns := strings.Split(dataSourceNames, ";")
+	engines := make([]*Engine, len(conns))
+	for i, _ := range conns {
+		engine, err := NewEngine(driverName, conns[i])
+		if err != nil {
+			return nil, err
+		}
+		engines[i] = engine
+	}
+	ge := &GroupEngine{
+		engines: engines,
+		count:   uint64(len(engines)),
+	}
+	return ge, nil
+}
+
+func NewGroup(Master *Engine, Slaves []*Engine, policy int) (*GroupEngine, error) {
+	engines := make([]*Engine, 0)
+	engines = append(engines, Master)
+	for i, _ := range Slaves {
+		engines = append(engines, Slaves[i])
+	}
+	ge := &GroupEngine{
+		engines: engines,
+		count:   uint64(len(engines)),
+	}
+	return ge, nil
 }
 
 func (ge *GroupEngine) Master() *Engine {
@@ -34,6 +65,13 @@ func (ge *GroupEngine) GetEngine(i int) *Engine {
 		return ge.engines[0]
 	}
 	return ge.engines[i]
+}
+
+func (ge *GroupEngine) GetSlaves() []*Engine {
+	if len(ge.engines) == 1 {
+		return ge.engines
+	}
+	return ge.engines[1:]
 }
 
 func (ge *GroupEngine) slave(n int) int {
