@@ -71,7 +71,7 @@ func (policy *RoundRobinPolicy) Slave(g *EngineGroup) *Engine {
 	var pos int
 	policy.lock.Lock()
 	policy.pos++
-	if policy.pos >= len(g.Slaves()) {
+	if policy.pos >= g.s_count {
 		policy.pos = 0
 	}
 	pos = policy.pos
@@ -130,6 +130,18 @@ func NewLeastConnPolicy() *LeastConnPolicy {
 }
 
 func (policy *LeastConnPolicy) Slave(g *EngineGroup) *Engine {
-	panic("not implementation")
-	return nil
+	var slaves = g.Slaves()
+	connections := 0
+	idx := 0
+	for i, _ := range slaves {
+		open_connections := slaves[i].Stats()
+		if i == 0 {
+			connections = open_connections
+			idx = i
+		} else if open_connections <= connections {
+			connections = open_connections
+			idx = i
+		}
+	}
+	return slaves[idx]
 }

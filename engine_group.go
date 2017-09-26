@@ -73,6 +73,9 @@ func (eg *EngineGroup) Slave() *Engine {
 	case 1:
 		return eg.slaves[0]
 	}
+	if eg.s_count == 1 {
+		return eg.slaves[0]
+	}
 	return eg.policy.Slave(eg)
 }
 
