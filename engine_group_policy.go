@@ -71,7 +71,7 @@ func (policy *RoundRobinPolicy) Slave(g *EngineGroup) *Engine {
 	var pos int
 	policy.lock.Lock()
 	policy.pos++
-	if policy.pos >= g.s_count {
+	if policy.pos >= len(g.Slaves()) {
 		policy.pos = 0
 	}
 	pos = policy.pos
