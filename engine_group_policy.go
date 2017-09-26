@@ -19,8 +19,8 @@ const (
 )
 
 type Policy interface {
-	Slave() int
-	SetEngineGroup(*EngineGroup)
+	Init()
+	Slave(*EngineGroup) *Engine
 }
 
 type XormEngineGroupPolicy struct {
@@ -30,9 +30,13 @@ type XormEngineGroupPolicy struct {
 	r      *rand.Rand
 }
 
-func (xgep *XormEngineGroupPolicy) SetEngineGroup(eg *EngineGroup) {
+func (xgep *XormEngineGroupPolicy) Init() {
 	xgep.r = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
+
+func (xgep *XormEngineGroupPolicy) Slave(eg *EngineGroup) *Engine {
 	xgep.eg = eg
+	return eg.slaves[xgep.slave()]
 }
 
 func (xgep *XormEngineGroupPolicy) SetWeight() {
@@ -44,7 +48,7 @@ func (xgep *XormEngineGroupPolicy) SetWeight() {
 	}
 }
 
-func (xgep *XormEngineGroupPolicy) Slave() int {
+func (xgep *XormEngineGroupPolicy) slave() int {
 	switch xgep.eg.p {
 	case ENGINE_GROUP_POLICY_RANDOM:
 		return xgep.Random()

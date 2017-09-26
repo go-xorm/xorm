@@ -62,7 +62,7 @@ func newGroup1(driverName string, dataSourceNames string, policy ...Policy) (*En
 			s_count: len(engines[1:]),
 			policy:  policy[0],
 		}
-		eg.policy.SetEngineGroup(eg)
+		eg.policy.Init()
 		return eg, nil
 	} else {
 		xPolicy := new(XormEngineGroupPolicy)
@@ -73,7 +73,7 @@ func newGroup1(driverName string, dataSourceNames string, policy ...Policy) (*En
 			s_count: len(engines[1:]),
 			policy:  xPolicy,
 		}
-		xPolicy.SetEngineGroup(eg)
+		xPolicy.Init()
 		return eg, nil
 	}
 
@@ -91,7 +91,7 @@ func newGroup2(Master *Engine, Slaves []*Engine, policy ...Policy) (*EngineGroup
 			s_count: len(Slaves),
 			policy:  policy[0],
 		}
-		eg.policy.SetEngineGroup(eg)
+		eg.policy.Init()
 		return eg, nil
 	} else {
 		xPolicy := new(XormEngineGroupPolicy)
@@ -102,7 +102,7 @@ func newGroup2(Master *Engine, Slaves []*Engine, policy ...Policy) (*EngineGroup
 			s_count: len(Slaves),
 			policy:  xPolicy,
 		}
-		xPolicy.SetEngineGroup(eg)
+		xPolicy.Init()
 		return eg, nil
 	}
 }
@@ -149,7 +149,7 @@ func (eg *EngineGroup) Slave() *Engine {
 	if eg.count == 1 {
 		return eg.master
 	}
-	return eg.slaves[eg.policy.Slave()]
+	return eg.policy.Slave(eg)
 }
 
 func (eg *EngineGroup) Slaves() []*Engine {
