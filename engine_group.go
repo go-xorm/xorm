@@ -1,4 +1,4 @@
-// Copyright 2015 The Xorm Authors. All rights reserved.
+// Copyright 2017 The Xorm Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -21,12 +21,12 @@ type EngineGroup struct {
 	weight  []int
 	count   int
 	s_count int
-	policy  Policy
+	policy  GroupPolicy
 	p       int
 }
 
-func NewGroup(args1 interface{}, args2 interface{}, policies ...Policy) (*EngineGroup, error) {
-	var policy Policy
+func NewGroup(args1 interface{}, args2 interface{}, policies ...GroupPolicy) (*EngineGroup, error) {
+	var policy GroupPolicy
 	if len(policies) > 0 {
 		policy = policies[0]
 	} else {
@@ -47,7 +47,7 @@ func NewGroup(args1 interface{}, args2 interface{}, policies ...Policy) (*Engine
 	return nil, ErrParamsType
 }
 
-func newGroup1(driverName string, dataSourceNames string, policy Policy) (*EngineGroup, error) {
+func newGroup1(driverName string, dataSourceNames string, policy GroupPolicy) (*EngineGroup, error) {
 	conns := strings.Split(dataSourceNames, ";")
 	engines := make([]*Engine, len(conns))
 	for i, _ := range conns {
@@ -67,7 +67,7 @@ func newGroup1(driverName string, dataSourceNames string, policy Policy) (*Engin
 	}, nil
 }
 
-func newGroup2(Master *Engine, Slaves []*Engine, policy Policy) (*EngineGroup, error) {
+func newGroup2(Master *Engine, Slaves []*Engine, policy GroupPolicy) (*EngineGroup, error) {
 	return &EngineGroup{
 		master:  Master,
 		slaves:  Slaves,
@@ -77,7 +77,7 @@ func newGroup2(Master *Engine, Slaves []*Engine, policy Policy) (*EngineGroup, e
 	}, nil
 }
 
-func (eg *EngineGroup) SetPolicy(policy Policy) *EngineGroup {
+func (eg *EngineGroup) SetPolicy(policy GroupPolicy) *EngineGroup {
 	eg.policy = policy
 	return eg
 }
