@@ -24,116 +24,75 @@ func (h GroupPolicyHandler) Slave(eg *EngineGroup) *Engine {
 }
 
 // RandomPolicy implmentes randomly chose the slave of slaves
-type RandomPolicy struct {
-	r *rand.Rand
-}
-
-// NewRandomPolicy creates a RandomPolicy
-func NewRandomPolicy() *RandomPolicy {
-	return &RandomPolicy{
-		r: rand.New(rand.NewSource(time.Now().UnixNano())),
+func RandomPolicy() GroupPolicyHandler {
+	var r = rand.New(rand.NewSource(time.Now().UnixNano()))
+	return func(g *EngineGroup) *Engine {
+		return g.Slaves()[r.Intn(len(g.Slaves()))]
 	}
-}
-
-// Slave randomly choses the slave of slaves
-func (policy *RandomPolicy) Slave(g *EngineGroup) *Engine {
-	return g.Slaves()[policy.r.Intn(len(g.Slaves()))]
 }
 
 // WeightRandomPolicy implmentes randomly chose the slave of slaves
-type WeightRandomPolicy struct {
-	weights []int
-	rands   []int
-	r       *rand.Rand
-}
-
-func NewWeightRandomPolicy(weights []int) *WeightRandomPolicy {
+func WeightRandomPolicy(weights []int) GroupPolicyHandler {
 	var rands = make([]int, 0, len(weights))
 	for i := 0; i < len(weights); i++ {
 		for n := 0; n < weights[i]; n++ {
 			rands = append(rands, i)
 		}
 	}
+	var r = rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	return &WeightRandomPolicy{
-		weights: weights,
-		rands:   rands,
-		r:       rand.New(rand.NewSource(time.Now().UnixNano())),
+	return func(g *EngineGroup) *Engine {
+		var slaves = g.Slaves()
+		idx := rands[r.Intn(len(rands))]
+		if idx >= len(slaves) {
+			idx = len(slaves) - 1
+		}
+		return slaves[idx]
 	}
 }
 
-func (policy *WeightRandomPolicy) Slave(g *EngineGroup) *Engine {
-	var slaves = g.Slaves()
-	idx := policy.rands[policy.r.Intn(len(policy.rands))]
-	if idx >= len(slaves) {
-		idx = len(slaves) - 1
+func RoundRobinPolicy() GroupPolicyHandler {
+	var pos = -1
+	var lock sync.Mutex
+	return func(g *EngineGroup) *Engine {
+		var slaves = g.Slaves()
+
+		lock.Lock()
+		defer lock.Unlock()
+		pos++
+		if pos >= len(slaves) {
+			pos = 0
+		}
+
+		return slaves[pos]
 	}
-	return slaves[idx]
 }
 
-type RoundRobinPolicy struct {
-	pos  int
-	lock sync.Mutex
-}
-
-func NewRoundRobinPolicy() *RoundRobinPolicy {
-	return &RoundRobinPolicy{pos: -1}
-}
-
-func (policy *RoundRobinPolicy) Slave(g *EngineGroup) *Engine {
-	var slaves = g.Slaves()
-	var pos int
-	policy.lock.Lock()
-	policy.pos++
-	if policy.pos >= len(slaves) {
-		policy.pos = 0
-	}
-	pos = policy.pos
-	policy.lock.Unlock()
-
-	return slaves[pos]
-}
-
-type WeightRoundRobinPolicy struct {
-	weights []int
-	rands   []int
-	r       *rand.Rand
-	lock    sync.Mutex
-	pos     int
-}
-
-func NewWeightRoundRobinPolicy(weights []int) *WeightRoundRobinPolicy {
+func WeightRoundRobinPolicy(weights []int) GroupPolicyHandler {
 	var rands = make([]int, 0, len(weights))
 	for i := 0; i < len(weights); i++ {
 		for n := 0; n < weights[i]; n++ {
 			rands = append(rands, i)
 		}
 	}
+	var pos = -1
+	var lock sync.Mutex
 
-	return &WeightRoundRobinPolicy{
-		weights: weights,
-		rands:   rands,
-		r:       rand.New(rand.NewSource(time.Now().UnixNano())),
-		pos:     -1,
-	}
-}
+	return func(g *EngineGroup) *Engine {
+		var slaves = g.Slaves()
+		lock.Lock()
+		defer lock.Unlock()
+		pos++
+		if pos >= len(rands) {
+			pos = 0
+		}
 
-func (policy *WeightRoundRobinPolicy) Slave(g *EngineGroup) *Engine {
-	var slaves = g.Slaves()
-	var pos int
-	policy.lock.Lock()
-	policy.pos++
-	if policy.pos >= len(policy.rands) {
-		policy.pos = 0
+		idx := rands[pos]
+		if idx >= len(slaves) {
+			idx = len(slaves) - 1
+		}
+		return slaves[idx]
 	}
-	pos = policy.pos
-	policy.lock.Unlock()
-
-	idx := policy.rands[pos]
-	if idx >= len(slaves) {
-		idx = len(slaves) - 1
-	}
-	return slaves[idx]
 }
 
 // LeastConnPolicy implements GroupPolicy, every time will get the least connections slave
