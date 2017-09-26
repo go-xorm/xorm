@@ -19,7 +19,6 @@ const (
 )
 
 type Policy interface {
-	Init()
 	Slave(*EngineGroup) *Engine
 }
 
