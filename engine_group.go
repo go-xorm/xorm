@@ -62,7 +62,6 @@ func newGroup1(driverName string, dataSourceNames string, policy ...Policy) (*En
 			s_count: len(engines[1:]),
 			policy:  policy[0],
 		}
-		eg.policy.Init()
 		return eg, nil
 	} else {
 		xPolicy := new(XormEngineGroupPolicy)
@@ -91,7 +90,6 @@ func newGroup2(Master *Engine, Slaves []*Engine, policy ...Policy) (*EngineGroup
 			s_count: len(Slaves),
 			policy:  policy[0],
 		}
-		eg.policy.Init()
 		return eg, nil
 	} else {
 		xPolicy := new(XormEngineGroupPolicy)
