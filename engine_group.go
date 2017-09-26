@@ -6,7 +6,6 @@ package xorm
 
 import (
 	"strings"
-	"time"
 
 	"github.com/go-xorm/core"
 )
@@ -67,7 +66,7 @@ func (eg *EngineGroup) Master() *Engine {
 	return eg.Engine
 }
 
-// Slave returns one of the physical databases which is a slave
+// Slave returns one of the physical databases which is a slave according the policy
 func (eg *EngineGroup) Slave() *Engine {
 	switch len(eg.slaves) {
 	case 0:
@@ -89,7 +88,7 @@ func (eg *EngineGroup) GetSlave(i int) *Engine {
 // ShowSQL show SQL statement or not on logger if log level is great than INFO
 func (eg *EngineGroup) ShowSQL(show ...bool) {
 	eg.Engine.ShowSQL(show...)
-	for i, _ := range eg.slaves {
+	for i := 0; i < len(eg.slaves); i++ {
 		eg.slaves[i].ShowSQL(show...)
 	}
 }
@@ -97,25 +96,31 @@ func (eg *EngineGroup) ShowSQL(show ...bool) {
 // ShowExecTime show SQL statement and execute time or not on logger if log level is great than INFO
 func (eg *EngineGroup) ShowExecTime(show ...bool) {
 	eg.Engine.ShowExecTime(show...)
-	for i, _ := range eg.slaves {
+	for i := 0; i < len(eg.slaves); i++ {
 		eg.slaves[i].ShowExecTime(show...)
 	}
 }
 
 // SetMapper set the name mapping rules
 func (eg *EngineGroup) SetMapper(mapper core.IMapper) {
-	eg.Engine.SetTableMapper(mapper)
-	eg.Engine.SetColumnMapper(mapper)
-	for i, _ := range eg.slaves {
-		eg.slaves[i].SetTableMapper(mapper)
-		eg.slaves[i].SetColumnMapper(mapper)
+	eg.Engine.SetMapper(mapper)
+	for i := 0; i < len(eg.slaves); i++ {
+		eg.slaves[i].SetMapper(mapper)
+	}
+}
+
+// SetLogger set the new logger
+func (eg *EngineGroup) SetLogger(logger core.ILogger) {
+	eg.Engine.SetLogger(logger)
+	for i := 0; i < len(eg.slaves); i++ {
+		eg.slaves[i].SetLogger(logger)
 	}
 }
 
 // SetTableMapper set the table name mapping rule
 func (eg *EngineGroup) SetTableMapper(mapper core.IMapper) {
 	eg.Engine.TableMapper = mapper
-	for i, _ := range eg.slaves {
+	for i := 0; i < len(eg.slaves); i++ {
 		eg.slaves[i].TableMapper = mapper
 	}
 }
@@ -123,7 +128,7 @@ func (eg *EngineGroup) SetTableMapper(mapper core.IMapper) {
 // SetColumnMapper set the column name mapping rule
 func (eg *EngineGroup) SetColumnMapper(mapper core.IMapper) {
 	eg.Engine.ColumnMapper = mapper
-	for i, _ := range eg.slaves {
+	for i := 0; i < len(eg.slaves); i++ {
 		eg.slaves[i].ColumnMapper = mapper
 	}
 }
@@ -131,7 +136,7 @@ func (eg *EngineGroup) SetColumnMapper(mapper core.IMapper) {
 // SetMaxOpenConns is only available for go 1.2+
 func (eg *EngineGroup) SetMaxOpenConns(conns int) {
 	eg.Engine.db.SetMaxOpenConns(conns)
-	for i, _ := range eg.slaves {
+	for i := 0; i < len(eg.slaves); i++ {
 		eg.slaves[i].db.SetMaxOpenConns(conns)
 	}
 }
@@ -139,20 +144,20 @@ func (eg *EngineGroup) SetMaxOpenConns(conns int) {
 // SetMaxIdleConns set the max idle connections on pool, default is 2
 func (eg *EngineGroup) SetMaxIdleConns(conns int) {
 	eg.Engine.db.SetMaxIdleConns(conns)
-	for i, _ := range eg.slaves {
+	for i := 0; i < len(eg.slaves); i++ {
 		eg.slaves[i].db.SetMaxIdleConns(conns)
 	}
 }
 
 // Close the engine
 func (eg *EngineGroup) Close() error {
-	err := eg.Engine.db.Close()
+	err := eg.Engine.Close()
 	if err != nil {
 		return err
 	}
 
-	for i, _ := range eg.slaves {
-		err := eg.slaves[i].db.Close()
+	for i := 0; i < len(eg.slaves); i++ {
+		err := eg.slaves[i].Close()
 		if err != nil {
 			return err
 		}
@@ -172,12 +177,4 @@ func (eg *EngineGroup) Ping() error {
 		}
 	}
 	return nil
-}
-
-// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
-func (eg *EngineGroup) SetConnMaxLifetime(d time.Duration) {
-	eg.Engine.db.SetConnMaxLifetime(d)
-	for i, _ := range eg.slaves {
-		eg.slaves[i].db.SetConnMaxLifetime(d)
-	}
 }
