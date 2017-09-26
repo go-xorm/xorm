@@ -9,19 +9,38 @@ import (
 	"io"
 	"reflect"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/core"
 )
 
-type GroupEngine struct {
-	engines []*Engine
-	count   uint64
+type EngineGroup struct {
+	master  *Engine
+	slaves  []*Engine
+	weight  []int
+	count   int
+	s_count int
+	policy  Policy
+	p       int
 }
 
-func NewGroupEngine(driverName string, dataSourceNames string) (*GroupEngine, error) {
+func NewGroup(args1 interface{}, args2 interface{}, policy ...Policy) (*EngineGroup, error) {
+	driverName, ok1 := args1.(string)
+	dataSourceNames, ok2 := args2.(string)
+	if ok1 && ok2 {
+		return newGroup1(driverName, dataSourceNames, policy...)
+	}
+
+	Master, ok3 := args1.(*Engine)
+	Slaves, ok4 := args2.([]*Engine)
+	if ok3 && ok4 {
+		return newGroup2(Master, Slaves, policy...)
+	}
+	return nil, ErrParamsType
+}
+
+func newGroup1(driverName string, dataSourceNames string, policy ...Policy) (*EngineGroup, error) {
 	conns := strings.Split(dataSourceNames, ";")
 	engines := make([]*Engine, len(conns))
 	for i, _ := range conns {
@@ -31,116 +50,205 @@ func NewGroupEngine(driverName string, dataSourceNames string) (*GroupEngine, er
 		}
 		engines[i] = engine
 	}
-	ge := &GroupEngine{
-		engines: engines,
-		count:   uint64(len(engines)),
+
+	n := len(policy)
+	if n > 1 {
+		return nil, ErrParamsType
+	} else if n == 1 {
+		eg := &EngineGroup{
+			master:  engines[0],
+			slaves:  engines[1:],
+			count:   len(engines),
+			s_count: len(engines[1:]),
+			policy:  policy[0],
+		}
+		eg.policy.SetEngineGroup(eg)
+		return eg, nil
+	} else {
+		xPolicy := new(XormEngineGroupPolicy)
+		eg := &EngineGroup{
+			master:  engines[0],
+			slaves:  engines[1:],
+			count:   len(engines),
+			s_count: len(engines[1:]),
+			policy:  xPolicy,
+		}
+		xPolicy.SetEngineGroup(eg)
+		return eg, nil
 	}
-	return ge, nil
+
 }
 
-func NewGroup(Master *Engine, Slaves []*Engine, policy int) (*GroupEngine, error) {
-	engines := make([]*Engine, 0)
-	engines = append(engines, Master)
-	for i, _ := range Slaves {
-		engines = append(engines, Slaves[i])
+func newGroup2(Master *Engine, Slaves []*Engine, policy ...Policy) (*EngineGroup, error) {
+	n := len(policy)
+	if n > 1 {
+		return nil, ErrParamsType
+	} else if n == 1 {
+		eg := &EngineGroup{
+			master:  Master,
+			slaves:  Slaves,
+			count:   1 + len(Slaves),
+			s_count: len(Slaves),
+			policy:  policy[0],
+		}
+		eg.policy.SetEngineGroup(eg)
+		return eg, nil
+	} else {
+		xPolicy := new(XormEngineGroupPolicy)
+		eg := &EngineGroup{
+			master:  Master,
+			slaves:  Slaves,
+			count:   1 + len(Slaves),
+			s_count: len(Slaves),
+			policy:  xPolicy,
+		}
+		xPolicy.SetEngineGroup(eg)
+		return eg, nil
 	}
-	ge := &GroupEngine{
-		engines: engines,
-		count:   uint64(len(engines)),
-	}
-	return ge, nil
 }
 
-func (ge *GroupEngine) Master() *Engine {
-	return ge.engines[0]
+func (eg *EngineGroup) SetPolicy(policy Policy) *EngineGroup {
+	eg.policy = policy
+	return eg
+}
+
+func (eg *EngineGroup) UsePolicy(policy int) *EngineGroup {
+	eg.p = policy
+	return eg
+}
+
+func (eg *EngineGroup) SetWeight(weight ...interface{}) *EngineGroup {
+	l := len(weight)
+	if l == 1 {
+		switch weight[0].(type) {
+		case []int:
+			eg.weight = weight[0].([]int)
+		}
+	} else if l > 1 {
+		s := make([]int, 0)
+		for i, _ := range weight {
+			switch weight[i].(type) {
+			case int:
+				s = append(s, weight[i].(int))
+			default:
+				s = append(s, 1)
+			}
+		}
+		eg.weight = s
+	}
+
+	return eg
+}
+
+func (eg *EngineGroup) Master() *Engine {
+	return eg.master
 }
 
 // Slave returns one of the physical databases which is a slave
-func (ge *GroupEngine) Slave() *Engine {
-	return ge.engines[ge.slave(len(ge.engines))]
+func (eg *EngineGroup) Slave() *Engine {
+	if eg.count == 1 {
+		return eg.master
+	}
+	return eg.slaves[eg.policy.Slave()]
 }
 
-func (ge *GroupEngine) GetEngine(i int) *Engine {
-	if i >= len(ge.engines) {
-		return ge.engines[0]
+func (eg *EngineGroup) Slaves() []*Engine {
+	if eg.count == 1 {
+		return []*Engine{eg.master}
 	}
-	return ge.engines[i]
+	return eg.slaves
 }
 
-func (ge *GroupEngine) GetSlaves() []*Engine {
-	if len(ge.engines) == 1 {
-		return ge.engines
+func (eg *EngineGroup) GetSlave(i int) *Engine {
+	if eg.count == 1 || i == 0 {
+		return eg.master
 	}
-	return ge.engines[1:]
+	if i > eg.s_count {
+		return eg.slaves[0]
+	}
+	return eg.slaves[i]
 }
 
-func (ge *GroupEngine) slave(n int) int {
-	if n <= 1 {
-		return 0
+func (eg *EngineGroup) GetEngine(i int) *Engine {
+	if i >= eg.count || i == 0 {
+		return eg.master
 	}
-	return int(1 + (atomic.AddUint64(&ge.count, 1) % uint64(n-1)))
+	return eg.slaves[i-1]
 }
 
 // ShowSQL show SQL statement or not on logger if log level is great than INFO
-func (ge *GroupEngine) ShowSQL(show ...bool) {
-	for i, _ := range ge.engines {
-		ge.engines[i].ShowSQL(show...)
+func (eg *EngineGroup) ShowSQL(show ...bool) {
+	eg.master.ShowSQL(show...)
+	for i, _ := range eg.slaves {
+		eg.slaves[i].ShowSQL(show...)
 	}
 }
 
 // ShowExecTime show SQL statement and execute time or not on logger if log level is great than INFO
-func (ge *GroupEngine) ShowExecTime(show ...bool) {
-	for i, _ := range ge.engines {
-		ge.engines[i].ShowExecTime(show...)
+func (eg *EngineGroup) ShowExecTime(show ...bool) {
+	eg.master.ShowExecTime(show...)
+	for i, _ := range eg.slaves {
+		eg.slaves[i].ShowExecTime(show...)
 	}
 }
 
 // SetMapper set the name mapping rules
-func (ge *GroupEngine) SetMapper(mapper core.IMapper) {
-	for i, _ := range ge.engines {
-		ge.engines[i].SetTableMapper(mapper)
-		ge.engines[i].SetColumnMapper(mapper)
+func (eg *EngineGroup) SetMapper(mapper core.IMapper) {
+	eg.master.SetTableMapper(mapper)
+	eg.master.SetColumnMapper(mapper)
+	for i, _ := range eg.slaves {
+		eg.slaves[i].SetTableMapper(mapper)
+		eg.slaves[i].SetColumnMapper(mapper)
 	}
 }
 
 // SetTableMapper set the table name mapping rule
-func (ge *GroupEngine) SetTableMapper(mapper core.IMapper) {
-	for i, _ := range ge.engines {
-		ge.engines[i].TableMapper = mapper
+func (eg *EngineGroup) SetTableMapper(mapper core.IMapper) {
+	eg.master.TableMapper = mapper
+	for i, _ := range eg.slaves {
+		eg.slaves[i].TableMapper = mapper
 	}
 }
 
 // SetColumnMapper set the column name mapping rule
-func (ge *GroupEngine) SetColumnMapper(mapper core.IMapper) {
-	for i, _ := range ge.engines {
-		ge.engines[i].ColumnMapper = mapper
+func (eg *EngineGroup) SetColumnMapper(mapper core.IMapper) {
+	eg.master.ColumnMapper = mapper
+	for i, _ := range eg.slaves {
+		eg.slaves[i].ColumnMapper = mapper
 	}
 }
 
 // SetMaxOpenConns is only available for go 1.2+
-func (ge *GroupEngine) SetMaxOpenConns(conns int) {
-	for i, _ := range ge.engines {
-		ge.engines[i].db.SetMaxOpenConns(conns)
+func (eg *EngineGroup) SetMaxOpenConns(conns int) {
+	eg.master.db.SetMaxOpenConns(conns)
+	for i, _ := range eg.slaves {
+		eg.slaves[i].db.SetMaxOpenConns(conns)
 	}
 }
 
 // SetMaxIdleConns set the max idle connections on pool, default is 2
-func (ge *GroupEngine) SetMaxIdleConns(conns int) {
-	for i, _ := range ge.engines {
-		ge.engines[i].db.SetMaxIdleConns(conns)
+func (eg *EngineGroup) SetMaxIdleConns(conns int) {
+	eg.master.db.SetMaxIdleConns(conns)
+	for i, _ := range eg.slaves {
+		eg.slaves[i].db.SetMaxIdleConns(conns)
 	}
 }
 
 // NoCascade If you do not want to auto cascade load object
-func (ge *GroupEngine) NoCascade() *GESession {
-	ges := ge.NewGESession()
-	return ges.NoCascade()
+func (eg *EngineGroup) NoCascade() *EGSession {
+	egs := eg.NewEGSession()
+	return egs.NoCascade()
 }
 
 // Close the engine
-func (ge *GroupEngine) Close() error {
-	for i, _ := range ge.engines {
-		err := ge.engines[i].db.Close()
+func (eg *EngineGroup) Close() error {
+	err := eg.master.db.Close()
+	if err != nil {
+		return err
+	}
+
+	for i, _ := range eg.slaves {
+		err := eg.slaves[i].db.Close()
 		if err != nil {
 			return err
 		}
@@ -149,16 +257,18 @@ func (ge *GroupEngine) Close() error {
 }
 
 // Ping tests if database is alive
-func (ge *GroupEngine) Ping() error {
-	return scatter(len(ge.engines), func(i int) error {
-		return ge.engines[i].Ping()
+func (eg *EngineGroup) Ping() error {
+	eg.master.Ping()
+	return scatter(eg.s_count, func(i int) error {
+		return eg.slaves[i].Ping()
 	})
 }
 
 // SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
-func (ge *GroupEngine) SetConnMaxLifetime(d time.Duration) {
-	for i, _ := range ge.engines {
-		ge.engines[i].db.SetConnMaxLifetime(d)
+func (eg *EngineGroup) SetConnMaxLifetime(d time.Duration) {
+	eg.master.db.SetConnMaxLifetime(d)
+	for i, _ := range eg.slaves {
+		eg.slaves[i].db.SetConnMaxLifetime(d)
 	}
 }
 
@@ -183,25 +293,25 @@ func scatter(n int, fn func(i int) error) error {
 // SqlType will be deprecated, please use SQLType instead
 //
 // Deprecated: use SQLType instead
-func (ge *GroupEngine) SqlType(c *core.Column) string {
-	return ge.Master().SQLType(c)
+func (eg *EngineGroup) SqlType(c *core.Column) string {
+	return eg.Master().SQLType(c)
 }
 
 // SQLType A simple wrapper to dialect's core.SqlType method
-func (ge *GroupEngine) SQLType(c *core.Column) string {
-	return ge.Master().dialect.SqlType(c)
+func (eg *EngineGroup) SQLType(c *core.Column) string {
+	return eg.Master().dialect.SqlType(c)
 }
 
 // NewSession New a session
-func (ge *GroupEngine) NewSession() *Session {
-	return ge.Master().NewSession()
+func (eg *EngineGroup) NewSession() *Session {
+	return eg.Master().NewSession()
 }
 
 // NewSession New a session
-func (ge *GroupEngine) NewGESession() *GESession {
+func (eg *EngineGroup) NewEGSession() *EGSession {
 	args := make(map[string]interface{})
-	ges := &GESession{ge: ge, operation: []string{}, args: args}
-	return ges
+	egs := &EGSession{eg: eg, operation: []string{}, args: args}
+	return egs
 }
 
 type SqlArgs struct {
@@ -209,22 +319,22 @@ type SqlArgs struct {
 	args  []interface{}
 }
 
-func (ge *GroupEngine) Sql(query string, args ...interface{}) *GESession {
-	ges := ge.NewGESession()
-	return ges.Sql(query, args...)
+func (eg *EngineGroup) Sql(query string, args ...interface{}) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Sql(query, args...)
 }
 
-func (ge *GroupEngine) SQL(query interface{}, args ...interface{}) *GESession {
-	ges := ge.NewGESession()
-	return ges.SQL(query, args...)
+func (eg *EngineGroup) SQL(query interface{}, args ...interface{}) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.SQL(query, args...)
 }
 
 // NoAutoTime Default if your struct has "created" or "updated" filed tag, the fields
 // will automatically be filled with current time when Insert or Update
 // invoked. Call NoAutoTime if you dont' want to fill automatically.
-func (ge *GroupEngine) NoAutoTime() *GESession {
-	ges := ge.NewGESession()
-	return ges.NoAutoTime()
+func (eg *EngineGroup) NoAutoTime() *EGSession {
+	egs := eg.NewEGSession()
+	return egs.NoAutoTime()
 }
 
 type NoAutoConditionArgs struct {
@@ -232,34 +342,34 @@ type NoAutoConditionArgs struct {
 }
 
 // NoAutoCondition disable auto generate Where condition from bean or not
-func (ge *GroupEngine) NoAutoCondition(no ...bool) *GESession {
-	ges := ge.NewGESession()
-	return ges.NoAutoCondition(no...)
+func (eg *EngineGroup) NoAutoCondition(no ...bool) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.NoAutoCondition(no...)
 }
 
 // DBMetas Retrieve all tables, columns, indexes' informations from database.
-func (ge *GroupEngine) DBMetas() ([]*core.Table, error) {
-	return ge.Master().DBMetas()
+func (eg *EngineGroup) DBMetas() ([]*core.Table, error) {
+	return eg.Master().DBMetas()
 }
 
 // DumpAllToFile dump database all table structs and data to a file
-func (ge *GroupEngine) DumpAllToFile(fp string, tp ...core.DbType) error {
-	return ge.Master().DumpAllToFile(fp, tp...)
+func (eg *EngineGroup) DumpAllToFile(fp string, tp ...core.DbType) error {
+	return eg.Master().DumpAllToFile(fp, tp...)
 }
 
 // DumpAll dump database all table structs and data to w
-func (ge *GroupEngine) DumpAll(w io.Writer, tp ...core.DbType) error {
-	return ge.Master().DumpAll(w, tp...)
+func (eg *EngineGroup) DumpAll(w io.Writer, tp ...core.DbType) error {
+	return eg.Master().DumpAll(w, tp...)
 }
 
 // DumpTablesToFile dump specified tables to SQL file.
-func (ge *GroupEngine) DumpTablesToFile(tables []*core.Table, fp string, tp ...core.DbType) error {
-	return ge.Master().DumpTablesToFile(tables, fp, tp...)
+func (eg *EngineGroup) DumpTablesToFile(tables []*core.Table, fp string, tp ...core.DbType) error {
+	return eg.Master().DumpTablesToFile(tables, fp, tp...)
 }
 
 // DumpTables dump specify tables to io.Writer
-func (ge *GroupEngine) DumpTables(tables []*core.Table, w io.Writer, tp ...core.DbType) error {
-	return ge.Master().DumpTables(tables, w, tp...)
+func (eg *EngineGroup) DumpTables(tables []*core.Table, w io.Writer, tp ...core.DbType) error {
+	return eg.Master().DumpTables(tables, w, tp...)
 }
 
 type CascadeArgs struct {
@@ -267,9 +377,9 @@ type CascadeArgs struct {
 }
 
 // Cascade use cascade or not
-func (ge *GroupEngine) Cascade(trueOrFalse ...bool) *GESession {
-	ges := ge.NewGESession()
-	return ges.Cascade(trueOrFalse...)
+func (eg *EngineGroup) Cascade(trueOrFalse ...bool) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Cascade(trueOrFalse...)
 }
 
 type WhereArgs struct {
@@ -278,9 +388,9 @@ type WhereArgs struct {
 }
 
 // Where method provide a condition query
-func (ge *GroupEngine) Where(query interface{}, args ...interface{}) *GESession {
-	ges := ge.NewGESession()
-	return ges.Where(query, args...)
+func (eg *EngineGroup) Where(query interface{}, args ...interface{}) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Where(query, args...)
 }
 
 type IdArgs struct {
@@ -288,9 +398,9 @@ type IdArgs struct {
 }
 
 // Id will be deprecated, please use ID instead
-func (ge *GroupEngine) Id(id interface{}) *GESession {
-	ges := ge.NewGESession()
-	return ges.Id(id)
+func (eg *EngineGroup) Id(id interface{}) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Id(id)
 }
 
 type IDArgs struct {
@@ -298,14 +408,9 @@ type IDArgs struct {
 }
 
 // ID method provoide a condition as (id) = ?
-func (ge *GroupEngine) ID(id interface{}) *GESession {
-	ges := ge.NewGESession()
-	ges.operation = append(ges.operation, "ID")
-	args := IDArgs{
-		id: id,
-	}
-	ges.args["ID"] = args
-	return ges
+func (eg *EngineGroup) ID(id interface{}) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.ID(id)
 }
 
 type BeforeArgs struct {
@@ -313,9 +418,9 @@ type BeforeArgs struct {
 }
 
 // Before apply before Processor, affected bean is passed to closure arg
-func (ge *GroupEngine) Before(closures func(interface{})) *GESession {
-	ges := ge.NewGESession()
-	return ges.Before(closures)
+func (eg *EngineGroup) Before(closures func(interface{})) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Before(closures)
 }
 
 type AfterArgs struct {
@@ -323,9 +428,9 @@ type AfterArgs struct {
 }
 
 // After apply after insert Processor, affected bean is passed to closure arg
-func (ge *GroupEngine) After(closures func(interface{})) *GESession {
-	ges := ge.NewGESession()
-	return ges.After(closures)
+func (eg *EngineGroup) After(closures func(interface{})) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.After(closures)
 }
 
 type CharsetArgs struct {
@@ -333,9 +438,9 @@ type CharsetArgs struct {
 }
 
 // Charset set charset when create table, only support mysql now
-func (ge *GroupEngine) Charset(charset string) *GESession {
-	ges := ge.NewGESession()
-	return ges.Charset(charset)
+func (eg *EngineGroup) Charset(charset string) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Charset(charset)
 }
 
 type StoreEngineArgs struct {
@@ -343,9 +448,9 @@ type StoreEngineArgs struct {
 }
 
 // StoreEngine set store engine when create table, only support mysql now
-func (ge *GroupEngine) StoreEngine(storeEngine string) *GESession {
-	ges := ge.NewGESession()
-	return ges.StoreEngine(storeEngine)
+func (eg *EngineGroup) StoreEngine(storeEngine string) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.StoreEngine(storeEngine)
 }
 
 type DistinctArgs struct {
@@ -355,9 +460,9 @@ type DistinctArgs struct {
 // Distinct use for distinct columns. Caution: when you are using cache,
 // distinct will not be cached because cache system need id,
 // but distinct will not provide id
-func (ge *GroupEngine) Distinct(columns ...string) *GESession {
-	ges := ge.NewGESession()
-	return ges.Distinct(columns...)
+func (eg *EngineGroup) Distinct(columns ...string) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Distinct(columns...)
 }
 
 type SelectArgs struct {
@@ -365,9 +470,9 @@ type SelectArgs struct {
 }
 
 // Select customerize your select columns or contents
-func (ge *GroupEngine) Select(str string) *GESession {
-	ges := ge.NewGESession()
-	return ges.Select(str)
+func (eg *EngineGroup) Select(str string) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Select(str)
 }
 
 type ColsArgs struct {
@@ -375,15 +480,15 @@ type ColsArgs struct {
 }
 
 // Cols only use the parameters as select or update columns
-func (ge *GroupEngine) Cols(columns ...string) *GESession {
-	ges := ge.NewGESession()
-	return ges.Cols(columns...)
+func (eg *EngineGroup) Cols(columns ...string) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Cols(columns...)
 }
 
 // AllCols indicates that all columns should be use
-func (ge *GroupEngine) AllCols() *GESession {
-	ges := ge.NewGESession()
-	return ges.AllCols()
+func (eg *EngineGroup) AllCols() *EGSession {
+	egs := eg.NewEGSession()
+	return egs.AllCols()
 }
 
 type MustColsArgs struct {
@@ -391,9 +496,9 @@ type MustColsArgs struct {
 }
 
 // MustCols specify some columns must use even if they are empty
-func (ge *GroupEngine) MustCols(columns ...string) *GESession {
-	ges := ge.NewGESession()
-	return ges.MustCols(columns...)
+func (eg *EngineGroup) MustCols(columns ...string) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.MustCols(columns...)
 }
 
 type UseBoolArgs struct {
@@ -405,9 +510,9 @@ type UseBoolArgs struct {
 // to tell system to do not ignore them.
 // If no parameters, it will use all the bool field of struct, or
 // it will use parameters's columns
-func (ge *GroupEngine) UseBool(columns ...string) *GESession {
-	ges := ge.NewGESession()
-	return ges.UseBool(columns...)
+func (eg *EngineGroup) UseBool(columns ...string) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.UseBool(columns...)
 }
 
 type OmitArgs struct {
@@ -415,9 +520,9 @@ type OmitArgs struct {
 }
 
 // Omit only not use the parameters as select or update columns
-func (ge *GroupEngine) Omit(columns ...string) *GESession {
-	ges := ge.NewGESession()
-	return ges.Omit(columns...)
+func (eg *EngineGroup) Omit(columns ...string) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Omit(columns...)
 }
 
 type NullableArgs struct {
@@ -425,9 +530,9 @@ type NullableArgs struct {
 }
 
 // Nullable set null when column is zero-value and nullable for update
-func (ge *GroupEngine) Nullable(columns ...string) *GESession {
-	ges := ge.NewGESession()
-	return ges.Nullable(columns...)
+func (eg *EngineGroup) Nullable(columns ...string) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Nullable(columns...)
 }
 
 type InArgs struct {
@@ -436,9 +541,9 @@ type InArgs struct {
 }
 
 // In will generate "column IN (?, ?)"
-func (ge *GroupEngine) In(column string, args ...interface{}) *GESession {
-	ges := ge.NewGESession()
-	return ges.In(column, args...)
+func (eg *EngineGroup) In(column string, args ...interface{}) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.In(column, args...)
 }
 
 type NotInArgs struct {
@@ -447,9 +552,9 @@ type NotInArgs struct {
 }
 
 // NotIn will generate "column NOT IN (?, ?)"
-func (ge *GroupEngine) NotIn(column string, args ...interface{}) *GESession {
-	ges := ge.NewGESession()
-	return ges.NotIn(column, args...)
+func (eg *EngineGroup) NotIn(column string, args ...interface{}) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.NotIn(column, args...)
 }
 
 type IncrArgs struct {
@@ -458,9 +563,9 @@ type IncrArgs struct {
 }
 
 // Incr provides a update string like "column = column + ?"
-func (ge *GroupEngine) Incr(column string, args ...interface{}) *GESession {
-	ges := ge.NewGESession()
-	return ges.Incr(column, args...)
+func (eg *EngineGroup) Incr(column string, args ...interface{}) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Incr(column, args...)
 }
 
 type DecrArgs struct {
@@ -469,9 +574,9 @@ type DecrArgs struct {
 }
 
 // Decr provides a update string like "column = column - ?"
-func (ge *GroupEngine) Decr(column string, args ...interface{}) *GESession {
-	ges := ge.NewGESession()
-	return ges.Decr(column, args...)
+func (eg *EngineGroup) Decr(column string, args ...interface{}) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Decr(column, args...)
 }
 
 type SetExprArgs struct {
@@ -480,9 +585,9 @@ type SetExprArgs struct {
 }
 
 // SetExpr provides a update string like "column = {expression}"
-func (ge *GroupEngine) SetExpr(column string, expression string) *GESession {
-	ges := ge.NewGESession()
-	return ges.SetExpr(column, expression)
+func (eg *EngineGroup) SetExpr(column string, expression string) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.SetExpr(column, expression)
 }
 
 type TableArgs struct {
@@ -490,9 +595,9 @@ type TableArgs struct {
 }
 
 // Table temporarily change the Get, Find, Update's table
-func (ge *GroupEngine) Table(tableNameOrBean interface{}) *GESession {
-	ges := ge.NewGESession()
-	return ges.Table(tableNameOrBean)
+func (eg *EngineGroup) Table(tableNameOrBean interface{}) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Table(tableNameOrBean)
 }
 
 type AliasArgs struct {
@@ -500,9 +605,9 @@ type AliasArgs struct {
 }
 
 // Alias set the table alias
-func (ge *GroupEngine) Alias(alias string) *GESession {
-	ges := ge.NewGESession()
-	return ges.Alias(alias)
+func (eg *EngineGroup) Alias(alias string) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Alias(alias)
 }
 
 type LimitArgs struct {
@@ -511,9 +616,9 @@ type LimitArgs struct {
 }
 
 // Limit will generate "LIMIT start, limit"
-func (ge *GroupEngine) Limit(limit int, start ...int) *GESession {
-	ges := ge.NewGESession()
-	return ges.Limit(limit, start...)
+func (eg *EngineGroup) Limit(limit int, start ...int) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Limit(limit, start...)
 }
 
 type DescArgs struct {
@@ -521,9 +626,9 @@ type DescArgs struct {
 }
 
 // Desc will generate "ORDER BY column1 DESC, column2 DESC"
-func (ge *GroupEngine) Desc(colNames ...string) *GESession {
-	ges := ge.NewGESession()
-	return ges.Desc(colNames...)
+func (eg *EngineGroup) Desc(colNames ...string) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Desc(colNames...)
 }
 
 type AscArgs struct {
@@ -536,9 +641,9 @@ type AscArgs struct {
 //        engine.Desc("name").Asc("age").Find(&users)
 //        // SELECT * FROM user ORDER BY name DESC, age ASC
 //
-func (ge *GroupEngine) Asc(colNames ...string) *GESession {
-	ges := ge.NewGESession()
-	return ges.Asc(colNames...)
+func (eg *EngineGroup) Asc(colNames ...string) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Asc(colNames...)
 }
 
 type OrderByArgs struct {
@@ -546,9 +651,9 @@ type OrderByArgs struct {
 }
 
 // OrderBy will generate "ORDER BY order"
-func (ge *GroupEngine) OrderBy(order string) *GESession {
-	ges := ge.NewGESession()
-	return ges.OrderBy(order)
+func (eg *EngineGroup) OrderBy(order string) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.OrderBy(order)
 }
 
 type JoinArgs struct {
@@ -559,9 +664,9 @@ type JoinArgs struct {
 }
 
 // Join the join_operator should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
-func (ge *GroupEngine) Join(joinOperator string, tablename interface{}, condition string, args ...interface{}) *GESession {
-	ges := ge.NewGESession()
-	return ges.Join(joinOperator, tablename, condition, args...)
+func (eg *EngineGroup) Join(joinOperator string, tablename interface{}, condition string, args ...interface{}) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Join(joinOperator, tablename, condition, args...)
 }
 
 type GroupByArgs struct {
@@ -569,9 +674,9 @@ type GroupByArgs struct {
 }
 
 // GroupBy generate group by statement
-func (ge *GroupEngine) GroupBy(keys string) *GESession {
-	ges := ge.NewGESession()
-	return ges.GroupBy(keys)
+func (eg *EngineGroup) GroupBy(keys string) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.GroupBy(keys)
 }
 
 type HavingArgs struct {
@@ -579,196 +684,196 @@ type HavingArgs struct {
 }
 
 // Having generate having statement
-func (ge *GroupEngine) Having(conditions string) *GESession {
-	ges := ge.NewGESession()
-	return ges.Having(conditions)
+func (eg *EngineGroup) Having(conditions string) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Having(conditions)
 }
 
 // IdOf get id from one struct
 //
 // Deprecated: use IDOf instead.
-func (ge *GroupEngine) IdOf(bean interface{}) core.PK {
-	return ge.Master().IdOf(bean)
+func (eg *EngineGroup) IdOf(bean interface{}) core.PK {
+	return eg.Master().IdOf(bean)
 }
 
 // IDOf get id from one struct
-func (ge *GroupEngine) IDOf(bean interface{}) core.PK {
-	return ge.Master().IDOf(bean)
+func (eg *EngineGroup) IDOf(bean interface{}) core.PK {
+	return eg.Master().IDOf(bean)
 }
 
 // IdOfV get id from one value of struct
 //
 // Deprecated: use IDOfV instead.
-func (ge *GroupEngine) IdOfV(rv reflect.Value) core.PK {
-	return ge.Master().IdOfV(rv)
+func (eg *EngineGroup) IdOfV(rv reflect.Value) core.PK {
+	return eg.Master().IdOfV(rv)
 }
 
 // IDOfV get id from one value of struct
-func (ge *GroupEngine) IDOfV(rv reflect.Value) core.PK {
-	return ge.Master().IDOfV(rv)
+func (eg *EngineGroup) IDOfV(rv reflect.Value) core.PK {
+	return eg.Master().IDOfV(rv)
 }
 
 // CreateIndexes create indexes
-func (ge *GroupEngine) CreateIndexes(bean interface{}) error {
-	return ge.Master().CreateIndexes(bean)
+func (eg *EngineGroup) CreateIndexes(bean interface{}) error {
+	return eg.Master().CreateIndexes(bean)
 }
 
 // CreateUniques create uniques
-func (ge *GroupEngine) CreateUniques(bean interface{}) error {
-	return ge.Master().CreateUniques(bean)
+func (eg *EngineGroup) CreateUniques(bean interface{}) error {
+	return eg.Master().CreateUniques(bean)
 }
 
 // Sync the new struct changes to database, this method will automatically add
 // table, column, index, unique. but will not delete or change anything.
 // If you change some field, you should change the database manually.
-func (ge *GroupEngine) Sync(beans ...interface{}) error {
-	return ge.Master().Sync(beans...)
+func (eg *EngineGroup) Sync(beans ...interface{}) error {
+	return eg.Master().Sync(beans...)
 }
 
 // Sync2 synchronize structs to database tables
-func (ge *GroupEngine) Sync2(beans ...interface{}) error {
-	return ge.Master().Sync2(beans...)
+func (eg *EngineGroup) Sync2(beans ...interface{}) error {
+	return eg.Master().Sync2(beans...)
 }
 
 // CreateTables create tabls according bean
-func (ge *GroupEngine) CreateTables(beans ...interface{}) error {
-	return ge.Master().CreateTables(beans...)
+func (eg *EngineGroup) CreateTables(beans ...interface{}) error {
+	return eg.Master().CreateTables(beans...)
 }
 
 // DropTables drop specify tables
-func (ge *GroupEngine) DropTables(beans ...interface{}) error {
-	return ge.Master().DropTables(beans...)
+func (eg *EngineGroup) DropTables(beans ...interface{}) error {
+	return eg.Master().DropTables(beans...)
 }
 
 // DropIndexes drop indexes of a table
-func (ge *GroupEngine) DropIndexes(bean interface{}) error {
-	return ge.Master().DropIndexes(bean)
+func (eg *EngineGroup) DropIndexes(bean interface{}) error {
+	return eg.Master().DropIndexes(bean)
 }
 
-func (ge *GroupEngine) Exec(sql string, args ...interface{}) (sql.Result, error) {
-	return ge.Master().Exec(sql, args...)
+func (eg *EngineGroup) Exec(sql string, args ...interface{}) (sql.Result, error) {
+	return eg.Master().Exec(sql, args...)
 }
 
 // Query a raw sql and return records as []map[string][]byte
-func (ge *GroupEngine) Query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
-	return ge.Slave().Query(sql, paramStr...)
+func (eg *EngineGroup) Query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
+	return eg.Slave().Query(sql, paramStr...)
 }
 
 // QueryString runs a raw sql and return records as []map[string]string
-func (ge *GroupEngine) QueryString(sqlStr string, args ...interface{}) ([]map[string]string, error) {
-	return ge.Slave().QueryString(sqlStr, args...)
+func (eg *EngineGroup) QueryString(sqlStr string, args ...interface{}) ([]map[string]string, error) {
+	return eg.Slave().QueryString(sqlStr, args...)
 }
 
 // QueryInterface runs a raw sql and return records as []map[string]interface{}
-func (ge *GroupEngine) QueryInterface(sqlStr string, args ...interface{}) ([]map[string]interface{}, error) {
-	return ge.Slave().QueryInterface(sqlStr, args...)
+func (eg *EngineGroup) QueryInterface(sqlStr string, args ...interface{}) ([]map[string]interface{}, error) {
+	return eg.Slave().QueryInterface(sqlStr, args...)
 }
 
 // Insert one or more records
-func (ge *GroupEngine) Insert(beans ...interface{}) (int64, error) {
-	return ge.Master().Insert(beans...)
+func (eg *EngineGroup) Insert(beans ...interface{}) (int64, error) {
+	return eg.Master().Insert(beans...)
 }
 
 // InsertOne insert only one record
-func (ge *GroupEngine) InsertOne(bean interface{}) (int64, error) {
-	return ge.Master().InsertOne(bean)
+func (eg *EngineGroup) InsertOne(bean interface{}) (int64, error) {
+	return eg.Master().InsertOne(bean)
 }
 
 // IsTableEmpty if a table has any reocrd
-func (ge *GroupEngine) IsTableEmpty(bean interface{}) (bool, error) {
-	return ge.Master().IsTableEmpty(bean)
+func (eg *EngineGroup) IsTableEmpty(bean interface{}) (bool, error) {
+	return eg.Master().IsTableEmpty(bean)
 }
 
 // IsTableExist if a table is exist
-func (ge *GroupEngine) IsTableExist(beanOrTableName interface{}) (bool, error) {
-	return ge.Master().IsTableExist(beanOrTableName)
+func (eg *EngineGroup) IsTableExist(beanOrTableName interface{}) (bool, error) {
+	return eg.Master().IsTableExist(beanOrTableName)
 }
 
-func (ge *GroupEngine) Update(bean interface{}, condiBeans ...interface{}) (int64, error) {
-	return ge.Master().Update(bean, condiBeans...)
+func (eg *EngineGroup) Update(bean interface{}, condiBeans ...interface{}) (int64, error) {
+	return eg.Master().Update(bean, condiBeans...)
 }
 
 // Delete records, bean's non-empty fields are conditions
-func (ge *GroupEngine) Delete(bean interface{}) (int64, error) {
-	return ge.Master().Delete(bean)
+func (eg *EngineGroup) Delete(bean interface{}) (int64, error) {
+	return eg.Master().Delete(bean)
 }
 
 // Get retrieve one record from table, bean's non-empty fields
 // are conditions
-func (ge *GroupEngine) Get(bean interface{}) (bool, error) {
-	return ge.Slave().Get(bean)
+func (eg *EngineGroup) Get(bean interface{}) (bool, error) {
+	return eg.Slave().Get(bean)
 }
 
 // Exist returns true if the record exist otherwise return false
-func (ge *GroupEngine) Exist(bean ...interface{}) (bool, error) {
-	return ge.Slave().Exist(bean...)
+func (eg *EngineGroup) Exist(bean ...interface{}) (bool, error) {
+	return eg.Slave().Exist(bean...)
 }
 
 // Iterate record by record handle records from table, bean's non-empty fields
 // are conditions.
-func (ge *GroupEngine) Iterate(bean interface{}, fun IterFunc) error {
-	return ge.Master().Iterate(bean, fun)
+func (eg *EngineGroup) Iterate(bean interface{}, fun IterFunc) error {
+	return eg.Master().Iterate(bean, fun)
 }
 
-func (ge *GroupEngine) Find(beans interface{}, condiBeans ...interface{}) error {
-	return ge.Slave().Find(beans, condiBeans...)
+func (eg *EngineGroup) Find(beans interface{}, condiBeans ...interface{}) error {
+	return eg.Slave().Find(beans, condiBeans...)
 }
 
 // Rows return sql.Rows compatible Rows obj, as a forward Iterator object for iterating record by record, bean's non-empty fields
 // are conditions.
-func (ge *GroupEngine) Rows(bean interface{}) (*Rows, error) {
-	return ge.Slave().Rows(bean)
+func (eg *EngineGroup) Rows(bean interface{}) (*Rows, error) {
+	return eg.Slave().Rows(bean)
 }
 
 // Count counts the records. bean's non-empty fields are conditions.
-func (ge *GroupEngine) Count(bean ...interface{}) (int64, error) {
-	return ge.Slave().Count(bean...)
+func (eg *EngineGroup) Count(bean ...interface{}) (int64, error) {
+	return eg.Slave().Count(bean...)
 }
 
 // Sum sum the records by some column. bean's non-empty fields are conditions.
-func (ge *GroupEngine) Sum(bean interface{}, colName string) (float64, error) {
-	return ge.Slave().Sum(bean, colName)
+func (eg *EngineGroup) Sum(bean interface{}, colName string) (float64, error) {
+	return eg.Slave().Sum(bean, colName)
 }
 
 // SumInt sum the records by some column. bean's non-empty fields are conditions.
-func (ge *GroupEngine) SumInt(bean interface{}, colName string) (int64, error) {
-	return ge.Slave().SumInt(bean, colName)
+func (eg *EngineGroup) SumInt(bean interface{}, colName string) (int64, error) {
+	return eg.Slave().SumInt(bean, colName)
 }
 
 // Sums sum the records by some columns. bean's non-empty fields are conditions.
-func (ge *GroupEngine) Sums(bean interface{}, colNames ...string) ([]float64, error) {
-	return ge.Slave().Sums(bean, colNames...)
+func (eg *EngineGroup) Sums(bean interface{}, colNames ...string) ([]float64, error) {
+	return eg.Slave().Sums(bean, colNames...)
 }
 
 // SumsInt like Sums but return slice of int64 instead of float64.
-func (ge *GroupEngine) SumsInt(bean interface{}, colNames ...string) ([]int64, error) {
-	return ge.Slave().SumsInt(bean, colNames...)
+func (eg *EngineGroup) SumsInt(bean interface{}, colNames ...string) ([]int64, error) {
+	return eg.Slave().SumsInt(bean, colNames...)
 }
 
 // ImportFile SQL DDL file
-func (ge *GroupEngine) ImportFile(ddlPath string) ([]sql.Result, error) {
-	return ge.Master().ImportFile(ddlPath)
+func (eg *EngineGroup) ImportFile(ddlPath string) ([]sql.Result, error) {
+	return eg.Master().ImportFile(ddlPath)
 }
 
 // Import SQL DDL from io.Reader
-func (ge *GroupEngine) Import(r io.Reader) ([]sql.Result, error) {
-	return ge.Master().Import(r)
+func (eg *EngineGroup) Import(r io.Reader) ([]sql.Result, error) {
+	return eg.Master().Import(r)
 }
 
 // NowTime2 return current time
-func (ge *GroupEngine) NowTime2(sqlTypeName string) (interface{}, time.Time) {
-	return ge.Master().NowTime2(sqlTypeName)
+func (eg *EngineGroup) NowTime2(sqlTypeName string) (interface{}, time.Time) {
+	return eg.Master().NowTime2(sqlTypeName)
 }
 
 // Unscoped always disable struct tag "deleted"
-func (ge *GroupEngine) Unscoped() *GESession {
-	ges := ge.NewGESession()
-	return ges.Unscoped()
+func (eg *EngineGroup) Unscoped() *EGSession {
+	egs := eg.NewEGSession()
+	return egs.Unscoped()
 }
 
 // CondDeleted returns the conditions whether a record is soft deleted.
-func (ge *GroupEngine) CondDeleted(colName string) builder.Cond {
-	return ge.Master().CondDeleted(colName)
+func (eg *EngineGroup) CondDeleted(colName string) builder.Cond {
+	return eg.Master().CondDeleted(colName)
 }
 
 type BufferSizeArgs struct {
@@ -776,7 +881,7 @@ type BufferSizeArgs struct {
 }
 
 // BufferSize sets buffer size for iterate
-func (ge *GroupEngine) BufferSize(size int) *GESession {
-	ges := ge.NewGESession()
-	return ges.BufferSize(size)
+func (eg *EngineGroup) BufferSize(size int) *EGSession {
+	egs := eg.NewEGSession()
+	return egs.BufferSize(size)
 }
