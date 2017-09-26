@@ -1585,3 +1585,8 @@ func (engine *Engine) BufferSize(size int) *Session {
 	session.isAutoClose = true
 	return session.BufferSize(size)
 }
+
+//Stats return the number of open connections to the database
+func (engine *Engine) Stats() int {
+	return engine.DB().Stats().OpenConnections
+}
