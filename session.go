@@ -258,13 +258,13 @@ func (session *Session) canCache() bool {
 	return true
 }
 
-func (session *Session) doPrepare(sqlStr string) (stmt *core.Stmt, err error) {
+func (session *Session) doPrepare(db *core.DB, sqlStr string) (stmt *core.Stmt, err error) {
 	crc := crc32.ChecksumIEEE([]byte(sqlStr))
 	// TODO try hash(sqlStr+len(sqlStr))
 	var has bool
 	stmt, has = session.stmtCache[crc]
 	if !has {
-		stmt, err = session.DB().Prepare(sqlStr)
+		stmt, err = db.Prepare(sqlStr)
 		if err != nil {
 			return nil, err
 		}
