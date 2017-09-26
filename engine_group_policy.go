@@ -25,6 +25,9 @@ func NewRandomPolicy() *RandomPolicy {
 }
 
 func (policy *RandomPolicy) Slave(g *EngineGroup) *Engine {
+	if g.s_count == 1 {
+		return g.Slaves()[0]
+	}
 	return g.Slaves()[policy.r.Intn(len(g.Slaves()))]
 }
 
@@ -51,6 +54,9 @@ func NewWeightRandomPolicy(weights []int) *WeightRandomPolicy {
 
 func (policy *WeightRandomPolicy) Slave(g *EngineGroup) *Engine {
 	var slaves = g.Slaves()
+	if g.s_count == 1 {
+		return slaves[0]
+	}
 	idx := policy.rands[policy.r.Intn(len(policy.rands))]
 	if idx >= len(slaves) {
 		idx = len(slaves) - 1
@@ -68,10 +74,14 @@ func NewRoundRobinPolicy() *RoundRobinPolicy {
 }
 
 func (policy *RoundRobinPolicy) Slave(g *EngineGroup) *Engine {
+	if g.s_count == 1 {
+		return g.Slaves()[0]
+	}
+
 	var pos int
 	policy.lock.Lock()
 	policy.pos++
-	if policy.pos >= len(g.Slaves()) {
+	if policy.pos >= g.s_count {
 		policy.pos = 0
 	}
 	pos = policy.pos
@@ -106,6 +116,10 @@ func NewWeightRoundRobinPolicy(weights []int) *WeightRoundRobinPolicy {
 
 func (policy *WeightRoundRobinPolicy) Slave(g *EngineGroup) *Engine {
 	var slaves = g.Slaves()
+	if g.s_count == 1 {
+		return slaves[0]
+	}
+
 	var pos int
 	policy.lock.Lock()
 	policy.pos++
