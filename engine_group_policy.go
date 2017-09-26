@@ -10,24 +10,32 @@ import (
 	"time"
 )
 
+// GroupPolicy is be used by chosing the current slave from slaves
 type GroupPolicy interface {
 	Slave(*EngineGroup) *Engine
 }
 
+// GroupPolicyHandler should be used when a function is a GroupPolicy
+type GroupPolicyHandler func(*EngineGroup) *Engine
+
+// RandomPolicy implmentes randomly chose the slave of slaves
 type RandomPolicy struct {
 	r *rand.Rand
 }
 
+// NewRandomPolicy creates a RandomPolicy
 func NewRandomPolicy() *RandomPolicy {
 	return &RandomPolicy{
 		r: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
+// Slave randomly choses the slave of slaves
 func (policy *RandomPolicy) Slave(g *EngineGroup) *Engine {
 	return g.Slaves()[policy.r.Intn(len(g.Slaves()))]
 }
 
+// WeightRandomPolicy implmentes randomly chose the slave of slaves
 type WeightRandomPolicy struct {
 	weights []int
 	rands   []int
@@ -123,14 +131,8 @@ func (policy *WeightRoundRobinPolicy) Slave(g *EngineGroup) *Engine {
 	return slaves[idx]
 }
 
-type LeastConnPolicy struct {
-}
-
-func NewLeastConnPolicy() *LeastConnPolicy {
-	return &LeastConnPolicy{}
-}
-
-func (policy *LeastConnPolicy) Slave(g *EngineGroup) *Engine {
+// LeastConnPolicy implements GroupPolicy, every time will get the least connections slave
+var LeastConnPolicy GroupPolicyHandler = func(g *EngineGroup) *Engine {
 	var slaves = g.Slaves()
 	connections := 0
 	idx := 0
