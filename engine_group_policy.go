@@ -6,129 +6,131 @@ package xorm
 
 import (
 	"math/rand"
+	"sync"
 
 	"time"
 )
 
-const (
-	ENGINE_GROUP_POLICY_RANDOM = iota
-	ENGINE_GROUP_POLICY_WEIGHTRANDOM
-	ENGINE_GROUP_POLICY_ROUNDROBIN
-	ENGINE_GROUP_POLICY_WEIGHTROUNDROBIN
-	ENGINE_GROUP_POLICY_LEASTCONNECTIONS
-)
-
 type Policy interface {
-	Init()
 	Slave(*EngineGroup) *Engine
 }
 
-type XormEngineGroupPolicy struct {
-	pos    int
-	slaves []int
-	eg     *EngineGroup
-	r      *rand.Rand
+type RandomPolicy struct {
+	r *rand.Rand
 }
 
-func (xgep *XormEngineGroupPolicy) Init() {
-	xgep.r = rand.New(rand.NewSource(time.Now().UnixNano()))
+func NewRandomPolicy() *RandomPolicy {
+	return &RandomPolicy{
+		r: rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
 }
 
-func (xgep *XormEngineGroupPolicy) Slave(eg *EngineGroup) *Engine {
-	xgep.eg = eg
-	return eg.slaves[xgep.slave()]
+func (policy *RandomPolicy) Slave(g *EngineGroup) *Engine {
+	return g.Slaves()[policy.r.Intn(len(g.Slaves()))]
 }
 
-func (xgep *XormEngineGroupPolicy) SetWeight() {
-	for i, _ := range xgep.eg.weight {
-		w := xgep.eg.weight[i]
-		for n := 0; n < w; n++ {
-			xgep.slaves = append(xgep.slaves, i)
+type WeightRandomPolicy struct {
+	weights []int
+	rands   []int
+	r       *rand.Rand
+}
+
+func NewWeightRandomPolicy(weights []int) *WeightRandomPolicy {
+	var rands = make([]int, 0, len(weights))
+	for i := 0; i < len(weights); i++ {
+		for n := 0; n < weights[i]; n++ {
+			rands = append(rands, i)
 		}
 	}
+
+	return &WeightRandomPolicy{
+		weights: weights,
+		rands:   rands,
+		r:       rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
 }
 
-func (xgep *XormEngineGroupPolicy) slave() int {
-	switch xgep.eg.p {
-	case ENGINE_GROUP_POLICY_RANDOM:
-		return xgep.Random()
-	case ENGINE_GROUP_POLICY_WEIGHTRANDOM:
-		return xgep.WeightRandom()
-	case ENGINE_GROUP_POLICY_ROUNDROBIN:
-		return xgep.RoundRobin()
-	case ENGINE_GROUP_POLICY_WEIGHTROUNDROBIN:
-		return xgep.WeightRoundRobin()
-	case ENGINE_GROUP_POLICY_LEASTCONNECTIONS:
-		return xgep.LeastConnections()
-	default:
-		return xgep.Random()
+func (policy *WeightRandomPolicy) Slave(g *EngineGroup) *Engine {
+	var slaves = g.Slaves()
+	idx := policy.rands[policy.r.Intn(len(policy.rands))]
+	if idx >= len(slaves) {
+		idx = len(slaves) - 1
 	}
-
+	return slaves[idx]
 }
 
-func (xgep *XormEngineGroupPolicy) Random() int {
-	if xgep.eg.s_count <= 1 {
-		return 0
-	}
-
-	rnd := xgep.r.Intn(xgep.eg.s_count)
-	return rnd
+type RoundRobinPolicy struct {
+	pos  int
+	lock sync.Mutex
 }
 
-func (xgep *XormEngineGroupPolicy) WeightRandom() int {
-	if xgep.eg.s_count <= 1 {
-		return 0
-	}
-
-	xgep.SetWeight()
-	s := len(xgep.slaves)
-	rnd := xgep.r.Intn(s)
-	return xgep.slaves[rnd]
+func NewRoundRobinPolicy() *RoundRobinPolicy {
+	return &RoundRobinPolicy{pos: -1}
 }
 
-func (xgep *XormEngineGroupPolicy) RoundRobin() int {
-	if xgep.eg.s_count <= 1 {
-		return 0
+func (policy *RoundRobinPolicy) Slave(g *EngineGroup) *Engine {
+	var pos int
+	policy.lock.Lock()
+	policy.pos++
+	if policy.pos >= len(g.Slaves()) {
+		policy.pos = 0
 	}
+	pos = policy.pos
+	policy.lock.Unlock()
 
-	if xgep.pos >= xgep.eg.s_count {
-		xgep.pos = 0
-	}
-	xgep.pos++
-
-	return xgep.pos - 1
+	return g.Slaves()[pos]
 }
 
-func (xgep *XormEngineGroupPolicy) WeightRoundRobin() int {
-	if xgep.eg.s_count <= 1 {
-		return 0
-	}
-
-	xgep.SetWeight()
-	count := len(xgep.slaves)
-	if xgep.pos >= count {
-		xgep.pos = 0
-	}
-	xgep.pos++
-
-	return xgep.slaves[xgep.pos-1]
+type WeightRoundRobin struct {
+	weights []int
+	rands   []int
+	r       *rand.Rand
+	lock    sync.Mutex
+	pos     int
 }
 
-func (xgep *XormEngineGroupPolicy) LeastConnections() int {
-	if xgep.eg.s_count <= 1 {
-		return 0
-	}
-	connections := 0
-	slave := 0
-	for i, _ := range xgep.eg.slaves {
-		open_connections := xgep.eg.slaves[i].Stats()
-		if i == 0 {
-			connections = open_connections
-			slave = i
-		} else if open_connections <= connections {
-			slave = i
-			connections = open_connections
+func NewWeightRoundRobin(weights []int) *WeightRoundRobin {
+	var rands = make([]int, 0, len(weights))
+	for i := 0; i < len(weights); i++ {
+		for n := 0; n < weights[i]; n++ {
+			rands = append(rands, i)
 		}
 	}
-	return slave
+
+	return &WeightRoundRobin{
+		weights: weights,
+		rands:   rands,
+		r:       rand.New(rand.NewSource(time.Now().UnixNano())),
+		pos:     -1,
+	}
+}
+
+func (policy *WeightRoundRobin) Slave(g *EngineGroup) *Engine {
+	var slaves = g.Slaves()
+	var pos int
+	policy.lock.Lock()
+	policy.pos++
+	if policy.pos >= len(g.Slaves()) {
+		policy.pos = 0
+	}
+	pos = policy.pos
+	policy.lock.Unlock()
+
+	idx := policy.rands[pos]
+	if idx >= len(slaves) {
+		idx = len(slaves) - 1
+	}
+	return slaves[idx]
+}
+
+type LeastConnPolicy struct {
+}
+
+func NewLeastConnPolicy() *LeastConnPolicy {
+	return &LeastConnPolicy{}
+}
+
+func (policy *LeastConnPolicy) Slave(g *EngineGroup) *Engine {
+	panic("not implementation")
+	return nil
 }
