@@ -18,6 +18,11 @@ type GroupPolicy interface {
 // GroupPolicyHandler should be used when a function is a GroupPolicy
 type GroupPolicyHandler func(*EngineGroup) *Engine
 
+// Slave implements the chosen of slaves
+func (h GroupPolicyHandler) Slave(eg *EngineGroup) *Engine {
+	return h(eg)
+}
+
 // RandomPolicy implmentes randomly chose the slave of slaves
 type RandomPolicy struct {
 	r *rand.Rand
