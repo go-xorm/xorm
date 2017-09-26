@@ -17,7 +17,7 @@ type EngineGroup struct {
 	policy GroupPolicy
 }
 
-func NewGroup(args1 interface{}, args2 interface{}, policies ...GroupPolicy) (*EngineGroup, error) {
+func NewEngineGroup(args1 interface{}, args2 interface{}, policies ...GroupPolicy) (*EngineGroup, error) {
 	var eg EngineGroup
 	if len(policies) > 0 {
 		eg.policy = policies[0]
@@ -71,9 +71,6 @@ func (eg *EngineGroup) Slave() *Engine {
 	case 0:
 		return eg.Engine
 	case 1:
-		return eg.slaves[0]
-	}
-	if eg.s_count == 1 {
 		return eg.slaves[0]
 	}
 	return eg.policy.Slave(eg)
