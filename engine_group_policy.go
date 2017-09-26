@@ -68,16 +68,17 @@ func NewRoundRobinPolicy() *RoundRobinPolicy {
 }
 
 func (policy *RoundRobinPolicy) Slave(g *EngineGroup) *Engine {
+	var slaves = g.Slaves()
 	var pos int
 	policy.lock.Lock()
 	policy.pos++
-	if policy.pos >= len(g.Slaves()) {
+	if policy.pos >= len(slaves) {
 		policy.pos = 0
 	}
 	pos = policy.pos
 	policy.lock.Unlock()
 
-	return g.Slaves()[pos]
+	return slaves[pos]
 }
 
 type WeightRoundRobinPolicy struct {

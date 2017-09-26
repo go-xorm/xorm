@@ -17,7 +17,7 @@ type EngineGroup struct {
 	policy GroupPolicy
 }
 
-func NewGroup(args1 interface{}, args2 interface{}, policies ...GroupPolicy) (*EngineGroup, error) {
+func NewEngineGroup(args1 interface{}, args2 interface{}, policies ...GroupPolicy) (*EngineGroup, error) {
 	var eg EngineGroup
 	if len(policies) > 0 {
 		eg.policy = policies[0]
