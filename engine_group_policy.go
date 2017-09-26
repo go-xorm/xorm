@@ -80,7 +80,7 @@ func (policy *RoundRobinPolicy) Slave(g *EngineGroup) *Engine {
 	return g.Slaves()[pos]
 }
 
-type WeightRoundRobin struct {
+type WeightRoundRobinPolicy struct {
 	weights []int
 	rands   []int
 	r       *rand.Rand
@@ -88,7 +88,7 @@ type WeightRoundRobin struct {
 	pos     int
 }
 
-func NewWeightRoundRobin(weights []int) *WeightRoundRobin {
+func NewWeightRoundRobinPolicy(weights []int) *WeightRoundRobinPolicy {
 	var rands = make([]int, 0, len(weights))
 	for i := 0; i < len(weights); i++ {
 		for n := 0; n < weights[i]; n++ {
@@ -96,7 +96,7 @@ func NewWeightRoundRobin(weights []int) *WeightRoundRobin {
 		}
 	}
 
-	return &WeightRoundRobin{
+	return &WeightRoundRobinPolicy{
 		weights: weights,
 		rands:   rands,
 		r:       rand.New(rand.NewSource(time.Now().UnixNano())),
@@ -104,12 +104,12 @@ func NewWeightRoundRobin(weights []int) *WeightRoundRobin {
 	}
 }
 
-func (policy *WeightRoundRobin) Slave(g *EngineGroup) *Engine {
+func (policy *WeightRoundRobinPolicy) Slave(g *EngineGroup) *Engine {
 	var slaves = g.Slaves()
 	var pos int
 	policy.lock.Lock()
 	policy.pos++
-	if policy.pos >= len(g.Slaves()) {
+	if policy.pos >= len(policy.rands) {
 		policy.pos = 0
 	}
 	pos = policy.pos
