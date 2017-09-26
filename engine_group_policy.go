@@ -25,9 +25,6 @@ func NewRandomPolicy() *RandomPolicy {
 }
 
 func (policy *RandomPolicy) Slave(g *EngineGroup) *Engine {
-	if g.s_count == 1 {
-		return g.Slaves()[0]
-	}
 	return g.Slaves()[policy.r.Intn(len(g.Slaves()))]
 }
 
@@ -54,9 +51,6 @@ func NewWeightRandomPolicy(weights []int) *WeightRandomPolicy {
 
 func (policy *WeightRandomPolicy) Slave(g *EngineGroup) *Engine {
 	var slaves = g.Slaves()
-	if g.s_count == 1 {
-		return slaves[0]
-	}
 	idx := policy.rands[policy.r.Intn(len(policy.rands))]
 	if idx >= len(slaves) {
 		idx = len(slaves) - 1
@@ -74,10 +68,6 @@ func NewRoundRobinPolicy() *RoundRobinPolicy {
 }
 
 func (policy *RoundRobinPolicy) Slave(g *EngineGroup) *Engine {
-	if g.s_count == 1 {
-		return g.Slaves()[0]
-	}
-
 	var pos int
 	policy.lock.Lock()
 	policy.pos++
@@ -116,10 +106,6 @@ func NewWeightRoundRobinPolicy(weights []int) *WeightRoundRobinPolicy {
 
 func (policy *WeightRoundRobinPolicy) Slave(g *EngineGroup) *Engine {
 	var slaves = g.Slaves()
-	if g.s_count == 1 {
-		return slaves[0]
-	}
-
 	var pos int
 	policy.lock.Lock()
 	policy.pos++
@@ -144,6 +130,18 @@ func NewLeastConnPolicy() *LeastConnPolicy {
 }
 
 func (policy *LeastConnPolicy) Slave(g *EngineGroup) *Engine {
-	panic("not implementation")
-	return nil
+	var slaves = g.Slaves()
+	connections := 0
+	idx := 0
+	for i, _ := range slaves {
+		open_connections := slaves[i].Stats()
+		if i == 0 {
+			connections = open_connections
+			idx = i
+		} else if open_connections <= connections {
+			connections = open_connections
+			idx = i
+		}
+	}
+	return slaves[idx]
 }

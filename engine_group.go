@@ -91,6 +91,9 @@ func (eg *EngineGroup) Slave() *Engine {
 	if eg.count == 1 {
 		return eg.master
 	}
+	if eg.s_count == 1 {
+		return eg.slaves[0]
+	}
 	return eg.policy.Slave(eg)
 }
 
