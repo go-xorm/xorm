@@ -25,22 +25,29 @@ type EngineGroup struct {
 	p       int
 }
 
-func NewGroup(args1 interface{}, args2 interface{}, policy ...Policy) (*EngineGroup, error) {
+func NewGroup(args1 interface{}, args2 interface{}, policies ...Policy) (*EngineGroup, error) {
+	var policy Policy
+	if len(policies) > 0 {
+		policy = policies[0]
+	} else {
+		policy = NewRandomPolicy()
+	}
+
 	driverName, ok1 := args1.(string)
 	dataSourceNames, ok2 := args2.(string)
 	if ok1 && ok2 {
-		return newGroup1(driverName, dataSourceNames, policy...)
+		return newGroup1(driverName, dataSourceNames, policy)
 	}
 
 	Master, ok3 := args1.(*Engine)
 	Slaves, ok4 := args2.([]*Engine)
 	if ok3 && ok4 {
-		return newGroup2(Master, Slaves, policy...)
+		return newGroup2(Master, Slaves, policy)
 	}
 	return nil, ErrParamsType
 }
 
-func newGroup1(driverName string, dataSourceNames string, policy ...Policy) (*EngineGroup, error) {
+func newGroup1(driverName string, dataSourceNames string, policy Policy) (*EngineGroup, error) {
 	conns := strings.Split(dataSourceNames, ";")
 	engines := make([]*Engine, len(conns))
 	for i, _ := range conns {
@@ -51,90 +58,27 @@ func newGroup1(driverName string, dataSourceNames string, policy ...Policy) (*En
 		engines[i] = engine
 	}
 
-	n := len(policy)
-	if n > 1 {
-		return nil, ErrParamsType
-	} else if n == 1 {
-		eg := &EngineGroup{
-			master:  engines[0],
-			slaves:  engines[1:],
-			count:   len(engines),
-			s_count: len(engines[1:]),
-			policy:  policy[0],
-		}
-		return eg, nil
-	} else {
-		xPolicy := new(XormEngineGroupPolicy)
-		eg := &EngineGroup{
-			master:  engines[0],
-			slaves:  engines[1:],
-			count:   len(engines),
-			s_count: len(engines[1:]),
-			policy:  xPolicy,
-		}
-		xPolicy.Init()
-		return eg, nil
-	}
-
+	return &EngineGroup{
+		master:  engines[0],
+		slaves:  engines[1:],
+		count:   len(engines),
+		s_count: len(engines[1:]),
+		policy:  policy,
+	}, nil
 }
 
-func newGroup2(Master *Engine, Slaves []*Engine, policy ...Policy) (*EngineGroup, error) {
-	n := len(policy)
-	if n > 1 {
-		return nil, ErrParamsType
-	} else if n == 1 {
-		eg := &EngineGroup{
-			master:  Master,
-			slaves:  Slaves,
-			count:   1 + len(Slaves),
-			s_count: len(Slaves),
-			policy:  policy[0],
-		}
-		return eg, nil
-	} else {
-		xPolicy := new(XormEngineGroupPolicy)
-		eg := &EngineGroup{
-			master:  Master,
-			slaves:  Slaves,
-			count:   1 + len(Slaves),
-			s_count: len(Slaves),
-			policy:  xPolicy,
-		}
-		xPolicy.Init()
-		return eg, nil
-	}
+func newGroup2(Master *Engine, Slaves []*Engine, policy Policy) (*EngineGroup, error) {
+	return &EngineGroup{
+		master:  Master,
+		slaves:  Slaves,
+		count:   1 + len(Slaves),
+		s_count: len(Slaves),
+		policy:  policy,
+	}, nil
 }
 
 func (eg *EngineGroup) SetPolicy(policy Policy) *EngineGroup {
 	eg.policy = policy
-	return eg
-}
-
-func (eg *EngineGroup) UsePolicy(policy int) *EngineGroup {
-	eg.p = policy
-	return eg
-}
-
-func (eg *EngineGroup) SetWeight(weight ...interface{}) *EngineGroup {
-	l := len(weight)
-	if l == 1 {
-		switch weight[0].(type) {
-		case []int:
-			eg.weight = weight[0].([]int)
-		}
-	} else if l > 1 {
-		s := make([]int, 0)
-		for i, _ := range weight {
-			switch weight[i].(type) {
-			case int:
-				s = append(s, weight[i].(int))
-			default:
-				s = append(s, 1)
-			}
-		}
-		eg.weight = s
-	}
-
 	return eg
 }
 
@@ -856,11 +800,6 @@ func (eg *EngineGroup) ImportFile(ddlPath string) ([]sql.Result, error) {
 // Import SQL DDL from io.Reader
 func (eg *EngineGroup) Import(r io.Reader) ([]sql.Result, error) {
 	return eg.Master().Import(r)
-}
-
-// NowTime2 return current time
-func (eg *EngineGroup) NowTime2(sqlTypeName string) (interface{}, time.Time) {
-	return eg.Master().NowTime2(sqlTypeName)
 }
 
 // Unscoped always disable struct tag "deleted"
