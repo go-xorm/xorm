@@ -51,6 +51,8 @@ func NewEngineGroup(args1 interface{}, args2 interface{}, policies ...GroupPolic
 		for i := 0; i < len(slaves); i++ {
 			slaves[i].engineGroup = &eg
 		}
+		eg.Engine = master
+		eg.slaves = slaves
 		return &eg, nil
 	}
 	return nil, ErrParamsType
