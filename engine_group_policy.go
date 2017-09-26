@@ -137,19 +137,21 @@ func (policy *WeightRoundRobinPolicy) Slave(g *EngineGroup) *Engine {
 }
 
 // LeastConnPolicy implements GroupPolicy, every time will get the least connections slave
-var LeastConnPolicy GroupPolicyHandler = func(g *EngineGroup) *Engine {
-	var slaves = g.Slaves()
-	connections := 0
-	idx := 0
-	for i, _ := range slaves {
-		open_connections := slaves[i].DB().Stats().OpenConnections
-		if i == 0 {
-			connections = open_connections
-			idx = i
-		} else if open_connections <= connections {
-			connections = open_connections
-			idx = i
+func LeastConnPolicy() GroupPolicyHandler {
+	return func(g *EngineGroup) *Engine {
+		var slaves = g.Slaves()
+		connections := 0
+		idx := 0
+		for i := 0; i < len(slaves); i++ {
+			openConnections := slaves[i].DB().Stats().OpenConnections
+			if i == 0 {
+				connections = openConnections
+				idx = i
+			} else if openConnections <= connections {
+				connections = openConnections
+				idx = i
+			}
 		}
+		return slaves[idx]
 	}
-	return slaves[idx]
 }
