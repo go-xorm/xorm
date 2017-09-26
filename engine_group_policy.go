@@ -135,7 +135,7 @@ func (policy *LeastConnPolicy) Slave(g *EngineGroup) *Engine {
 	connections := 0
 	idx := 0
 	for i, _ := range slaves {
-		open_connections := slaves[i].Stats()
+		open_connections := slaves[i].DB().Stats().OpenConnections
 		if i == 0 {
 			connections = open_connections
 			idx = i
