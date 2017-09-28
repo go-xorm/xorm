@@ -26,6 +26,7 @@ var (
 	mapType    = flag.String("map_type", "snake", "indicate the name mapping")
 	cache      = flag.Bool("cache", false, "if enable cache")
 	cluster    = flag.Bool("cluster", false, "if this is a cluster")
+	splitter   = flag.String("splitter", ";", "the splitter on connstr for cluster")
 )
 
 func createEngine(dbType, connStr string) error {
@@ -36,7 +37,7 @@ func createEngine(dbType, connStr string) error {
 			testEngine, err = NewEngine(dbType, connStr)
 
 		} else {
-			testEngine, err = NewEngineGroup(dbType, connStr)
+			testEngine, err = NewEngineGroup(dbType, strings.Split(connStr, *splitter))
 		}
 		if err != nil {
 			return err
