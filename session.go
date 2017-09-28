@@ -74,6 +74,7 @@ func (session *Session) Init() {
 	session.afterDeleteBeans = make(map[interface{}]*[]func(interface{}), 0)
 	session.beforeClosures = make([]func(interface{}), 0)
 	session.afterClosures = make([]func(interface{}), 0)
+	session.stmtCache = make(map[uint32]*core.Stmt)
 
 	session.lastSQL = ""
 	session.lastSQLArgs = []interface{}{}

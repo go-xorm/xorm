@@ -19,7 +19,7 @@ func TestQuery(t *testing.T) {
 		Name string
 	}
 
-	assert.NoError(t, testEngine.Sync(new(UserinfoQuery)))
+	assert.NoError(t, testEngine.Sync2(new(UserinfoQuery)))
 
 	res, err := testEngine.Exec("INSERT INTO `userinfo_query` (uid, name) VALUES (?, ?)", 1, "user")
 	assert.NoError(t, err)

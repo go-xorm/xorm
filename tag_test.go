@@ -123,7 +123,7 @@ func TestCreatedUpdated(t *testing.T) {
 		Updated  time.Time `xorm:"updated"`
 	}
 
-	err := testEngine.Sync(&CreatedUpdated{})
+	err := testEngine.Sync2(&CreatedUpdated{})
 	assert.NoError(t, err)
 
 	c := &CreatedUpdated{Name: "test"}
@@ -178,7 +178,7 @@ type Lowercase struct {
 func TestLowerCase(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.Sync(&Lowercase{})
+	err := testEngine.Sync2(&Lowercase{})
 	_, err = testEngine.Where("(id) > 0").Delete(&Lowercase{})
 	if err != nil {
 		t.Error(err)
@@ -255,7 +255,7 @@ func TestAutoIncrTag(t *testing.T) {
 func TestTagComment(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	// FIXME: only support mysql
-	if testEngine.dialect.DriverName() != core.MYSQL {
+	if testEngine.Dialect().DriverName() != core.MYSQL {
 		return
 	}
 
@@ -371,7 +371,7 @@ func TestTagTime(t *testing.T) {
 
 	assertSync(t, new(TagUTCStruct))
 
-	assert.EqualValues(t, time.Local.String(), testEngine.TZLocation.String())
+	assert.EqualValues(t, time.Local.String(), testEngine.GetTZLocation().String())
 
 	s := TagUTCStruct{
 		Name: "utc",

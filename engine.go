@@ -51,6 +51,21 @@ type Engine struct {
 	engineGroup *EngineGroup
 }
 
+// BufferSize sets buffer size for iterate
+func (engine *Engine) BufferSize(size int) *Session {
+	session := engine.NewSession()
+	session.isAutoClose = true
+	return session.BufferSize(size)
+}
+
+// CondDeleted returns the conditions whether a record is soft deleted.
+func (engine *Engine) CondDeleted(colName string) builder.Cond {
+	if engine.dialect.DBType() == core.MSSQL {
+		return builder.IsNull{colName}
+	}
+	return builder.IsNull{colName}.Or(builder.Eq{colName: zeroTime1})
+}
+
 // ShowSQL show SQL statement or not on logger if log level is great than INFO
 func (engine *Engine) ShowSQL(show ...bool) {
 	engine.logger.ShowSQL(show...)
@@ -79,6 +94,11 @@ func (engine *Engine) Logger() core.ILogger {
 func (engine *Engine) SetLogger(logger core.ILogger) {
 	engine.logger = logger
 	engine.dialect.SetLogger(logger)
+}
+
+// SetLogLevel sets the logger level
+func (engine *Engine) SetLogLevel(level core.LogLevel) {
+	engine.logger.SetLevel(level)
 }
 
 // SetDisableGlobalCache disable global cache or not
@@ -201,6 +221,11 @@ func (engine *Engine) SetMaxIdleConns(conns int) {
 // SetDefaultCacher set the default cacher. Xorm's default not enable cacher.
 func (engine *Engine) SetDefaultCacher(cacher core.Cacher) {
 	engine.Cacher = cacher
+}
+
+// GetDefaultCacher returns the default cacher
+func (engine *Engine) GetDefaultCacher() core.Cacher {
+	return engine.Cacher
 }
 
 // NoCache If you has set default cacher, and you want temporilly stop use cache,
@@ -759,7 +784,8 @@ func (engine *Engine) Having(conditions string) *Session {
 	return session.Having(conditions)
 }
 
-func (engine *Engine) unMapType(t reflect.Type) {
+// UnMapType removes the datbase mapper of a type
+func (engine *Engine) UnMapType(t reflect.Type) {
 	engine.mutex.Lock()
 	defer engine.mutex.Unlock()
 	delete(engine.Tables, t)
@@ -1562,24 +1588,39 @@ func (engine *Engine) formatTime(sqlTypeName string, t time.Time) (v interface{}
 	return
 }
 
+// GetColumnMapper returns the column name mapper
+func (engine *Engine) GetColumnMapper() core.IMapper {
+	return engine.ColumnMapper
+}
+
+// GetTableMapper returns the table name mapper
+func (engine *Engine) GetTableMapper() core.IMapper {
+	return engine.TableMapper
+}
+
+// GetTZLocation returns time zone of the application
+func (engine *Engine) GetTZLocation() *time.Location {
+	return engine.TZLocation
+}
+
+// SetTZLocation sets time zone of the application
+func (engine *Engine) SetTZLocation(tz *time.Location) {
+	engine.TZLocation = tz
+}
+
+// GetTZDatabase returns time zone of the database
+func (engine *Engine) GetTZDatabase() *time.Location {
+	return engine.DatabaseTZ
+}
+
+// SetTZDatabase sets time zone of the database
+func (engine *Engine) SetTZDatabase(tz *time.Location) {
+	engine.DatabaseTZ = tz
+}
+
 // Unscoped always disable struct tag "deleted"
 func (engine *Engine) Unscoped() *Session {
 	session := engine.NewSession()
 	session.isAutoClose = true
 	return session.Unscoped()
-}
-
-// CondDeleted returns the conditions whether a record is soft deleted.
-func (engine *Engine) CondDeleted(colName string) builder.Cond {
-	if engine.dialect.DBType() == core.MSSQL {
-		return builder.IsNull{colName}
-	}
-	return builder.IsNull{colName}.Or(builder.Eq{colName: zeroTime1})
-}
-
-// BufferSize sets buffer size for iterate
-func (engine *Engine) BufferSize(size int) *Session {
-	session := engine.NewSession()
-	session.isAutoClose = true
-	return session.BufferSize(size)
 }

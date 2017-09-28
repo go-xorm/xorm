@@ -18,11 +18,11 @@ type IDGonicMapper struct {
 func TestGonicMapperID(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	oldMapper := testEngine.ColumnMapper
-	testEngine.unMapType(rValue(new(IDGonicMapper)).Type())
+	oldMapper := testEngine.GetColumnMapper()
+	testEngine.UnMapType(rValue(new(IDGonicMapper)).Type())
 	testEngine.SetMapper(core.LintGonicMapper)
 	defer func() {
-		testEngine.unMapType(rValue(new(IDGonicMapper)).Type())
+		testEngine.UnMapType(rValue(new(IDGonicMapper)).Type())
 		testEngine.SetMapper(oldMapper)
 	}()
 
@@ -55,11 +55,11 @@ type IDSameMapper struct {
 func TestSameMapperID(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	oldMapper := testEngine.ColumnMapper
-	testEngine.unMapType(rValue(new(IDSameMapper)).Type())
+	oldMapper := testEngine.GetColumnMapper()
+	testEngine.UnMapType(rValue(new(IDSameMapper)).Type())
 	testEngine.SetMapper(core.SameMapper{})
 	defer func() {
-		testEngine.unMapType(rValue(new(IDSameMapper)).Type())
+		testEngine.UnMapType(rValue(new(IDSameMapper)).Type())
 		testEngine.SetMapper(oldMapper)
 	}()
 

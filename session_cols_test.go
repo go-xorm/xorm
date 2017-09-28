@@ -28,7 +28,7 @@ func TestSetExpr(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 
 	var not = "NOT"
-	if testEngine.dialect.DBType() == core.MSSQL {
+	if testEngine.Dialect().DBType() == core.MSSQL {
 		not = "~"
 	}
 	cnt, err = testEngine.SetExpr("show", not+" `show`").ID(1).Update(new(UserExpr))
