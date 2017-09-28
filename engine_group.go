@@ -21,7 +21,7 @@ func NewEngineGroup(args1 interface{}, args2 interface{}, policies ...GroupPolic
 	if len(policies) > 0 {
 		eg.policy = policies[0]
 	} else {
-		eg.policy = RandomPolicy()
+		eg.policy = RoundRobinPolicy()
 	}
 
 	driverName, ok1 := args1.(string)
