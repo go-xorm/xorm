@@ -47,10 +47,10 @@ func TestTimeUserTimeDiffLoc(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	loc, err := time.LoadLocation("Asia/Shanghai")
 	assert.NoError(t, err)
-	testEngine.TZLocation = loc
+	testEngine.SetTZLocation(loc)
 	dbLoc, err := time.LoadLocation("America/New_York")
 	assert.NoError(t, err)
-	testEngine.DatabaseTZ = dbLoc
+	testEngine.SetTZDatabase(dbLoc)
 
 	type TimeUser2 struct {
 		Id       string
@@ -112,10 +112,10 @@ func TestTimeUserCreatedDiffLoc(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	loc, err := time.LoadLocation("Asia/Shanghai")
 	assert.NoError(t, err)
-	testEngine.TZLocation = loc
+	testEngine.SetTZLocation(loc)
 	dbLoc, err := time.LoadLocation("America/New_York")
 	assert.NoError(t, err)
-	testEngine.DatabaseTZ = dbLoc
+	testEngine.SetTZDatabase(dbLoc)
 
 	type UserCreated2 struct {
 		Id        string
@@ -198,10 +198,10 @@ func TestTimeUserUpdatedDiffLoc(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	loc, err := time.LoadLocation("Asia/Shanghai")
 	assert.NoError(t, err)
-	testEngine.TZLocation = loc
+	testEngine.SetTZLocation(loc)
 	dbLoc, err := time.LoadLocation("America/New_York")
 	assert.NoError(t, err)
-	testEngine.DatabaseTZ = dbLoc
+	testEngine.SetTZDatabase(dbLoc)
 
 	type UserUpdated2 struct {
 		Id        string
@@ -302,10 +302,10 @@ func TestTimeUserDeletedDiffLoc(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	loc, err := time.LoadLocation("Asia/Shanghai")
 	assert.NoError(t, err)
-	testEngine.TZLocation = loc
+	testEngine.SetTZLocation(loc)
 	dbLoc, err := time.LoadLocation("America/New_York")
 	assert.NoError(t, err)
-	testEngine.DatabaseTZ = dbLoc
+	testEngine.SetTZDatabase(dbLoc)
 
 	type UserDeleted2 struct {
 		Id        string
@@ -426,10 +426,10 @@ func TestCustomTimeUserDeletedDiffLoc(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	loc, err := time.LoadLocation("Asia/Shanghai")
 	assert.NoError(t, err)
-	testEngine.TZLocation = loc
+	testEngine.SetTZLocation(loc)
 	dbLoc, err := time.LoadLocation("America/New_York")
 	assert.NoError(t, err)
-	testEngine.DatabaseTZ = dbLoc
+	testEngine.SetTZDatabase(dbLoc)
 
 	type UserDeleted4 struct {
 		Id        string

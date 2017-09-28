@@ -77,7 +77,7 @@ func TestDeleted(t *testing.T) {
 
 	// Test normal Find()
 	var records1 []Deleted
-	err = testEngine.Where("`"+testEngine.ColumnMapper.Obj2Table("Id")+"` > 0").Find(&records1, &Deleted{})
+	err = testEngine.Where("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").Find(&records1, &Deleted{})
 	assert.EqualValues(t, 3, len(records1))
 
 	// Test normal Get()
@@ -96,7 +96,7 @@ func TestDeleted(t *testing.T) {
 	assert.False(t, has)
 
 	var records2 []Deleted
-	err = testEngine.Where("`" + testEngine.ColumnMapper.Obj2Table("Id") + "` > 0").Find(&records2)
+	err = testEngine.Where("`" + testEngine.GetColumnMapper().Obj2Table("Id") + "` > 0").Find(&records2)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(records2))
 
@@ -117,7 +117,7 @@ func TestDeleted(t *testing.T) {
 
 	// Test find all records whatever `deleted`.
 	var unscopedRecords1 []Deleted
-	err = testEngine.Unscoped().Where("`"+testEngine.ColumnMapper.Obj2Table("Id")+"` > 0").Find(&unscopedRecords1, &Deleted{})
+	err = testEngine.Unscoped().Where("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").Find(&unscopedRecords1, &Deleted{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, len(unscopedRecords1))
 
@@ -127,13 +127,13 @@ func TestDeleted(t *testing.T) {
 	assert.EqualValues(t, 1, affected)
 
 	var unscopedRecords2 []Deleted
-	err = testEngine.Unscoped().Where("`"+testEngine.ColumnMapper.Obj2Table("Id")+"` > 0").Find(&unscopedRecords2, &Deleted{})
+	err = testEngine.Unscoped().Where("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").Find(&unscopedRecords2, &Deleted{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(unscopedRecords2))
 
 	var records3 []Deleted
-	err = testEngine.Where("`"+testEngine.ColumnMapper.Obj2Table("Id")+"` > 0").And("`"+testEngine.ColumnMapper.Obj2Table("Id")+"`> 1").
-		Or("`"+testEngine.ColumnMapper.Obj2Table("Id")+"` = ?", 3).Find(&records3)
+	err = testEngine.Where("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").And("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"`> 1").
+		Or("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` = ?", 3).Find(&records3)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(records3))
 }
@@ -141,7 +141,7 @@ func TestDeleted(t *testing.T) {
 func TestCacheDelete(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	oldCacher := testEngine.Cacher
+	oldCacher := testEngine.GetDefaultCacher()
 	cacher := NewLRUCacher(NewMemoryStore(), 1000)
 	testEngine.SetDefaultCacher(cacher)
 

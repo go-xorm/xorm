@@ -46,8 +46,8 @@ func TestSum(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, cnt)
 
-	colInt := testEngine.ColumnMapper.Obj2Table("Int")
-	colFloat := testEngine.ColumnMapper.Obj2Table("Float")
+	colInt := testEngine.GetColumnMapper().Obj2Table("Int")
+	colFloat := testEngine.GetColumnMapper().Obj2Table("Float")
 
 	sumInt, err := testEngine.Sum(new(SumStruct), colInt)
 	assert.NoError(t, err)
@@ -109,7 +109,7 @@ func TestCount(t *testing.T) {
 	}
 	assert.NoError(t, testEngine.Sync2(new(UserinfoCount)))
 
-	colName := testEngine.ColumnMapper.Obj2Table("Departname")
+	colName := testEngine.GetColumnMapper().Obj2Table("Departname")
 	var cond builder.Cond = builder.Eq{
 		"`" + colName + "`": "dev",
 	}

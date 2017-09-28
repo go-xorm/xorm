@@ -128,11 +128,11 @@ func TestCombineTransaction(t *testing.T) {
 func TestCombineTransactionSameMapper(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	oldMapper := testEngine.ColumnMapper
-	testEngine.unMapType(rValue(new(Userinfo)).Type())
+	oldMapper := testEngine.GetColumnMapper()
+	testEngine.UnMapType(rValue(new(Userinfo)).Type())
 	testEngine.SetMapper(core.SameMapper{})
 	defer func() {
-		testEngine.unMapType(rValue(new(Userinfo)).Type())
+		testEngine.UnMapType(rValue(new(Userinfo)).Type())
 		testEngine.SetMapper(oldMapper)
 	}()
 
