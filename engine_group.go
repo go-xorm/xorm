@@ -5,8 +5,6 @@
 package xorm
 
 import (
-	"strings"
-
 	"github.com/go-xorm/core"
 )
 
@@ -27,9 +25,8 @@ func NewEngineGroup(args1 interface{}, args2 interface{}, policies ...GroupPolic
 	}
 
 	driverName, ok1 := args1.(string)
-	dataSourceNames, ok2 := args2.(string)
+	conns, ok2 := args2.([]string)
 	if ok1 && ok2 {
-		conns := strings.Split(dataSourceNames, ";")
 		engines := make([]*Engine, len(conns))
 		for i, conn := range conns {
 			engine, err := NewEngine(driverName, conn)
