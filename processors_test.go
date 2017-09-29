@@ -964,3 +964,68 @@ func TestProcessorsTx(t *testing.T) {
 	session.Close()
 	// --
 }
+
+type AfterLoadStructA struct {
+	Id      int64
+	Content string
+}
+
+type AfterLoadStructB struct {
+	Id      int64
+	Content string
+	AId     int64
+	A       AfterLoadStructA `xorm:"-"`
+	Err     error            `xorm:"-"`
+}
+
+func (s *AfterLoadStructB) AfterLoad(session *Session) {
+	has, err := session.ID(s.AId).NoAutoCondition().Get(&s.A)
+	if err != nil {
+		s.Err = err
+		return
+	}
+	if !has {
+		s.Err = ErrNotExist
+	}
+}
+
+func TestAfterLoadProcessor(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	assertSync(t, new(AfterLoadStructA), new(AfterLoadStructB))
+
+	var a = AfterLoadStructA{
+		Content: "testa",
+	}
+	_, err := testEngine.Insert(&a)
+	assert.NoError(t, err)
+
+	var b = AfterLoadStructB{
+		Content: "testb",
+		AId:     a.Id,
+	}
+	_, err = testEngine.Insert(&b)
+	assert.NoError(t, err)
+
+	var b2 AfterLoadStructB
+	has, err := testEngine.ID(b.Id).Get(&b2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, a.Id, b2.A.Id)
+	assert.EqualValues(t, a.Content, b2.A.Content)
+	assert.NoError(t, b2.Err)
+
+	b.Id = 0
+	_, err = testEngine.Insert(&b)
+	assert.NoError(t, err)
+
+	var bs []AfterLoadStructB
+	err = testEngine.Find(&bs)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(bs))
+	for i := 0; i < len(bs); i++ {
+		assert.EqualValues(t, a.Id, bs[i].A.Id)
+		assert.EqualValues(t, a.Content, bs[i].A.Content)
+		assert.NoError(t, bs[i].Err)
+	}
+}
