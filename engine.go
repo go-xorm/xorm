@@ -1516,8 +1516,8 @@ func (engine *Engine) Import(r io.Reader) ([]sql.Result, error) {
 	return results, lastError
 }
 
-// NowTime return current time
-func (engine *Engine) NowTime(col *core.Column) (interface{}, time.Time) {
+// nowTime return current time
+func (engine *Engine) nowTime(col *core.Column) (interface{}, time.Time) {
 	t := time.Now()
 	var tz = engine.DatabaseTZ
 	if !col.DisableTimeZone && col.TimeZone != nil {
