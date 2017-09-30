@@ -126,13 +126,13 @@ func TestIsTableEmpty(t *testing.T) {
 
 	assert.NoError(t, testEngine.DropTables(&PictureEmpty{}, &NumericEmpty{}))
 
-	assert.NoError(t, testEngine.Sync(new(PictureEmpty), new(NumericEmpty)))
+	assert.NoError(t, testEngine.Sync2(new(PictureEmpty), new(NumericEmpty)))
 
 	isEmpty, err := testEngine.IsTableEmpty(&PictureEmpty{})
 	assert.NoError(t, err)
 	assert.True(t, isEmpty)
 
-	tbName := testEngine.TableMapper.Obj2Table("PictureEmpty")
+	tbName := testEngine.GetTableMapper().Obj2Table("PictureEmpty")
 	isEmpty, err = testEngine.IsTableEmpty(tbName)
 	assert.NoError(t, err)
 	assert.True(t, isEmpty)

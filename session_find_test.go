@@ -64,7 +64,7 @@ func TestJoinLimit(t *testing.T) {
 func assertSync(t *testing.T, beans ...interface{}) {
 	for _, bean := range beans {
 		assert.NoError(t, testEngine.DropTables(bean))
-		assert.NoError(t, testEngine.Sync(bean))
+		assert.NoError(t, testEngine.Sync2(bean))
 	}
 }
 
@@ -105,8 +105,8 @@ func TestFind(t *testing.T) {
 	}
 
 	users2 := make([]Userinfo, 0)
-	userinfo := testEngine.TableMapper.Obj2Table("Userinfo")
-	err = testEngine.Sql("select * from " + testEngine.Quote(userinfo)).Find(&users2)
+	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
+	err = testEngine.SQL("select * from " + testEngine.Quote(userinfo)).Find(&users2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -199,7 +199,7 @@ func TestDistinct(t *testing.T) {
 	assert.NoError(t, err)
 
 	users := make([]Userinfo, 0)
-	departname := testEngine.TableMapper.Obj2Table("Departname")
+	departname := testEngine.GetTableMapper().Obj2Table("Departname")
 	err = testEngine.Distinct(departname).Find(&users)
 	if err != nil {
 		t.Error(err)
@@ -273,13 +273,13 @@ func TestHaving(t *testing.T) {
 
 func TestOrderSameMapper(t *testing.T) {
 	assert.NoError(t, prepareEngine())
-	testEngine.unMapType(rValue(new(Userinfo)).Type())
+	testEngine.UnMapType(rValue(new(Userinfo)).Type())
 
-	mapper := testEngine.TableMapper
+	mapper := testEngine.GetTableMapper()
 	testEngine.SetMapper(core.SameMapper{})
 
 	defer func() {
-		testEngine.unMapType(rValue(new(Userinfo)).Type())
+		testEngine.UnMapType(rValue(new(Userinfo)).Type())
 		testEngine.SetMapper(mapper)
 	}()
 
@@ -304,12 +304,12 @@ func TestOrderSameMapper(t *testing.T) {
 
 func TestHavingSameMapper(t *testing.T) {
 	assert.NoError(t, prepareEngine())
-	testEngine.unMapType(rValue(new(Userinfo)).Type())
+	testEngine.UnMapType(rValue(new(Userinfo)).Type())
 
-	mapper := testEngine.TableMapper
+	mapper := testEngine.GetTableMapper()
 	testEngine.SetMapper(core.SameMapper{})
 	defer func() {
-		testEngine.unMapType(rValue(new(Userinfo)).Type())
+		testEngine.UnMapType(rValue(new(Userinfo)).Type())
 		testEngine.SetMapper(mapper)
 	}()
 	assertSync(t, new(Userinfo))
@@ -326,7 +326,7 @@ func TestFindInts(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
 
-	userinfo := testEngine.TableMapper.Obj2Table("Userinfo")
+	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
 	var idsInt64 []int64
 	err := testEngine.Table(userinfo).Cols("id").Desc("id").Find(&idsInt64)
 	if err != nil {
@@ -367,8 +367,8 @@ func TestFindInts(t *testing.T) {
 func TestFindStrings(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
-	userinfo := testEngine.TableMapper.Obj2Table("Userinfo")
-	username := testEngine.ColumnMapper.Obj2Table("Username")
+	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
+	username := testEngine.GetColumnMapper().Obj2Table("Username")
 	var idsString []string
 	err := testEngine.Table(userinfo).Cols(username).Desc("id").Find(&idsString)
 	if err != nil {
@@ -380,8 +380,8 @@ func TestFindStrings(t *testing.T) {
 func TestFindMyString(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
-	userinfo := testEngine.TableMapper.Obj2Table("Userinfo")
-	username := testEngine.ColumnMapper.Obj2Table("Username")
+	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
+	username := testEngine.GetColumnMapper().Obj2Table("Username")
 
 	var idsMyString []MyString
 	err := testEngine.Table(userinfo).Cols(username).Desc("id").Find(&idsMyString)
@@ -395,8 +395,8 @@ func TestFindInterface(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
 
-	userinfo := testEngine.TableMapper.Obj2Table("Userinfo")
-	username := testEngine.ColumnMapper.Obj2Table("Username")
+	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
+	username := testEngine.GetColumnMapper().Obj2Table("Username")
 	var idsInterface []interface{}
 	err := testEngine.Table(userinfo).Cols(username).Desc("id").Find(&idsInterface)
 	if err != nil {
@@ -409,7 +409,7 @@ func TestFindSliceBytes(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
 
-	userinfo := testEngine.TableMapper.Obj2Table("Userinfo")
+	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
 	var ids [][][]byte
 	err := testEngine.Table(userinfo).Desc("id").Find(&ids)
 	if err != nil {
@@ -424,7 +424,7 @@ func TestFindSlicePtrString(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
 
-	userinfo := testEngine.TableMapper.Obj2Table("Userinfo")
+	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
 	var ids [][]*string
 	err := testEngine.Table(userinfo).Desc("id").Find(&ids)
 	if err != nil {
@@ -439,7 +439,7 @@ func TestFindMapBytes(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
 
-	userinfo := testEngine.TableMapper.Obj2Table("Userinfo")
+	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
 	var ids []map[string][]byte
 	err := testEngine.Table(userinfo).Desc("id").Find(&ids)
 	if err != nil {
@@ -454,7 +454,7 @@ func TestFindMapPtrString(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
 
-	userinfo := testEngine.TableMapper.Obj2Table("Userinfo")
+	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
 	var ids []map[string]*string
 	err := testEngine.Table(userinfo).Desc("id").Find(&ids)
 	assert.NoError(t, err)

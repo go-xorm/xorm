@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	testEngine *Engine
+	testEngine EngineInterface
 	dbType     string
 	connString string
 
@@ -25,18 +25,26 @@ var (
 	ptrConnStr = flag.String("conn_str", "./test.db?cache=shared&mode=rwc", "test database connection string")
 	mapType    = flag.String("map_type", "snake", "indicate the name mapping")
 	cache      = flag.Bool("cache", false, "if enable cache")
+	cluster    = flag.Bool("cluster", false, "if this is a cluster")
+	splitter   = flag.String("splitter", ";", "the splitter on connstr for cluster")
 )
 
 func createEngine(dbType, connStr string) error {
 	if testEngine == nil {
 		var err error
-		testEngine, err = NewEngine(dbType, connStr)
+
+		if !*cluster {
+			testEngine, err = NewEngine(dbType, connStr)
+
+		} else {
+			testEngine, err = NewEngineGroup(dbType, strings.Split(connStr, *splitter))
+		}
 		if err != nil {
 			return err
 		}
 
 		testEngine.ShowSQL(*showSQL)
-		testEngine.logger.SetLevel(core.LOG_DEBUG)
+		testEngine.SetLogLevel(core.LOG_DEBUG)
 		if *cache {
 			cacher := NewLRUCacher(NewMemoryStore(), 100000)
 			testEngine.SetDefaultCacher(cacher)
