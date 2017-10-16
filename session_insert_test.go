@@ -219,7 +219,7 @@ func TestInsertDefault(t *testing.T) {
 	}
 
 	var di2 = DefaultInsert{Name: "test"}
-	_, err = testEngine.Omit(testEngine.ColumnMapper.Obj2Table("Status")).Insert(&di2)
+	_, err = testEngine.Omit(testEngine.GetColumnMapper().Obj2Table("Status")).Insert(&di2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -267,7 +267,7 @@ func TestInsertDefault2(t *testing.T) {
 	}
 
 	var di2 = DefaultInsert2{Name: "test"}
-	_, err = testEngine.Omit(testEngine.ColumnMapper.Obj2Table("CheckTime")).Insert(&di2)
+	_, err = testEngine.Omit(testEngine.GetColumnMapper().Obj2Table("CheckTime")).Insert(&di2)
 	if err != nil {
 		t.Error(err)
 	}

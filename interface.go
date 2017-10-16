@@ -23,6 +23,7 @@ type Interface interface {
 	CreateIndexes(bean interface{}) error
 	CreateUniques(bean interface{}) error
 	Decr(column string, arg ...interface{}) *Session
+	Desc(...string) *Session
 	Delete(interface{}) (int64, error)
 	Distinct(columns ...string) *Session
 	DropIndexes(bean interface{}) error
@@ -40,6 +41,7 @@ type Interface interface {
 	IsTableExist(beanOrTableName interface{}) (bool, error)
 	Iterate(interface{}, IterFunc) error
 	Limit(int, ...int) *Session
+	NoAutoCondition(...bool) *Session
 	NotIn(string, ...interface{}) *Session
 	Join(joinOperator string, tablename interface{}, condition string, args ...interface{}) *Session
 	Omit(columns ...string) *Session
@@ -58,6 +60,7 @@ type Interface interface {
 	Table(tableNameOrBean interface{}) *Session
 	Unscoped() *Session
 	Update(bean interface{}, condiBeans ...interface{}) (int64, error)
+	UseBool(...string) *Session
 	Where(interface{}, ...interface{}) *Session
 }
 
@@ -86,6 +89,7 @@ type EngineInterface interface {
 	SetTZDatabase(tz *time.Location)
 	SetTZLocation(tz *time.Location)
 	ShowSQL(show ...bool)
+	Sync(...interface{}) error
 	Sync2(...interface{}) error
 	StoreEngine(storeEngine string) *Session
 	TableInfo(bean interface{}) *Table
