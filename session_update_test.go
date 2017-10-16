@@ -83,7 +83,7 @@ type ForUpdate struct {
 	Name string
 }
 
-func setupForUpdate(engine *Engine) error {
+func setupForUpdate(engine EngineInterface) error {
 	v := new(ForUpdate)
 	err := testEngine.DropTables(v)
 	if err != nil {
@@ -110,7 +110,7 @@ func setupForUpdate(engine *Engine) error {
 }
 
 func TestForUpdate(t *testing.T) {
-	if testEngine.DriverName() != "mysql" && testEngine.DriverName() != "mymysql" {
+	if testEngine.Dialect().DriverName() != "mysql" && testEngine.Dialect().DriverName() != "mymysql" {
 		return
 	}
 
@@ -517,8 +517,8 @@ func TestUpdate1(t *testing.T) {
 		}
 
 		col2 := &UpdateMustCols{col1.Id, true, ""}
-		boolStr := testEngine.ColumnMapper.Obj2Table("Bool")
-		stringStr := testEngine.ColumnMapper.Obj2Table("String")
+		boolStr := testEngine.GetColumnMapper().Obj2Table("Bool")
+		stringStr := testEngine.GetColumnMapper().Obj2Table("String")
 		_, err = testEngine.ID(col2.Id).MustCols(boolStr, stringStr).Update(col2)
 		if err != nil {
 			t.Error(err)
@@ -559,7 +559,7 @@ func TestUpdateIncrDecr(t *testing.T) {
 	_, err := testEngine.Insert(col1)
 	assert.NoError(t, err)
 
-	colName := testEngine.ColumnMapper.Obj2Table("Cnt")
+	colName := testEngine.GetColumnMapper().Obj2Table("Cnt")
 
 	cnt, err := testEngine.ID(col1.Id).Incr(colName).Update(col1)
 	assert.NoError(t, err)
@@ -759,21 +759,21 @@ func TestUpdateUpdated(t *testing.T) {
 func TestUpdateSameMapper(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	oldMapper := testEngine.ColumnMapper
-	testEngine.unMapType(rValue(new(Userinfo)).Type())
-	testEngine.unMapType(rValue(new(Condi)).Type())
-	testEngine.unMapType(rValue(new(Article)).Type())
-	testEngine.unMapType(rValue(new(UpdateAllCols)).Type())
-	testEngine.unMapType(rValue(new(UpdateMustCols)).Type())
-	testEngine.unMapType(rValue(new(UpdateIncr)).Type())
+	oldMapper := testEngine.GetColumnMapper()
+	testEngine.UnMapType(rValue(new(Userinfo)).Type())
+	testEngine.UnMapType(rValue(new(Condi)).Type())
+	testEngine.UnMapType(rValue(new(Article)).Type())
+	testEngine.UnMapType(rValue(new(UpdateAllCols)).Type())
+	testEngine.UnMapType(rValue(new(UpdateMustCols)).Type())
+	testEngine.UnMapType(rValue(new(UpdateIncr)).Type())
 	testEngine.SetMapper(core.SameMapper{})
 	defer func() {
-		testEngine.unMapType(rValue(new(Userinfo)).Type())
-		testEngine.unMapType(rValue(new(Condi)).Type())
-		testEngine.unMapType(rValue(new(Article)).Type())
-		testEngine.unMapType(rValue(new(UpdateAllCols)).Type())
-		testEngine.unMapType(rValue(new(UpdateMustCols)).Type())
-		testEngine.unMapType(rValue(new(UpdateIncr)).Type())
+		testEngine.UnMapType(rValue(new(Userinfo)).Type())
+		testEngine.UnMapType(rValue(new(Condi)).Type())
+		testEngine.UnMapType(rValue(new(Article)).Type())
+		testEngine.UnMapType(rValue(new(UpdateAllCols)).Type())
+		testEngine.UnMapType(rValue(new(UpdateMustCols)).Type())
+		testEngine.UnMapType(rValue(new(UpdateIncr)).Type())
 		testEngine.SetMapper(oldMapper)
 	}()
 
@@ -943,8 +943,8 @@ func TestUpdateSameMapper(t *testing.T) {
 		}
 
 		col2 := &UpdateMustCols{col1.Id, true, ""}
-		boolStr := testEngine.ColumnMapper.Obj2Table("Bool")
-		stringStr := testEngine.ColumnMapper.Obj2Table("String")
+		boolStr := testEngine.GetColumnMapper().Obj2Table("Bool")
+		stringStr := testEngine.GetColumnMapper().Obj2Table("String")
 		_, err = testEngine.ID(col2.Id).MustCols(boolStr, stringStr).Update(col2)
 		if err != nil {
 			t.Error(err)

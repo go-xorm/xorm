@@ -154,7 +154,7 @@ func TestConversion(t *testing.T) {
 
 	c := new(ConvStruct)
 	assert.NoError(t, testEngine.DropTables(c))
-	assert.NoError(t, testEngine.Sync(c))
+	assert.NoError(t, testEngine.Sync2(c))
 
 	var s ConvString = "sssss"
 	c.Conv = "tttt"
@@ -304,7 +304,7 @@ func TestCustomType2(t *testing.T) {
 	err := testEngine.CreateTables(&UserCus{})
 	assert.NoError(t, err)
 
-	tableName := testEngine.TableMapper.Obj2Table("UserCus")
+	tableName := testEngine.GetTableMapper().Obj2Table("UserCus")
 	_, err = testEngine.Exec("delete from " + testEngine.Quote(tableName))
 	assert.NoError(t, err)
 
@@ -327,7 +327,7 @@ func TestCustomType2(t *testing.T) {
 	fmt.Println(user)
 
 	users := make([]UserCus, 0)
-	err = testEngine.Where("`"+testEngine.ColumnMapper.Obj2Table("Status")+"` = ?", "Registed").Find(&users)
+	err = testEngine.Where("`"+testEngine.GetColumnMapper().Obj2Table("Status")+"` = ?", "Registed").Find(&users)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(users))
 

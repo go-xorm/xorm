@@ -183,7 +183,7 @@ func TestIn(t *testing.T) {
 		idsInterface = append(idsInterface, id)
 	}
 
-	department := "`" + testEngine.ColumnMapper.Obj2Table("Departname") + "`"
+	department := "`" + testEngine.GetColumnMapper().Obj2Table("Departname") + "`"
 	err = testEngine.Where(department+" = ?", "dev").In("(id)", idsInterface...).Find(&users)
 	if err != nil {
 		t.Error(err)
@@ -205,7 +205,7 @@ func TestIn(t *testing.T) {
 		}
 	}
 
-	dev := testEngine.ColumnMapper.Obj2Table("Dev")
+	dev := testEngine.GetColumnMapper().Obj2Table("Dev")
 
 	err = testEngine.In("(id)", 1).In("(id)", 2).In(department, dev).Find(&users)
 
