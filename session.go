@@ -816,7 +816,7 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 func (session *Session) saveLastSQL(sql string, args ...interface{}) {
 	session.lastSQL = sql
 	session.lastSQLArgs = args
-	session.engine.logSQL(sql, args...)
+	session.engine.logSQL(session, sql, args...)
 }
 
 // LastSQL returns last query information
