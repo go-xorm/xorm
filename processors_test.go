@@ -1029,3 +1029,22 @@ func TestAfterLoadProcessor(t *testing.T) {
 		assert.NoError(t, bs[i].Err)
 	}
 }
+
+type AfterInsertStruct struct {
+	Id int64
+}
+
+func (a *AfterInsertStruct) AfterInsert() {
+	if a.Id == 0 {
+		panic("a.Id")
+	}
+}
+
+func TestAfterInsert(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	assertSync(t, new(AfterInsertStruct))
+
+	_, err := testEngine.Insert(&AfterInsertStruct{})
+	assert.NoError(t, err)
+}
