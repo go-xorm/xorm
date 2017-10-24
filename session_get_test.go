@@ -72,7 +72,7 @@ func TestGetVar(t *testing.T) {
 	assert.Equal(t, "1.5", valuesString["money"])
 
 	// for mymysql driver, interface{} will be []byte, so ignore it currently
-	if testEngine.dialect.DriverName() != "mymysql" {
+	if testEngine.Dialect().DriverName() != "mymysql" {
 		var valuesInter = make(map[string]interface{})
 		has, err = testEngine.Table("get_var").Where("id = ?", 1).Select("*").Get(&valuesInter)
 		assert.NoError(t, err)
@@ -121,10 +121,10 @@ func TestGetStruct(t *testing.T) {
 		IsMan bool
 	}
 
-	assert.NoError(t, testEngine.Sync(new(UserinfoGet)))
+	assert.NoError(t, testEngine.Sync2(new(UserinfoGet)))
 
 	var err error
-	if testEngine.dialect.DBType() == core.MSSQL {
+	if testEngine.Dialect().DBType() == core.MSSQL {
 		_, err = testEngine.Exec("SET IDENTITY_INSERT userinfo_get ON")
 		assert.NoError(t, err)
 	}
@@ -143,9 +143,9 @@ func TestGetStruct(t *testing.T) {
 		Total  int64
 	}
 
-	assert.NoError(t, testEngine.Sync(&NoIdUser{}))
+	assert.NoError(t, testEngine.Sync2(&NoIdUser{}))
 
-	userCol := testEngine.ColumnMapper.Obj2Table("User")
+	userCol := testEngine.GetColumnMapper().Obj2Table("User")
 	_, err = testEngine.Where("`"+userCol+"` = ?", "xlw").Delete(&NoIdUser{})
 	assert.NoError(t, err)
 

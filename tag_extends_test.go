@@ -202,13 +202,13 @@ func TestExtends(t *testing.T) {
 
 	var info UserAndDetail
 	qt := testEngine.Quote
-	ui := testEngine.TableMapper.Obj2Table("Userinfo")
-	ud := testEngine.TableMapper.Obj2Table("Userdetail")
-	uiid := testEngine.TableMapper.Obj2Table("Id")
+	ui := testEngine.GetTableMapper().Obj2Table("Userinfo")
+	ud := testEngine.GetTableMapper().Obj2Table("Userdetail")
+	uiid := testEngine.GetTableMapper().Obj2Table("Id")
 	udid := "detail_id"
 	sql := fmt.Sprintf("select * from %s, %s where %s.%s = %s.%s",
 		qt(ui), qt(ud), qt(ui), qt(udid), qt(ud), qt(uiid))
-	b, err := testEngine.Sql(sql).NoCascade().Get(&info)
+	b, err := testEngine.SQL(sql).NoCascade().Get(&info)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -329,7 +329,7 @@ func TestExtends2(t *testing.T) {
 		Uid:     sender.Id,
 		ToUid:   receiver.Id,
 	}
-	if testEngine.dialect.DBType() == core.MSSQL {
+	if testEngine.Dialect().DBType() == core.MSSQL {
 		_, err = testEngine.Exec("SET IDENTITY_INSERT message ON")
 		assert.NoError(t, err)
 	}
@@ -340,7 +340,7 @@ func TestExtends2(t *testing.T) {
 		panic(err)
 	}
 
-	var mapper = testEngine.TableMapper.Obj2Table
+	var mapper = testEngine.GetTableMapper().Obj2Table
 	userTableName := mapper("MessageUser")
 	typeTableName := mapper("MessageType")
 	msgTableName := mapper("Message")
@@ -401,7 +401,7 @@ func TestExtends3(t *testing.T) {
 		Uid:     sender.Id,
 		ToUid:   receiver.Id,
 	}
-	if testEngine.dialect.DBType() == core.MSSQL {
+	if testEngine.Dialect().DBType() == core.MSSQL {
 		_, err = testEngine.Exec("SET IDENTITY_INSERT message ON")
 		assert.NoError(t, err)
 	}
@@ -411,7 +411,7 @@ func TestExtends3(t *testing.T) {
 		panic(err)
 	}
 
-	var mapper = testEngine.TableMapper.Obj2Table
+	var mapper = testEngine.GetTableMapper().Obj2Table
 	userTableName := mapper("MessageUser")
 	typeTableName := mapper("MessageType")
 	msgTableName := mapper("Message")
@@ -488,7 +488,7 @@ func TestExtends4(t *testing.T) {
 		Content: "test",
 		Uid:     sender.Id,
 	}
-	if testEngine.dialect.DBType() == core.MSSQL {
+	if testEngine.Dialect().DBType() == core.MSSQL {
 		_, err = testEngine.Exec("SET IDENTITY_INSERT message ON")
 		assert.NoError(t, err)
 	}
@@ -498,7 +498,7 @@ func TestExtends4(t *testing.T) {
 		panic(err)
 	}
 
-	var mapper = testEngine.TableMapper.Obj2Table
+	var mapper = testEngine.GetTableMapper().Obj2Table
 	userTableName := mapper("MessageUser")
 	typeTableName := mapper("MessageType")
 	msgTableName := mapper("Message")

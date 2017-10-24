@@ -20,7 +20,7 @@ func TestCacheFind(t *testing.T) {
 		Password string
 	}
 
-	oldCacher := testEngine.Cacher
+	oldCacher := testEngine.GetDefaultCacher()
 	cacher := NewLRUCacher2(NewMemoryStore(), time.Hour, 10000)
 	testEngine.SetDefaultCacher(cacher)
 
@@ -95,7 +95,7 @@ func TestCacheFind2(t *testing.T) {
 		Password string
 	}
 
-	oldCacher := testEngine.Cacher
+	oldCacher := testEngine.GetDefaultCacher()
 	cacher := NewLRUCacher2(NewMemoryStore(), time.Hour, 10000)
 	testEngine.SetDefaultCacher(cacher)
 
@@ -146,7 +146,7 @@ func TestCacheGet(t *testing.T) {
 		Password string
 	}
 
-	oldCacher := testEngine.Cacher
+	oldCacher := testEngine.GetDefaultCacher()
 	cacher := NewLRUCacher2(NewMemoryStore(), time.Hour, 10000)
 	testEngine.SetDefaultCacher(cacher)
 

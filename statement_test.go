@@ -163,10 +163,20 @@ func (TestType) TableName() string {
 }
 
 func createTestStatement() *Statement {
-	statement := &Statement{}
-	statement.Init()
-	statement.Engine = testEngine
-	statement.setRefValue(reflect.ValueOf(TestType{}))
+	if engine, ok := testEngine.(*Engine); ok {
+		statement := &Statement{}
+		statement.Init()
+		statement.Engine = engine
+		statement.setRefValue(reflect.ValueOf(TestType{}))
 
-	return statement
+		return statement
+	} else if eg, ok := testEngine.(*EngineGroup); ok {
+		statement := &Statement{}
+		statement.Init()
+		statement.Engine = eg.Engine
+		statement.setRefValue(reflect.ValueOf(TestType{}))
+
+		return statement
+	}
+	return nil
 }
