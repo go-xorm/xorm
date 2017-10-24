@@ -1034,8 +1034,8 @@ type AfterInsertStruct struct {
 	Id int64
 }
 
-func (a *AfterInsertStruct) AftertInsert(bean interface{}) {
-	if a.Id != 0 {
+func (a *AfterInsertStruct) AfterInsert() {
+	if a.Id == 0 {
 		panic("a.Id")
 	}
 }
