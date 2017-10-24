@@ -194,3 +194,36 @@ func TestGetError(t *testing.T) {
 	assert.False(t, has)
 	assert.NoError(t, err)
 }
+
+func TestJSONString(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type JsonString struct {
+		Id      int64
+		Content string `xorm:"json"`
+	}
+	type JsonJson struct {
+		Id      int64
+		Content []string `xorm:"json"`
+	}
+
+	assertSync(t, new(JsonJson))
+
+	_, err := testEngine.Insert(&JsonJson{
+		Content: []string{"1", "2"},
+	})
+	assert.NoError(t, err)
+
+	var js JsonString
+	has, err := testEngine.Table("json_json").Get(&js)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 1, js.Id)
+	assert.EqualValues(t, `["1","2"]`, js.Content)
+
+	var jss []JsonString
+	err = testEngine.Table("json_json").Find(&jss)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(jss))
+	assert.EqualValues(t, `["1","2"]`, jss[0].Content)
+}
