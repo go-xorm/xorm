@@ -286,11 +286,12 @@ func ExtendsTagHandler(ctx *tagContext) error {
 		if err != nil {
 			return err
 		}
-		for _, col := range parentTable.Columns() {
+		for _, oriCol := range parentTable.Columns() {
+			col := *oriCol
 			col.FieldName = fmt.Sprintf("%v.%v", ctx.col.FieldName, col.FieldName)
-			ctx.table.AddColumn(col)
+			ctx.table.AddColumn(&col)
 			for indexName, indexType := range col.Indexes {
-				addIndex(indexName, ctx.table, col, indexType)
+				addIndex(indexName, ctx.table, &col, indexType)
 			}
 		}
 	default:
