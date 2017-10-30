@@ -160,6 +160,9 @@ func (statement *Statement) And(query interface{}, args ...interface{}) *Stateme
 	case string:
 		cond := builder.Expr(query.(string), args...)
 		statement.cond = statement.cond.And(cond)
+	case map[string]interface{}:
+		cond := builder.Eq(query.(map[string]interface{}))
+		statement.cond = statement.cond.And(cond)
 	case builder.Cond:
 		cond := query.(builder.Cond)
 		statement.cond = statement.cond.And(cond)
@@ -180,6 +183,9 @@ func (statement *Statement) Or(query interface{}, args ...interface{}) *Statemen
 	switch query.(type) {
 	case string:
 		cond := builder.Expr(query.(string), args...)
+		statement.cond = statement.cond.Or(cond)
+	case map[string]interface{}:
+		cond := builder.Eq(query.(map[string]interface{}))
 		statement.cond = statement.cond.Or(cond)
 	case builder.Cond:
 		cond := query.(builder.Cond)

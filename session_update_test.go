@@ -1215,3 +1215,34 @@ func TestCreatedUpdated2(t *testing.T) {
 	assert.True(t, s2.UpdateAt.Unix() > s.UpdateAt.Unix())
 	assert.True(t, s2.UpdateAt.Unix() > s2.CreateAt.Unix())
 }
+
+func TestUpdateMapCondition(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type UpdateMapCondition struct {
+		Id     int64
+		String string
+	}
+
+	assertSync(t, new(UpdateMapCondition))
+
+	var c = UpdateMapCondition{
+		String: "string",
+	}
+	_, err := testEngine.Insert(&c)
+	assert.NoError(t, err)
+
+	cnt, err := testEngine.Update(&UpdateMapCondition{
+		String: "string1",
+	}, map[string]interface{}{
+		"id": c.Id,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var c2 UpdateMapCondition
+	has, err := testEngine.ID(c.Id).Get(&c2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "string1", c2.String)
+}
