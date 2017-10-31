@@ -5,7 +5,6 @@
 package xorm
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,36 +13,36 @@ import (
 func TestBelongsTo_Get(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	type Face struct {
+	type Face1 struct {
 		Id   int64
 		Name string
 	}
 
-	type Nose struct {
+	type Nose1 struct {
 		Id   int64
-		Face Face `xorm:"belongs_to"`
+		Face Face1 `xorm:"belongs_to"`
 	}
 
-	err := testEngine.Sync2(new(Nose), new(Face))
+	err := testEngine.Sync2(new(Nose1), new(Face1))
 	assert.NoError(t, err)
 
-	var face = Face{
+	var face = Face1{
 		Name: "face1",
 	}
 	_, err = testEngine.Insert(&face)
 	assert.NoError(t, err)
 
-	var cfgFace Face
+	var cfgFace Face1
 	has, err := testEngine.Get(&cfgFace)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, face, cfgFace)
 
-	var nose = Nose{Face: face}
+	var nose = Nose1{Face: face}
 	_, err = testEngine.Insert(&nose)
 	assert.NoError(t, err)
 
-	var cfgNose Nose
+	var cfgNose Nose1
 	has, err = testEngine.Get(&cfgNose)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
@@ -57,7 +56,7 @@ func TestBelongsTo_Get(t *testing.T) {
 	assert.Equal(t, nose.Face.Id, cfgNose.Face.Id)
 	assert.Equal(t, "face1", cfgNose.Face.Name)
 
-	var cfgNose2 Nose
+	var cfgNose2 Nose1
 	has, err = testEngine.Cascade().Get(&cfgNose2)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
@@ -69,36 +68,36 @@ func TestBelongsTo_Get(t *testing.T) {
 func TestBelongsTo_GetPtr(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	type Face struct {
+	type Face2 struct {
 		Id   int64
 		Name string
 	}
 
-	type Nose struct {
+	type Nose2 struct {
 		Id   int64
-		Face *Face `xorm:"belongs_to"`
+		Face *Face2 `xorm:"belongs_to"`
 	}
 
-	err := testEngine.Sync2(new(Nose), new(Face))
+	err := testEngine.Sync2(new(Nose2), new(Face2))
 	assert.NoError(t, err)
 
-	var face = Face{
+	var face = Face2{
 		Name: "face1",
 	}
 	_, err = testEngine.Insert(&face)
 	assert.NoError(t, err)
 
-	var cfgFace Face
+	var cfgFace Face2
 	has, err := testEngine.Get(&cfgFace)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, face, cfgFace)
 
-	var nose = Nose{Face: &face}
+	var nose = Nose2{Face: &face}
 	_, err = testEngine.Insert(&nose)
 	assert.NoError(t, err)
 
-	var cfgNose Nose
+	var cfgNose Nose2
 	has, err = testEngine.Get(&cfgNose)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
@@ -111,7 +110,7 @@ func TestBelongsTo_GetPtr(t *testing.T) {
 	assert.Equal(t, nose.Face.Id, cfgNose.Face.Id)
 	assert.Equal(t, "face1", cfgNose.Face.Name)
 
-	var cfgNose2 Nose
+	var cfgNose2 Nose2
 	has, err = testEngine.Cascade().Get(&cfgNose2)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
@@ -123,36 +122,36 @@ func TestBelongsTo_GetPtr(t *testing.T) {
 func TestBelongsTo_Find(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	type Face struct {
+	type Face3 struct {
 		Id   int64
 		Name string
 	}
 
-	type Nose struct {
+	type Nose3 struct {
 		Id   int64
-		Face Face `xorm:"belongs_to"`
+		Face Face3 `xorm:"belongs_to"`
 	}
 
-	err := testEngine.Sync2(new(Nose), new(Face))
+	err := testEngine.Sync2(new(Nose3), new(Face3))
 	assert.NoError(t, err)
 
-	var face1 = Face{
+	var face1 = Face3{
 		Name: "face1",
 	}
-	var face2 = Face{
+	var face2 = Face3{
 		Name: "face2",
 	}
 	_, err = testEngine.Insert(&face1, &face2)
 	assert.NoError(t, err)
 
-	var noses = []Nose{
+	var noses = []Nose3{
 		{Face: face1},
 		{Face: face2},
 	}
 	_, err = testEngine.Insert(&noses)
 	assert.NoError(t, err)
 
-	var noses1 []Nose
+	var noses1 []Nose3
 	err = testEngine.Find(&noses1)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(noses1))
@@ -161,50 +160,54 @@ func TestBelongsTo_Find(t *testing.T) {
 	assert.Equal(t, "", noses1[0].Face.Name)
 	assert.Equal(t, "", noses1[1].Face.Name)
 
-	var noses2 []Nose
+	var noses2 []Nose3
 	err = testEngine.Cascade().Find(&noses2)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(noses2))
-	fmt.Println("noses:", noses2)
 	assert.Equal(t, face1.Id, noses2[0].Face.Id)
 	assert.Equal(t, face2.Id, noses2[1].Face.Id)
 	assert.Equal(t, "face1", noses2[0].Face.Name)
 	assert.Equal(t, "face2", noses2[1].Face.Name)
+
+	err = testEngine.Load(noses1, "face")
+	assert.NoError(t, err)
+	assert.Equal(t, "face1", noses1[0].Face.Name)
+	assert.Equal(t, "face2", noses1[1].Face.Name)
 }
 
 func TestBelongsTo_FindPtr(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	type Face struct {
+	type Face4 struct {
 		Id   int64
 		Name string
 	}
 
-	type Nose struct {
+	type Nose4 struct {
 		Id   int64
-		Face *Face `xorm:"belongs_to"`
+		Face *Face4 `xorm:"belongs_to"`
 	}
 
-	err := testEngine.Sync2(new(Nose), new(Face))
+	err := testEngine.Sync2(new(Nose4), new(Face4))
 	assert.NoError(t, err)
 
-	var face1 = Face{
+	var face1 = Face4{
 		Name: "face1",
 	}
-	var face2 = Face{
+	var face2 = Face4{
 		Name: "face2",
 	}
 	_, err = testEngine.Insert(&face1, &face2)
 	assert.NoError(t, err)
 
-	var noses = []Nose{
+	var noses = []Nose4{
 		{Face: &face1},
 		{Face: &face2},
 	}
 	_, err = testEngine.Insert(&noses)
 	assert.NoError(t, err)
 
-	var noses1 []Nose
+	var noses1 []Nose4
 	err = testEngine.Find(&noses1)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(noses1))
@@ -213,7 +216,7 @@ func TestBelongsTo_FindPtr(t *testing.T) {
 	assert.Equal(t, "", noses1[0].Face.Name)
 	assert.Equal(t, "", noses1[1].Face.Name)
 
-	var noses2 []Nose
+	var noses2 []Nose4
 	err = testEngine.Cascade().Find(&noses2)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(noses2))
@@ -223,4 +226,7 @@ func TestBelongsTo_FindPtr(t *testing.T) {
 	assert.Equal(t, face2.Id, noses2[1].Face.Id)
 	assert.Equal(t, "face1", noses2[0].Face.Name)
 	assert.Equal(t, "face2", noses2[1].Face.Name)
+
+	err = testEngine.Load(noses2, "face")
+	assert.NoError(t, err)
 }

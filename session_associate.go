@@ -27,7 +27,7 @@ func (session *Session) Load(beanOrSlices interface{}, cols ...string) error {
 
 // loadFind load 's belongs to tag field immedicatlly
 func (session *Session) loadFind(slices interface{}, cols ...string) error {
-	/*v := reflect.ValueOf(slices)
+	v := reflect.ValueOf(slices)
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
@@ -43,12 +43,12 @@ func (session *Session) loadFind(slices interface{}, cols ...string) error {
 	if vv.Kind() == reflect.Ptr {
 		vv = vv.Elem()
 	}
-	tb, err := session.Engine.autoMapType(vv)
+	tb, err := session.engine.autoMapType(vv)
 	if err != nil {
 		return err
 	}
 
-	var pks = make(map[string][]core.PK)
+	var pks = make(map[*core.Column][]interface{})
 	for i := 0; i < v.Len(); i++ {
 		ev := v.Index(i)
 
@@ -64,33 +64,32 @@ func (session *Session) loadFind(slices interface{}, cols ...string) error {
 						return err
 					}
 
-					pk, err := session.Engine.idOfV(*colV)
+					pk, err := session.engine.idOfV(*colV)
 					if err != nil {
 						return err
 					}
-					var colPtr reflect.Value
+					/*var colPtr reflect.Value
 					if colV.Kind() == reflect.Ptr {
 						colPtr = *colV
 					} else {
 						colPtr = colV.Addr()
-					}
+					}*/
 
 					if !isZero(pk[0]) {
-						pks[col.Name] = append(pks[col.Name], pk)
+						pks[col] = append(pks[col], pk[0])
 					}
 				}
 			}
 		}
 	}
 
-	for colName, pk := range pks {
-		slice := reflect.MakeSlice(tp, 0, len(pk))
-		err = session.In("", pk).Find(slice.Addr().Interafce())
+	for col, pk := range pks {
+		slice := reflect.MakeSlice(col.FieldType, 0, len(pk))
+		err = session.In(col.Name, pk...).find(slice.Addr().Interface())
 		if err != nil {
 			return err
 		}
-
-	}*/
+	}
 	return nil
 }
 
