@@ -193,7 +193,7 @@ type UserDetail struct {
 }
 
 var users []UserDetail
-err := engine.Table("user").Select("user.*, detail.*")
+err := engine.Table("user").Select("user.*, detail.*").
     Join("INNER", "detail", "detail.user_id = user.id").
     Where("user.name = ?", name).Limit(10, 0).
     Find(&users)
