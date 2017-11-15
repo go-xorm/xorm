@@ -8,15 +8,75 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/core"
 )
 
 // Query runs a raw sql and return records as []map[string][]byte
-func (session *Session) Query(sqlStr string, args ...interface{}) ([]map[string][]byte, error) {
+func (session *Session) Query(sqlorArgs ...interface{}) ([]map[string][]byte, error) {
 	if session.isAutoClose {
 		defer session.Close()
+	}
+
+	var sqlStr string
+	var args []interface{}
+	if len(sqlorArgs) == 0 {
+		if session.statement.RawSQL != "" {
+			sqlStr = session.statement.RawSQL
+			args = session.statement.RawParams
+		} else {
+			if len(session.statement.TableName()) <= 0 {
+				return nil, ErrTableNotFound
+			}
+
+			var columnStr = session.statement.ColumnStr
+			if len(session.statement.selectStr) > 0 {
+				columnStr = session.statement.selectStr
+			} else {
+				if session.statement.JoinStr == "" {
+					if columnStr == "" {
+						if session.statement.GroupByStr != "" {
+							columnStr = session.statement.Engine.Quote(strings.Replace(session.statement.GroupByStr, ",", session.engine.Quote(","), -1))
+						} else {
+							columnStr = session.statement.genColumnStr()
+						}
+					}
+				} else {
+					if columnStr == "" {
+						if session.statement.GroupByStr != "" {
+							columnStr = session.statement.Engine.Quote(strings.Replace(session.statement.GroupByStr, ",", session.engine.Quote(","), -1))
+						} else {
+							columnStr = "*"
+						}
+					}
+				}
+				if columnStr == "" {
+					columnStr = "*"
+				}
+			}
+
+			condSQL, condArgs, err := builder.ToSQL(session.statement.cond)
+			if err != nil {
+				return nil, err
+			}
+
+			args = append(session.statement.joinArgs, condArgs...)
+			sqlStr, err = session.statement.genSelectSQL(columnStr, condSQL)
+			if err != nil {
+				return nil, err
+			}
+			// for mssql and use limit
+			qs := strings.Count(sqlStr, "?")
+			if len(args)*2 == qs {
+				args = append(args, args...)
+			}
+		}
+	} else {
+		sqlStr = sqlorArgs[0].(string)
+		args = sqlorArgs[1:]
 	}
 
 	return session.queryBytes(sqlStr, args...)
