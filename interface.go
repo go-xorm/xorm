@@ -47,7 +47,7 @@ type Interface interface {
 	Omit(columns ...string) *Session
 	OrderBy(order string) *Session
 	Ping() error
-	Query(sql string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error)
+	Query(sqlOrAgrs ...interface{}) (resultsSlice []map[string][]byte, err error)
 	QueryInterface(sqlStr string, args ...interface{}) ([]map[string]interface{}, error)
 	QueryString(sqlStr string, args ...interface{}) ([]map[string]string, error)
 	Rows(bean interface{}) (*Rows, error)

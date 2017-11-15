@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestQuery(t *testing.T) {
+func TestExecAndQuery(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UserinfoQuery struct {
