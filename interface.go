@@ -48,8 +48,8 @@ type Interface interface {
 	OrderBy(order string) *Session
 	Ping() error
 	Query(sqlOrAgrs ...interface{}) (resultsSlice []map[string][]byte, err error)
-	QueryInterface(sqlStr string, args ...interface{}) ([]map[string]interface{}, error)
-	QueryString(sqlStr string, args ...interface{}) ([]map[string]string, error)
+	QueryInterface(sqlorArgs ...interface{}) ([]map[string]interface{}, error)
+	QueryString(sqlorArgs ...interface{}) ([]map[string]string, error)
 	Rows(bean interface{}) (*Rows, error)
 	SetExpr(string, string) *Session
 	SQL(interface{}, ...interface{}) *Session
