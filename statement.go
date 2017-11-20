@@ -907,8 +907,12 @@ func (statement *Statement) genDelIndexSQL() []string {
 
 func (statement *Statement) genAddColumnStr(col *core.Column) (string, []interface{}) {
 	quote := statement.Engine.Quote
-	sql := fmt.Sprintf("ALTER TABLE %v ADD %v;", quote(statement.TableName()),
+	sql := fmt.Sprintf("ALTER TABLE %v ADD %v", quote(statement.TableName()),
 		col.String(statement.Engine.dialect))
+	if statement.Engine.dialect.DBType() == core.MYSQL && len(col.Comment) > 0 {
+		sql += " COMMENT '" + col.Comment + "'"
+	}
+	sql += ";"
 	return sql, []interface{}{}
 }
 
