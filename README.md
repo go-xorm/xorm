@@ -28,6 +28,8 @@ Xorm is a simple and powerful ORM for Go.
 
 * SQL Builder support via [github.com/go-xorm/builder](https://github.com/go-xorm/builder)
 
+* Automatical Read/Write seperatelly
+
 # Drivers Support
 
 Drivers for Go's sql package which currently support database/sql includes:
@@ -48,6 +50,13 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 # Changelog
 
+* **v0.6.4**
+    * Automatical Read/Write seperatelly
+    * Query/QueryString/QueryInterface and action with Where/And
+    * Get support non-struct variables
+    * BufferSize on Iterate
+    * fix some other bugs.
+
 * **v0.6.3**
     * merge tests to main project
     * add `Exist` function
@@ -60,13 +69,6 @@ Drivers for Go's sql package which currently support database/sql includes:
     * refactor tag parse methods
     * add Scan features to Get
     * add QueryString method
-
-* **v0.6.0**
-    * remove support for ql
-    * add query condition builder support via [github.com/go-xorm/builder](https://github.com/go-xorm/builder), so `Where`, `And`, `Or` 
-methods can use `builder.Cond` as parameter
-    * add Sum, SumInt, SumInt64 and NotIn methods
-    * some bugs fixed
 
 [More changes ...](https://github.com/go-xorm/manual-en-US/tree/master/chapter-16)
 
@@ -106,12 +108,33 @@ type User struct {
 err := engine.Sync2(new(User))
 ```
 
-* `Query` runs a SQL string, the returned results is `[]map[string][]byte`, `QueryString` returns `[]map[string]string`.
+* Create Engine Group
+
+```Go
+dataSourceNameSlice := []string{masterDataSourceName, slave1DataSourceName, slave2DataSourceName}
+engineGroup, err := xorm.NewEngineGroup(driverName, dataSourceNameSlice)
+```
+
+```Go
+masterEngine, err := xorm.NewEngine(driverName, masterDataSourceName)
+slave1Engine, err := xorm.NewEngine(driverName, slave1DataSourceName)
+slave2Engine, err := xorm.NewEngine(driverName, slave2DataSourceName)
+engineGroup, err := xorm.NewEngineGroup(masterEngine, []*Engine{slave1Engine, slave2Engine})
+```
+
+Then all place where `engine` you can just use `engineGroup`.
+
+* `Query` runs a SQL string, the returned results is `[]map[string][]byte`, `QueryString` returns `[]map[string]string`, `QueryInterface` returns `[]map[string]interface{}`.
 
 ```Go
 results, err := engine.Query("select * from user")
+results, err := engine.Where("a = 1").Query()
 
 results, err := engine.QueryString("select * from user")
+results, err := engine.Where("a = 1").QueryString()
+
+results, err := engine.QueryInterface("select * from user")
+results, err := engine.Where("a = 1").QueryInterface()
 ```
 
 * `Execute` runs a SQL string, it returns `affected` and `error`
@@ -147,6 +170,7 @@ has, err := engine.Where("id = ?", id).Cols("name").Get(&name)
 // SELECT name FROM user WHERE id = ?
 var id int64
 has, err := engine.Where("name = ?", name).Cols("id").Get(&id)
+has, err := engine.SQL("select id from user").Get(&id)
 // SELECT id FROM user WHERE name = ?
 var valuesMap = make(map[string]string)
 has, err := engine.Where("id = ?", id).Get(&valuesMap)
@@ -256,6 +280,22 @@ affected, err := engine.Id(2).Delete(&user)
 ```Go
 counts, err := engine.Count(&user)
 // SELECT count(*) AS total FROM user
+```
+
+* Sum functions
+
+```Go
+agesFloat64, err := engine.Sum(&user, "age")
+// SELECT sum(age) AS total FROM user
+
+agesInt64, err := engine.SumInt(&user, "age")
+// SELECT sum(age) AS total FROM user
+
+sumFloat64Slice, err := engine.Sums(&user, "age", "score")
+// SELECT sum(age), sum(score) FROM user
+
+sumInt64Slice, err := engine.SumsInt(&user, "age", "score")
+// SELECT sum(age), sum(score) FROM user
 ```
 
 * Query conditions builder

@@ -115,12 +115,33 @@ type User struct {
 err := engine.Sync2(new(User))
 ```
 
-* `Query` 最原始的也支持SQL语句查询，返回的结果类型为 []map[string][]byte。`QueryString` 返回 []map[string]string
+* 创建Engine组
+
+```Go
+dataSourceNameSlice := []string{masterDataSourceName, slave1DataSourceName, slave2DataSourceName}
+engineGroup, err := xorm.NewEngineGroup(driverName, dataSourceNameSlice)
+```
+
+```Go
+masterEngine, err := xorm.NewEngine(driverName, masterDataSourceName)
+slave1Engine, err := xorm.NewEngine(driverName, slave1DataSourceName)
+slave2Engine, err := xorm.NewEngine(driverName, slave2DataSourceName)
+engineGroup, err := xorm.NewEngineGroup(masterEngine, []*Engine{slave1Engine, slave2Engine})
+```
+
+所有使用 `engine` 都可以简单的用 `engineGroup` 来替换。
+
+* `Query` 最原始的也支持SQL语句查询，返回的结果类型为 []map[string][]byte。`QueryString` 返回 []map[string]string, `QueryInterface` 返回 `[]map[string]interface{}`.
 
 ```Go
 results, err := engine.Query("select * from user")
+results, err := engine.Where("a = 1").Query()
 
 results, err := engine.QueryString("select * from user")
+results, err := engine.Where("a = 1").QueryString()
+
+results, err := engine.QueryInterface("select * from user")
+results, err := engine.Where("a = 1").QueryInterface()
 ```
 
 * `Exec` 执行一个SQL语句
@@ -156,6 +177,7 @@ has, err := engine.Where("id = ?", id).Cols("name").Get(&name)
 // SELECT name FROM user WHERE id = ?
 var id int64
 has, err := engine.Where("name = ?", name).Cols("id").Get(&id)
+has, err := engine.SQL("select id from user").Get(&id)
 // SELECT id FROM user WHERE name = ?
 var valuesMap = make(map[string]string)
 has, err := engine.Where("id = ?", id).Get(&valuesMap)
@@ -264,6 +286,22 @@ affected, err := engine.Where(...).Delete(&user)
 ```Go
 counts, err := engine.Count(&user)
 // SELECT count(*) AS total FROM user
+```
+
+* 求和函数
+
+```Go
+agesFloat64, err := engine.Sum(&user, "age")
+// SELECT sum(age) AS total FROM user
+
+agesInt64, err := engine.SumInt(&user, "age")
+// SELECT sum(age) AS total FROM user
+
+sumFloat64Slice, err := engine.Sums(&user, "age", "score")
+// SELECT sum(age), sum(score) FROM user
+
+sumInt64Slice, err := engine.SumsInt(&user, "age", "score")
+// SELECT sum(age), sum(score) FROM user
 ```
 
 * 条件编辑器
