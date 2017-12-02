@@ -949,7 +949,7 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 					}
 					if pStart > -1 {
 						if !strings.HasSuffix(k, ")") {
-							return nil, errors.New("cannot match ) charactor")
+							return nil, fmt.Errorf("field %s tag %s cannot match ) charactor", col.FieldName, key)
 						}
 
 						ctx.tagName = k[:pStart]
