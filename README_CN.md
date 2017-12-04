@@ -150,7 +150,7 @@ results, err := engine.Where("a = 1").QueryInterface()
 affected, err := engine.Exec("update user set age = ? where name = ?", age, name)
 ```
 
-* 插入一条或者多条记录
+* `Insert` 插入一条或者多条记录
 
 ```Go
 affected, err := engine.Insert(&user)
@@ -165,7 +165,7 @@ affected, err := engine.Insert(&user1, &users)
 // INSERT INTO struct2 () values (),(),()
 ```
 
-* 查询单条记录
+* `Get` 查询单条记录
 
 ```Go
 has, err := engine.Get(&user)
@@ -187,7 +187,7 @@ has, err := engine.Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
 // SELECT col1, col2, col3 FROM user WHERE id = ?
 ```
 
-* 检测记录是否存在
+* `Exist` 检测记录是否存在
 
 ```Go
 has, err := testEngine.Exist(new(RecordExist))
@@ -206,7 +206,7 @@ has, err = testEngine.Table("record_exist").Where("name = ?", "test1").Exist()
 // SELECT * FROM record_exist WHERE name = ? LIMIT 1
 ```
 
-* 查询多条记录，当然可以使用Join和extends来组合使用
+* `Find` 查询多条记录，当然可以使用Join和extends来组合使用
 
 ```Go
 var users []User
@@ -231,7 +231,7 @@ err := engine.Table("user").Select("user.*, detail.*")
 // SELECT user.*, detail.* FROM user INNER JOIN detail WHERE user.name = ? limit 0 offset 10
 ```
 
-* 根据条件遍历数据库，可以有两种方式: Iterate and Rows
+* `Iterate` 和 `Rows` 根据条件遍历数据库，可以有两种方式: Iterate and Rows
 
 ```Go
 err := engine.Iterate(&User{Name:name}, func(idx int, bean interface{}) error {
@@ -239,6 +239,13 @@ err := engine.Iterate(&User{Name:name}, func(idx int, bean interface{}) error {
     return nil
 })
 // SELECT * FROM user
+
+err := engine.BufferSize(100).Iterate(&User{Name:name}, func(idx int, bean interface{}) error {
+    user := bean.(*User)
+    return nil
+})
+// SELECT * FROM user Limit 0, 100
+// SELECT * FROM user Limit 101, 100
 
 rows, err := engine.Rows(&User{Name:name})
 // SELECT * FROM user
@@ -249,7 +256,7 @@ for rows.Next() {
 }
 ```
 
-* 更新数据，除非使用Cols,AllCols函数指明，默认只更新非空和非0的字段
+* `Update` 更新数据，除非使用Cols,AllCols函数指明，默认只更新非空和非0的字段
 
 ```Go
 affected, err := engine.Id(1).Update(&user)
@@ -274,21 +281,21 @@ affected, err := engine.Id(1).AllCols().Update(&user)
 // UPDATE user SET name=?,age=?,salt=?,passwd=?,updated=? Where id = ?
 ```
 
-* 删除记录，需要注意，删除必须至少有一个条件，否则会报错。要清空数据库可以用EmptyTable
+* `Delete` 删除记录，需要注意，删除必须至少有一个条件，否则会报错。要清空数据库可以用EmptyTable
 
 ```Go
 affected, err := engine.Where(...).Delete(&user)
 // DELETE FROM user Where ...
 ```
 
-* 获取记录条数
+* `Count` 获取记录条数
 
 ```Go
 counts, err := engine.Count(&user)
 // SELECT count(*) AS total FROM user
 ```
 
-* 求和函数
+* `Sum` 求和函数
 
 ```Go
 agesFloat64, err := engine.Sum(&user, "age")

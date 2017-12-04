@@ -137,7 +137,7 @@ results, err := engine.QueryInterface("select * from user")
 results, err := engine.Where("a = 1").QueryInterface()
 ```
 
-* `Execute` runs a SQL string, it returns `affected` and `error`
+* `Exec` runs a SQL string, it returns `affected` and `error`
 
 ```Go
 affected, err := engine.Exec("update user set age = ? where name = ?", age, name)
@@ -158,7 +158,7 @@ affected, err := engine.Insert(&user1, &users)
 // INSERT INTO struct2 () values (),(),()
 ```
 
-* Query one record from database
+* `Get` query one record from database
 
 ```Go
 has, err := engine.Get(&user)
@@ -180,7 +180,7 @@ has, err := engine.Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
 // SELECT col1, col2, col3 FROM user WHERE id = ?
 ```
 
-* Check if one record exist on table
+* `Exist` check if one record exist on table
 
 ```Go
 has, err := testEngine.Exist(new(RecordExist))
@@ -199,7 +199,7 @@ has, err = testEngine.Table("record_exist").Where("name = ?", "test1").Exist()
 // SELECT * FROM record_exist WHERE name = ? LIMIT 1
 ```
 
-* Query multiple records from database, also you can use join and extends
+* `Find` query multiple records from database, also you can use join and extends
 
 ```Go
 var users []User
@@ -224,7 +224,7 @@ err := engine.Table("user").Select("user.*, detail.*").
 // SELECT user.*, detail.* FROM user INNER JOIN detail WHERE user.name = ? limit 0 offset 10
 ```
 
-* Query multiple records and record by record handle, there are two methods Iterate and Rows
+* `Iterate` and `Rows` query multiple records and record by record handle, there are two methods Iterate and Rows
 
 ```Go
 err := engine.Iterate(&User{Name:name}, func(idx int, bean interface{}) error {
@@ -232,6 +232,13 @@ err := engine.Iterate(&User{Name:name}, func(idx int, bean interface{}) error {
     return nil
 })
 // SELECT * FROM user
+
+err := engine.BufferSize(100).Iterate(&User{Name:name}, func(idx int, bean interface{}) error {
+    user := bean.(*User)
+    return nil
+})
+// SELECT * FROM user Limit 0, 100
+// SELECT * FROM user Limit 101, 100
 
 rows, err := engine.Rows(&User{Name:name})
 // SELECT * FROM user
@@ -242,7 +249,7 @@ for rows.Next() {
 }
 ```
 
-* Update one or more records, default will update non-empty and non-zero fields except when you use Cols, AllCols and so on.
+* `Update` update one or more records, default will update non-empty and non-zero fields except when you use Cols, AllCols and so on.
 
 ```Go
 affected, err := engine.Id(1).Update(&user)
@@ -267,7 +274,7 @@ affected, err := engine.Id(1).AllCols().Update(&user)
 // UPDATE user SET name=?,age=?,salt=?,passwd=?,updated=? Where id = ?
 ```
 
-* Delete one or more records, Delete MUST have condition
+* `Delete` delete one or more records, Delete MUST have condition
 
 ```Go
 affected, err := engine.Where(...).Delete(&user)
@@ -275,14 +282,14 @@ affected, err := engine.Where(...).Delete(&user)
 affected, err := engine.Id(2).Delete(&user)
 ```
 
-* Count records
+* `Count` count records
 
 ```Go
 counts, err := engine.Count(&user)
 // SELECT count(*) AS total FROM user
 ```
 
-* Sum functions
+* `Sum` sum functions
 
 ```Go
 agesFloat64, err := engine.Sum(&user, "age")
