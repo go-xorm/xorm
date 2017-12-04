@@ -148,11 +148,14 @@ affected, err := engine.Exec("update user set age = ? where name = ?", age, name
 ```Go
 affected, err := engine.Insert(&user)
 // INSERT INTO struct () values ()
+
 affected, err := engine.Insert(&user1, &user2)
 // INSERT INTO struct1 () values ()
 // INSERT INTO struct2 () values ()
+
 affected, err := engine.Insert(&users)
 // INSERT INTO struct () values (),(),()
+
 affected, err := engine.Insert(&user1, &users)
 // INSERT INTO struct1 () values ()
 // INSERT INTO struct2 () values (),(),()
@@ -163,18 +166,23 @@ affected, err := engine.Insert(&user1, &users)
 ```Go
 has, err := engine.Get(&user)
 // SELECT * FROM user LIMIT 1
+
 has, err := engine.Where("name = ?", name).Desc("id").Get(&user)
 // SELECT * FROM user WHERE name = ? ORDER BY id DESC LIMIT 1
+
 var name string
 has, err := engine.Where("id = ?", id).Cols("name").Get(&name)
 // SELECT name FROM user WHERE id = ?
+
 var id int64
 has, err := engine.Where("name = ?", name).Cols("id").Get(&id)
 has, err := engine.SQL("select id from user").Get(&id)
 // SELECT id FROM user WHERE name = ?
+
 var valuesMap = make(map[string]string)
 has, err := engine.Where("id = ?", id).Get(&valuesMap)
 // SELECT * FROM user WHERE id = ?
+
 var valuesSlice = make([]interface{}, len(cols))
 has, err := engine.Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
 // SELECT col1, col2, col3 FROM user WHERE id = ?
@@ -185,16 +193,21 @@ has, err := engine.Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
 ```Go
 has, err := testEngine.Exist(new(RecordExist))
 // SELECT * FROM record_exist LIMIT 1
+
 has, err = testEngine.Exist(&RecordExist{
 		Name: "test1",
 	})
 // SELECT * FROM record_exist WHERE name = ? LIMIT 1
+
 has, err = testEngine.Where("name = ?", "test1").Exist(&RecordExist{})
 // SELECT * FROM record_exist WHERE name = ? LIMIT 1
+
 has, err = testEngine.SQL("select * from record_exist where name = ?", "test1").Exist()
 // select * from record_exist where name = ?
+
 has, err = testEngine.Table("record_exist").Exist()
 // SELECT * FROM record_exist LIMIT 1
+
 has, err = testEngine.Table("record_exist").Where("name = ?", "test1").Exist()
 // SELECT * FROM record_exist WHERE name = ? LIMIT 1
 ```
@@ -279,7 +292,9 @@ affected, err := engine.Id(1).AllCols().Update(&user)
 ```Go
 affected, err := engine.Where(...).Delete(&user)
 // DELETE FROM user Where ...
-affected, err := engine.Id(2).Delete(&user)
+
+affected, err := engine.ID(2).Delete(&user)
+// DELETE FROM user Where id = ?
 ```
 
 * `Count` count records
@@ -310,6 +325,59 @@ sumInt64Slice, err := engine.SumsInt(&user, "age", "score")
 ```Go
 err := engine.Where(builder.NotIn("a", 1, 2).And(builder.In("b", "c", "d", "e"))).Find(&users)
 // SELECT id, name ... FROM user WHERE a NOT IN (?, ?) AND b IN (?, ?, ?)
+```
+
+* Multiple operations in one go routine, no transation here but resue session memory
+
+```Go
+session := engine.NewSession()
+defer session.Close()
+
+user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
+if _, err := session.Insert(&user1); err != nil {
+    return err
+}
+
+user2 := Userinfo{Username: "yyy"}
+if _, err := session.Where("id = ?", 2).Update(&user2); err != nil {
+    return err
+}
+
+if _, err := session.Exec("delete from userinfo where username = ?", user2.Username); err != nil {
+    return err
+}
+
+return nil
+```
+
+* Transation should on one go routine. There is transaction and resue session memory
+
+```Go
+session := engine.NewSession()
+defer session.Close()
+
+// add Begin() before any action
+if err := session.Begin(); err != nil {
+    // if returned then will rollback automatically
+    return err
+}
+
+user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
+if _, err := session.Insert(&user1); err != nil {
+    return err
+}
+
+user2 := Userinfo{Username: "yyy"}
+if _, err := session.Where("id = ?", 2).Update(&user2); err != nil {
+    return err
+}
+
+if _, err := session.Exec("delete from userinfo where username = ?", user2.Username); err != nil {
+    return err
+}
+
+// add Commit() after all actions
+return session.Commit()
 ```
 
 # Cases
