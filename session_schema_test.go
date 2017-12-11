@@ -217,3 +217,17 @@ func TestCharst(t *testing.T) {
 		panic(err)
 	}
 }
+
+func TestSync2_1(t *testing.T) {
+	type WxTest struct {
+		Id                 int   `xorm:"not null pk autoincr INT(64)`
+		Passport_user_type int16 `xorm:"null int"`
+		Id_delete          int8  `xorm:"null int default 1"`
+	}
+
+	assert.NoError(t, prepareEngine())
+
+	assert.NoError(t, testEngine.DropTables("wx_test"))
+	assert.NoError(t, testEngine.Sync2(new(WxTest)))
+	assert.NoError(t, testEngine.Sync2(new(WxTest)))
+}
