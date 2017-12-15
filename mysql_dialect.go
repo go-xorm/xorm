@@ -413,7 +413,7 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 
 func (db *mysql) GetTables() ([]*core.Table, error) {
 	args := []interface{}{db.DbName}
-	s := "SELECT `TABLE_NAME`, `ENGINE`, `TABLE_ROWS`, `AUTO_INCREMENT` from " +
+	s := "SELECT `TABLE_NAME`, `ENGINE`, `AUTO_INCREMENT` from " +
 		"`INFORMATION_SCHEMA`.`TABLES` WHERE `TABLE_SCHEMA`=? AND (`ENGINE`='MyISAM' OR `ENGINE` = 'InnoDB')"
 
 	rows, err := db.DB().Query(s, args...)
@@ -428,9 +428,9 @@ func (db *mysql) GetTables() ([]*core.Table, error) {
 	tables := make([]*core.Table, 0)
 	for rows.Next() {
 		table := core.NewEmptyTable()
-		var name, engine, tableRows string
+		var name, engine string
 		var autoIncr *string
-		err = rows.Scan(&name, &engine, &tableRows, &autoIncr)
+		err = rows.Scan(&name, &engine, &autoIncr)
 		if err != nil {
 			return nil, err
 		}
