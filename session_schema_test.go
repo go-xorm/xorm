@@ -231,3 +231,23 @@ func TestSync2_1(t *testing.T) {
 	assert.NoError(t, testEngine.Sync2(new(WxTest)))
 	assert.NoError(t, testEngine.Sync2(new(WxTest)))
 }
+
+func TestUnique_1(t *testing.T) {
+	type UserUnique struct {
+		Id        int64
+		UserName  string    `xorm:"unique varchar(25) not null"`
+		Password  string    `xorm:"varchar(255) not null"`
+		Admin     bool      `xorm:"not null"`
+		CreatedAt time.Time `xorm:"created"`
+		UpdatedAt time.Time `xorm:"updated"`
+	}
+
+	assert.NoError(t, prepareEngine())
+
+	assert.NoError(t, testEngine.DropTables("user_unique"))
+	assert.NoError(t, testEngine.Sync2(new(UserUnique)))
+
+	assert.NoError(t, testEngine.DropTables("user_unique"))
+	assert.NoError(t, testEngine.CreateTables(new(UserUnique)))
+	assert.NoError(t, testEngine.CreateUniques(new(UserUnique)))
+}
