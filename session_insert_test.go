@@ -662,3 +662,81 @@ func TestInsertCreatedInt64(t *testing.T) {
 
 	assert.EqualValues(t, data.Created, data2.Created)
 }
+
+type MyUserinfo Userinfo
+
+func (MyUserinfo) TableName() string {
+	return "user_info"
+}
+
+func TestInsertMulti3(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	testEngine.ShowSQL(true)
+	assertSync(t, new(MyUserinfo))
+
+	users := []MyUserinfo{
+		{Username: "xlw", Departname: "dev", Alias: "lunny2", Created: time.Now()},
+		{Username: "xlw2", Departname: "dev", Alias: "lunny3", Created: time.Now()},
+		{Username: "xlw11", Departname: "dev", Alias: "lunny2", Created: time.Now()},
+		{Username: "xlw22", Departname: "dev", Alias: "lunny3", Created: time.Now()},
+	}
+	cnt, err := testEngine.Insert(&users)
+	assert.NoError(t, err)
+	assert.EqualValues(t, len(users), cnt)
+
+	users2 := []*MyUserinfo{
+		&MyUserinfo{Username: "1xlw", Departname: "dev", Alias: "lunny2", Created: time.Now()},
+		&MyUserinfo{Username: "1xlw2", Departname: "dev", Alias: "lunny3", Created: time.Now()},
+		&MyUserinfo{Username: "1xlw11", Departname: "dev", Alias: "lunny2", Created: time.Now()},
+		&MyUserinfo{Username: "1xlw22", Departname: "dev", Alias: "lunny3", Created: time.Now()},
+	}
+
+	cnt, err = testEngine.Insert(&users2)
+	assert.NoError(t, err)
+	assert.EqualValues(t, len(users), cnt)
+}
+
+type MyUserinfo2 struct {
+	Uid        int64  `xorm:"id pk not null autoincr"`
+	Username   string `xorm:"unique"`
+	Departname string
+	Alias      string `xorm:"-"`
+	Created    time.Time
+	Detail     Userdetail `xorm:"detail_id int(11)"`
+	Height     float64
+	Avatar     []byte
+	IsMan      bool
+}
+
+func (MyUserinfo2) TableName() string {
+	return "user_info"
+}
+
+func TestInsertMulti4(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	testEngine.ShowSQL(true)
+	assertSync(t, new(MyUserinfo2))
+
+	users := []MyUserinfo2{
+		{Username: "xlw", Departname: "dev", Alias: "lunny2", Created: time.Now()},
+		{Username: "xlw2", Departname: "dev", Alias: "lunny3", Created: time.Now()},
+		{Username: "xlw11", Departname: "dev", Alias: "lunny2", Created: time.Now()},
+		{Username: "xlw22", Departname: "dev", Alias: "lunny3", Created: time.Now()},
+	}
+	cnt, err := testEngine.Insert(&users)
+	assert.NoError(t, err)
+	assert.EqualValues(t, len(users), cnt)
+
+	users2 := []*MyUserinfo2{
+		&MyUserinfo2{Username: "1xlw", Departname: "dev", Alias: "lunny2", Created: time.Now()},
+		&MyUserinfo2{Username: "1xlw2", Departname: "dev", Alias: "lunny3", Created: time.Now()},
+		&MyUserinfo2{Username: "1xlw11", Departname: "dev", Alias: "lunny2", Created: time.Now()},
+		&MyUserinfo2{Username: "1xlw22", Departname: "dev", Alias: "lunny3", Created: time.Now()},
+	}
+
+	cnt, err = testEngine.Insert(&users2)
+	assert.NoError(t, err)
+	assert.EqualValues(t, len(users), cnt)
+}
