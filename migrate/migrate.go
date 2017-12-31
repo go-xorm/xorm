@@ -194,9 +194,7 @@ func (m *Migrate) createMigrationTableIfNotExists() error {
 }
 
 func (m *Migrate) migrationDidRun(mig *Migration) bool {
-	row := m.db.DB().QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE %s = ?", m.options.TableName, m.options.IDColumnName), mig.ID)
-	var count int
-	row.Scan(&count)
+	count, err := m.db.SQL(fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE %s = ?", m.options.TableName, m.options.IDColumnName), mig.ID).Count()
 	return count > 0
 }
 
