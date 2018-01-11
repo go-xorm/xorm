@@ -1091,9 +1091,10 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string) (a string, e
 	}
 
 	if dialect.DBType() == core.MSSQL {
-		if statement.LimitN > 0 {
-			top = fmt.Sprintf(" TOP %d ", statement.LimitN)
-		}
+		// !cantasci! this condition is not necesarry for now.
+		/*if statement.LimitN > 0 {
+			top = fmt.Sprintf(" TOP %d", statement.LimitN)
+		}*/
 		if statement.Start > 0 {
 			var column string
 			if len(statement.RefTable.PKColumns()) == 0 {
@@ -1132,7 +1133,7 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string) (a string, e
 
 	// !nashtsai! REVIEW Sprintf is considered slowest mean of string concatnation, better to work with builder pattern
 	a = fmt.Sprintf("SELECT %v%v%v%v%v", distinct, top, columnStr, fromStr, whereStr)
-	if len(mssqlCondi) > 0 {
+	if statement.Start == 0 && len(mssqlCondi) > 0 {
 		if len(whereStr) > 0 {
 			a += " AND " + mssqlCondi
 		} else {
@@ -1159,12 +1160,36 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string) (a string, e
 		if statement.Start != 0 || statement.LimitN != 0 {
 			a = fmt.Sprintf("SELECT %v FROM (SELECT %v,ROWNUM RN FROM (%v) at WHERE ROWNUM <= %d) aat WHERE RN > %d", columnStr, columnStr, a, statement.Start+statement.LimitN, statement.Start)
 		}
+	} else if dialect.DBType() == core.MSSQL {
+		if statement.Start != 0 || statement.LimitN != 0 {
+			// !cantasci! use cte for related query when limit and offset values are set, then return filtered result by [start, start+limitN]
+			offsetColumn := statement.getPrimaryColumnForOffset()
+			a = fmt.Sprintf("WITH SQLPaging AS (SELECT TOP(%d) ROW_NUMBER() OVER (ORDER BY %v ASC) AS RN, %v FROM(%v) AS TEMP_TABLE_NAME) SELECT %v FROM SQLPaging WITH(NOLOCK) WHERE RN > %d AND RN < %d", statement.LimitN+statement.Start, offsetColumn, columnStr, a, columnStr, statement.Start, statement.Start+statement.LimitN+1)
+		}
 	}
 	if statement.IsForUpdate {
 		a = dialect.ForUpdateSql(a)
 	}
 
 	return
+}
+
+func (statement *Statement) getPrimaryColumnForOffset() string {
+	var column string
+	if len(statement.RefTable.PKColumns()) == 0 {
+		for _, index := range statement.RefTable.Indexes {
+			if len(index.Cols) == 1 {
+				column = index.Cols[0]
+				break
+			}
+		}
+		if len(column) == 0 {
+			column = statement.RefTable.ColumnsSeq()[0]
+		}
+	} else {
+		column = statement.RefTable.PKColumns()[0].Name
+	}
+	return column
 }
 
 func (statement *Statement) processIDParam() error {
