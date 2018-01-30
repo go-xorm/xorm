@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-xorm/builder"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -180,6 +182,51 @@ func TestQueryNoParams(t *testing.T) {
 	assertResult(t, results)
 
 	results, err = testEngine.SQL("select * from query_no_params").Query()
+	assert.NoError(t, err)
+	assertResult(t, results)
+}
+
+func TestQueryWithBuilder(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type QueryWithBuilder struct {
+		Id      int64  `xorm:"autoincr pk"`
+		Msg     string `xorm:"varchar(255)"`
+		Age     int
+		Money   float32
+		Created time.Time `xorm:"created"`
+	}
+
+	testEngine.ShowSQL(true)
+
+	assert.NoError(t, testEngine.Sync2(new(QueryWithBuilder)))
+
+	var q = QueryWithBuilder{
+		Msg:   "message",
+		Age:   20,
+		Money: 3000,
+	}
+	cnt, err := testEngine.Insert(&q)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	assertResult := func(t *testing.T, results []map[string][]byte) {
+		assert.EqualValues(t, 1, len(results))
+		id, err := strconv.ParseInt(string(results[0]["id"]), 10, 64)
+		assert.NoError(t, err)
+		assert.EqualValues(t, 1, id)
+		assert.Equal(t, "message", string(results[0]["msg"]))
+
+		age, err := strconv.Atoi(string(results[0]["age"]))
+		assert.NoError(t, err)
+		assert.EqualValues(t, 20, age)
+
+		money, err := strconv.ParseFloat(string(results[0]["money"]), 32)
+		assert.NoError(t, err)
+		assert.EqualValues(t, 3000, money)
+	}
+
+	results, err := testEngine.Query(builder.Select("*").From("query_with_builder"))
 	assert.NoError(t, err)
 	assertResult(t, results)
 }
