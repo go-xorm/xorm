@@ -122,7 +122,10 @@ func (m *Migrate) RollbackLast() error {
 func (m *Migrate) getLastRunnedMigration() (*Migration, error) {
 	for i := len(m.migrations) - 1; i >= 0; i-- {
 		migration := m.migrations[i]
-		if m.migrationDidRun(migration) {
+		run, err := m.migrationDidRun(migration)
+		if err != nil {
+			return nil, err
+		} else if run {
 			return migration, nil
 		}
 	}
@@ -165,7 +168,12 @@ func (m *Migrate) runMigration(migration *Migration) error {
 		return ErrMissingID
 	}
 
-	if !m.migrationDidRun(migration) {
+	run, err :=m.migrationDidRun(migration)
+	if err != nil {
+		return err
+	}
+
+	if !run {
 		if err := migration.Migrate(m.db); err != nil {
 			return err
 		}
@@ -193,11 +201,9 @@ func (m *Migrate) createMigrationTableIfNotExists() error {
 	return nil
 }
 
-func (m *Migrate) migrationDidRun(mig *Migration) bool {
-	row := m.db.DB().QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE %s = ?", m.options.TableName, m.options.IDColumnName), mig.ID)
-	var count int
-	row.Scan(&count)
-	return count > 0
+func (m *Migrate) migrationDidRun(mig *Migration) (bool, error) {
+	count, err := m.db.SQL(fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE %s = ?", m.options.TableName, m.options.IDColumnName), mig.ID).Count()
+	return count > 0, err
 }
 
 func (m *Migrate) isFirstRun() bool {
