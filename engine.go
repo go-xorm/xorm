@@ -1453,6 +1453,13 @@ func (engine *Engine) Find(beans interface{}, condiBeans ...interface{}) error {
 	return session.Find(beans, condiBeans...)
 }
 
+// FindAndCount find the results and also return the counts
+func (engine *Engine) FindAndCount(rowsSlicePtr interface{}, condiBean ...interface{}) (int64, error) {
+	session := engine.NewSession()
+	defer session.Close()
+	return session.FindAndCount(rowsSlicePtr, condiBean...)
+}
+
 // Iterate record by record handle records from table, bean's non-empty fields
 // are conditions.
 func (engine *Engine) Iterate(bean interface{}, fun IterFunc) error {

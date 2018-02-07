@@ -29,6 +29,29 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 	return session.find(rowsSlicePtr, condiBean...)
 }
 
+// FindAndCount find the results and also return the counts
+func (session *Session) FindAndCount(rowsSlicePtr interface{}, condiBean ...interface{}) (int64, error) {
+	if session.isAutoClose {
+		defer session.Close()
+	}
+
+	session.autoResetStatement = false
+	err := session.find(rowsSlicePtr, condiBean...)
+	if err != nil {
+		return 0, err
+	}
+
+	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
+	if sliceValue.Kind() != reflect.Slice && sliceValue.Kind() != reflect.Map {
+		return 0, errors.New("needs a pointer to a slice or a map")
+	}
+
+	sliceElementType := sliceValue.Type().Elem()
+	session.autoResetStatement = true
+
+	return session.Count(reflect.New(sliceElementType).Interface())
+}
+
 func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{}) error {
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
 	if sliceValue.Kind() != reflect.Slice && sliceValue.Kind() != reflect.Map {
