@@ -30,6 +30,7 @@ type Interface interface {
 	Exec(string, ...interface{}) (sql.Result, error)
 	Exist(bean ...interface{}) (bool, error)
 	Find(interface{}, ...interface{}) error
+	FindAndCount(interface{}, ...interface{}) (int64, error)
 	Get(interface{}) (bool, error)
 	GroupBy(keys string) *Session
 	ID(interface{}) *Session
