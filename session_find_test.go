@@ -488,3 +488,35 @@ func TestFindBit(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(results))
 }
+
+func TestFindMark(t *testing.T) {
+
+	type Mark struct {
+		Mark1 string `xorm:"VARCHAR(1)"`
+		Mark2 string `xorm:"VARCHAR(1)"`
+		MarkA string `xorm:"VARCHAR(1)"`
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(Mark))
+
+	cnt, err := testEngine.Insert([]Mark{
+		{
+			Mark1: "1",
+			Mark2: "2",
+			MarkA: "A",
+		},
+		{
+			Mark1: "1",
+			Mark2: "2",
+			MarkA: "A",
+		},
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, cnt)
+
+	var results = make([]Mark, 0, 2)
+	err = testEngine.Find(&results)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(results))
+}
