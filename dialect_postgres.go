@@ -873,25 +873,19 @@ func (db *postgres) IndexOnTable() bool {
 }
 
 func (db *postgres) IndexCheckSql(tableName, idxName string) (string, []interface{}) {
-	args := []interface{}{tableName, idxName}
+	args := []interface{}{db.schema, tableName, idxName}
 	return `SELECT indexname FROM pg_indexes ` +
-		`WHERE tablename = ? AND indexname = ?`, args
+		`WHERE schemaname = ? AND tablename = ? AND indexname = ?`, args
 }
 
 func (db *postgres) TableCheckSql(tableName string) (string, []interface{}) {
-	args := []interface{}{tableName}
-	return `SELECT tablename FROM pg_tables WHERE tablename = ?`, args
+	args := []interface{}{db.schema, tableName}
+	return `SELECT tablename FROM pg_tables WHERE schemaname = ? AND tablename = ?`, args
 }
 
-/*func (db *postgres) ColumnCheckSql(tableName, colName string) (string, []interface{}) {
-	args := []interface{}{tableName, colName}
-	return "SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = ?" +
-		" AND column_name = ?", args
-}*/
-
 func (db *postgres) ModifyColumnSql(tableName string, col *core.Column) string {
-	return fmt.Sprintf("alter table %s ALTER COLUMN %s TYPE %s",
-		tableName, col.Name, db.SqlType(col))
+	return fmt.Sprintf("alter table %s.%s ALTER COLUMN %s TYPE %s",
+		db.schema, tableName, col.Name, db.SqlType(col))
 }
 
 func (db *postgres) DropIndexSql(tableName string, index *core.Index) string {
@@ -911,9 +905,9 @@ func (db *postgres) DropIndexSql(tableName string, index *core.Index) string {
 }
 
 func (db *postgres) IsColumnExist(tableName, colName string) (bool, error) {
-	args := []interface{}{tableName, colName}
-	query := "SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = $1" +
-		" AND column_name = $2"
+	args := []interface{}{db.schema, tableName, colName}
+	query := "SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = $1 AND table_name = $2" +
+		" AND column_name = $3"
 	db.LogSQL(query, args)
 
 	rows, err := db.DB().Query(query, args...)
