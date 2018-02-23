@@ -151,7 +151,7 @@ func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{})
 		}
 
 		args = append(session.statement.joinArgs, condArgs...)
-		sqlStr, err = session.statement.genSelectSQL(columnStr, condSQL)
+		sqlStr, err = session.statement.genSelectSQL(columnStr, condSQL, true)
 		if err != nil {
 			return err
 		}
