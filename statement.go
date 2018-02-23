@@ -988,7 +988,7 @@ func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}, 
 		return "", nil, err
 	}
 
-	sqlStr, err := statement.genSelectSQL(columnStr, condSQL)
+	sqlStr, err := statement.genSelectSQL(columnStr, condSQL, true)
 	if err != nil {
 		return "", nil, err
 	}
@@ -1018,7 +1018,7 @@ func (statement *Statement) genCountSQL(beans ...interface{}) (string, []interfa
 			selectSQL = "count(*)"
 		}
 	}
-	sqlStr, err := statement.genSelectSQL(selectSQL, condSQL)
+	sqlStr, err := statement.genSelectSQL(selectSQL, condSQL, false)
 	if err != nil {
 		return "", nil, err
 	}
@@ -1043,7 +1043,7 @@ func (statement *Statement) genSumSQL(bean interface{}, columns ...string) (stri
 		return "", nil, err
 	}
 
-	sqlStr, err := statement.genSelectSQL(sumSelect, condSQL)
+	sqlStr, err := statement.genSelectSQL(sumSelect, condSQL, true)
 	if err != nil {
 		return "", nil, err
 	}
@@ -1051,7 +1051,7 @@ func (statement *Statement) genSumSQL(bean interface{}, columns ...string) (stri
 	return sqlStr, append(statement.joinArgs, condArgs...), nil
 }
 
-func (statement *Statement) genSelectSQL(columnStr, condSQL string) (a string, err error) {
+func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit bool) (a string, err error) {
 	var distinct string
 	if statement.IsDistinct && !strings.HasPrefix(columnStr, "count") {
 		distinct = "DISTINCT "
@@ -1149,15 +1149,17 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string) (a string, e
 	if statement.OrderStr != "" {
 		a = fmt.Sprintf("%v ORDER BY %v", a, statement.OrderStr)
 	}
-	if dialect.DBType() != core.MSSQL && dialect.DBType() != core.ORACLE {
-		if statement.Start > 0 {
-			a = fmt.Sprintf("%v LIMIT %v OFFSET %v", a, statement.LimitN, statement.Start)
-		} else if statement.LimitN > 0 {
-			a = fmt.Sprintf("%v LIMIT %v", a, statement.LimitN)
-		}
-	} else if dialect.DBType() == core.ORACLE {
-		if statement.Start != 0 || statement.LimitN != 0 {
-			a = fmt.Sprintf("SELECT %v FROM (SELECT %v,ROWNUM RN FROM (%v) at WHERE ROWNUM <= %d) aat WHERE RN > %d", columnStr, columnStr, a, statement.Start+statement.LimitN, statement.Start)
+	if needLimit {
+		if dialect.DBType() != core.MSSQL && dialect.DBType() != core.ORACLE {
+			if statement.Start > 0 {
+				a = fmt.Sprintf("%v LIMIT %v OFFSET %v", a, statement.LimitN, statement.Start)
+			} else if statement.LimitN > 0 {
+				a = fmt.Sprintf("%v LIMIT %v", a, statement.LimitN)
+			}
+		} else if dialect.DBType() == core.ORACLE {
+			if statement.Start != 0 || statement.LimitN != 0 {
+				a = fmt.Sprintf("SELECT %v FROM (SELECT %v,ROWNUM RN FROM (%v) at WHERE ROWNUM <= %d) aat WHERE RN > %d", columnStr, columnStr, a, statement.Start+statement.LimitN, statement.Start)
+			}
 		}
 	}
 	if statement.IsForUpdate {

@@ -523,9 +523,9 @@ func TestFindMark(t *testing.T) {
 
 func TestFindAndCountOneFunc(t *testing.T) {
 	type FindAndCountStruct struct {
-		Id  int64
+		Id      int64
 		Content string
-		Msg bool `xorm:"bit"`
+		Msg     bool `xorm:"bit"`
 	}
 
 	assert.NoError(t, prepareEngine())
@@ -534,11 +534,11 @@ func TestFindAndCountOneFunc(t *testing.T) {
 	cnt, err := testEngine.Insert([]FindAndCountStruct{
 		{
 			Content: "111",
-			Msg: false,
+			Msg:     false,
 		},
 		{
 			Content: "222",
-			Msg: true,
+			Msg:     true,
 		},
 	})
 	assert.NoError(t, err)
@@ -552,6 +552,12 @@ func TestFindAndCountOneFunc(t *testing.T) {
 
 	results = make([]FindAndCountStruct, 0, 1)
 	cnt, err = testEngine.Where("msg = ?", true).FindAndCount(&results)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(results))
+	assert.EqualValues(t, 1, cnt)
+
+	results = make([]FindAndCountStruct, 0, 1)
+	cnt, err = testEngine.Where("msg = ?", true).Limit(1).FindAndCount(&results)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))
 	assert.EqualValues(t, 1, cnt)
