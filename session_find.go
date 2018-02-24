@@ -52,6 +52,10 @@ func (session *Session) FindAndCount(rowsSlicePtr interface{}, condiBean ...inte
 	}
 	session.autoResetStatement = true
 
+	if session.statement.selectStr != "" {
+		session.statement.selectStr = ""
+	}
+
 	return session.Count(reflect.New(sliceElementType).Interface())
 }
 
