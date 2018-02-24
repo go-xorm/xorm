@@ -47,6 +47,9 @@ func (session *Session) FindAndCount(rowsSlicePtr interface{}, condiBean ...inte
 	}
 
 	sliceElementType := sliceValue.Type().Elem()
+	if sliceElementType.Kind() == reflect.Ptr {
+		sliceElementType = sliceElementType.Elem()
+	}
 	session.autoResetStatement = true
 
 	return session.Count(reflect.New(sliceElementType).Interface())
