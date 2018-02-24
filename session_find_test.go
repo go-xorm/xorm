@@ -561,4 +561,11 @@ func TestFindAndCountOneFunc(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))
 	assert.EqualValues(t, 1, cnt)
+
+	results = make([]FindAndCountStruct, 0, 1)
+	cnt, err = testEngine.Where("msg = ?", true).Select("id, content, msg").
+		Limit(1).FindAndCount(&results)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(results))
+	assert.EqualValues(t, 1, cnt)
 }
