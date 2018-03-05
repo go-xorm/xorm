@@ -251,3 +251,17 @@ func TestUnique_1(t *testing.T) {
 	assert.NoError(t, testEngine.CreateTables(new(UserUnique)))
 	assert.NoError(t, testEngine.CreateUniques(new(UserUnique)))
 }
+
+func TestSync2_2(t *testing.T) {
+	type TestSync2Index struct {
+		Id     int64
+		UserId int64 `xorm:"index"`
+	}
+
+	assert.NoError(t, prepareEngine())
+
+	for i := 0; i < 10; i++ {
+		tableName := fmt.Sprintf("test_sync2_index_%d", i)
+		assert.NoError(t, testEngine.Table(tableName).Sync2(new(TestSync2Index)))
+	}
+}
