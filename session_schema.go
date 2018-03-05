@@ -255,6 +255,12 @@ func (session *Session) Sync2(beans ...interface{}) error {
 		return err
 	}
 
+	session.autoResetStatement = false
+	defer func() {
+		session.autoResetStatement = true
+		session.resetStatement()
+	}()
+
 	var structTables []*core.Table
 
 	for _, bean := range beans {
