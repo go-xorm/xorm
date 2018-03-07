@@ -217,7 +217,7 @@ has, err = testEngine.Table("record_exist").Where("name = ?", "test1").Exist()
 ```Go
 var users []User
 err := engine.Where("name = ?", name).And("age > 10").Limit(10, 0).Find(&users)
-// SELECT * FROM user WHERE name = ? AND age > 10 limit 0 offset 10
+// SELECT * FROM user WHERE name = ? AND age > 10 limit 10 offset 0
 
 type Detail struct {
     Id int64
@@ -234,7 +234,7 @@ err := engine.Table("user").Select("user.*, detail.*").
     Join("INNER", "detail", "detail.user_id = user.id").
     Where("user.name = ?", name).Limit(10, 0).
     Find(&users)
-// SELECT user.*, detail.* FROM user INNER JOIN detail WHERE user.name = ? limit 0 offset 10
+// SELECT user.*, detail.* FROM user INNER JOIN detail WHERE user.name = ? limit 10 offset 0
 ```
 
 * `Iterate` and `Rows` query multiple records and record by record handle, there are two methods Iterate and Rows
@@ -265,7 +265,7 @@ for rows.Next() {
 * `Update` update one or more records, default will update non-empty and non-zero fields except when you use Cols, AllCols and so on.
 
 ```Go
-affected, err := engine.Id(1).Update(&user)
+affected, err := engine.ID(1).Update(&user)
 // UPDATE user SET ... Where id = ?
 
 affected, err := engine.Update(&user, &User{Name:name})
@@ -276,14 +276,14 @@ affected, err := engine.In("id", ids).Update(&user)
 // UPDATE user SET ... Where id IN (?, ?, ?)
 
 // force update indicated columns by Cols
-affected, err := engine.Id(1).Cols("age").Update(&User{Name:name, Age: 12})
+affected, err := engine.ID(1).Cols("age").Update(&User{Name:name, Age: 12})
 // UPDATE user SET age = ?, updated=? Where id = ?
 
 // force NOT update indicated columns by Omit
-affected, err := engine.Id(1).Omit("name").Update(&User{Name:name, Age: 12})
+affected, err := engine.ID(1).Omit("name").Update(&User{Name:name, Age: 12})
 // UPDATE user SET age = ?, updated=? Where id = ?
 
-affected, err := engine.Id(1).AllCols().Update(&user)
+affected, err := engine.ID(1).AllCols().Update(&user)
 // UPDATE user SET name=?,age=?,salt=?,passwd=?,updated=? Where id = ?
 ```
 

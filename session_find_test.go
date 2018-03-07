@@ -488,3 +488,84 @@ func TestFindBit(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(results))
 }
+
+func TestFindMark(t *testing.T) {
+
+	type Mark struct {
+		Mark1 string `xorm:"VARCHAR(1)"`
+		Mark2 string `xorm:"VARCHAR(1)"`
+		MarkA string `xorm:"VARCHAR(1)"`
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(Mark))
+
+	cnt, err := testEngine.Insert([]Mark{
+		{
+			Mark1: "1",
+			Mark2: "2",
+			MarkA: "A",
+		},
+		{
+			Mark1: "1",
+			Mark2: "2",
+			MarkA: "A",
+		},
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, cnt)
+
+	var results = make([]Mark, 0, 2)
+	err = testEngine.Find(&results)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(results))
+}
+
+func TestFindAndCountOneFunc(t *testing.T) {
+	type FindAndCountStruct struct {
+		Id      int64
+		Content string
+		Msg     bool `xorm:"bit"`
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(FindAndCountStruct))
+
+	cnt, err := testEngine.Insert([]FindAndCountStruct{
+		{
+			Content: "111",
+			Msg:     false,
+		},
+		{
+			Content: "222",
+			Msg:     true,
+		},
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, cnt)
+
+	var results = make([]FindAndCountStruct, 0, 2)
+	cnt, err = testEngine.FindAndCount(&results)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(results))
+	assert.EqualValues(t, 2, cnt)
+
+	results = make([]FindAndCountStruct, 0, 1)
+	cnt, err = testEngine.Where("msg = ?", true).FindAndCount(&results)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(results))
+	assert.EqualValues(t, 1, cnt)
+
+	results = make([]FindAndCountStruct, 0, 1)
+	cnt, err = testEngine.Where("msg = ?", true).Limit(1).FindAndCount(&results)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(results))
+	assert.EqualValues(t, 1, cnt)
+
+	results = make([]FindAndCountStruct, 0, 1)
+	cnt, err = testEngine.Where("msg = ?", true).Select("id, content, msg").
+		Limit(1).FindAndCount(&results)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(results))
+	assert.EqualValues(t, 1, cnt)
+}

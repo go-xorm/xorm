@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"database/sql"
 	"fmt"
 	"testing"
 	"time"
@@ -31,7 +32,7 @@ func TestGetVar(t *testing.T) {
 		Age:   28,
 		Money: 1.5,
 	}
-	_, err := testEngine.InsertOne(data)
+	_, err := testEngine.InsertOne(&data)
 	assert.NoError(t, err)
 
 	var msg string
@@ -54,6 +55,27 @@ func TestGetVar(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.EqualValues(t, 28, age2)
+
+	var id sql.NullInt64
+	has, err = testEngine.Table("get_var").Cols("id").Get(&id)
+	assert.NoError(t, err)
+	assert.Equal(t, true, has)
+	assert.Equal(t, true, id.Valid)
+	assert.EqualValues(t, data.Id, id.Int64)
+
+	var msgNull sql.NullString
+	has, err = testEngine.Table("get_var").Cols("msg").Get(&msgNull)
+	assert.NoError(t, err)
+	assert.Equal(t, true, has)
+	assert.Equal(t, true, msgNull.Valid)
+	assert.EqualValues(t, data.Msg, msgNull.String)
+
+	var nullMoney sql.NullFloat64
+	has, err = testEngine.Table("get_var").Cols("money").Get(&nullMoney)
+	assert.NoError(t, err)
+	assert.Equal(t, true, has)
+	assert.Equal(t, true, nullMoney.Valid)
+	assert.EqualValues(t, data.Money, nullMoney.Float64)
 
 	var money float64
 	has, err = testEngine.Table("get_var").Cols("money").Get(&money)
