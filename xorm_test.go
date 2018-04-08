@@ -27,6 +27,7 @@ var (
 	cache      = flag.Bool("cache", false, "if enable cache")
 	cluster    = flag.Bool("cluster", false, "if this is a cluster")
 	splitter   = flag.String("splitter", ";", "the splitter on connstr for cluster")
+	schema     = flag.String("schema", "", "specify the schema")
 )
 
 func createEngine(dbType, connStr string) error {
@@ -35,7 +36,6 @@ func createEngine(dbType, connStr string) error {
 
 		if !*cluster {
 			testEngine, err = NewEngine(dbType, connStr)
-
 		} else {
 			testEngine, err = NewEngineGroup(dbType, strings.Split(connStr, *splitter))
 		}
@@ -43,6 +43,9 @@ func createEngine(dbType, connStr string) error {
 			return err
 		}
 
+		if *schema != "" {
+			testEngine.SetSchema(*schema)
+		}
 		testEngine.ShowSQL(*showSQL)
 		testEngine.SetLogLevel(core.LOG_DEBUG)
 		if *cache {

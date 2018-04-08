@@ -1649,6 +1649,11 @@ func (engine *Engine) SetTZDatabase(tz *time.Location) {
 	engine.DatabaseTZ = tz
 }
 
+// SetSchema sets the schema of database
+func (engine *Engine) SetSchema(schema string) {
+	engine.dialect.URI().Schema = schema
+}
+
 // Unscoped always disable struct tag "deleted"
 func (engine *Engine) Unscoped() *Session {
 	session := engine.NewSession()

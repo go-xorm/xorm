@@ -87,6 +87,7 @@ type EngineInterface interface {
 	SetDefaultCacher(core.Cacher)
 	SetLogLevel(core.LogLevel)
 	SetMapper(core.IMapper)
+	SetSchema(string)
 	SetTZDatabase(tz *time.Location)
 	SetTZLocation(tz *time.Location)
 	ShowSQL(show ...bool)
