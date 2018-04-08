@@ -17,7 +17,7 @@ database:
     - createdb -p 5432 -e -U postgres xorm_test1
     - createdb -p 5432 -e -U postgres xorm_test2
     - createdb -p 5432 -e -U postgres xorm_test3
-    - psql xorm_test lunny -c "create schema xorm"
+    - psql xorm_test postgres -c "create schema xorm"
 
 test:
   override:
