@@ -549,6 +549,7 @@ func (engine *Engine) tableName(beanOrTableName interface{}) (string, error) {
 func (engine *Engine) tbSchemaName(v string) string {
 	if engine.dialect.DBType() == core.POSTGRES &&
 		engine.dialect.URI().Schema != "" &&
+		engine.dialect.URI().Schema != DefaultPostgresSchema &&
 		strings.Index(v, ".") == -1 {
 		return engine.dialect.URI().Schema + "." + v
 	}
