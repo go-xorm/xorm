@@ -772,7 +772,13 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 			case TableName:
 				table = f.(TableName).TableName()
 			default:
-				// FIXME: error
+				v := rValue(f)
+				t := v.Type()
+				if t.Kind() == reflect.Struct {
+					fmt.Fprintf(&buf, statement.Engine.tbName(v))
+				} else {
+					fmt.Fprintf(&buf, statement.Engine.Quote(fmt.Sprintf("%v", f)))
+				}
 			}
 		}
 		if l > 1 {

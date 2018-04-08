@@ -162,6 +162,38 @@ func TestFind3(t *testing.T) {
 		Join("INNER", teamUser, "`team_user`.team_id=`team`.id").
 		Find(&teams)
 	assert.NoError(t, err)
+
+	teams = make([]Team, 0)
+	err = testEngine.Cols("`team`.id").
+		Where("`team_user`.org_id=?", 1).
+		And("`team_user`.uid=?", 2).
+		Join("INNER", []interface{}{teamUser}, "`team_user`.team_id=`team`.id").
+		Find(&teams)
+	assert.NoError(t, err)
+
+	teams = make([]Team, 0)
+	err = testEngine.Cols("`team`.id").
+		Where("`tu`.org_id=?", 1).
+		And("`tu`.uid=?", 2).
+		Join("INNER", []string{"team_user", "tu"}, "`tu`.team_id=`team`.id").
+		Find(&teams)
+	assert.NoError(t, err)
+
+	teams = make([]Team, 0)
+	err = testEngine.Cols("`team`.id").
+		Where("`tu`.org_id=?", 1).
+		And("`tu`.uid=?", 2).
+		Join("INNER", []interface{}{"team_user", "tu"}, "`tu`.team_id=`team`.id").
+		Find(&teams)
+	assert.NoError(t, err)
+
+	teams = make([]Team, 0)
+	err = testEngine.Cols("`team`.id").
+		Where("`tu`.org_id=?", 1).
+		And("`tu`.uid=?", 2).
+		Join("INNER", []interface{}{teamUser, "tu"}, "`tu`.team_id=`team`.id").
+		Find(&teams)
+	assert.NoError(t, err)
 }
 
 func TestFindMap(t *testing.T) {
