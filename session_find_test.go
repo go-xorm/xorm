@@ -120,10 +120,8 @@ func TestFind2(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	err := testEngine.Find(&users)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+
 	for _, user := range users {
 		fmt.Println(user)
 	}
@@ -139,13 +137,15 @@ type TeamUser struct {
 	TeamId int64
 }
 
+func (TeamUser) TableName() string {
+	return "team_user"
+}
+
 func TestFind3(t *testing.T) {
+	var teamUser = new(TeamUser)
 	assert.NoError(t, prepareEngine())
-	err := testEngine.Sync2(new(Team), new(TeamUser))
-	if err != nil {
-		t.Error(err)
-		panic(err.Error())
-	}
+	err := testEngine.Sync2(new(Team), teamUser)
+	assert.NoError(t, err)
 
 	var teams []Team
 	err = testEngine.Cols("`team`.id").
@@ -153,10 +153,47 @@ func TestFind3(t *testing.T) {
 		And("`team_user`.uid=?", 2).
 		Join("INNER", "`team_user`", "`team_user`.team_id=`team`.id").
 		Find(&teams)
-	if err != nil {
-		t.Error(err)
-		panic(err.Error())
-	}
+	assert.NoError(t, err)
+
+	teams = make([]Team, 0)
+	err = testEngine.Cols("`team`.id").
+		Where("`team_user`.org_id=?", 1).
+		And("`team_user`.uid=?", 2).
+		Join("INNER", teamUser, "`team_user`.team_id=`team`.id").
+		Find(&teams)
+	assert.NoError(t, err)
+
+	teams = make([]Team, 0)
+	err = testEngine.Cols("`team`.id").
+		Where("`team_user`.org_id=?", 1).
+		And("`team_user`.uid=?", 2).
+		Join("INNER", []interface{}{teamUser}, "`team_user`.team_id=`team`.id").
+		Find(&teams)
+	assert.NoError(t, err)
+
+	teams = make([]Team, 0)
+	err = testEngine.Cols("`team`.id").
+		Where("`tu`.org_id=?", 1).
+		And("`tu`.uid=?", 2).
+		Join("INNER", []string{"team_user", "tu"}, "`tu`.team_id=`team`.id").
+		Find(&teams)
+	assert.NoError(t, err)
+
+	teams = make([]Team, 0)
+	err = testEngine.Cols("`team`.id").
+		Where("`tu`.org_id=?", 1).
+		And("`tu`.uid=?", 2).
+		Join("INNER", []interface{}{"team_user", "tu"}, "`tu`.team_id=`team`.id").
+		Find(&teams)
+	assert.NoError(t, err)
+
+	teams = make([]Team, 0)
+	err = testEngine.Cols("`team`.id").
+		Where("`tu`.org_id=?", 1).
+		And("`tu`.uid=?", 2).
+		Join("INNER", []interface{}{teamUser, "tu"}, "`tu`.team_id=`team`.id").
+		Find(&teams)
+	assert.NoError(t, err)
 }
 
 func TestFindMap(t *testing.T) {
