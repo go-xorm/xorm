@@ -547,6 +547,8 @@ func (engine *Engine) tableName(beanOrTableName interface{}) (string, error) {
 }
 
 func (engine *Engine) tbSchemaName(v string) string {
+	// Add schema name as prefix of table name.
+	// Only for postgres database.
 	if engine.dialect.DBType() == core.POSTGRES &&
 		engine.dialect.URI().Schema != "" &&
 		engine.dialect.URI().Schema != DefaultPostgresSchema &&
