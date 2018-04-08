@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/gob"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -21,6 +20,7 @@ import (
 
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/core"
+	"github.com/pkg/errors"
 )
 
 // Engine is the major struct of xorm, it means a database manager.
@@ -799,13 +799,18 @@ func (engine *Engine) UnMapType(t reflect.Type) {
 }
 
 func (engine *Engine) autoMapType(v reflect.Value) (*core.Table, error) {
-	t := v.Type()
 	engine.mutex.Lock()
 	defer engine.mutex.Unlock()
+	return engine.autoMapTypeNoLock(v)
+}
+
+func (engine *Engine) autoMapTypeNoLock(v reflect.Value) (*core.Table, error) {
+	t := v.Type()
 	table, ok := engine.Tables[t]
 	if !ok {
 		var err error
-		table, err = engine.mapType(v)
+		var parsingTables = make(map[reflect.Type]*core.Table)
+		table, err = engine.mapType(parsingTables, v)
 		if err != nil {
 			return nil, err
 		}
@@ -879,9 +884,17 @@ var (
 	tpTableName = reflect.TypeOf((*TableName)(nil)).Elem()
 )
 
-func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
+func (engine *Engine) mapType(parsingTables map[reflect.Type]*core.Table, v reflect.Value) (*core.Table, error) {
+	if v.Kind() != reflect.Struct {
+		return nil, errors.New("need a struct to map")
+	}
 	t := v.Type()
+	if table, ok := parsingTables[t]; ok {
+		return table, nil
+	}
+
 	table := engine.newTable()
+	parsingTables[t] = table
 	if tb, ok := v.Interface().(TableName); ok {
 		table.Name = tb.TableName()
 	} else {
@@ -908,22 +921,36 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 		fieldValue := v.Field(i)
 		fieldType := fieldValue.Type()
 
-		if ormTagStr != "" {
-			col = &core.Column{FieldName: t.Field(i).Name, Nullable: true, IsPrimaryKey: false,
-				IsAutoIncrement: false, MapType: core.TWOSIDES, Indexes: make(map[string]int)}
-			tags := splitTag(ormTagStr)
+		var ctx = tagContext{
+			engine:        engine,
+			parsingTables: parsingTables,
 
+			table:         table,
+			hasCacheTag:   false,
+			hasNoCacheTag: false,
+
+			fieldValue: fieldValue,
+			indexNames: make(map[string]int),
+			isIndex:    false,
+			isUnique:   false,
+		}
+
+		if ormTagStr != "" {
+			col = &core.Column{
+				FieldName:       t.Field(i).Name,
+				FieldType:       t.Field(i).Type,
+				Nullable:        true,
+				IsPrimaryKey:    false,
+				IsAutoIncrement: false,
+				MapType:         core.TWOSIDES,
+				Indexes:         make(map[string]int),
+			}
+			ctx.col = col
+
+			tags := splitTag(ormTagStr)
 			if len(tags) > 0 {
 				if tags[0] == "-" {
 					continue
-				}
-
-				var ctx = tagContext{
-					table:      table,
-					col:        col,
-					fieldValue: fieldValue,
-					indexNames: make(map[string]int),
-					engine:     engine,
 				}
 
 				if strings.ToUpper(tags[0]) == "EXTENDS" {
@@ -1021,20 +1048,57 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 			} else {
 				sqlType = core.Type2SQLType(fieldType)
 			}
-			col = core.NewColumn(engine.ColumnMapper.Obj2Table(t.Field(i).Name),
-				t.Field(i).Name, sqlType, sqlType.DefaultLength,
-				sqlType.DefaultLength2, true)
+
+			col = core.NewColumn(
+				engine.ColumnMapper.Obj2Table(t.Field(i).Name),
+				t.Field(i).Name,
+
+				sqlType,
+				sqlType.DefaultLength,
+				sqlType.DefaultLength2,
+				true,
+			)
 
 			if fieldType.Kind() == reflect.Int64 && (strings.ToUpper(col.FieldName) == "ID" || strings.HasSuffix(strings.ToUpper(col.FieldName), ".ID")) {
 				idFieldColName = col.Name
 			}
+
+			col.FieldType = t.Field(i).Type
+			ctx.col = col
 		}
 		if col.IsAutoIncrement {
 			col.Nullable = false
 		}
 
-		table.AddColumn(col)
+		var tp = fieldType
+		if isPtrStruct(fieldType) {
+			tp = fieldType.Elem()
+		}
+		if isStruct(tp) && col.AssociateTable == nil {
+			var isBelongsTo = !(tp.ConvertibleTo(core.TimeType) || col.SQLType.IsJson())
+			if _, ok := fieldValue.Addr().Interface().(sql.Scanner); ok {
+				isBelongsTo = false
+			}
+			if _, ok := fieldValue.Interface().(sql.Scanner); ok {
+				isBelongsTo = false
+			}
+			if _, ok := fieldValue.Addr().Interface().(core.Conversion); ok {
+				isBelongsTo = false
+			}
+			if _, ok := fieldValue.Interface().(core.Conversion); ok {
+				isBelongsTo = false
+			}
 
+			if isBelongsTo {
+				err := BelongsToTagHandler(&ctx)
+				if err != nil {
+					return nil, err
+				}
+				col.AssociateType = core.AssociateNone
+			}
+		}
+
+		table.AddColumn(col)
 	} // end for
 
 	if idFieldColName != "" && len(table.PrimaryKeys) == 0 {
@@ -1442,6 +1506,13 @@ func (engine *Engine) Exist(bean ...interface{}) (bool, error) {
 	session := engine.NewSession()
 	defer session.Close()
 	return session.Exist(bean...)
+}
+
+// Load loads bean's belongs to tag field immedicatlly
+func (engine *Engine) Load(bean interface{}, cols ...string) error {
+	session := engine.NewSession()
+	defer session.Close()
+	return session.Load(bean, cols...)
 }
 
 // Find retrieve records from table, condiBeans's non-empty fields

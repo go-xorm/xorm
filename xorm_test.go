@@ -12,6 +12,7 @@ import (
 	"github.com/go-xorm/core"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/stretchr/testify/assert"
 	_ "github.com/ziutek/mymysql/godrv"
 )
 
@@ -32,10 +33,8 @@ var (
 func createEngine(dbType, connStr string) error {
 	if testEngine == nil {
 		var err error
-
 		if !*cluster {
 			testEngine, err = NewEngine(dbType, connStr)
-
 		} else {
 			testEngine, err = NewEngineGroup(dbType, strings.Split(connStr, *splitter))
 		}
@@ -123,6 +122,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestPing(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
 	if err := testEngine.Ping(); err != nil {
 		t.Fatal(err)
 	}

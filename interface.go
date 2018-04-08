@@ -18,6 +18,7 @@ type Interface interface {
 	Alias(alias string) *Session
 	Asc(colNames ...string) *Session
 	BufferSize(size int) *Session
+	Cascade(...bool) *Session
 	Cols(columns ...string) *Session
 	Count(...interface{}) (int64, error)
 	CreateIndexes(bean interface{}) error
@@ -27,6 +28,7 @@ type Interface interface {
 	Delete(interface{}) (int64, error)
 	Distinct(columns ...string) *Session
 	DropIndexes(bean interface{}) error
+	Load(interface{}, ...string) error
 	Exec(string, ...interface{}) (sql.Result, error)
 	Exist(bean ...interface{}) (bool, error)
 	Find(interface{}, ...interface{}) error

@@ -17,6 +17,13 @@ import (
 	"github.com/go-xorm/core"
 )
 
+type loadClosure struct {
+	Func       func(core.PK, *reflect.Value) error
+	pk         core.PK
+	fieldValue *reflect.Value
+	loaded     bool
+}
+
 // Session keep a pointer to sql.DB and provides all execution of all
 // kind of database operations.
 type Session struct {
@@ -51,6 +58,9 @@ type Session struct {
 	lastSQL     string
 	lastSQLArgs []interface{}
 
+	cascadeMode  cascadeMode
+	cascadeLevel int // load level
+
 	err error
 }
 
@@ -82,6 +92,9 @@ func (session *Session) Init() {
 
 	session.lastSQL = ""
 	session.lastSQLArgs = []interface{}{}
+
+	session.cascadeMode = cascadeCompitable
+	session.cascadeLevel = 2
 }
 
 // Close release the connection from pool
@@ -149,7 +162,7 @@ func (session *Session) Alias(alias string) *Session {
 
 // NoCascade indicate that no cascade load child object
 func (session *Session) NoCascade() *Session {
-	session.statement.UseCascade = false
+	session.cascadeMode = cascadeLazy
 	return session
 }
 
@@ -204,9 +217,16 @@ func (session *Session) Charset(charset string) *Session {
 
 // Cascade indicates if loading sub Struct
 func (session *Session) Cascade(trueOrFalse ...bool) *Session {
+	var mode = cascadeEager
 	if len(trueOrFalse) >= 1 {
-		session.statement.UseCascade = trueOrFalse[0]
+		if trueOrFalse[0] {
+			mode = cascadeEager
+		} else {
+			mode = cascadeLazy
+		}
 	}
+
+	session.cascadeMode = mode
 	return session
 }
 
@@ -440,8 +460,8 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 				continue
 			}
 
-			rawValueType := reflect.TypeOf(rawValue.Interface())
 			vv := reflect.ValueOf(rawValue.Interface())
+			rawValueType := vv.Type()
 			col := table.GetColumnIdx(key, idx)
 			if col.IsPrimaryKey {
 				pk = append(pk, rawValue.Interface())
@@ -629,175 +649,205 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 						session.engine.logger.Error("sql.Sanner error:", err.Error())
 						hasAssigned = false
 					}
-				} else if col.SQLType.IsJson() {
-					if rawValueType.Kind() == reflect.String {
-						hasAssigned = true
-						x := reflect.New(fieldType)
-						if len([]byte(vv.String())) > 0 {
-							err := json.Unmarshal([]byte(vv.String()), x.Interface())
-							if err != nil {
-								return nil, err
-							}
-							fieldValue.Set(x.Elem())
-						}
-					} else if rawValueType.Kind() == reflect.Slice {
-						hasAssigned = true
-						x := reflect.New(fieldType)
-						if len(vv.Bytes()) > 0 {
-							err := json.Unmarshal(vv.Bytes(), x.Interface())
-							if err != nil {
-								return nil, err
-							}
-							fieldValue.Set(x.Elem())
-						}
+				} else if session.cascadeLevel > 0 && ((col.AssociateType == core.AssociateNone &&
+					session.cascadeMode == cascadeCompitable) ||
+					(col.AssociateType == core.AssociateBelongsTo &&
+						session.cascadeMode == cascadeEager)) {
+					var pk = make(core.PK, len(col.AssociateTable.PrimaryKeys))
+					var err error
+					rawValueType := col.AssociateTable.PKColumns()[0].FieldType
+					if rawValueType.Kind() == reflect.Ptr {
+						pk[0] = reflect.New(rawValueType.Elem()).Interface()
+					} else {
+						pk[0] = reflect.New(rawValueType).Interface()
 					}
-				} else if session.statement.UseCascade {
-					table, err := session.engine.autoMapType(*fieldValue)
+					err = convertAssign(pk[0], vv.Interface())
 					if err != nil {
 						return nil, err
 					}
 
+					pk[0] = reflect.ValueOf(pk[0]).Elem().Interface()
+					session.afterProcessors = append(session.afterProcessors, executedProcessor{
+						fun: func(session *Session, bean interface{}) error {
+							fieldValue := bean.(*reflect.Value)
+							return session.getByPK(pk, fieldValue)
+						},
+						session: session,
+						bean:    fieldValue,
+					})
+					session.cascadeLevel--
 					hasAssigned = true
-					if len(table.PrimaryKeys) != 1 {
-						return nil, errors.New("unsupported non or composited primary key cascade")
-					}
-					var pk = make(core.PK, len(table.PrimaryKeys))
-					pk[0], err = asKind(vv, rawValueType)
+				} else if col.AssociateType == core.AssociateBelongsTo {
+					hasAssigned = true
+					err := convertAssign(fieldValue.FieldByName(table.PKColumns()[0].FieldName).Addr().Interface(),
+						vv.Interface())
 					if err != nil {
 						return nil, err
-					}
-
-					if !isPKZero(pk) {
-						// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
-						// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
-						// property to be fetched lazily
-						structInter := reflect.New(fieldValue.Type())
-						has, err := session.ID(pk).NoCascade().get(structInter.Interface())
-						if err != nil {
-							return nil, err
-						}
-						if has {
-							fieldValue.Set(structInter.Elem())
-						} else {
-							return nil, errors.New("cascade obj is not exist")
-						}
 					}
 				}
 			case reflect.Ptr:
-				// !nashtsai! TODO merge duplicated codes above
-				switch fieldType {
-				// following types case matching ptr's native type, therefore assign ptr directly
-				case core.PtrStringType:
-					if rawValueType.Kind() == reflect.String {
-						x := vv.String()
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrBoolType:
-					if rawValueType.Kind() == reflect.Bool {
-						x := vv.Bool()
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrTimeType:
-					if rawValueType == core.PtrTimeType {
-						hasAssigned = true
-						var x = rawValue.Interface().(time.Time)
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrFloat64Type:
-					if rawValueType.Kind() == reflect.Float64 {
-						x := vv.Float()
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrUint64Type:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = uint64(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrInt64Type:
-					if rawValueType.Kind() == reflect.Int64 {
-						x := vv.Int()
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrFloat32Type:
-					if rawValueType.Kind() == reflect.Float64 {
-						var x = float32(vv.Float())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrIntType:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = int(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrInt32Type:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = int32(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrInt8Type:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = int8(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrInt16Type:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = int16(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrUintType:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = uint(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.PtrUint32Type:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = uint32(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.Uint8Type:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = uint8(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.Uint16Type:
-					if rawValueType.Kind() == reflect.Int64 {
-						var x = uint16(vv.Int())
-						hasAssigned = true
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-				case core.Complex64Type:
-					var x complex64
-					if len([]byte(vv.String())) > 0 {
-						err := json.Unmarshal([]byte(vv.String()), &x)
+				if fieldType != core.PtrTimeType && fieldType.Elem().Kind() == reflect.Struct {
+					if session.cascadeLevel > 0 && ((col.AssociateType == core.AssociateNone &&
+						session.cascadeMode == cascadeCompitable) ||
+						(col.AssociateType == core.AssociateBelongsTo &&
+							session.cascadeMode == cascadeEager)) {
+						var pk = make(core.PK, len(col.AssociateTable.PrimaryKeys))
+						var err error
+						rawValueType := col.AssociateTable.ColumnType(col.AssociateTable.PKColumns()[0].FieldName)
+						if rawValueType.Kind() == reflect.Ptr {
+							pk[0] = reflect.New(rawValueType.Elem()).Interface()
+						} else {
+							pk[0] = reflect.New(rawValueType).Interface()
+						}
+						err = convertAssign(pk[0], vv.Interface())
 						if err != nil {
 							return nil, err
 						}
-						fieldValue.Set(reflect.ValueOf(&x))
-					}
-					hasAssigned = true
-				case core.Complex128Type:
-					var x complex128
-					if len([]byte(vv.String())) > 0 {
-						err := json.Unmarshal([]byte(vv.String()), &x)
+
+						pk[0] = reflect.ValueOf(pk[0]).Elem().Interface()
+						session.afterProcessors = append(session.afterProcessors, executedProcessor{
+							fun: func(session *Session, bean interface{}) error {
+								fieldValue := bean.(*reflect.Value)
+								return session.getByPK(pk, fieldValue)
+							},
+							session: session,
+							bean:    fieldValue,
+						})
+
+						session.cascadeLevel--
+						hasAssigned = true
+					} else if col.AssociateType == core.AssociateBelongsTo {
+						hasAssigned = true
+						if fieldValue.IsNil() {
+							// FIXME: find id column
+							structInter := reflect.New(fieldValue.Type().Elem())
+							fieldValue.Set(structInter)
+						}
+
+						err := convertAssign(fieldValue.Elem().FieldByName(table.PKColumns()[0].FieldName).Addr().Interface(),
+							vv.Interface())
 						if err != nil {
 							return nil, err
 						}
-						fieldValue.Set(reflect.ValueOf(&x))
 					}
-					hasAssigned = true
-				} // switch fieldType
+				} else {
+					// !nashtsai! TODO merge duplicated codes above
+					switch fieldType {
+					// following types case matching ptr's native type, therefore assign ptr directly
+					case core.PtrStringType:
+						if rawValueType.Kind() == reflect.String {
+							x := vv.String()
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrBoolType:
+						if rawValueType.Kind() == reflect.Bool {
+							x := vv.Bool()
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrTimeType:
+						if rawValueType == core.PtrTimeType {
+							hasAssigned = true
+							var x = rawValue.Interface().(time.Time)
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrFloat64Type:
+						if rawValueType.Kind() == reflect.Float64 {
+							x := vv.Float()
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrUint64Type:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = uint64(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrInt64Type:
+						if rawValueType.Kind() == reflect.Int64 {
+							x := vv.Int()
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrFloat32Type:
+						if rawValueType.Kind() == reflect.Float64 {
+							var x = float32(vv.Float())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrIntType:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = int(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrInt32Type:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = int32(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrInt8Type:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = int8(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrInt16Type:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = int16(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrUintType:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = uint(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrUint32Type:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = uint32(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrUint8Type:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = uint8(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrUint16Type:
+						if rawValueType.Kind() == reflect.Int64 {
+							var x = uint16(vv.Int())
+							hasAssigned = true
+							fieldValue.Set(reflect.ValueOf(&x))
+						}
+					case core.PtrComplex64Type:
+						var x complex64
+						if len([]byte(vv.String())) > 0 {
+							err := json.Unmarshal([]byte(vv.String()), &x)
+							if err != nil {
+								session.engine.logger.Error(err)
+							} else {
+								fieldValue.Set(reflect.ValueOf(&x))
+							}
+						}
+						hasAssigned = true
+					case core.PtrComplex128Type:
+						var x complex128
+						if len([]byte(vv.String())) > 0 {
+							err := json.Unmarshal([]byte(vv.String()), &x)
+							if err != nil {
+								session.engine.logger.Error(err)
+							} else {
+								fieldValue.Set(reflect.ValueOf(&x))
+							}
+						}
+						hasAssigned = true
+					} // switch fieldType
+				}
 			} // switch fieldType.Kind()
 
 			// !nashtsai! for value can't be assigned directly fallback to convert to []byte then back to value
@@ -814,6 +864,40 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 		}
 	}
 	return pk, nil
+}
+
+func (session *Session) getByPK(pk core.PK, fieldValue *reflect.Value) error {
+	if !isPKZero(pk) {
+		var structInter reflect.Value
+		if fieldValue.Kind() == reflect.Ptr {
+			if fieldValue.IsNil() {
+				structInter = reflect.New(fieldValue.Type().Elem())
+			} else {
+				structInter = *fieldValue
+			}
+		} else {
+			structInter = fieldValue.Addr()
+		}
+
+		has, err := session.ID(pk).NoAutoCondition().get(structInter.Interface())
+		if err != nil {
+			return err
+		}
+		if has {
+			if fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
+				fieldValue.Set(structInter)
+				fmt.Println("getByPK value ptr:", fieldValue.Interface())
+			} else if fieldValue.Kind() == reflect.Struct {
+				fieldValue.Set(structInter.Elem())
+				fmt.Println("getByPK value:", fieldValue.Interface())
+			} else {
+				return errors.New("set value failed")
+			}
+		} else {
+			return errors.New("cascade obj is not exist")
+		}
+	}
+	return nil
 }
 
 // saveLastSQL stores executed query information

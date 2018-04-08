@@ -169,22 +169,12 @@ func TestExtends(t *testing.T) {
 
 	tu6 := &tempUser3{&tempUser{0, "extends update"}, ""}
 	_, err = testEngine.ID(tu5.Temp.Id).Update(tu6)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	users := make([]tempUser3, 0)
 	err = testEngine.Find(&users)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-	if len(users) != 1 {
-		err = errors.New("error get data not 1")
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(users))
 
 	assertSync(t, new(Userinfo), new(Userdetail))
 
@@ -209,21 +199,9 @@ func TestExtends(t *testing.T) {
 	sql := fmt.Sprintf("select * from %s, %s where %s.%s = %s.%s",
 		qt(ui), qt(ud), qt(ui), qt(udid), qt(ud), qt(uiid))
 	b, err := testEngine.SQL(sql).NoCascade().Get(&info)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-	if !b {
-		err = errors.New("should has lest one record")
-		t.Error(err)
-		panic(err)
-	}
-	fmt.Println(info)
-	if info.Userinfo.Uid == 0 || info.Userdetail.Id == 0 {
-		err = errors.New("all of the id should has value")
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+	assert.True(t, b)
+	assert.False(t, info.Userinfo.Uid == 0 || info.Userdetail.Id == 0)
 
 	fmt.Println("----join--info2")
 	var info2 UserAndDetail
@@ -535,4 +513,56 @@ func TestExtends4(t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
+}
+
+func TestExtendsTag(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	table := testEngine.TableInfo(new(Userdetail))
+	assert.NotNil(t, table)
+	assert.EqualValues(t, 3, len(table.ColumnsSeq()))
+	assert.EqualValues(t, "id", table.ColumnsSeq()[0])
+	assert.EqualValues(t, "intro", table.ColumnsSeq()[1])
+	assert.EqualValues(t, "profile", table.ColumnsSeq()[2])
+
+	table = testEngine.TableInfo(new(Userinfo))
+	assert.NotNil(t, table)
+	assert.EqualValues(t, 8, len(table.ColumnsSeq()))
+	assert.EqualValues(t, "id", table.ColumnsSeq()[0])
+	assert.EqualValues(t, "username", table.ColumnsSeq()[1])
+	assert.EqualValues(t, "departname", table.ColumnsSeq()[2])
+	assert.EqualValues(t, "created", table.ColumnsSeq()[3])
+	assert.EqualValues(t, "detail_id", table.ColumnsSeq()[4])
+	assert.EqualValues(t, "height", table.ColumnsSeq()[5])
+	assert.EqualValues(t, "avatar", table.ColumnsSeq()[6])
+	assert.EqualValues(t, "is_man", table.ColumnsSeq()[7])
+
+	table = testEngine.TableInfo(new(UserAndDetail))
+	assert.NotNil(t, table)
+	assert.EqualValues(t, 11, len(table.ColumnsSeq()))
+	assert.EqualValues(t, "id", table.ColumnsSeq()[0])
+	assert.EqualValues(t, "username", table.ColumnsSeq()[1])
+	assert.EqualValues(t, "departname", table.ColumnsSeq()[2])
+	assert.EqualValues(t, "created", table.ColumnsSeq()[3])
+	assert.EqualValues(t, "detail_id", table.ColumnsSeq()[4])
+	assert.EqualValues(t, "height", table.ColumnsSeq()[5])
+	assert.EqualValues(t, "avatar", table.ColumnsSeq()[6])
+	assert.EqualValues(t, "is_man", table.ColumnsSeq()[7])
+	assert.EqualValues(t, "id", table.ColumnsSeq()[8])
+	assert.EqualValues(t, "intro", table.ColumnsSeq()[9])
+	assert.EqualValues(t, "profile", table.ColumnsSeq()[10])
+
+	cols := table.Columns()
+	assert.EqualValues(t, 11, len(cols))
+	assert.EqualValues(t, "Userinfo.Uid", cols[0].FieldName)
+	assert.EqualValues(t, "Userinfo.Username", cols[1].FieldName)
+	assert.EqualValues(t, "Userinfo.Departname", cols[2].FieldName)
+	assert.EqualValues(t, "Userinfo.Created", cols[3].FieldName)
+	assert.EqualValues(t, "Userinfo.Detail", cols[4].FieldName)
+	assert.EqualValues(t, "Userinfo.Height", cols[5].FieldName)
+	assert.EqualValues(t, "Userinfo.Avatar", cols[6].FieldName)
+	assert.EqualValues(t, "Userinfo.IsMan", cols[7].FieldName)
+	assert.EqualValues(t, "Userdetail.Id", cols[8].FieldName)
+	assert.EqualValues(t, "Userdetail.Intro", cols[9].FieldName)
+	assert.EqualValues(t, "Userdetail.Profile", cols[10].FieldName)
 }

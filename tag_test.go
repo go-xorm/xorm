@@ -393,3 +393,22 @@ func TestTagTime(t *testing.T) {
 	assert.EqualValues(t, s.Created.UTC().Format("2006-01-02 15:04:05"),
 		strings.Replace(strings.Replace(tm, "T", " ", -1), "Z", "", -1))
 }
+
+func TestSplitTag(t *testing.T) {
+	var cases = []struct {
+		tag  string
+		tags []string
+	}{
+		{"not null default '2000-01-01 00:00:00' TIMESTAMP", []string{"not", "null", "default", "'2000-01-01 00:00:00'", "TIMESTAMP"}},
+		{"TEXT", []string{"TEXT"}},
+		{"default('2000-01-01 00:00:00')", []string{"default('2000-01-01 00:00:00')"}},
+		{"json  binary", []string{"json", "binary"}},
+	}
+
+	for _, kase := range cases {
+		tags := splitTag(kase.tag)
+		if !sliceEq(tags, kase.tags) {
+			t.Fatalf("[%d]%v is not equal [%d]%v", len(tags), tags, len(kase.tags), kase.tags)
+		}
+	}
+}

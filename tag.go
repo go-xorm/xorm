@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -15,19 +16,43 @@ import (
 )
 
 type tagContext struct {
+	engine        *Engine
+	parsingTables map[reflect.Type]*core.Table
+
+	table         *core.Table
+	hasCacheTag   bool
+	hasNoCacheTag bool
+
+	col        *core.Column
+	fieldValue reflect.Value
+	isIndex    bool
+	isUnique   bool
+	indexNames map[string]int
+
 	tagName         string
 	params          []string
 	preTag, nextTag string
-	table           *core.Table
-	col             *core.Column
-	fieldValue      reflect.Value
-	isIndex         bool
-	isUnique        bool
-	indexNames      map[string]int
-	engine          *Engine
-	hasCacheTag     bool
-	hasNoCacheTag   bool
 	ignoreNext      bool
+}
+
+func splitTag(tag string) (tags []string) {
+	tag = strings.TrimSpace(tag)
+	var hasQuote = false
+	var lastIdx = 0
+	for i, t := range tag {
+		if t == '\'' {
+			hasQuote = !hasQuote
+		} else if t == ' ' {
+			if lastIdx < i && !hasQuote {
+				tags = append(tags, strings.TrimSpace(tag[lastIdx:i]))
+				lastIdx = i + 1
+			}
+		}
+	}
+	if lastIdx < len(tag) {
+		tags = append(tags, strings.TrimSpace(tag[lastIdx:]))
+	}
+	return
 }
 
 // tagHandler describes tag handler for XORM
@@ -36,25 +61,26 @@ type tagHandler func(ctx *tagContext) error
 var (
 	// defaultTagHandlers enumerates all the default tag handler
 	defaultTagHandlers = map[string]tagHandler{
-		"<-":       OnlyFromDBTagHandler,
-		"->":       OnlyToDBTagHandler,
-		"PK":       PKTagHandler,
-		"NULL":     NULLTagHandler,
-		"NOT":      IgnoreTagHandler,
-		"AUTOINCR": AutoIncrTagHandler,
-		"DEFAULT":  DefaultTagHandler,
-		"CREATED":  CreatedTagHandler,
-		"UPDATED":  UpdatedTagHandler,
-		"DELETED":  DeletedTagHandler,
-		"VERSION":  VersionTagHandler,
-		"UTC":      UTCTagHandler,
-		"LOCAL":    LocalTagHandler,
-		"NOTNULL":  NotNullTagHandler,
-		"INDEX":    IndexTagHandler,
-		"UNIQUE":   UniqueTagHandler,
-		"CACHE":    CacheTagHandler,
-		"NOCACHE":  NoCacheTagHandler,
-		"COMMENT":  CommentTagHandler,
+		"<-":         OnlyFromDBTagHandler,
+		"->":         OnlyToDBTagHandler,
+		"PK":         PKTagHandler,
+		"NULL":       NULLTagHandler,
+		"NOT":        IgnoreTagHandler,
+		"AUTOINCR":   AutoIncrTagHandler,
+		"DEFAULT":    DefaultTagHandler,
+		"CREATED":    CreatedTagHandler,
+		"UPDATED":    UpdatedTagHandler,
+		"DELETED":    DeletedTagHandler,
+		"VERSION":    VersionTagHandler,
+		"UTC":        UTCTagHandler,
+		"LOCAL":      LocalTagHandler,
+		"NOTNULL":    NotNullTagHandler,
+		"INDEX":      IndexTagHandler,
+		"UNIQUE":     UniqueTagHandler,
+		"CACHE":      CacheTagHandler,
+		"NOCACHE":    NoCacheTagHandler,
+		"COMMENT":    CommentTagHandler,
+		"BELONGS_TO": BelongsToTagHandler,
 	}
 )
 
@@ -256,15 +282,16 @@ func ExtendsTagHandler(ctx *tagContext) error {
 		}
 		fallthrough
 	case reflect.Struct:
-		parentTable, err := ctx.engine.mapType(fieldValue)
+		parentTable, err := ctx.engine.mapType(ctx.parsingTables, fieldValue)
 		if err != nil {
 			return err
 		}
-		for _, col := range parentTable.Columns() {
+		for _, oriCol := range parentTable.Columns() {
+			col := *oriCol
 			col.FieldName = fmt.Sprintf("%v.%v", ctx.col.FieldName, col.FieldName)
-			ctx.table.AddColumn(col)
+			ctx.table.AddColumn(&col)
 			for indexName, indexType := range col.Indexes {
-				addIndex(indexName, ctx.table, col, indexType)
+				addIndex(indexName, ctx.table, &col, indexType)
 			}
 		}
 	default:
@@ -285,6 +312,47 @@ func CacheTagHandler(ctx *tagContext) error {
 func NoCacheTagHandler(ctx *tagContext) error {
 	if !ctx.hasNoCacheTag {
 		ctx.hasNoCacheTag = true
+	}
+	return nil
+}
+
+// BelongsToTagHandler describes belongs_to tag handler
+func BelongsToTagHandler(ctx *tagContext) error {
+	if !isStruct(ctx.fieldValue.Type()) {
+		return errors.New("Tag belongs_to cannot be applied on non-struct field")
+	}
+
+	ctx.col.AssociateType = core.AssociateBelongsTo
+	var t reflect.Value
+	if ctx.fieldValue.Kind() == reflect.Struct {
+		t = ctx.fieldValue
+	} else {
+		if ctx.fieldValue.Type().Kind() == reflect.Ptr && ctx.fieldValue.Type().Elem().Kind() == reflect.Struct {
+			if ctx.fieldValue.IsNil() {
+				t = reflect.New(ctx.fieldValue.Type().Elem()).Elem()
+			} else {
+				t = ctx.fieldValue
+			}
+		} else {
+			return errors.New("Only struct or ptr to struct field could add belongs_to flag")
+		}
+	}
+
+	belongsT, err := ctx.engine.mapType(ctx.parsingTables, t)
+	if err != nil {
+		return err
+	}
+	pks := belongsT.PKColumns()
+	if len(pks) != 1 {
+		panic("unsupported non or composited primary key cascade")
+		return errors.New("blongs_to only should be as a tag of table has one primary key")
+	}
+
+	ctx.col.AssociateTable = belongsT
+	ctx.col.SQLType = pks[0].SQLType
+
+	if len(ctx.col.Name) == 0 {
+		ctx.col.Name = ctx.engine.ColumnMapper.Obj2Table(ctx.col.FieldName) + "_id"
 	}
 	return nil
 }

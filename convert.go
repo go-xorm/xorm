@@ -25,11 +25,10 @@ func strconvErr(err error) error {
 func cloneBytes(b []byte) []byte {
 	if b == nil {
 		return nil
-	} else {
-		c := make([]byte, len(b))
-		copy(c, b)
-		return c
 	}
+	c := make([]byte, len(b))
+	copy(c, b)
+	return c
 }
 
 func asString(src interface{}) string {
@@ -274,11 +273,12 @@ func asKind(vv reflect.Value, tp reflect.Type) (interface{}, error) {
 		return vv.String(), nil
 	case reflect.Slice:
 		if tp.Elem().Kind() == reflect.Uint8 {
-			v, err := strconv.ParseInt(string(vv.Interface().([]byte)), 10, 64)
+			return string(vv.Interface().([]byte)), nil
+			/*v, err := strconv.ParseInt(string(vv.Interface().([]byte)), 10, 64)
 			if err != nil {
 				return nil, err
 			}
-			return v, nil
+			return v, nil*/
 		}
 
 	}

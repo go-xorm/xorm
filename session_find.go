@@ -205,9 +205,8 @@ func (session *Session) noCacheFind(table *core.Table, containerValue reflect.Va
 
 	var newElemFunc func(fields []string) reflect.Value
 	elemType := containerValue.Type().Elem()
-	var isPointer bool
-	if elemType.Kind() == reflect.Ptr {
-		isPointer = true
+	var isPointer = elemType.Kind() == reflect.Ptr
+	if isPointer {
 		elemType = elemType.Elem()
 	}
 	if elemType.Kind() == reflect.Ptr {
@@ -237,7 +236,9 @@ func (session *Session) noCacheFind(table *core.Table, containerValue reflect.Va
 			if isPointer {
 				containerValue.Set(reflect.Append(containerValue, newValue.Elem().Addr()))
 			} else {
+				fmt.Println("---", newValue.Elem())
 				containerValue.Set(reflect.Append(containerValue, newValue.Elem()))
+				fmt.Println("===", containerValue.Interface())
 			}
 			return nil
 		}
