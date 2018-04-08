@@ -546,21 +546,31 @@ func (engine *Engine) tableName(beanOrTableName interface{}) (string, error) {
 	return "", errors.New("bean should be a struct or struct's point")
 }
 
+func (engine *Engine) tbSchemaName(v string) string {
+	if engine.dialect.DBType() == core.POSTGRES &&
+		engine.dialect.URI().Schema != "" &&
+		strings.Index(v, ".") == -1 {
+		return engine.dialect.URI().Schema + "." + v
+	}
+	return v
+}
+
 func (engine *Engine) tbName(v reflect.Value) string {
 	if tb, ok := v.Interface().(TableName); ok {
-		return tb.TableName()
+		return engine.tbSchemaName(tb.TableName())
+
 	}
 
 	if v.Type().Kind() == reflect.Ptr {
 		if tb, ok := reflect.Indirect(v).Interface().(TableName); ok {
-			return tb.TableName()
+			return engine.tbSchemaName(tb.TableName())
 		}
 	} else if v.CanAddr() {
 		if tb, ok := v.Addr().Interface().(TableName); ok {
-			return tb.TableName()
+			return engine.tbSchemaName(tb.TableName())
 		}
 	}
-	return engine.TableMapper.Obj2Table(reflect.Indirect(v).Type().Name())
+	return engine.tbSchemaName(engine.TableMapper.Obj2Table(reflect.Indirect(v).Type().Name()))
 }
 
 // Cascade use cascade or not
