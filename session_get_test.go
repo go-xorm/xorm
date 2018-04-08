@@ -255,3 +255,27 @@ func TestJSONString(t *testing.T) {
 	assert.EqualValues(t, 1, len(jss))
 	assert.EqualValues(t, `["1","2"]`, jss[0].Content)
 }
+
+func TestGetActionMapping(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type ActionMapping struct {
+		ActionId    string `xorm:"pk"`
+		ActionName  string `xorm:"index"`
+		ScriptId    string `xorm:"unique"`
+		RollbackId  string `xorm:"unique"`
+		Env         string
+		Tags        string
+		Description string
+		UpdateTime  time.Time `xorm:"updated"`
+		DeleteTime  time.Time `xorm:"deleted"`
+	}
+
+	assertSync(t, new(ActionMapping))
+
+	var valuesSlice = make([]string, 2)
+	_, err := testEngine.Table(new(ActionMapping)).
+		Cols("script_id", "rollback_id").
+		ID(1).Get(&valuesSlice)
+	assert.NoError(t, err)
+}

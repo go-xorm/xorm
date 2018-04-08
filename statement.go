@@ -780,6 +780,8 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 		} else if l == 1 {
 			fmt.Fprintf(&buf, statement.Engine.Quote(table))
 		}
+	case TableName:
+		fmt.Fprintf(&buf, tablename.(TableName).TableName())
 	default:
 		fmt.Fprintf(&buf, statement.Engine.Quote(fmt.Sprintf("%v", tablename)))
 	}
