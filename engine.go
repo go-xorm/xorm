@@ -551,7 +551,7 @@ func (engine *Engine) tbSchemaName(v string) string {
 	// Only for postgres database.
 	if engine.dialect.DBType() == core.POSTGRES &&
 		engine.dialect.URI().Schema != "" &&
-		engine.dialect.URI().Schema != DefaultPostgresSchema &&
+		engine.dialect.URI().Schema != postgresPublicSchema &&
 		strings.Index(v, ".") == -1 {
 		return engine.dialect.URI().Schema + "." + v
 	}

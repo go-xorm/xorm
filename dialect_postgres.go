@@ -769,6 +769,8 @@ var (
 	DefaultPostgresSchema = "public"
 )
 
+const postgresPublicSchema = "public"
+
 type postgres struct {
 	core.Base
 }
