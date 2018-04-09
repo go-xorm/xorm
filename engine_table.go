@@ -35,11 +35,10 @@ func (engine *Engine) tbNameForMap(v reflect.Value) string {
 	t := v.Type()
 	if tb, ok := v.Interface().(TableName); ok {
 		return tb.TableName()
-	} else {
-		if v.CanAddr() {
-			if tb, ok = v.Addr().Interface().(TableName); ok {
-				return tb.TableName()
-			}
+	}
+	if v.CanAddr() {
+		if tb, ok := v.Addr().Interface().(TableName); ok {
+			return tb.TableName()
 		}
 	}
 	return engine.TableMapper.Obj2Table(t.Name())
@@ -69,7 +68,7 @@ func (engine *Engine) tbNameNoSchema(w io.Writer, tablename interface{}) {
 				v := rValue(f)
 				t := v.Type()
 				if t.Kind() == reflect.Struct {
-					fmt.Fprintf(w, engine.TableMapper.Obj2Table(v.Type().Name()))
+					fmt.Fprintf(w, engine.tbNameForMap(v))
 				} else {
 					fmt.Fprintf(w, engine.Quote(fmt.Sprintf("%v", f)))
 				}
@@ -89,7 +88,7 @@ func (engine *Engine) tbNameNoSchema(w io.Writer, tablename interface{}) {
 		v := rValue(tablename)
 		t := v.Type()
 		if t.Kind() == reflect.Struct {
-			fmt.Fprintf(w, engine.TableMapper.Obj2Table(v.Type().Name()))
+			fmt.Fprintf(w, engine.tbNameForMap(v))
 		} else {
 			fmt.Fprintf(w, engine.Quote(fmt.Sprintf("%v", tablename)))
 		}

@@ -1222,7 +1222,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 					return err
 				}
 				if !isExist {
-					if err := session.statement.setRefValue(v); err != nil {
+					if err := session.statement.setRefBean(bean); err != nil {
 						return err
 					}
 					err = session.addColumn(col.Name)
@@ -1233,7 +1233,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 			}
 
 			for name, index := range table.Indexes {
-				if err := session.statement.setRefValue(v); err != nil {
+				if err := session.statement.setRefBean(bean); err != nil {
 					return err
 				}
 				if index.Type == core.UniqueType {
@@ -1242,7 +1242,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 						return err
 					}
 					if !isExist {
-						if err := session.statement.setRefValue(v); err != nil {
+						if err := session.statement.setRefBean(bean); err != nil {
 							return err
 						}
 
@@ -1257,7 +1257,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 						return err
 					}
 					if !isExist {
-						if err := session.statement.setRefValue(v); err != nil {
+						if err := session.statement.setRefBean(bean); err != nil {
 							return err
 						}
 

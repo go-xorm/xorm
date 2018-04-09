@@ -79,7 +79,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		defer session.Close()
 	}
 
-	if err := session.statement.setRefValue(rValue(bean)); err != nil {
+	if err := session.statement.setRefBean(bean); err != nil {
 		return 0, err
 	}
 

@@ -6,9 +6,7 @@ package xorm
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/go-xorm/core"
@@ -34,8 +32,7 @@ func (session *Session) CreateTable(bean interface{}) error {
 }
 
 func (session *Session) createTable(bean interface{}) error {
-	v := rValue(bean)
-	if err := session.statement.setRefValue(v); err != nil {
+	if err := session.statement.setRefBean(bean); err != nil {
 		return err
 	}
 
@@ -54,8 +51,7 @@ func (session *Session) CreateIndexes(bean interface{}) error {
 }
 
 func (session *Session) createIndexes(bean interface{}) error {
-	v := rValue(bean)
-	if err := session.statement.setRefValue(v); err != nil {
+	if err := session.statement.setRefBean(bean); err != nil {
 		return err
 	}
 
@@ -78,8 +74,7 @@ func (session *Session) CreateUniques(bean interface{}) error {
 }
 
 func (session *Session) createUniques(bean interface{}) error {
-	v := rValue(bean)
-	if err := session.statement.setRefValue(v); err != nil {
+	if err := session.statement.setRefBean(bean); err != nil {
 		return err
 	}
 
@@ -103,8 +98,7 @@ func (session *Session) DropIndexes(bean interface{}) error {
 }
 
 func (session *Session) dropIndexes(bean interface{}) error {
-	v := rValue(bean)
-	if err := session.statement.setRefValue(v); err != nil {
+	if err := session.statement.setRefBean(bean); err != nil {
 		return err
 	}
 
@@ -168,19 +162,10 @@ func (session *Session) isTableExist(tableName string) (bool, error) {
 
 // IsTableEmpty if table have any records
 func (session *Session) IsTableEmpty(bean interface{}) (bool, error) {
-	v := rValue(bean)
-	t := v.Type()
-
-	if t.Kind() == reflect.String {
-		if session.isAutoClose {
-			defer session.Close()
-		}
-		return session.isTableEmpty(bean.(string))
-	} else if t.Kind() == reflect.Struct {
-		rows, err := session.Count(bean)
-		return rows == 0, err
+	if session.isAutoClose {
+		defer session.Close()
 	}
-	return false, errors.New("bean should be a struct or struct's point")
+	return session.isTableEmpty(session.engine.tbNameNoSchemaString(bean))
 }
 
 func (session *Session) isTableEmpty(tableName string) (bool, error) {

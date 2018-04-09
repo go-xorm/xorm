@@ -225,6 +225,16 @@ func (statement *Statement) setRefValue(v reflect.Value) error {
 	return nil
 }
 
+func (statement *Statement) setRefBean(bean interface{}) error {
+	var err error
+	statement.RefTable, err = statement.Engine.autoMapType(rValue(bean))
+	if err != nil {
+		return err
+	}
+	statement.tableName = statement.Engine.TableNameWithSchema(statement.Engine.tbNameNoSchemaString(bean))
+	return nil
+}
+
 // Auto generating update columnes and values according a struct
 func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 	includeVersion bool, includeUpdated bool, includeNil bool,
@@ -918,7 +928,7 @@ func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}, 
 	v := rValue(bean)
 	isStruct := v.Kind() == reflect.Struct
 	if isStruct {
-		statement.setRefValue(v)
+		statement.setRefBean(bean)
 	}
 
 	var columnStr = statement.ColumnStr
@@ -970,7 +980,7 @@ func (statement *Statement) genCountSQL(beans ...interface{}) (string, []interfa
 	var condArgs []interface{}
 	var err error
 	if len(beans) > 0 {
-		statement.setRefValue(rValue(beans[0]))
+		statement.setRefBean(beans[0])
 		condSQL, condArgs, err = statement.genConds(beans[0])
 	} else {
 		condSQL, condArgs, err = builder.ToSQL(statement.cond)
@@ -996,7 +1006,7 @@ func (statement *Statement) genCountSQL(beans ...interface{}) (string, []interfa
 }
 
 func (statement *Statement) genSumSQL(bean interface{}, columns ...string) (string, []interface{}, error) {
-	statement.setRefValue(rValue(bean))
+	statement.setRefBean(bean)
 
 	var sumStrs = make([]string, 0, len(columns))
 	for _, colName := range columns {

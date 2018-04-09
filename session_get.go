@@ -31,7 +31,7 @@ func (session *Session) get(bean interface{}) (bool, error) {
 	}
 
 	if beanValue.Elem().Kind() == reflect.Struct {
-		if err := session.statement.setRefValue(beanValue.Elem()); err != nil {
+		if err := session.statement.setRefBean(bean); err != nil {
 			return false, err
 		}
 	}
