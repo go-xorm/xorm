@@ -913,6 +913,9 @@ func (db *postgres) DropIndexSql(tableName string, index *core.Index) string {
 	quote := db.Quote
 	idxName := index.Name
 
+	tableName = strings.Replace(tableName, `"`, "", -1)
+	tableName = strings.Replace(tableName, `.`, "_", -1)
+
 	if !strings.HasPrefix(idxName, "UQE_") &&
 		!strings.HasPrefix(idxName, "IDX_") {
 		if index.Type == core.UniqueType {
@@ -920,6 +923,9 @@ func (db *postgres) DropIndexSql(tableName string, index *core.Index) string {
 		} else {
 			idxName = fmt.Sprintf("IDX_%v_%v", tableName, index.Name)
 		}
+	}
+	if db.Uri.Schema != "" {
+		idxName = db.Uri.Schema + "." + idxName
 	}
 	return fmt.Sprintf("DROP INDEX %v", quote(idxName))
 }

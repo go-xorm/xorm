@@ -716,8 +716,9 @@ func (MyUserinfo2) TableName() string {
 func TestInsertMulti4(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	testEngine.ShowSQL(true)
+	testEngine.ShowSQL(false)
 	assertSync(t, new(MyUserinfo2))
+	testEngine.ShowSQL(true)
 
 	users := []MyUserinfo2{
 		{Username: "xlw", Departname: "dev", Alias: "lunny2", Created: time.Now()},

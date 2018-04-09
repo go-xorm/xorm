@@ -304,7 +304,7 @@ func TestCustomType2(t *testing.T) {
 	err := testEngine.CreateTables(&UserCus{})
 	assert.NoError(t, err)
 
-	tableName := testEngine.GetTableMapper().Obj2Table("UserCus")
+	tableName := testEngine.TableNameWithSchema(testEngine.GetTableMapper().Obj2Table("UserCus"))
 	_, err = testEngine.Exec("delete from " + testEngine.Quote(tableName))
 	assert.NoError(t, err)
 

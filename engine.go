@@ -1185,7 +1185,7 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 
 	for _, bean := range beans {
 		v := rValue(bean)
-		tableNameNoSchema := engine.tbNameNoSchemaString(v.Interface())
+		tableNameNoSchema := engine.tbNameNoSchema(v.Interface())
 		table, err := engine.autoMapType(v)
 		if err != nil {
 			return err
