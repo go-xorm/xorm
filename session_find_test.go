@@ -248,7 +248,7 @@ func TestDistinct(t *testing.T) {
 	users2 := make([]Depart, 0)
 	err = testEngine.Distinct(departname).Table(new(Userinfo)).Find(&users2)
 	assert.NoError(t, err)
-	if len(users2) != 2 {
+	if len(users2) != 1 {
 		fmt.Println(len(users2))
 		t.Error(err)
 		panic(errors.New("should be one record"))
