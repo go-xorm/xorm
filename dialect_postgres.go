@@ -895,6 +895,7 @@ func (db *postgres) TableCheckSql(tableName string) (string, []interface{}) {
 		args := []interface{}{tableName}
 		return `SELECT tablename FROM pg_tables WHERE tablename = ?`, args
 	}
+
 	args := []interface{}{db.Schema, tableName}
 	return `SELECT tablename FROM pg_tables WHERE schemaname = ? AND tablename = ?`, args
 }
@@ -960,7 +961,7 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 	var f string
 	if len(db.Schema) != 0 {
 		args = append(args, db.Schema)
-		f = "AND s.table_schema = $2"
+		f = " AND s.table_schema = $2"
 	}
 	s = fmt.Sprintf(s, f)
 
@@ -1085,11 +1086,11 @@ func (db *postgres) GetTables() ([]*core.Table, error) {
 func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error) {
 	args := []interface{}{tableName}
 	s := fmt.Sprintf("SELECT indexname, indexdef FROM pg_indexes WHERE tablename=$1")
-	db.LogSQL(s, args)
 	if len(db.Schema) != 0 {
 		args = append(args, db.Schema)
 		s = s + " AND schemaname=$2"
 	}
+	db.LogSQL(s, args)
 
 	rows, err := db.DB().Query(s, args...)
 	if err != nil {

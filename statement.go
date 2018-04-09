@@ -225,24 +225,6 @@ func (statement *Statement) setRefValue(v reflect.Value) error {
 	return nil
 }
 
-// Table tempororily set table name, the parameter could be a string or a pointer of struct
-func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
-	v := rValue(tableNameOrBean)
-	t := v.Type()
-	if t.Kind() == reflect.String {
-		statement.AltTableName = tableNameOrBean.(string)
-	} else if t.Kind() == reflect.Struct {
-		var err error
-		statement.RefTable, err = statement.Engine.autoMapType(v)
-		if err != nil {
-			statement.Engine.logger.Error(err)
-			return statement
-		}
-		statement.AltTableName = statement.Engine.tbName(v)
-	}
-	return statement
-}
-
 // Auto generating update columnes and values according a struct
 func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 	includeVersion bool, includeUpdated bool, includeNil bool,
@@ -743,6 +725,23 @@ func (statement *Statement) Asc(colNames ...string) *Statement {
 	return statement
 }
 
+// Table tempororily set table name, the parameter could be a string or a pointer of struct
+func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
+	v := rValue(tableNameOrBean)
+	t := v.Type()
+	if t.Kind() == reflect.Struct {
+		var err error
+		statement.RefTable, err = statement.Engine.autoMapType(v)
+		if err != nil {
+			statement.Engine.logger.Error(err)
+			return statement
+		}
+	}
+
+	statement.AltTableName = statement.Engine.TableNameWithSchema(statement.Engine.tbNameNoSchemaString(tableNameOrBean))
+	return statement
+}
+
 // Join The joinOP should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
 func (statement *Statement) Join(joinOP string, tablename interface{}, condition string, args ...interface{}) *Statement {
 	var buf bytes.Buffer
@@ -752,54 +751,7 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 		fmt.Fprintf(&buf, "%v JOIN ", joinOP)
 	}
 
-	switch tablename.(type) {
-	case []string:
-		t := tablename.([]string)
-		if len(t) > 1 {
-			fmt.Fprintf(&buf, "%v AS %v", statement.Engine.Quote(t[0]), statement.Engine.Quote(t[1]))
-		} else if len(t) == 1 {
-			fmt.Fprintf(&buf, statement.Engine.Quote(t[0]))
-		}
-	case []interface{}:
-		t := tablename.([]interface{})
-		l := len(t)
-		var table string
-		if l > 0 {
-			f := t[0]
-			switch f.(type) {
-			case string:
-				table = f.(string)
-			case TableName:
-				table = f.(TableName).TableName()
-			default:
-				v := rValue(f)
-				t := v.Type()
-				if t.Kind() == reflect.Struct {
-					fmt.Fprintf(&buf, statement.Engine.tbName(v))
-				} else {
-					fmt.Fprintf(&buf, statement.Engine.Quote(fmt.Sprintf("%v", f)))
-				}
-			}
-		}
-		if l > 1 {
-			fmt.Fprintf(&buf, "%v AS %v", statement.Engine.Quote(table),
-				statement.Engine.Quote(fmt.Sprintf("%v", t[1])))
-		} else if l == 1 {
-			fmt.Fprintf(&buf, statement.Engine.Quote(table))
-		}
-	case TableName:
-		fmt.Fprintf(&buf, tablename.(TableName).TableName())
-	case string:
-		fmt.Fprintf(&buf, tablename.(string))
-	default:
-		v := rValue(tablename)
-		t := v.Type()
-		if t.Kind() == reflect.Struct {
-			fmt.Fprintf(&buf, statement.Engine.tbName(v))
-		} else {
-			fmt.Fprintf(&buf, statement.Engine.Quote(fmt.Sprintf("%v", tablename)))
-		}
-	}
+	statement.Engine.tbNameNoSchema(&buf, tablename)
 
 	fmt.Fprintf(&buf, " ON %v", condition)
 	statement.JoinStr = buf.String()
@@ -915,7 +867,7 @@ func (statement *Statement) genDelIndexSQL() []string {
 		}
 		sql := fmt.Sprintf("DROP INDEX %v", statement.Engine.Quote(rIdxName))
 		if statement.Engine.dialect.IndexOnTable() {
-			sql += fmt.Sprintf(" ON %v", statement.Engine.Quote(statement.TableName()))
+			sql += fmt.Sprintf(" ON %v", statement.Engine.Quote(tbName))
 		}
 		sqls = append(sqls, sql)
 	}

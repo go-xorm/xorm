@@ -1118,13 +1118,28 @@ func TestCompositePK(t *testing.T) {
 	}
 
 	assert.NoError(t, prepareEngine())
-	assertSync(t, new(TaskSolution))
 
-	assert.NoError(t, testEngine.Sync2(new(TaskSolution)))
-	tables, err := testEngine.DBMetas()
+	tables1, err := testEngine.DBMetas()
 	assert.NoError(t, err)
-	assert.EqualValues(t, 1, len(tables))
-	pkCols := tables[0].PKColumns()
+
+	assertSync(t, new(TaskSolution))
+	assert.NoError(t, testEngine.Sync2(new(TaskSolution)))
+
+	tables2, err := testEngine.DBMetas()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1+len(tables1), len(tables2))
+
+	var table *core.Table
+	for _, t := range tables2 {
+		if t.Name == testEngine.GetTableMapper().Obj2Table("TaskSolution") {
+			table = t
+			break
+		}
+	}
+
+	assert.NotEqual(t, nil, table)
+
+	pkCols := table.PKColumns()
 	assert.EqualValues(t, 2, len(pkCols))
 	assert.EqualValues(t, "uid", pkCols[0].Name)
 	assert.EqualValues(t, "tid", pkCols[1].Name)

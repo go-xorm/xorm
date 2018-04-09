@@ -36,7 +36,7 @@ func TestQueryString(t *testing.T) {
 	_, err := testEngine.InsertOne(data)
 	assert.NoError(t, err)
 
-	records, err := testEngine.QueryString("select * from get_var2")
+	records, err := testEngine.QueryString("select * from " + testEngine.TableNameWithSchema("get_var2"))
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(records))
 	assert.Equal(t, 5, len(records[0]))
@@ -62,7 +62,7 @@ func TestQueryString2(t *testing.T) {
 	_, err := testEngine.Insert(data)
 	assert.NoError(t, err)
 
-	records, err := testEngine.QueryString("select * from get_var3")
+	records, err := testEngine.QueryString("select * from " + testEngine.TableNameWithSchema("get_var3"))
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(records))
 	assert.Equal(t, 2, len(records[0]))
@@ -127,7 +127,7 @@ func TestQueryInterface(t *testing.T) {
 	_, err := testEngine.InsertOne(data)
 	assert.NoError(t, err)
 
-	records, err := testEngine.QueryInterface("select * from get_var_interface")
+	records, err := testEngine.QueryInterface("select * from " + testEngine.TableNameWithSchema("get_var_interface"))
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(records))
 	assert.Equal(t, 5, len(records[0]))
@@ -181,7 +181,7 @@ func TestQueryNoParams(t *testing.T) {
 	assert.NoError(t, err)
 	assertResult(t, results)
 
-	results, err = testEngine.SQL("select * from query_no_params").Query()
+	results, err = testEngine.SQL("select * from " + testEngine.TableNameWithSchema("query_no_params")).Query()
 	assert.NoError(t, err)
 	assertResult(t, results)
 }
@@ -226,7 +226,7 @@ func TestQueryWithBuilder(t *testing.T) {
 		assert.EqualValues(t, 3000, money)
 	}
 
-	results, err := testEngine.Query(builder.Select("*").From("query_with_builder"))
+	results, err := testEngine.Query(builder.Select("*").From(testEngine.TableNameWithSchema("query_with_builder")))
 	assert.NoError(t, err)
 	assertResult(t, results)
 }
