@@ -125,7 +125,7 @@ func TestIn(t *testing.T) {
 	department := "`" + testEngine.GetColumnMapper().Obj2Table("Departname") + "`"
 	var usrs []Userinfo
 	err = testEngine.Where(department+" = ?", "dev").Limit(3).Find(&usrs)
-	assert.Error(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, 3, len(usrs))
 
 	var ids []int64
