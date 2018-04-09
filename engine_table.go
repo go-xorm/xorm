@@ -27,8 +27,8 @@ func (engine *Engine) TableNameWithSchema(v string) string {
 	return v
 }
 
-func (engine *Engine) tbName(v reflect.Value) string {
-	return engine.TableNameWithSchema(engine.tbNameNoSchemaString(v.Interface()))
+func (engine *Engine) tableName(bean interface{}) string {
+	return engine.TableNameWithSchema(engine.tbNameNoSchemaString(bean))
 }
 
 func (engine *Engine) tbNameForMap(v reflect.Value) string {

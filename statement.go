@@ -221,7 +221,7 @@ func (statement *Statement) setRefValue(v reflect.Value) error {
 	if err != nil {
 		return err
 	}
-	statement.tableName = statement.Engine.tbName(v)
+	statement.tableName = statement.Engine.tableName(v.Interface())
 	return nil
 }
 
