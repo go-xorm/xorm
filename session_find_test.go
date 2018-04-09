@@ -237,7 +237,7 @@ func TestDistinct(t *testing.T) {
 	departname := testEngine.GetTableMapper().Obj2Table("Departname")
 	err = testEngine.Distinct(departname).Find(&users)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 2, len(users))
+	assert.EqualValues(t, 1, len(users))
 
 	fmt.Println(users)
 
