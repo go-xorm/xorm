@@ -54,7 +54,8 @@ func TestRows(t *testing.T) {
 	}
 	assert.EqualValues(t, 1, cnt)
 
-	rows2, err := testEngine.SQL("SELECT * FROM user_rows").Rows(new(UserRows))
+	var tbName = testEngine.Quote(testEngine.TableName(user, true))
+	rows2, err := testEngine.SQL("SELECT * FROM " + tbName).Rows(new(UserRows))
 	assert.NoError(t, err)
 	defer rows2.Close()
 

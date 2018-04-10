@@ -536,46 +536,6 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 	return nil
 }
 
-func (engine *Engine) tableName(beanOrTableName interface{}) (string, error) {
-	v := rValue(beanOrTableName)
-	if v.Type().Kind() == reflect.String {
-		return beanOrTableName.(string), nil
-	} else if v.Type().Kind() == reflect.Struct {
-		return engine.tbName(v), nil
-	}
-	return "", errors.New("bean should be a struct or struct's point")
-}
-
-func (engine *Engine) tbSchemaName(v string) string {
-	// Add schema name as prefix of table name.
-	// Only for postgres database.
-	if engine.dialect.DBType() == core.POSTGRES &&
-		engine.dialect.URI().Schema != "" &&
-		engine.dialect.URI().Schema != postgresPublicSchema &&
-		strings.Index(v, ".") == -1 {
-		return engine.dialect.URI().Schema + "." + v
-	}
-	return v
-}
-
-func (engine *Engine) tbName(v reflect.Value) string {
-	if tb, ok := v.Interface().(TableName); ok {
-		return engine.tbSchemaName(tb.TableName())
-
-	}
-
-	if v.Type().Kind() == reflect.Ptr {
-		if tb, ok := reflect.Indirect(v).Interface().(TableName); ok {
-			return engine.tbSchemaName(tb.TableName())
-		}
-	} else if v.CanAddr() {
-		if tb, ok := v.Addr().Interface().(TableName); ok {
-			return engine.tbSchemaName(tb.TableName())
-		}
-	}
-	return engine.tbSchemaName(engine.TableMapper.Obj2Table(reflect.Indirect(v).Type().Name()))
-}
-
 // Cascade use cascade or not
 func (engine *Engine) Cascade(trueOrFalse ...bool) *Session {
 	session := engine.NewSession()
@@ -859,7 +819,7 @@ func (engine *Engine) TableInfo(bean interface{}) *Table {
 	if err != nil {
 		engine.logger.Error(err)
 	}
-	return &Table{tb, engine.tbName(v)}
+	return &Table{tb, engine.TableName(bean)}
 }
 
 func addIndex(indexName string, table *core.Table, col *core.Column, indexType int) {
@@ -895,20 +855,8 @@ var (
 func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 	t := v.Type()
 	table := engine.newTable()
-	if tb, ok := v.Interface().(TableName); ok {
-		table.Name = tb.TableName()
-	} else {
-		if v.CanAddr() {
-			if tb, ok = v.Addr().Interface().(TableName); ok {
-				table.Name = tb.TableName()
-			}
-		}
-		if table.Name == "" {
-			table.Name = engine.TableMapper.Obj2Table(t.Name())
-		}
-	}
-
 	table.Type = t
+	table.Name = engine.tbNameForMap(v)
 
 	var idFieldColName string
 	var hasCacheTag, hasNoCacheTag bool
@@ -1186,7 +1134,7 @@ func (engine *Engine) ClearCacheBean(bean interface{}, id string) error {
 	if t.Kind() != reflect.Struct {
 		return errors.New("error params")
 	}
-	tableName := engine.tbName(v)
+	tableName := engine.TableName(bean)
 	table, err := engine.autoMapType(v)
 	if err != nil {
 		return err
@@ -1210,7 +1158,7 @@ func (engine *Engine) ClearCache(beans ...interface{}) error {
 		if t.Kind() != reflect.Struct {
 			return errors.New("error params")
 		}
-		tableName := engine.tbName(v)
+		tableName := engine.TableName(bean)
 		table, err := engine.autoMapType(v)
 		if err != nil {
 			return err
@@ -1237,13 +1185,13 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 
 	for _, bean := range beans {
 		v := rValue(bean)
-		tableName := engine.tbName(v)
+		tableNameNoSchema := engine.tbNameNoSchema(v.Interface())
 		table, err := engine.autoMapType(v)
 		if err != nil {
 			return err
 		}
 
-		isExist, err := session.Table(bean).isTableExist(tableName)
+		isExist, err := session.Table(bean).isTableExist(tableNameNoSchema)
 		if err != nil {
 			return err
 		}
@@ -1269,12 +1217,12 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 			}
 		} else {
 			for _, col := range table.Columns() {
-				isExist, err := engine.dialect.IsColumnExist(tableName, col.Name)
+				isExist, err := engine.dialect.IsColumnExist(tableNameNoSchema, col.Name)
 				if err != nil {
 					return err
 				}
 				if !isExist {
-					if err := session.statement.setRefValue(v); err != nil {
+					if err := session.statement.setRefBean(bean); err != nil {
 						return err
 					}
 					err = session.addColumn(col.Name)
@@ -1285,35 +1233,35 @@ func (engine *Engine) Sync(beans ...interface{}) error {
 			}
 
 			for name, index := range table.Indexes {
-				if err := session.statement.setRefValue(v); err != nil {
+				if err := session.statement.setRefBean(bean); err != nil {
 					return err
 				}
 				if index.Type == core.UniqueType {
-					isExist, err := session.isIndexExist2(tableName, index.Cols, true)
+					isExist, err := session.isIndexExist2(tableNameNoSchema, index.Cols, true)
 					if err != nil {
 						return err
 					}
 					if !isExist {
-						if err := session.statement.setRefValue(v); err != nil {
+						if err := session.statement.setRefBean(bean); err != nil {
 							return err
 						}
 
-						err = session.addUnique(tableName, name)
+						err = session.addUnique(tableNameNoSchema, name)
 						if err != nil {
 							return err
 						}
 					}
 				} else if index.Type == core.IndexType {
-					isExist, err := session.isIndexExist2(tableName, index.Cols, false)
+					isExist, err := session.isIndexExist2(tableNameNoSchema, index.Cols, false)
 					if err != nil {
 						return err
 					}
 					if !isExist {
-						if err := session.statement.setRefValue(v); err != nil {
+						if err := session.statement.setRefBean(bean); err != nil {
 							return err
 						}
 
-						err = session.addIndex(tableName, name)
+						err = session.addIndex(tableNameNoSchema, name)
 						if err != nil {
 							return err
 						}
@@ -1647,6 +1595,11 @@ func (engine *Engine) GetTZDatabase() *time.Location {
 // SetTZDatabase sets time zone of the database
 func (engine *Engine) SetTZDatabase(tz *time.Location) {
 	engine.DatabaseTZ = tz
+}
+
+// SetSchema sets the schema of database
+func (engine *Engine) SetSchema(schema string) {
+	engine.dialect.URI().Schema = schema
 }
 
 // Unscoped always disable struct tag "deleted"

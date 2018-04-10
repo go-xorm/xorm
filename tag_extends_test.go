@@ -202,17 +202,14 @@ func TestExtends(t *testing.T) {
 
 	var info UserAndDetail
 	qt := testEngine.Quote
-	ui := testEngine.GetTableMapper().Obj2Table("Userinfo")
-	ud := testEngine.GetTableMapper().Obj2Table("Userdetail")
-	uiid := testEngine.GetTableMapper().Obj2Table("Id")
+	ui := testEngine.TableName(new(Userinfo), true)
+	ud := testEngine.TableName(&detail, true)
+	uiid := testEngine.GetColumnMapper().Obj2Table("Id")
 	udid := "detail_id"
 	sql := fmt.Sprintf("select * from %s, %s where %s.%s = %s.%s",
 		qt(ui), qt(ud), qt(ui), qt(udid), qt(ud), qt(uiid))
 	b, err := testEngine.SQL(sql).NoCascade().Get(&info)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 	if !b {
 		err = errors.New("should has lest one record")
 		t.Error(err)
@@ -341,19 +338,17 @@ func TestExtends2(t *testing.T) {
 	}
 
 	var mapper = testEngine.GetTableMapper().Obj2Table
-	userTableName := mapper("MessageUser")
-	typeTableName := mapper("MessageType")
-	msgTableName := mapper("Message")
+	var quote = testEngine.Quote
+	userTableName := quote(testEngine.TableName(mapper("MessageUser"), true))
+	typeTableName := quote(testEngine.TableName(mapper("MessageType"), true))
+	msgTableName := quote(testEngine.TableName(mapper("Message"), true))
 
 	list := make([]Message, 0)
-	err = testEngine.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("Id")+"`=`"+msgTableName+"`.`"+mapper("Uid")+"`").
-		Join("LEFT", []string{userTableName, "receiver"}, "`receiver`.`"+mapper("Id")+"`=`"+msgTableName+"`.`"+mapper("ToUid")+"`").
-		Join("LEFT", []string{typeTableName, "type"}, "`type`.`"+mapper("Id")+"`=`"+msgTableName+"`.`"+mapper("Id")+"`").
+	err = testEngine.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").
+		Join("LEFT", []string{userTableName, "receiver"}, "`receiver`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("ToUid")+"`").
+		Join("LEFT", []string{typeTableName, "type"}, "`type`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Id")+"`").
 		Find(&list)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	if len(list) != 1 {
 		err = errors.New(fmt.Sprintln("should have 1 message, got", len(list)))
@@ -406,25 +401,20 @@ func TestExtends3(t *testing.T) {
 		assert.NoError(t, err)
 	}
 	_, err = testEngine.Insert(&msg)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	var mapper = testEngine.GetTableMapper().Obj2Table
-	userTableName := mapper("MessageUser")
-	typeTableName := mapper("MessageType")
-	msgTableName := mapper("Message")
+	var quote = testEngine.Quote
+	userTableName := quote(testEngine.TableName(mapper("MessageUser"), true))
+	typeTableName := quote(testEngine.TableName(mapper("MessageType"), true))
+	msgTableName := quote(testEngine.TableName(mapper("Message"), true))
 
 	list := make([]MessageExtend3, 0)
-	err = testEngine.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("Id")+"`=`"+msgTableName+"`.`"+mapper("Uid")+"`").
-		Join("LEFT", []string{userTableName, "receiver"}, "`receiver`.`"+mapper("Id")+"`=`"+msgTableName+"`.`"+mapper("ToUid")+"`").
-		Join("LEFT", []string{typeTableName, "type"}, "`type`.`"+mapper("Id")+"`=`"+msgTableName+"`.`"+mapper("Id")+"`").
+	err = testEngine.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").
+		Join("LEFT", []string{userTableName, "receiver"}, "`receiver`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("ToUid")+"`").
+		Join("LEFT", []string{typeTableName, "type"}, "`type`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Id")+"`").
 		Find(&list)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	if len(list) != 1 {
 		err = errors.New(fmt.Sprintln("should have 1 message, got", len(list)))
@@ -499,13 +489,14 @@ func TestExtends4(t *testing.T) {
 	}
 
 	var mapper = testEngine.GetTableMapper().Obj2Table
-	userTableName := mapper("MessageUser")
-	typeTableName := mapper("MessageType")
-	msgTableName := mapper("Message")
+	var quote = testEngine.Quote
+	userTableName := quote(testEngine.TableName(mapper("MessageUser"), true))
+	typeTableName := quote(testEngine.TableName(mapper("MessageType"), true))
+	msgTableName := quote(testEngine.TableName(mapper("Message"), true))
 
 	list := make([]MessageExtend4, 0)
-	err = testEngine.Table(msgTableName).Join("LEFT", userTableName, "`"+userTableName+"`.`"+mapper("Id")+"`=`"+msgTableName+"`.`"+mapper("Uid")+"`").
-		Join("LEFT", typeTableName, "`"+typeTableName+"`.`"+mapper("Id")+"`=`"+msgTableName+"`.`"+mapper("Id")+"`").
+	err = testEngine.Table(msgTableName).Join("LEFT", userTableName, userTableName+".`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").
+		Join("LEFT", typeTableName, typeTableName+".`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Id")+"`").
 		Find(&list)
 	if err != nil {
 		t.Error(err)

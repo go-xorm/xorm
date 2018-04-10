@@ -87,6 +87,7 @@ type EngineInterface interface {
 	SetDefaultCacher(core.Cacher)
 	SetLogLevel(core.LogLevel)
 	SetMapper(core.IMapper)
+	SetSchema(string)
 	SetTZDatabase(tz *time.Location)
 	SetTZLocation(tz *time.Location)
 	ShowSQL(show ...bool)
@@ -94,6 +95,7 @@ type EngineInterface interface {
 	Sync2(...interface{}) error
 	StoreEngine(storeEngine string) *Session
 	TableInfo(bean interface{}) *Table
+	TableName(interface{}, ...bool) string
 	UnMapType(reflect.Type)
 }
 

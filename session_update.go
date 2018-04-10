@@ -167,7 +167,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	var isMap = t.Kind() == reflect.Map
 	var isStruct = t.Kind() == reflect.Struct
 	if isStruct {
-		if err := session.statement.setRefValue(v); err != nil {
+		if err := session.statement.setRefBean(bean); err != nil {
 			return 0, err
 		}
 

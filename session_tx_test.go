@@ -32,45 +32,21 @@ func TestTransaction(t *testing.T) {
 	defer session.Close()
 
 	err := session.Begin()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-		return
-	}
+	assert.NoError(t, err)
 
 	user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
 	_, err = session.Insert(&user1)
-	if err != nil {
-		session.Rollback()
-		t.Error(err)
-		panic(err)
-		return
-	}
+	assert.NoError(t, err)
 
 	user2 := Userinfo{Username: "yyy"}
 	_, err = session.Where("(id) = ?", 0).Update(&user2)
-	if err != nil {
-		session.Rollback()
-		fmt.Println(err)
-		//t.Error(err)
-		return
-	}
+	assert.NoError(t, err)
 
 	_, err = session.Delete(&user2)
-	if err != nil {
-		session.Rollback()
-		t.Error(err)
-		panic(err)
-		return
-	}
+	assert.NoError(t, err)
 
 	err = session.Commit()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-		return
-	}
-	// panic(err) !nashtsai! should remove this
+	assert.NoError(t, err)
 }
 
 func TestCombineTransaction(t *testing.T) {
@@ -91,38 +67,21 @@ func TestCombineTransaction(t *testing.T) {
 	defer session.Close()
 
 	err := session.Begin()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	user1 := Userinfo{Username: "xiaoxiao2", Departname: "dev", Alias: "lunny", Created: time.Now()}
 	_, err = session.Insert(&user1)
-	if err != nil {
-		session.Rollback()
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+
 	user2 := Userinfo{Username: "zzz"}
 	_, err = session.Where("id = ?", 0).Update(&user2)
-	if err != nil {
-		session.Rollback()
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
-	_, err = session.Exec("delete from userinfo where username = ?", user2.Username)
-	if err != nil {
-		session.Rollback()
-		t.Error(err)
-		panic(err)
-	}
+	_, err = session.Exec("delete from "+testEngine.TableName("userinfo", true)+" where username = ?", user2.Username)
+	assert.NoError(t, err)
 
 	err = session.Commit()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 }
 
 func TestCombineTransactionSameMapper(t *testing.T) {
@@ -148,45 +107,24 @@ func TestCombineTransactionSameMapper(t *testing.T) {
 
 	counter()
 	defer counter()
+
 	session := testEngine.NewSession()
 	defer session.Close()
 
 	err := session.Begin()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-		return
-	}
+	assert.NoError(t, err)
 
 	user1 := Userinfo{Username: "xiaoxiao2", Departname: "dev", Alias: "lunny", Created: time.Now()}
 	_, err = session.Insert(&user1)
-	if err != nil {
-		session.Rollback()
-		t.Error(err)
-		panic(err)
-		return
-	}
+	assert.NoError(t, err)
 
 	user2 := Userinfo{Username: "zzz"}
 	_, err = session.Where("(id) = ?", 0).Update(&user2)
-	if err != nil {
-		session.Rollback()
-		t.Error(err)
-		panic(err)
-		return
-	}
+	assert.NoError(t, err)
 
-	_, err = session.Exec("delete from `Userinfo` where `Username` = ?", user2.Username)
-	if err != nil {
-		session.Rollback()
-		t.Error(err)
-		panic(err)
-		return
-	}
+	_, err = session.Exec("delete from  "+testEngine.TableName("`Userinfo`", true)+" where `Username` = ?", user2.Username)
+	assert.NoError(t, err)
 
 	err = session.Commit()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 }

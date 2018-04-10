@@ -21,13 +21,13 @@ func TestExecAndQuery(t *testing.T) {
 
 	assert.NoError(t, testEngine.Sync2(new(UserinfoQuery)))
 
-	res, err := testEngine.Exec("INSERT INTO `userinfo_query` (uid, name) VALUES (?, ?)", 1, "user")
+	res, err := testEngine.Exec("INSERT INTO "+testEngine.TableName("`userinfo_query`", true)+" (uid, name) VALUES (?, ?)", 1, "user")
 	assert.NoError(t, err)
 	cnt, err := res.RowsAffected()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	results, err := testEngine.Query("select * from userinfo_query")
+	results, err := testEngine.Query("select * from " + testEngine.TableName("userinfo_query", true))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))
 	id, err := strconv.Atoi(string(results[0]["uid"]))

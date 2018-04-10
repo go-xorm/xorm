@@ -828,15 +828,6 @@ func (session *Session) LastSQL() (string, []interface{}) {
 	return session.lastSQL, session.lastSQLArgs
 }
 
-// tbName get some table's table name
-func (session *Session) tbNameNoSchema(table *core.Table) string {
-	if len(session.statement.AltTableName) > 0 {
-		return session.statement.AltTableName
-	}
-
-	return table.Name
-}
-
 // Unscoped always disable struct tag "deleted"
 func (session *Session) Unscoped() *Session {
 	session.statement.Unscoped()

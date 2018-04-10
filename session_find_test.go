@@ -96,21 +96,15 @@ func TestFind(t *testing.T) {
 	users := make([]Userinfo, 0)
 
 	err := testEngine.Find(&users)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 	for _, user := range users {
 		fmt.Println(user)
 	}
 
 	users2 := make([]Userinfo, 0)
-	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
-	err = testEngine.SQL("select * from " + testEngine.Quote(userinfo)).Find(&users2)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	var tbName = testEngine.Quote(testEngine.TableName(new(Userinfo), true))
+	err = testEngine.SQL("select * from " + tbName).Find(&users2)
+	assert.NoError(t, err)
 }
 
 func TestFind2(t *testing.T) {
@@ -238,14 +232,8 @@ func TestDistinct(t *testing.T) {
 	users := make([]Userinfo, 0)
 	departname := testEngine.GetTableMapper().Obj2Table("Departname")
 	err = testEngine.Distinct(departname).Find(&users)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-	if len(users) != 1 {
-		t.Error(err)
-		panic(errors.New("should be one record"))
-	}
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(users))
 
 	fmt.Println(users)
 
@@ -255,11 +243,9 @@ func TestDistinct(t *testing.T) {
 
 	users2 := make([]Depart, 0)
 	err = testEngine.Distinct(departname).Table(new(Userinfo)).Find(&users2)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 	if len(users2) != 1 {
+		fmt.Println(len(users2))
 		t.Error(err)
 		panic(errors.New("should be one record"))
 	}
@@ -272,18 +258,12 @@ func TestOrder(t *testing.T) {
 
 	users := make([]Userinfo, 0)
 	err := testEngine.OrderBy("id desc").Find(&users)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 	fmt.Println(users)
 
 	users2 := make([]Userinfo, 0)
 	err = testEngine.Asc("id", "username").Desc("height").Find(&users2)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 	fmt.Println(users2)
 }
 
@@ -293,10 +273,7 @@ func TestHaving(t *testing.T) {
 
 	users := make([]Userinfo, 0)
 	err := testEngine.GroupBy("username").Having("username='xlw'").Find(&users)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 	fmt.Println(users)
 
 	/*users = make([]Userinfo, 0)
@@ -324,18 +301,12 @@ func TestOrderSameMapper(t *testing.T) {
 
 	users := make([]Userinfo, 0)
 	err := testEngine.OrderBy("(id) desc").Find(&users)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 	fmt.Println(users)
 
 	users2 := make([]Userinfo, 0)
 	err = testEngine.Asc("(id)", "Username").Desc("Height").Find(&users2)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 	fmt.Println(users2)
 }
 

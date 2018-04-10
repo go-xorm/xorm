@@ -54,11 +54,11 @@ func TestExistStruct(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, has)
 
-	has, err = testEngine.SQL("select * from record_exist where name = ?", "test1").Exist()
+	has, err = testEngine.SQL("select * from "+testEngine.TableName("record_exist", true)+" where name = ?", "test1").Exist()
 	assert.NoError(t, err)
 	assert.True(t, has)
 
-	has, err = testEngine.SQL("select * from record_exist where name = ?", "test2").Exist()
+	has, err = testEngine.SQL("select * from "+testEngine.TableName("record_exist", true)+" where name = ?", "test2").Exist()
 	assert.NoError(t, err)
 	assert.False(t, has)
 

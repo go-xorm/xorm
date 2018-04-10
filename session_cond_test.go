@@ -122,18 +122,11 @@ func TestIn(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, cnt)
 
+	department := "`" + testEngine.GetColumnMapper().Obj2Table("Departname") + "`"
 	var usrs []Userinfo
-	err = testEngine.Limit(3).Find(&usrs)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-
-	if len(usrs) != 3 {
-		err = errors.New("there are not 3 records")
-		t.Error(err)
-		panic(err)
-	}
+	err = testEngine.Where(department+" = ?", "dev").Limit(3).Find(&usrs)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, len(usrs))
 
 	var ids []int64
 	var idsStr string
@@ -145,35 +138,20 @@ func TestIn(t *testing.T) {
 
 	users := make([]Userinfo, 0)
 	err = testEngine.In("(id)", ids[0], ids[1], ids[2]).Find(&users)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 	fmt.Println(users)
-	if len(users) != 3 {
-		err = errors.New("in uses should be " + idsStr + " total 3")
-		t.Error(err)
-		panic(err)
-	}
+	assert.EqualValues(t, 3, len(users))
 
 	users = make([]Userinfo, 0)
 	err = testEngine.In("(id)", ids).Find(&users)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 	fmt.Println(users)
-	if len(users) != 3 {
-		err = errors.New("in uses should be " + idsStr + " total 3")
-		t.Error(err)
-		panic(err)
-	}
+	assert.EqualValues(t, 3, len(users))
 
 	for _, user := range users {
 		if user.Uid != ids[0] && user.Uid != ids[1] && user.Uid != ids[2] {
 			err = errors.New("in uses should be " + idsStr + " total 3")
-			t.Error(err)
-			panic(err)
+			assert.NoError(t, err)
 		}
 	}
 
@@ -183,87 +161,41 @@ func TestIn(t *testing.T) {
 		idsInterface = append(idsInterface, id)
 	}
 
-	department := "`" + testEngine.GetColumnMapper().Obj2Table("Departname") + "`"
 	err = testEngine.Where(department+" = ?", "dev").In("(id)", idsInterface...).Find(&users)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 	fmt.Println(users)
-
-	if len(users) != 3 {
-		err = errors.New("in uses should be " + idsStr + " total 3")
-		t.Error(err)
-		panic(err)
-	}
+	assert.EqualValues(t, 3, len(users))
 
 	for _, user := range users {
 		if user.Uid != ids[0] && user.Uid != ids[1] && user.Uid != ids[2] {
 			err = errors.New("in uses should be " + idsStr + " total 3")
-			t.Error(err)
-			panic(err)
+			assert.NoError(t, err)
 		}
 	}
 
 	dev := testEngine.GetColumnMapper().Obj2Table("Dev")
 
 	err = testEngine.In("(id)", 1).In("(id)", 2).In(department, dev).Find(&users)
-
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 	fmt.Println(users)
 
 	cnt, err = testEngine.In("(id)", ids[0]).Update(&Userinfo{Departname: "dev-"})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-	if cnt != 1 {
-		err = errors.New("update records not 1")
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
 
 	user := new(Userinfo)
 	has, err := testEngine.ID(ids[0]).Get(user)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-	if !has {
-		err = errors.New("get record not 1")
-		t.Error(err)
-		panic(err)
-	}
-	if user.Departname != "dev-" {
-		err = errors.New("update not success")
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "dev-", user.Departname)
 
 	cnt, err = testEngine.In("(id)", ids[0]).Update(&Userinfo{Departname: "dev"})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-	if cnt != 1 {
-		err = errors.New("update records not 1")
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
 
 	cnt, err = testEngine.In("(id)", ids[1]).Delete(&Userinfo{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-	if cnt != 1 {
-		err = errors.New("deleted records not 1")
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
 }
 
 func TestFindAndCount(t *testing.T) {
