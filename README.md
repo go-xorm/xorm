@@ -30,6 +30,8 @@ Xorm is a simple and powerful ORM for Go.
 
 * Automatical Read/Write seperatelly
 
+* Postgres schema support
+
 # Drivers Support
 
 Drivers for Go's sql package which currently support database/sql includes:
@@ -50,6 +52,13 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 # Changelog
 
+* **v0.6.5**
+    * Postgres schema support
+    * vgo support
+    * Add FindAndCount
+    * Database special params support via NewEngineWithParams
+    * Some bugs fixed
+
 * **v0.6.4**
     * Automatical Read/Write seperatelly
     * Query/QueryString/QueryInterface and action with Where/And
@@ -64,11 +73,6 @@ Drivers for Go's sql package which currently support database/sql includes:
     * Mysql now support read and create column comment.
     * fix time related bugs.
     * fix some other bugs.
-
-* **v0.6.2**
-    * refactor tag parse methods
-    * add Scan features to Get
-    * add QueryString method
 
 [More changes ...](https://github.com/go-xorm/manual-en-US/tree/master/chapter-16)
 
