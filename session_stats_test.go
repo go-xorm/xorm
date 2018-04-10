@@ -158,3 +158,28 @@ func TestSQLCount(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, total)
 }
+
+func TestCountWithOthers(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type CountWithOthers struct {
+		Id   int64
+		Name string
+	}
+
+	assertSync(t, new(CountWithOthers))
+
+	_, err := testEngine.Insert(&CountWithOthers{
+		Name: "orderby",
+	})
+	assert.NoError(t, err)
+
+	_, err = testEngine.Insert(&CountWithOthers{
+		Name: "limit",
+	})
+	assert.NoError(t, err)
+
+	total, err := testEngine.OrderBy("id desc").Limit(1).Count(new(CountWithOthers))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, total)
+}
