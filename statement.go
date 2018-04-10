@@ -971,7 +971,7 @@ func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}, 
 		return "", nil, err
 	}
 
-	sqlStr, err := statement.genSelectSQL(columnStr, condSQL, true)
+	sqlStr, err := statement.genSelectSQL(columnStr, condSQL, true, true)
 	if err != nil {
 		return "", nil, err
 	}
@@ -1001,7 +1001,7 @@ func (statement *Statement) genCountSQL(beans ...interface{}) (string, []interfa
 			selectSQL = "count(*)"
 		}
 	}
-	sqlStr, err := statement.genSelectSQL(selectSQL, condSQL, false)
+	sqlStr, err := statement.genSelectSQL(selectSQL, condSQL, false, false)
 	if err != nil {
 		return "", nil, err
 	}
@@ -1026,7 +1026,7 @@ func (statement *Statement) genSumSQL(bean interface{}, columns ...string) (stri
 		return "", nil, err
 	}
 
-	sqlStr, err := statement.genSelectSQL(sumSelect, condSQL, true)
+	sqlStr, err := statement.genSelectSQL(sumSelect, condSQL, true, true)
 	if err != nil {
 		return "", nil, err
 	}
@@ -1034,7 +1034,7 @@ func (statement *Statement) genSumSQL(bean interface{}, columns ...string) (stri
 	return sqlStr, append(statement.joinArgs, condArgs...), nil
 }
 
-func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit bool) (a string, err error) {
+func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit, needOrderBy bool) (a string, err error) {
 	var distinct string
 	if statement.IsDistinct && !strings.HasPrefix(columnStr, "count") {
 		distinct = "DISTINCT "
@@ -1101,9 +1101,10 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit bo
 			}
 
 			var orderStr string
-			if len(statement.OrderStr) > 0 {
+			if needOrderBy && len(statement.OrderStr) > 0 {
 				orderStr = " ORDER BY " + statement.OrderStr
 			}
+
 			var groupStr string
 			if len(statement.GroupByStr) > 0 {
 				groupStr = " GROUP BY " + statement.GroupByStr
@@ -1129,7 +1130,7 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit bo
 	if statement.HavingStr != "" {
 		a = fmt.Sprintf("%v %v", a, statement.HavingStr)
 	}
-	if statement.OrderStr != "" {
+	if needOrderBy && statement.OrderStr != "" {
 		a = fmt.Sprintf("%v ORDER BY %v", a, statement.OrderStr)
 	}
 	if needLimit {
