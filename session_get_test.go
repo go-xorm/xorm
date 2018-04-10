@@ -284,3 +284,29 @@ func TestGetActionMapping(t *testing.T) {
 		ID(1).Get(&valuesSlice)
 	assert.NoError(t, err)
 }
+
+func TestGetStructId(t *testing.T) {
+	type TestGetStruct struct {
+		Id int64
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(TestGetStruct))
+
+	_, err := testEngine.Insert(&TestGetStruct{})
+	assert.NoError(t, err)
+	_, err = testEngine.Insert(&TestGetStruct{})
+	assert.NoError(t, err)
+
+	type maxidst struct {
+		Id int64
+	}
+
+	//var id int64
+	var maxid maxidst
+	sql := "select max(id) as id from " + testEngine.TableName(&TestGetStruct{}, true)
+	has, err := testEngine.SQL(sql).Get(&maxid)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 2, maxid.Id)
+}
