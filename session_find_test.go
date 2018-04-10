@@ -102,11 +102,7 @@ func TestFind(t *testing.T) {
 	}
 
 	users2 := make([]Userinfo, 0)
-	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
-	var tbName = testEngine.Quote(userinfo)
-	if testEngine.Dialect().URI().Schema != "" {
-		tbName = testEngine.Quote(testEngine.Dialect().URI().Schema) + "." + tbName
-	}
+	var tbName = testEngine.Quote(testEngine.TableName(new(Userinfo), true))
 	err = testEngine.SQL("select * from " + tbName).Find(&users2)
 	assert.NoError(t, err)
 }

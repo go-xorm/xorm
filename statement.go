@@ -221,7 +221,7 @@ func (statement *Statement) setRefValue(v reflect.Value) error {
 	if err != nil {
 		return err
 	}
-	statement.tableName = statement.Engine.tableName(v.Interface())
+	statement.tableName = statement.Engine.TableName(v.Interface(), true)
 	return nil
 }
 
@@ -231,7 +231,7 @@ func (statement *Statement) setRefBean(bean interface{}) error {
 	if err != nil {
 		return err
 	}
-	statement.tableName = statement.Engine.TableNameWithSchema(statement.Engine.tbNameNoSchema(bean))
+	statement.tableName = statement.Engine.TableName(bean, true)
 	return nil
 }
 
@@ -748,7 +748,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 		}
 	}
 
-	statement.AltTableName = statement.Engine.TableNameWithSchema(statement.Engine.tbNameNoSchema(tableNameOrBean))
+	statement.AltTableName = statement.Engine.TableName(tableNameOrBean, true)
 	return statement
 }
 
@@ -761,7 +761,7 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 		fmt.Fprintf(&buf, "%v JOIN ", joinOP)
 	}
 
-	tbName := statement.Engine.TableNameWithSchema(statement.Engine.tbNameNoSchema(tablename))
+	tbName := statement.Engine.TableName(tablename, true)
 
 	fmt.Fprintf(&buf, "%s ON %v", tbName, condition)
 	statement.JoinStr = buf.String()
@@ -879,7 +879,7 @@ func (statement *Statement) genDelIndexSQL() []string {
 		} else if index.Type == core.IndexType {
 			rIdxName = indexName(idxPrefixName, idxName)
 		}
-		sql := fmt.Sprintf("DROP INDEX %v", statement.Engine.TableNameWithSchema(statement.Engine.Quote(rIdxName)))
+		sql := fmt.Sprintf("DROP INDEX %v", statement.Engine.Quote(statement.Engine.TableName(rIdxName, true)))
 		if statement.Engine.dialect.IndexOnTable() {
 			sql += fmt.Sprintf(" ON %v", statement.Engine.Quote(tbName))
 		}

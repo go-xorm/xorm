@@ -95,7 +95,7 @@ type EngineInterface interface {
 	Sync2(...interface{}) error
 	StoreEngine(storeEngine string) *Session
 	TableInfo(bean interface{}) *Table
-	TableNameWithSchema(string) string
+	TableName(interface{}, ...bool) string
 	UnMapType(reflect.Type)
 }
 

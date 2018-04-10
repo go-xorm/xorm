@@ -77,7 +77,7 @@ func TestCombineTransaction(t *testing.T) {
 	_, err = session.Where("id = ?", 0).Update(&user2)
 	assert.NoError(t, err)
 
-	_, err = session.Exec("delete from "+testEngine.TableNameWithSchema("userinfo")+" where username = ?", user2.Username)
+	_, err = session.Exec("delete from "+testEngine.TableName("userinfo", true)+" where username = ?", user2.Username)
 	assert.NoError(t, err)
 
 	err = session.Commit()
@@ -122,7 +122,7 @@ func TestCombineTransactionSameMapper(t *testing.T) {
 	_, err = session.Where("(id) = ?", 0).Update(&user2)
 	assert.NoError(t, err)
 
-	_, err = session.Exec("delete from  "+testEngine.TableNameWithSchema("`Userinfo`")+" where `Username` = ?", user2.Username)
+	_, err = session.Exec("delete from  "+testEngine.TableName("`Userinfo`", true)+" where `Username` = ?", user2.Username)
 	assert.NoError(t, err)
 
 	err = session.Commit()

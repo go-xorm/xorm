@@ -202,9 +202,9 @@ func TestExtends(t *testing.T) {
 
 	var info UserAndDetail
 	qt := testEngine.Quote
-	ui := testEngine.TableNameWithSchema(testEngine.GetTableMapper().Obj2Table("Userinfo"))
-	ud := testEngine.TableNameWithSchema(testEngine.GetTableMapper().Obj2Table("Userdetail"))
-	uiid := testEngine.GetTableMapper().Obj2Table("Id")
+	ui := testEngine.TableName(new(Userinfo), true)
+	ud := testEngine.TableName(&detail, true)
+	uiid := testEngine.GetColumnMapper().Obj2Table("Id")
 	udid := "detail_id"
 	sql := fmt.Sprintf("select * from %s, %s where %s.%s = %s.%s",
 		qt(ui), qt(ud), qt(ui), qt(udid), qt(ud), qt(uiid))
@@ -339,9 +339,9 @@ func TestExtends2(t *testing.T) {
 
 	var mapper = testEngine.GetTableMapper().Obj2Table
 	var quote = testEngine.Quote
-	userTableName := quote(testEngine.TableNameWithSchema(mapper("MessageUser")))
-	typeTableName := quote(testEngine.TableNameWithSchema(mapper("MessageType")))
-	msgTableName := quote(testEngine.TableNameWithSchema(mapper("Message")))
+	userTableName := quote(testEngine.TableName(mapper("MessageUser"), true))
+	typeTableName := quote(testEngine.TableName(mapper("MessageType"), true))
+	msgTableName := quote(testEngine.TableName(mapper("Message"), true))
 
 	list := make([]Message, 0)
 	err = testEngine.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").
@@ -405,9 +405,9 @@ func TestExtends3(t *testing.T) {
 
 	var mapper = testEngine.GetTableMapper().Obj2Table
 	var quote = testEngine.Quote
-	userTableName := quote(testEngine.TableNameWithSchema(mapper("MessageUser")))
-	typeTableName := quote(testEngine.TableNameWithSchema(mapper("MessageType")))
-	msgTableName := quote(testEngine.TableNameWithSchema(mapper("Message")))
+	userTableName := quote(testEngine.TableName(mapper("MessageUser"), true))
+	typeTableName := quote(testEngine.TableName(mapper("MessageType"), true))
+	msgTableName := quote(testEngine.TableName(mapper("Message"), true))
 
 	list := make([]MessageExtend3, 0)
 	err = testEngine.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").
@@ -490,9 +490,9 @@ func TestExtends4(t *testing.T) {
 
 	var mapper = testEngine.GetTableMapper().Obj2Table
 	var quote = testEngine.Quote
-	userTableName := quote(testEngine.TableNameWithSchema(mapper("MessageUser")))
-	typeTableName := quote(testEngine.TableNameWithSchema(mapper("MessageType")))
-	msgTableName := quote(testEngine.TableNameWithSchema(mapper("Message")))
+	userTableName := quote(testEngine.TableName(mapper("MessageUser"), true))
+	typeTableName := quote(testEngine.TableName(mapper("MessageType"), true))
+	msgTableName := quote(testEngine.TableName(mapper("Message"), true))
 
 	list := make([]MessageExtend4, 0)
 	err = testEngine.Table(msgTableName).Join("LEFT", userTableName, userTableName+".`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").

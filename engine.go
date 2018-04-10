@@ -819,7 +819,7 @@ func (engine *Engine) TableInfo(bean interface{}) *Table {
 	if err != nil {
 		engine.logger.Error(err)
 	}
-	return &Table{tb, engine.tableName(bean)}
+	return &Table{tb, engine.TableName(bean)}
 }
 
 func addIndex(indexName string, table *core.Table, col *core.Column, indexType int) {
@@ -1134,7 +1134,7 @@ func (engine *Engine) ClearCacheBean(bean interface{}, id string) error {
 	if t.Kind() != reflect.Struct {
 		return errors.New("error params")
 	}
-	tableName := engine.tableName(bean)
+	tableName := engine.TableName(bean)
 	table, err := engine.autoMapType(v)
 	if err != nil {
 		return err
@@ -1158,7 +1158,7 @@ func (engine *Engine) ClearCache(beans ...interface{}) error {
 		if t.Kind() != reflect.Struct {
 			return errors.New("error params")
 		}
-		tableName := engine.tableName(bean)
+		tableName := engine.TableName(bean)
 		table, err := engine.autoMapType(v)
 		if err != nil {
 			return err

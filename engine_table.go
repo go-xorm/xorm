@@ -13,7 +13,7 @@ import (
 )
 
 // TableNameWithSchema will automatically add schema prefix on table name
-func (engine *Engine) TableNameWithSchema(v string) string {
+func (engine *Engine) tbNameWithSchema(v string) string {
 	// Add schema name as prefix of table name.
 	// Only for postgres database.
 	if engine.dialect.DBType() == core.POSTGRES &&
@@ -25,8 +25,23 @@ func (engine *Engine) TableNameWithSchema(v string) string {
 	return v
 }
 
-func (engine *Engine) tableName(bean interface{}) string {
-	return engine.TableNameWithSchema(engine.tbNameNoSchema(bean))
+// TableName returns table name with schema prefix if has
+func (engine *Engine) TableName(bean interface{}, includeSchema ...bool) string {
+	tbName := engine.tbNameNoSchema(bean)
+	if len(includeSchema) > 0 && includeSchema[0] {
+		tbName = engine.tbNameWithSchema(tbName)
+	}
+
+	return tbName
+}
+
+// tbName get some table's table name
+func (session *Session) tbNameNoSchema(table *core.Table) string {
+	if len(session.statement.AltTableName) > 0 {
+		return session.statement.AltTableName
+	}
+
+	return table.Name
 }
 
 func (engine *Engine) tbNameForMap(v reflect.Value) string {

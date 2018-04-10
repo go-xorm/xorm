@@ -134,7 +134,7 @@ func (session *Session) dropTable(beanOrTableName interface{}) error {
 	}
 
 	if needDrop {
-		sqlStr := session.engine.Dialect().DropTableSql(session.engine.TableNameWithSchema(tableName))
+		sqlStr := session.engine.Dialect().DropTableSql(session.engine.TableName(tableName, true))
 		_, err := session.exec(sqlStr)
 		return err
 	}
@@ -168,7 +168,7 @@ func (session *Session) IsTableEmpty(bean interface{}) (bool, error) {
 
 func (session *Session) isTableEmpty(tableName string) (bool, error) {
 	var total int64
-	sqlStr := fmt.Sprintf("select count(*) from %s", session.engine.TableNameWithSchema(session.engine.Quote(tableName)))
+	sqlStr := fmt.Sprintf("select count(*) from %s", session.engine.Quote(session.engine.TableName(tableName, true)))
 	err := session.queryRow(sqlStr).Scan(&total)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -249,7 +249,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 		}
 		structTables = append(structTables, table)
 		tbName := session.tbNameNoSchema(table)
-		tbNameWithSchema := engine.TableNameWithSchema(tbName)
+		tbNameWithSchema := engine.TableName(tbName, true)
 
 		var oriTable *core.Table
 		for _, tb := range tables {
@@ -413,7 +413,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 
 		for _, colName := range table.ColumnsSeq() {
 			if oriTable.GetColumn(colName) == nil {
-				engine.logger.Warnf("Table %s has column %s but struct has not related field", engine.TableNameWithSchema(table.Name), colName)
+				engine.logger.Warnf("Table %s has column %s but struct has not related field", engine.TableName(table.Name, true), colName)
 			}
 		}
 	}
