@@ -1031,7 +1031,7 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 		}
 	}
 	if hasNoCacheTag {
-		engine.logger.Info("no cache on table:", table.Name)
+		engine.logger.Info("disable cache on table:", table.Name)
 		engine.setCacher(table.Name, nil)
 	}
 

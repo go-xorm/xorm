@@ -232,9 +232,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 		return 0, err
 	}
 
-	if cacher := session.engine.getCacher(tableName); cacher != nil && session.statement.UseCache {
-		session.cacheInsert(tableName)
-	}
+	session.cacheInsert(tableName)
 
 	lenAfterClosures := len(session.afterClosures)
 	for i := 0; i < size; i++ {
@@ -394,9 +392,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 
 		defer handleAfterInsertProcessorFunc(bean)
 
-		if cacher := session.engine.getCacher(tableName); cacher != nil && session.statement.UseCache {
-			session.cacheInsert(tableName)
-		}
+		session.cacheInsert(tableName)
 
 		if table.Version != "" && session.statement.checkVersion {
 			verValue, err := table.VersionColumn().ValueOf(bean)
@@ -439,9 +435,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		}
 		defer handleAfterInsertProcessorFunc(bean)
 
-		if cacher := session.engine.getCacher(tableName); cacher != nil && session.statement.UseCache {
-			session.cacheInsert(tableName)
-		}
+		session.cacheInsert(tableName)
 
 		if table.Version != "" && session.statement.checkVersion {
 			verValue, err := table.VersionColumn().ValueOf(bean)
@@ -482,9 +476,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 
 		defer handleAfterInsertProcessorFunc(bean)
 
-		if cacher := session.engine.getCacher(tableName); cacher != nil && session.statement.UseCache {
-			session.cacheInsert(tableName)
-		}
+		session.cacheInsert(tableName)
 
 		if table.Version != "" && session.statement.checkVersion {
 			verValue, err := table.VersionColumn().ValueOf(bean)
@@ -531,13 +523,16 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 	return session.innerInsert(bean)
 }
 
-func (session *Session) cacheInsert(tables ...string) error {
-	for _, t := range tables {
-		cacher := session.engine.getCacher(t)
-		session.engine.logger.Debug("[cache] clear sql:", t)
-		cacher.ClearIds(t)
+func (session *Session) cacheInsert(table string) error {
+	if !session.statement.UseCache {
+		return nil
 	}
-
+	cacher := session.engine.getCacher(table)
+	if cacher == nil {
+		return nil
+	}
+	session.engine.logger.Debug("[cache] clear sql:", table)
+	cacher.ClearIds(table)
 	return nil
 }
 
