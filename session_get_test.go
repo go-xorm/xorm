@@ -278,11 +278,20 @@ func TestGetActionMapping(t *testing.T) {
 
 	assertSync(t, new(ActionMapping))
 
-	var valuesSlice = make([]string, 2)
-	_, err := testEngine.Table(new(ActionMapping)).
-		Cols("script_id", "rollback_id").
-		ID(1).Get(&valuesSlice)
+	_, err := testEngine.Insert(&ActionMapping{
+		ActionId: "1",
+		ScriptId: "2",
+	})
 	assert.NoError(t, err)
+
+	var valuesSlice = make([]string, 2)
+	has, err := testEngine.Table(new(ActionMapping)).
+		Cols("script_id", "rollback_id").
+		ID("1").Get(&valuesSlice)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "2", valuesSlice[0])
+	assert.EqualValues(t, "", valuesSlice[1])
 }
 
 func TestGetStructId(t *testing.T) {
