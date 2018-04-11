@@ -223,11 +223,18 @@ func (statement *Statement) setRefBean(bean interface{}) error {
 }
 
 // Auto generating update columnes and values according a struct
-func buildUpdates(engine *Engine, table *core.Table, bean interface{},
-	includeVersion bool, includeUpdated bool, includeNil bool,
-	includeAutoIncr bool, allUseBool bool, useAllCols bool,
-	mustColumnMap map[string]bool, nullableMap map[string]bool,
-	columnMap columnMap, omitColumnMap columnMap, update, unscoped bool) ([]string, []interface{}) {
+func (statement *Statement) buildUpdates(bean interface{},
+	includeVersion, includeUpdated, includeNil,
+	includeAutoIncr, update bool) ([]string, []interface{}) {
+	engine := statement.Engine
+	table := statement.RefTable
+	allUseBool := statement.allUseBool
+	useAllCols := statement.useAllCols
+	mustColumnMap := statement.mustColumnMap
+	nullableMap := statement.nullableMap
+	columnMap := statement.columnMap
+	omitColumnMap := statement.omitColumnMap
+	unscoped := statement.unscoped
 
 	var colNames = make([]string, 0)
 	var args = make([]interface{}, 0)
