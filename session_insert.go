@@ -70,7 +70,8 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 		return 0, err
 	}
 
-	if len(session.statement.TableName()) <= 0 {
+	tableName := session.statement.TableName()
+	if len(tableName) <= 0 {
 		return 0, ErrTableNotFound
 	}
 
@@ -205,7 +206,6 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 
 	var sql = "INSERT INTO %s (%v%v%v) VALUES (%v)"
 	var statement string
-	var tableName = session.statement.TableName()
 	if session.engine.dialect.DBType() == core.ORACLE {
 		sql = "INSERT ALL INTO %s (%v%v%v) VALUES (%v) SELECT 1 FROM DUAL"
 		temp := fmt.Sprintf(") INTO %s (%v%v%v) VALUES (",
@@ -232,9 +232,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 		return 0, err
 	}
 
-	if cacher := session.engine.getCacher2(table); cacher != nil && session.statement.UseCache {
-		session.cacheInsert(table, tableName)
-	}
+	session.cacheInsert(tableName)
 
 	lenAfterClosures := len(session.afterClosures)
 	for i := 0; i < size; i++ {
@@ -394,9 +392,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 
 		defer handleAfterInsertProcessorFunc(bean)
 
-		if cacher := session.engine.getCacher2(table); cacher != nil && session.statement.UseCache {
-			session.cacheInsert(table, tableName)
-		}
+		session.cacheInsert(tableName)
 
 		if table.Version != "" && session.statement.checkVersion {
 			verValue, err := table.VersionColumn().ValueOf(bean)
@@ -439,9 +435,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		}
 		defer handleAfterInsertProcessorFunc(bean)
 
-		if cacher := session.engine.getCacher2(table); cacher != nil && session.statement.UseCache {
-			session.cacheInsert(table, tableName)
-		}
+		session.cacheInsert(tableName)
 
 		if table.Version != "" && session.statement.checkVersion {
 			verValue, err := table.VersionColumn().ValueOf(bean)
@@ -482,9 +476,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 
 		defer handleAfterInsertProcessorFunc(bean)
 
-		if cacher := session.engine.getCacher2(table); cacher != nil && session.statement.UseCache {
-			session.cacheInsert(table, tableName)
-		}
+		session.cacheInsert(tableName)
 
 		if table.Version != "" && session.statement.checkVersion {
 			verValue, err := table.VersionColumn().ValueOf(bean)
@@ -531,17 +523,16 @@ func (session *Session) InsertOne(bean interface{}) (int64, error) {
 	return session.innerInsert(bean)
 }
 
-func (session *Session) cacheInsert(table *core.Table, tables ...string) error {
-	if table == nil {
-		return ErrCacheFailed
+func (session *Session) cacheInsert(table string) error {
+	if !session.statement.UseCache {
+		return nil
 	}
-
-	cacher := session.engine.getCacher2(table)
-	for _, t := range tables {
-		session.engine.logger.Debug("[cache] clear sql:", t)
-		cacher.ClearIds(t)
+	cacher := session.engine.getCacher(table)
+	if cacher == nil {
+		return nil
 	}
-
+	session.engine.logger.Debug("[cache] clear sql:", table)
+	cacher.ClearIds(table)
 	return nil
 }
 

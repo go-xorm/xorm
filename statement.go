@@ -950,12 +950,12 @@ func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}, 
 		columnStr = "*"
 	}
 
-	if err := statement.processIDParam(); err != nil {
-		return "", nil, err
-	}
-
 	if isStruct {
 		if err := statement.mergeConds(bean); err != nil {
+			return "", nil, err
+		}
+	} else {
+		if err := statement.processIDParam(); err != nil {
 			return "", nil, err
 		}
 	}
@@ -1143,7 +1143,7 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit, n
 }
 
 func (statement *Statement) processIDParam() error {
-	if statement.idParam == nil {
+	if statement.idParam == nil || statement.RefTable == nil {
 		return nil
 	}
 

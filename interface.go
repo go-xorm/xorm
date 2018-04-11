@@ -77,6 +77,7 @@ type EngineInterface interface {
 	Dialect() core.Dialect
 	DropTables(...interface{}) error
 	DumpAllToFile(fp string, tp ...core.DbType) error
+	GetCacher(string) core.Cacher
 	GetColumnMapper() core.IMapper
 	GetDefaultCacher() core.Cacher
 	GetTableMapper() core.IMapper
@@ -85,6 +86,7 @@ type EngineInterface interface {
 	NewSession() *Session
 	NoAutoTime() *Session
 	Quote(string) string
+	SetCacher(string, core.Cacher)
 	SetDefaultCacher(core.Cacher)
 	SetLogLevel(core.LogLevel)
 	SetMapper(core.IMapper)
