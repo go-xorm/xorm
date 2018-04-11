@@ -45,16 +45,17 @@ func (session *Session) tbNameNoSchema(table *core.Table) string {
 }
 
 func (engine *Engine) tbNameForMap(v reflect.Value) string {
-	t := v.Type()
-	if tb, ok := v.Interface().(TableName); ok {
-		return tb.TableName()
+	if v.Type().Implements(tpTableName) {
+		return v.Interface().(TableName).TableName()
 	}
-	if v.CanAddr() {
-		if tb, ok := v.Addr().Interface().(TableName); ok {
-			return tb.TableName()
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+		if v.Type().Implements(tpTableName) {
+			return v.Interface().(TableName).TableName()
 		}
 	}
-	return engine.TableMapper.Obj2Table(t.Name())
+
+	return engine.TableMapper.Obj2Table(v.Type().Name())
 }
 
 func (engine *Engine) tbNameNoSchema(tablename interface{}) string {
@@ -97,6 +98,9 @@ func (engine *Engine) tbNameNoSchema(tablename interface{}) string {
 		return tablename.(TableName).TableName()
 	case string:
 		return tablename.(string)
+	case reflect.Value:
+		v := tablename.(reflect.Value)
+		return engine.tbNameForMap(v)
 	default:
 		v := rValue(tablename)
 		t := v.Type()
