@@ -42,6 +42,7 @@ type Interface interface {
 	IsTableExist(beanOrTableName interface{}) (bool, error)
 	Iterate(interface{}, IterFunc) error
 	Limit(int, ...int) *Session
+	MustCols(columns ...string) *Session
 	NoAutoCondition(...bool) *Session
 	NotIn(string, ...interface{}) *Session
 	Join(joinOperator string, tablename interface{}, condition string, args ...interface{}) *Session
