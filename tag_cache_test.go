@@ -19,7 +19,7 @@ func TestCacheTag(t *testing.T) {
 	}
 
 	assert.NoError(t, testEngine.CreateTables(&CacheDomain{}))
-	assert.True(t, testEngine.GetCacher(testEngine.TableName(&CacheDomain{}, true)) != nil)
+	assert.True(t, testEngine.GetCacher(testEngine.TableName(&CacheDomain{})) != nil)
 }
 
 func TestNoCacheTag(t *testing.T) {
@@ -31,5 +31,5 @@ func TestNoCacheTag(t *testing.T) {
 	}
 
 	assert.NoError(t, testEngine.CreateTables(&NoCacheDomain{}))
-	assert.True(t, testEngine.GetCacher(testEngine.TableName(&NoCacheDomain{}, true)) == nil)
+	assert.True(t, testEngine.GetCacher(testEngine.TableName(&NoCacheDomain{})) == nil)
 }
