@@ -176,10 +176,8 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		}
 
 		if session.statement.ColumnStr == "" {
-			colNames, args = buildUpdates(session.engine, session.statement.RefTable, bean, false, false,
-				false, false, session.statement.allUseBool, session.statement.useAllCols,
-				session.statement.mustColumnMap, session.statement.nullableMap,
-				session.statement.columnMap, session.statement.omitColumnMap, true, session.statement.unscoped)
+			colNames, args = session.statement.buildUpdates(bean, false, false,
+				false, false, true)
 		} else {
 			colNames, args, err = session.genUpdateColumns(bean)
 			if err != nil {
