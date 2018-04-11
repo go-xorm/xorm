@@ -1143,7 +1143,7 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit, n
 }
 
 func (statement *Statement) processIDParam() error {
-	if statement.idParam == nil {
+	if statement.idParam == nil || statement.RefTable == nil {
 		return nil
 	}
 

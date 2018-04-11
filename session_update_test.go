@@ -1198,7 +1198,7 @@ func TestUpdateMapContent(t *testing.T) {
 	assert.EqualValues(t, 0, c1.Age)
 
 	cnt, err = testEngine.Table(new(UpdateMapContent)).ID(c.Id).Update(map[string]interface{}{
-		"age": 16,
+		"age":    16,
 		"is_man": false,
 		"gender": 2,
 	})
@@ -1212,4 +1212,20 @@ func TestUpdateMapContent(t *testing.T) {
 	assert.EqualValues(t, 16, c2.Age)
 	assert.EqualValues(t, false, c2.IsMan)
 	assert.EqualValues(t, 2, c2.Gender)
+
+	cnt, err = testEngine.Table(testEngine.TableName(new(UpdateMapContent))).ID(c.Id).Update(map[string]interface{}{
+		"age":    15,
+		"is_man": true,
+		"gender": 1,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var c3 UpdateMapContent
+	has, err = testEngine.ID(c.Id).Get(&c3)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 15, c3.Age)
+	assert.EqualValues(t, true, c3.IsMan)
+	assert.EqualValues(t, 1, c3.Gender)
 }
