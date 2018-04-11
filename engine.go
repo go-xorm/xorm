@@ -49,6 +49,35 @@ type Engine struct {
 	tagHandlers map[string]tagHandler
 
 	engineGroup *EngineGroup
+
+	cachers    map[string]core.Cacher
+	cacherLock sync.RWMutex
+}
+
+func (engine *Engine) setCacher(tableName string, cacher core.Cacher) {
+	engine.cacherLock.Lock()
+	engine.cachers[tableName] = cacher
+	engine.cacherLock.Unlock()
+}
+
+func (engine *Engine) SetCacher(tableName string, cacher core.Cacher) {
+	engine.setCacher(tableName, cacher)
+}
+
+func (engine *Engine) getCacher(tableName string) core.Cacher {
+	var cacher core.Cacher
+	var ok bool
+	engine.cacherLock.RLock()
+	cacher, ok = engine.cachers[tableName]
+	engine.cacherLock.RUnlock()
+	if !ok && !engine.disableGlobalCache {
+		cacher = engine.Cacher
+	}
+	return cacher
+}
+
+func (engine *Engine) GetCacher(tableName string) core.Cacher {
+	return engine.getCacher(tableName)
 }
 
 // BufferSize sets buffer size for iterate
@@ -245,13 +274,7 @@ func (engine *Engine) NoCascade() *Session {
 
 // MapCacher Set a table use a special cacher
 func (engine *Engine) MapCacher(bean interface{}, cacher core.Cacher) error {
-	v := rValue(bean)
-	tb, err := engine.autoMapType(v)
-	if err != nil {
-		return err
-	}
-
-	tb.Cacher = cacher
+	engine.setCacher(engine.TableName(bean, true), cacher)
 	return nil
 }
 
@@ -834,15 +857,6 @@ func addIndex(indexName string, table *core.Table, col *core.Column, indexType i
 	}
 }
 
-func (engine *Engine) newTable() *core.Table {
-	table := core.NewEmptyTable()
-
-	if !engine.disableGlobalCache {
-		table.Cacher = engine.Cacher
-	}
-	return table
-}
-
 // TableName table name interface to define customerize table name
 type TableName interface {
 	TableName() string
@@ -854,7 +868,7 @@ var (
 
 func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 	t := v.Type()
-	table := engine.newTable()
+	table := core.NewEmptyTable()
 	table.Type = t
 	table.Name = engine.tbNameForMap(v)
 
@@ -1010,15 +1024,15 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 	if hasCacheTag {
 		if engine.Cacher != nil { // !nash! use engine's cacher if provided
 			engine.logger.Info("enable cache on table:", table.Name)
-			table.Cacher = engine.Cacher
+			engine.setCacher(table.Name, engine.Cacher)
 		} else {
 			engine.logger.Info("enable LRU cache on table:", table.Name)
-			table.Cacher = NewLRUCacher2(NewMemoryStore(), time.Hour, 10000) // !nashtsai! HACK use LRU cacher for now
+			engine.setCacher(table.Name, NewLRUCacher2(NewMemoryStore(), time.Hour, 10000))
 		}
 	}
 	if hasNoCacheTag {
 		engine.logger.Info("no cache on table:", table.Name)
-		table.Cacher = nil
+		engine.setCacher(table.Name, nil)
 	}
 
 	return table, nil
@@ -1123,26 +1137,10 @@ func (engine *Engine) CreateUniques(bean interface{}) error {
 	return session.CreateUniques(bean)
 }
 
-func (engine *Engine) getCacher2(table *core.Table) core.Cacher {
-	return table.Cacher
-}
-
 // ClearCacheBean if enabled cache, clear the cache bean
 func (engine *Engine) ClearCacheBean(bean interface{}, id string) error {
-	v := rValue(bean)
-	t := v.Type()
-	if t.Kind() != reflect.Struct {
-		return errors.New("error params")
-	}
 	tableName := engine.TableName(bean)
-	table, err := engine.autoMapType(v)
-	if err != nil {
-		return err
-	}
-	cacher := table.Cacher
-	if cacher == nil {
-		cacher = engine.Cacher
-	}
+	cacher := engine.getCacher(tableName)
 	if cacher != nil {
 		cacher.ClearIds(tableName)
 		cacher.DelBean(tableName, id)
@@ -1153,21 +1151,8 @@ func (engine *Engine) ClearCacheBean(bean interface{}, id string) error {
 // ClearCache if enabled cache, clear some tables' cache
 func (engine *Engine) ClearCache(beans ...interface{}) error {
 	for _, bean := range beans {
-		v := rValue(bean)
-		t := v.Type()
-		if t.Kind() != reflect.Struct {
-			return errors.New("error params")
-		}
 		tableName := engine.TableName(bean)
-		table, err := engine.autoMapType(v)
-		if err != nil {
-			return err
-		}
-
-		cacher := table.Cacher
-		if cacher == nil {
-			cacher = engine.Cacher
-		}
+		cacher := engine.getCacher(tableName)
 		if cacher != nil {
 			cacher.ClearIds(tableName)
 			cacher.ClearBeans(tableName)

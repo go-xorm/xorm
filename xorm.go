@@ -90,6 +90,7 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		TagIdentifier: "xorm",
 		TZLocation:    time.Local,
 		tagHandlers:   defaultTagHandlers,
+		cachers:       make(map[string]core.Cacher),
 	}
 
 	if uri.DbType == core.SQLITE {
