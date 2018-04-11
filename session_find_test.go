@@ -584,3 +584,76 @@ func TestFindAndCountOneFunc(t *testing.T) {
 	assert.EqualValues(t, 1, len(results))
 	assert.EqualValues(t, 1, cnt)
 }
+
+type FindMapDevice struct {
+	Deviceid string `xorm:"pk"`
+	Status   int
+}
+
+func (device *FindMapDevice) TableName() string {
+	return "devices"
+}
+
+func TestFindMapStringId(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(FindMapDevice))
+
+	cnt, err := testEngine.Insert(&FindMapDevice{
+		Deviceid: "1",
+		Status:   1,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	deviceIDs := []string{"1"}
+
+	deviceMaps := make(map[string]*FindMapDevice, len(deviceIDs))
+	err = testEngine.
+		Where("status = ?", 1).
+		In("deviceid", deviceIDs).
+		Find(&deviceMaps)
+	assert.NoError(t, err)
+
+	deviceMaps2 := make(map[string]FindMapDevice, len(deviceIDs))
+	err = testEngine.
+		Where("status = ?", 1).
+		In("deviceid", deviceIDs).
+		Find(&deviceMaps2)
+	assert.NoError(t, err)
+
+	devices := make([]*FindMapDevice, 0, len(deviceIDs))
+	err = testEngine.Find(&devices)
+	assert.NoError(t, err)
+
+	devices2 := make([]FindMapDevice, 0, len(deviceIDs))
+	err = testEngine.Find(&devices2)
+	assert.NoError(t, err)
+
+	var device FindMapDevice
+	has, err := testEngine.Get(&device)
+	assert.NoError(t, err)
+	assert.True(t, has)
+
+	has, err = testEngine.Exist(&FindMapDevice{})
+	assert.NoError(t, err)
+	assert.True(t, has)
+
+	cnt, err = testEngine.Count(new(FindMapDevice))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	cnt, err = testEngine.ID("1").Update(&FindMapDevice{
+		Status: 2,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	sum, err := testEngine.SumInt(new(FindMapDevice), "status")
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, sum)
+
+	cnt, err = testEngine.ID("1").Delete(new(FindMapDevice))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+}

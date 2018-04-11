@@ -75,7 +75,7 @@ func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{})
 		if sliceElementType.Kind() == reflect.Ptr {
 			if sliceElementType.Elem().Kind() == reflect.Struct {
 				pv := reflect.New(sliceElementType.Elem())
-				if err := session.statement.setRefValue(pv.Elem()); err != nil {
+				if err := session.statement.setRefValue(pv); err != nil {
 					return err
 				}
 			} else {
@@ -83,7 +83,7 @@ func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{})
 			}
 		} else if sliceElementType.Kind() == reflect.Struct {
 			pv := reflect.New(sliceElementType)
-			if err := session.statement.setRefValue(pv.Elem()); err != nil {
+			if err := session.statement.setRefValue(pv); err != nil {
 				return err
 			}
 		} else {

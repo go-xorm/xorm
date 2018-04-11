@@ -208,7 +208,7 @@ func (statement *Statement) setRefValue(v reflect.Value) error {
 	if err != nil {
 		return err
 	}
-	statement.tableName = statement.Engine.TableName(v.Interface(), true)
+	statement.tableName = statement.Engine.TableName(v, true)
 	return nil
 }
 
