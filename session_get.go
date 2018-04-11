@@ -114,6 +114,8 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bea
 		return true, rows.Scan(&bean)
 	case *sql.NullInt64, *sql.NullBool, *sql.NullFloat64, *sql.NullString:
 		return true, rows.Scan(bean)
+	case *string, *int, *int8, *int16, *int32, *int64, *uint, *uint8, *uint16, *uint32, *uint64:
+		return true, rows.Scan(&bean)
 	}
 
 	switch beanKind {
@@ -142,6 +144,9 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bea
 		err = rows.ScanSlice(bean)
 	case reflect.Map:
 		err = rows.ScanMap(bean)
+	case reflect.String, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		err = rows.Scan(&bean)
 	default:
 		err = rows.Scan(bean)
 	}

@@ -433,3 +433,37 @@ func TestGetCustomTableInterface(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, has)
 }
+
+func TestGetNullVar(t *testing.T) {
+	type TestGetNullVarStruct struct {
+		Id   int64
+		Name string
+		Age  int
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(TestGetNullVarStruct))
+
+	affected, err := testEngine.Exec("insert into " + testEngine.TableName(new(TestGetNullVarStruct), true) + " (name,age) values (null,null)")
+	assert.NoError(t, err)
+	a, _ := affected.RowsAffected()
+	assert.EqualValues(t, 1, a)
+
+	var name string
+	has, err := testEngine.Table(new(TestGetNullVarStruct)).Where("id = ?", 1).Cols("name").Get(&name)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "", name)
+
+	var age int
+	has, err = testEngine.Table(new(TestGetNullVarStruct)).Where("id = ?", 1).Cols("age").Get(&age)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 0, age)
+
+	var age2 int8
+	has, err = testEngine.Table(new(TestGetNullVarStruct)).Where("id = ?", 1).Cols("age").Get(&age2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 0, age2)
+}
