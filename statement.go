@@ -18,21 +18,6 @@ import (
 	"github.com/go-xorm/core"
 )
 
-type incrParam struct {
-	colName string
-	arg     interface{}
-}
-
-type decrParam struct {
-	colName string
-	arg     interface{}
-}
-
-type exprParam struct {
-	colName string
-	expr    string
-}
-
 // Statement save all the sql info for executing SQL
 type Statement struct {
 	RefTable        *core.Table
@@ -47,7 +32,6 @@ type Statement struct {
 	HavingStr       string
 	ColumnStr       string
 	selectStr       string
-	columnMap       map[string]bool
 	useAllCols      bool
 	OmitStr         string
 	AltTableName    string
@@ -67,6 +51,8 @@ type Statement struct {
 	allUseBool      bool
 	checkVersion    bool
 	unscoped        bool
+	columnMap       columnMap
+	omitColumnMap   columnMap
 	mustColumnMap   map[string]bool
 	nullableMap     map[string]bool
 	incrColumns     map[string]incrParam
@@ -89,7 +75,8 @@ func (statement *Statement) Init() {
 	statement.HavingStr = ""
 	statement.ColumnStr = ""
 	statement.OmitStr = ""
-	statement.columnMap = make(map[string]bool)
+	statement.columnMap = columnMap{}
+	statement.omitColumnMap = columnMap{}
 	statement.AltTableName = ""
 	statement.tableName = ""
 	statement.idParam = nil
@@ -240,7 +227,7 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 	includeVersion bool, includeUpdated bool, includeNil bool,
 	includeAutoIncr bool, allUseBool bool, useAllCols bool,
 	mustColumnMap map[string]bool, nullableMap map[string]bool,
-	columnMap map[string]bool, update, unscoped bool) ([]string, []interface{}) {
+	columnMap columnMap, omitColumnMap columnMap, update, unscoped bool) ([]string, []interface{}) {
 
 	var colNames = make([]string, 0)
 	var args = make([]interface{}, 0)
@@ -260,7 +247,10 @@ func buildUpdates(engine *Engine, table *core.Table, bean interface{},
 		if col.IsDeleted && !unscoped {
 			continue
 		}
-		if use, ok := columnMap[strings.ToLower(col.Name)]; ok && !use {
+		if omitColumnMap.contain(col.Name) {
+			continue
+		}
+		if len(columnMap) > 0 && !columnMap.contain(col.Name) {
 			continue
 		}
 
@@ -596,17 +586,10 @@ func (statement *Statement) col2NewColsWithQuote(columns ...string) []string {
 }
 
 func (statement *Statement) colmap2NewColsWithQuote() []string {
-	newColumns := make([]string, 0, len(statement.columnMap))
-	for col := range statement.columnMap {
-		fields := strings.Split(strings.TrimSpace(col), ".")
-		if len(fields) == 1 {
-			newColumns = append(newColumns, statement.Engine.quote(fields[0]))
-		} else if len(fields) == 2 {
-			newColumns = append(newColumns, statement.Engine.quote(fields[0])+"."+
-				statement.Engine.quote(fields[1]))
-		} else {
-			panic(errors.New("unwanted colnames"))
-		}
+	newColumns := make([]string, len(statement.columnMap), len(statement.columnMap))
+	copy(newColumns, statement.columnMap)
+	for i := 0; i < len(statement.columnMap); i++ {
+		newColumns[i] = statement.Engine.Quote(newColumns[i])
 	}
 	return newColumns
 }
@@ -634,10 +617,11 @@ func (statement *Statement) Select(str string) *Statement {
 func (statement *Statement) Cols(columns ...string) *Statement {
 	cols := col2NewCols(columns...)
 	for _, nc := range cols {
-		statement.columnMap[strings.ToLower(nc)] = true
+		statement.columnMap = append(statement.columnMap, nc)
 	}
 
 	newColumns := statement.colmap2NewColsWithQuote()
+
 	statement.ColumnStr = strings.Join(newColumns, ", ")
 	statement.ColumnStr = strings.Replace(statement.ColumnStr, statement.Engine.quote("*"), "*", -1)
 	return statement
@@ -672,7 +656,7 @@ func (statement *Statement) UseBool(columns ...string) *Statement {
 func (statement *Statement) Omit(columns ...string) {
 	newColumns := col2NewCols(columns...)
 	for _, nc := range newColumns {
-		statement.columnMap[strings.ToLower(nc)] = false
+		statement.omitColumnMap = append(statement.omitColumnMap, nc)
 	}
 	statement.OmitStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
 }
@@ -796,10 +780,12 @@ func (statement *Statement) genColumnStr() string {
 	columns := statement.RefTable.Columns()
 
 	for _, col := range columns {
-		if statement.OmitStr != "" {
-			if _, ok := getFlagForColumn(statement.columnMap, col); ok {
-				continue
-			}
+		if statement.omitColumnMap.contain(col.Name) {
+			continue
+		}
+
+		if len(statement.columnMap) > 0 && !statement.columnMap.contain(col.Name) {
+			continue
 		}
 
 		if col.MapType == core.ONLYTODB {
@@ -808,10 +794,6 @@ func (statement *Statement) genColumnStr() string {
 
 		if buf.Len() != 0 {
 			buf.WriteString(", ")
-		}
-
-		if col.IsPrimaryKey && statement.Engine.Dialect().DBType() == "ql" {
-			buf.WriteString("id() AS ")
 		}
 
 		if statement.JoinStr != "" {
@@ -961,6 +943,10 @@ func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}, 
 		columnStr = "*"
 	}
 
+	if err := statement.processIDParam(); err != nil {
+		return "", nil, err
+	}
+
 	if isStruct {
 		if err := statement.mergeConds(bean); err != nil {
 			return "", nil, err
@@ -1044,10 +1030,6 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit, n
 	var quote = statement.Engine.Quote
 	var top string
 	var mssqlCondi string
-
-	if err := statement.processIDParam(); err != nil {
-		return "", err
-	}
 
 	var buf bytes.Buffer
 	if len(condSQL) > 0 {
