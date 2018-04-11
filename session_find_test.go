@@ -609,14 +609,14 @@ func TestFindMapStringId(t *testing.T) {
 
 	deviceMaps := make(map[string]*FindMapDevice, len(deviceIDs))
 	err = testEngine.
-		Where("status = ?", true).
+		Where("status = ?", 1).
 		In("deviceid", deviceIDs).
 		Find(&deviceMaps)
 	assert.NoError(t, err)
 
 	deviceMaps2 := make(map[string]FindMapDevice, len(deviceIDs))
 	err = testEngine.
-		Where("status = ?", true).
+		Where("status = ?", 1).
 		In("deviceid", deviceIDs).
 		Find(&deviceMaps2)
 	assert.NoError(t, err)
