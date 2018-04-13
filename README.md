@@ -52,6 +52,9 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 # Changelog
 
+* **v0.6.6**
+    * Some bugs fixed
+
 * **v0.6.5**
     * Postgres schema support
     * vgo support

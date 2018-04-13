@@ -54,6 +54,9 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 ## 更新日志
 
+* **v0.6.6**
+    * 修正部分Bug
+
 * **v0.6.5**
     * 通过 engine.SetSchema 来支持 schema，当前仅支持Postgres
     * vgo 支持
