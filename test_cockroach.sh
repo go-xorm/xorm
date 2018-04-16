@@ -1,0 +1,1 @@
+go test -db=postgres -conn_str="postgresql://root@localhost:26257/xorm_test?sslmode=disable"

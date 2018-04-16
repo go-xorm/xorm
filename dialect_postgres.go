@@ -1019,8 +1019,8 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 
 		col.Nullable = (isNullable == "YES")
 
-		switch dataType {
-		case "character varying", "character":
+		switch strings.ToLower(dataType) {
+		case "character varying", "character", "string":
 			col.SQLType = core.SQLType{Name: core.Varchar, DefaultLength: 0, DefaultLength2: 0}
 		case "timestamp without time zone":
 			col.SQLType = core.SQLType{Name: core.DateTime, DefaultLength: 0, DefaultLength2: 0}
@@ -1032,10 +1032,19 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 			col.SQLType = core.SQLType{Name: core.Bool, DefaultLength: 0, DefaultLength2: 0}
 		case "time without time zone":
 			col.SQLType = core.SQLType{Name: core.Time, DefaultLength: 0, DefaultLength2: 0}
+		case "bytes":
+			col.SQLType = core.SQLType{Name: core.Binary, DefaultLength: 0, DefaultLength2: 0}
 		case "oid":
 			col.SQLType = core.SQLType{Name: core.BigInt, DefaultLength: 0, DefaultLength2: 0}
 		default:
-			col.SQLType = core.SQLType{Name: strings.ToUpper(dataType), DefaultLength: 0, DefaultLength2: 0}
+			startIdx := strings.Index(strings.ToLower(dataType), "string(")
+			if startIdx != -1 && strings.HasSuffix(dataType, ")") {
+				length := dataType[startIdx+8 : len(dataType)-1]
+				l, _ := strconv.Atoi(length)
+				col.SQLType = core.SQLType{Name: "STRING", DefaultLength: l, DefaultLength2: 0}
+			} else {
+				col.SQLType = core.SQLType{Name: strings.ToUpper(dataType), DefaultLength: 0, DefaultLength2: 0}
+			}
 		}
 		if _, ok := core.SqlTypes[col.SQLType.Name]; !ok {
 			return nil, nil, fmt.Errorf("Unknown colType: %v", dataType)
@@ -1124,6 +1133,10 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error)
 		if err != nil {
 			return nil, err
 		}
+
+		if indexName == "primary" {
+			continue
+		}
 		indexName = strings.Trim(indexName, `" `)
 		if strings.HasSuffix(indexName, "_pkey") {
 			continue
@@ -1145,7 +1158,7 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error)
 
 		index := &core.Index{Name: indexName, Type: indexType, Cols: make([]string, 0)}
 		for _, colName := range colNames {
-			index.Cols = append(index.Cols, strings.Trim(colName, `" `))
+			index.Cols = append(index.Cols, strings.TrimSpace(strings.Replace(colName, `"`, "", -1)))
 		}
 		index.IsRegular = isRegular
 		indexes[index.Name] = index
