@@ -392,12 +392,19 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 		bean := cacher.GetBean(tableName, sid)
 
 		// fix issue #894
-		ckb := reflect.ValueOf(bean).Elem().Type()
-		ht := ckb == t
-		if !ht && t.Kind() == reflect.Ptr {
-			ht = t.Elem() == ckb
+		isHit := func() (ht bool) {
+			if bean == nil {
+				ht = false
+				return
+			}
+			ckb := reflect.ValueOf(bean).Elem().Type()
+			ht = ckb == t
+			if !ht && t.Kind() == reflect.Ptr {
+				ht = t.Elem() == ckb
+			}
+			return
 		}
-		if bean == nil || !ht {
+		if !isHit() {
 			ides = append(ides, id)
 			ididxes[sid] = idx
 		} else {
