@@ -34,8 +34,7 @@ test:
     - go test -v -race -db="postgres" -conn_str="dbname=xorm_test sslmode=disable" -schema=xorm -coverprofile=coverage5-1.txt -covermode=atomic
     - go test -v -race -db="postgres" -conn_str="dbname=xorm_test sslmode=disable" -schema=xorm -cache=true -coverprofile=coverage5-2.txt -covermode=atomic
     - wget -qO- https://binaries.cockroachdb.com/cockroach-v2.0.0.linux-amd64.tgz | tar  xvz
-    - ./cockroach-v2.0.0.linux-amd64/cockroach start --insecure --host=localhost:
-      background: true
+    - ./cockroach-v2.0.0.linux-amd64/cockroach start --insecure --background --host=localhost
     - sleep 5
     - ./cockroach-v2.0.0.linux-amd64/cockroach sql --insecure --execute="create database xorm_test"
     - go test -v -race -db="postgres" -conn_str="postgresql://root@localhost:26257/xorm_test?sslmode=disable" -coverprofile=coverage6-1.txt -covermode=atomic
