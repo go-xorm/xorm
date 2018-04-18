@@ -741,3 +741,42 @@ func TestInsertMulti4(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, len(users), cnt)
 }
+
+func TestAnonymousStruct(t *testing.T) {
+	type PlainObject struct {
+		ID   uint64 `json:"id,string" xorm:"'ID' pk autoincr"`
+		Desc string `json:"desc" xorm:"'DESC' notnull"`
+	}
+
+	type PlainFoo struct {
+		PlainObject `xorm:"extends"` // primary key defined in extends struct
+
+		Width  uint32 `json:"width" xorm:"'WIDTH' notnull"`
+		Height uint32 `json:"height" xorm:"'HEIGHT' notnull"`
+
+		Ext struct {
+			F1 uint32 `json:"f1,omitempty"`
+			F2 uint32 `json:"f2,omitempty"`
+		} `json:"ext" xorm:"'EXT' json notnull"`
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(PlainFoo))
+
+	_, err := testEngine.Insert(&PlainFoo{
+		PlainObject: PlainObject{
+			Desc: "test",
+		},
+		Width:  10,
+		Height: 20,
+
+		Ext: struct {
+			F1 uint32 `json:"f1,omitempty"`
+			F2 uint32 `json:"f2,omitempty"`
+		}{
+			F1: 11,
+			F2: 12,
+		},
+	})
+	assert.NoError(t, err)
+}
