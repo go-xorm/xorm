@@ -25,8 +25,8 @@ var (
 	// ErrNotImplemented not implemented
 	ErrNotImplemented = errors.New("Not implemented")
 	// ErrConditionType condition type unsupported
-	ErrConditionType = errors.New("Unsupported conditon type")
-	// ErrColumnIsNotExist columns does not exist
+	ErrConditionType = errors.New("Unsupported condition type")
+	// ErrFieldIsNotExist columns does not exist
 	ErrFieldIsNotExist = errors.New("Field does not exist")
 )
 
