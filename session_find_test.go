@@ -655,5 +655,77 @@ func TestFindMapStringId(t *testing.T) {
 	cnt, err = testEngine.ID("1").Delete(new(FindMapDevice))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
+}
 
+func TestFindExtends(t *testing.T) {
+	type FindExtendsB struct {
+		ID int64
+	}
+
+	type FindExtendsA struct {
+		FindExtendsB `xorm:"extends"`
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(FindExtendsA))
+
+	cnt, err := testEngine.Insert(&FindExtendsA{
+		FindExtendsB: FindExtendsB{},
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	cnt, err = testEngine.Insert(&FindExtendsA{
+		FindExtendsB: FindExtendsB{},
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var results []FindExtendsA
+	err = testEngine.Find(&results)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(results))
+}
+
+func TestFindExtends3(t *testing.T) {
+	type FindExtendsCC struct {
+		ID   int64
+		Name string
+	}
+
+	type FindExtendsBB struct {
+		FindExtendsCC `xorm:"extends"`
+	}
+
+	type FindExtendsAA struct {
+		FindExtendsBB `xorm:"extends"`
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(FindExtendsAA))
+
+	cnt, err := testEngine.Insert(&FindExtendsAA{
+		FindExtendsBB: FindExtendsBB{
+			FindExtendsCC: FindExtendsCC{
+				Name: "cc1",
+			},
+		},
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	cnt, err = testEngine.Insert(&FindExtendsAA{
+		FindExtendsBB: FindExtendsBB{
+			FindExtendsCC: FindExtendsCC{
+				Name: "cc2",
+			},
+		},
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var results []FindExtendsAA
+	err = testEngine.Find(&results)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(results))
 }
