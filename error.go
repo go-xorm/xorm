@@ -13,21 +13,21 @@ var (
 	// ErrParamsType params error
 	ErrParamsType = errors.New("Params type error")
 	// ErrTableNotFound table not found error
-	ErrTableNotFound = errors.New("Not found table")
+	ErrTableNotFound = errors.New("Table not found")
 	// ErrUnSupportedType unsupported error
 	ErrUnSupportedType = errors.New("Unsupported type error")
-	// ErrNotExist record is not exist error
-	ErrNotExist = errors.New("Not exist error")
+	// ErrNotExist record does not exist error
+	ErrNotExist = errors.New("Record does not exist")
 	// ErrCacheFailed cache failed error
 	ErrCacheFailed = errors.New("Cache failed")
 	// ErrNeedDeletedCond delete needs less one condition error
-	ErrNeedDeletedCond = errors.New("Delete need at least one condition")
+	ErrNeedDeletedCond = errors.New("Delete action needs at least one condition")
 	// ErrNotImplemented not implemented
 	ErrNotImplemented = errors.New("Not implemented")
 	// ErrConditionType condition type unsupported
-	ErrConditionType = errors.New("Unsupported conditon type")
-	// ErrColumnIsNotExist columns is not exist
-	ErrFieldIsNotExist = errors.New("Field is not exist")
+	ErrConditionType = errors.New("Unsupported condition type")
+	// ErrFieldIsNotExist columns does not exist
+	ErrFieldIsNotExist = errors.New("Field does not exist")
 )
 
 // ErrFieldIsNotValid is not valid
