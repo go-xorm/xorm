@@ -1229,3 +1229,57 @@ func TestUpdateMapContent(t *testing.T) {
 	assert.EqualValues(t, true, c3.IsMan)
 	assert.EqualValues(t, 1, c3.Gender)
 }
+
+func TestUpdateCondiBean(t *testing.T) {
+	type NeedUpdateBean struct {
+		Id   int64
+		Name string
+	}
+
+	type NeedUpdateCondiBean struct {
+		Name string
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(NeedUpdateBean))
+
+	cnt, err := testEngine.Insert(&NeedUpdateBean{
+		Name: "name1",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	has, err := testEngine.Exist(&NeedUpdateBean{
+		Name: "name1",
+	})
+	assert.NoError(t, err)
+	assert.True(t, has)
+
+	cnt, err = testEngine.Update(&NeedUpdateBean{
+		Name: "name2",
+	}, &NeedUpdateCondiBean{
+		Name: "name1",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	has, err = testEngine.Exist(&NeedUpdateBean{
+		Name: "name2",
+	})
+	assert.NoError(t, err)
+	assert.True(t, has)
+
+	cnt, err = testEngine.Update(&NeedUpdateBean{
+		Name: "name1",
+	}, NeedUpdateCondiBean{
+		Name: "name2",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	has, err = testEngine.Exist(&NeedUpdateBean{
+		Name: "name1",
+	})
+	assert.NoError(t, err)
+	assert.True(t, has)
+}
