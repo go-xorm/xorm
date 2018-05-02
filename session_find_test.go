@@ -770,7 +770,7 @@ func TestFindCacheLimit(t *testing.T) {
 
 func TestFindJoin(t *testing.T) {
 	type SceneItem struct {
-		Type int
+		Type     int
 		DeviceId int64
 	}
 
@@ -784,6 +784,11 @@ func TestFindJoin(t *testing.T) {
 
 	var scenes []SceneItem
 	err := testEngine.Join("LEFT OUTER", "device_user_privrels", "device_user_privrels.device_id=scene_item.device_id").
+		Where("scene_item.type=?", 3).Or("device_user_privrels.user_id=?", 339).Find(&scenes)
+	assert.NoError(t, err)
+
+	scenes = make([]SceneItem, 0)
+	err = testEngine.Join("LEFT OUTER", new(DeviceUserPrivrels), "device_user_privrels.device_id=scene_item.device_id").
 		Where("scene_item.type=?", 3).Or("device_user_privrels.user_id=?", 339).Find(&scenes)
 	assert.NoError(t, err)
 }
