@@ -767,3 +767,23 @@ func TestFindCacheLimit(t *testing.T) {
 		assert.EqualValues(t, 1, len(beans2))
 	}
 }
+
+func TestFindJoin(t *testing.T) {
+	type SceneItem struct {
+		Type int
+		DeviceId int64
+	}
+
+	type DeviceUserPrivrels struct {
+		UserId   int64
+		DeviceId int64
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(SceneItem), new(DeviceUserPrivrels))
+
+	var scenes []SceneItem
+	err := testEngine.Join("LEFT OUTER", "device_user_privrels", "device_user_privrels.device_id=scene_item.device_id").
+		Where("scene_item.type=?", 3).Or("device_user_privrels.user_id=?", 339).Find(&scenes)
+	assert.NoError(t, err)
+}
