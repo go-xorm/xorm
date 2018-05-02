@@ -82,12 +82,41 @@ func (SyncTable2) TableName() string {
 	return "sync_table1"
 }
 
+type SyncTable3 struct {
+	Id     int64
+	Name   string `xorm:"unique"`
+	Number string `xorm:"index"`
+	Dev    int
+	Age    int
+}
+
+func (s *SyncTable3) TableName() string {
+	return "sync_table1"
+}
+
 func TestSyncTable(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	assert.NoError(t, testEngine.Sync2(new(SyncTable1)))
 
+	tables, err := testEngine.DBMetas()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(tables))
+	assert.EqualValues(t, "sync_table1", tables[0].Name)
+
 	assert.NoError(t, testEngine.Sync2(new(SyncTable2)))
+
+	tables, err = testEngine.DBMetas()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(tables))
+	assert.EqualValues(t, "sync_table1", tables[0].Name)
+
+	assert.NoError(t, testEngine.Sync2(new(SyncTable3)))
+
+	tables, err = testEngine.DBMetas()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(tables))
+	assert.EqualValues(t, "sync_table1", tables[0].Name)
 }
 
 func TestIsTableExist(t *testing.T) {
