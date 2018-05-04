@@ -52,36 +52,6 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * Oracle: [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (试验性支持)
 
-## 更新日志
-
-* **v0.6.6**
-    * 修正部分Bug
-
-* **v0.6.5**
-    * 通过 engine.SetSchema 来支持 schema，当前仅支持Postgres
-    * vgo 支持
-    * 新增 `FindAndCount` 函数
-    * 通过 `NewEngineWithParams` 支持数据库特别参数
-    * 修正部分Bug
-
-* **v0.6.4**
-    * 自动读写分离支持
-    * Query/QueryString/QueryInterface 支持与 Where/And 合用
-    * `Get` 支持获取非结构体变量
-    * `Iterate` 支持 `BufferSize` 
-    * 修正部分Bug
-
-* **v0.6.3**
-    * 合并单元测试到主工程
-    * 新增 `Exist` 方法
-    * 新增 `SumInt` 方法
-    * Mysql新增读取和创建字段注释支持
-    * 新增 `SetConnMaxLifetime` 方法
-    * 修正了时间相关的Bug
-    * 修复了一些其它Bug
-
-[更多更新日志...](https://github.com/go-xorm/manual-zh-CN/tree/master/chapter-16)
-
 ## 安装
 
 	go get github.com/go-xorm/xorm
@@ -390,6 +360,27 @@ if _, err := session.Exec("delete from userinfo where username = ?", user2.Usern
 return session.Commit()
 ```
 
+## 贡献
+
+如果您也想为Xorm贡献您的力量，请查看 [CONTRIBUTING](https://github.com/go-xorm/xorm/blob/master/CONTRIBUTING.md)。您也可以加入QQ群 280360085 技术帮助和讨论。
+
+## Credits
+
+### Contributors
+
+感谢所有的贡献者. [[Contribute](CONTRIBUTING.md)].
+<a href="graphs/contributors"><img src="https://opencollective.com/xorm/contributors.svg?width=890&button=false" /></a>
+
+### Backers
+
+感谢我们所有的 backers! 🙏 [[成为 backer](https://opencollective.com/xorm#backer)]
+
+<a href="https://opencollective.com/xorm#backers" target="_blank"><img src="https://opencollective.com/xorm/backers.svg?width=890"></a>
+
+### Sponsors
+
+成为 sponsor 来支持 xorm。您的 logo 将会被显示并被链接到您的网站。 [[成为 sponsor](https://opencollective.com/xorm#sponsor)]
+
 # 案例
 
 * [Go语言中文网](http://studygolang.com/) - [github.com/studygolang/studygolang](https://github.com/studygolang/studygolang)
@@ -424,13 +415,30 @@ return session.Commit()
 
 * [go-blog](http://wangcheng.me) - [github.com/easykoo/go-blog](https://github.com/easykoo/go-blog)
 
-## 讨论
 
-请加入QQ群：280360085 进行讨论。
+## 更新日志
 
-## 贡献
+* **v0.7.0**
+    * 修正部分Bug
 
-如果您也想为Xorm贡献您的力量，请查看 [CONTRIBUTING](https://github.com/go-xorm/xorm/blob/master/CONTRIBUTING.md)
+* **v0.6.6**
+    * 修正部分Bug
+
+* **v0.6.5**
+    * 通过 engine.SetSchema 来支持 schema，当前仅支持Postgres
+    * vgo 支持
+    * 新增 `FindAndCount` 函数
+    * 通过 `NewEngineWithParams` 支持数据库特别参数
+    * 修正部分Bug
+
+* **v0.6.4**
+    * 自动读写分离支持
+    * Query/QueryString/QueryInterface 支持与 Where/And 合用
+    * `Get` 支持获取非结构体变量
+    * `Iterate` 支持 `BufferSize` 
+    * 修正部分Bug
+
+[更多更新日志...](https://github.com/go-xorm/manual-zh-CN/tree/master/chapter-16)
 
 ## LICENSE
 
