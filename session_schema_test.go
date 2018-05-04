@@ -289,8 +289,21 @@ func TestSync2_2(t *testing.T) {
 
 	assert.NoError(t, prepareEngine())
 
+	var tableNames = make(map[string]bool)
 	for i := 0; i < 10; i++ {
 		tableName := fmt.Sprintf("test_sync2_index_%d", i)
+		tableNames[tableName] = true
 		assert.NoError(t, testEngine.Table(tableName).Sync2(new(TestSync2Index)))
+
+		exist, err := testEngine.IsTableExist(tableName)
+		assert.NoError(t, err)
+		assert.True(t, exist)
+	}
+
+	tables, err := testEngine.DBMetas()
+	assert.NoError(t, err)
+
+	for _, table := range tables {
+		assert.True(t, tableNames[table.Name])
 	}
 }
