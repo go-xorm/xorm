@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-xorm/builder"
+	"github.com/go-xorm/core"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -184,6 +185,72 @@ func TestQueryNoParams(t *testing.T) {
 	results, err = testEngine.SQL("select * from " + testEngine.TableName("query_no_params", true)).Query()
 	assert.NoError(t, err)
 	assertResult(t, results)
+}
+
+func TestQueryStringNoParam(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type GetVar4 struct {
+		Id  int64 `xorm:"autoincr pk"`
+		Msg bool  `xorm:"bit"`
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(GetVar4)))
+
+	var data = GetVar4{
+		Msg: false,
+	}
+	_, err := testEngine.Insert(data)
+	assert.NoError(t, err)
+
+	records, err := testEngine.Table("get_var4").Limit(1).QueryString()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(records))
+	assert.EqualValues(t, "1", records[0]["id"])
+	if testEngine.Dialect().URI().DbType == core.POSTGRES {
+		assert.EqualValues(t, "false", records[0]["msg"])
+	} else {
+		assert.EqualValues(t, "0", records[0]["msg"])
+	}
+
+	records, err = testEngine.Table("get_var4").Where(builder.Eq{"id": 1}).QueryString()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(records))
+	assert.EqualValues(t, "1", records[0]["id"])
+	if testEngine.Dialect().URI().DbType == core.POSTGRES {
+		assert.EqualValues(t, "false", records[0]["msg"])
+	} else {
+		assert.EqualValues(t, "0", records[0]["msg"])
+	}
+}
+
+func TestQueryInterfaceNoParam(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type GetVar5 struct {
+		Id  int64 `xorm:"autoincr pk"`
+		Msg bool  `xorm:"bit"`
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(GetVar5)))
+
+	var data = GetVar5{
+		Msg: false,
+	}
+	_, err := testEngine.Insert(data)
+	assert.NoError(t, err)
+
+	records, err := testEngine.Table("get_var5").Limit(1).QueryInterface()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(records))
+	assert.EqualValues(t, 1, toInt64(records[0]["id"]))
+	assert.EqualValues(t, 0, toInt64(records[0]["msg"]))
+
+	records, err = testEngine.Table("get_var5").Where(builder.Eq{"id": 1}).QueryInterface()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(records))
+	assert.EqualValues(t, 1, toInt64(records[0]["id"]))
+	assert.EqualValues(t, 0, toInt64(records[0]["msg"]))
 }
 
 func TestQueryWithBuilder(t *testing.T) {
