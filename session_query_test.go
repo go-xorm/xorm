@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-xorm/builder"
+	"github.com/go-xorm/core"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -206,13 +207,21 @@ func TestQueryStringNoParam(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(records))
 	assert.EqualValues(t, "1", records[0]["id"])
-	assert.EqualValues(t, "0", records[0]["msg"])
+	if testEngine.Dialect().URI().DbType == core.POSTGRES {
+		assert.EqualValues(t, "false", records[0]["msg"])
+	} else {
+		assert.EqualValues(t, "0", records[0]["msg"])
+	}
 
 	records, err = testEngine.Table("get_var4").Where(builder.Eq{"id": 1}).QueryString()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(records))
 	assert.EqualValues(t, "1", records[0]["id"])
-	assert.EqualValues(t, "0", records[0]["msg"])
+	if testEngine.Dialect().URI().DbType == core.POSTGRES {
+		assert.EqualValues(t, "false", records[0]["msg"])
+	} else {
+		assert.EqualValues(t, "0", records[0]["msg"])
+	}
 }
 
 func TestQueryInterfaceNoParam(t *testing.T) {
@@ -234,14 +243,14 @@ func TestQueryInterfaceNoParam(t *testing.T) {
 	records, err := testEngine.Table("get_var5").Limit(1).QueryInterface()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(records))
-	assert.EqualValues(t, 1, records[0]["id"])
-	assert.EqualValues(t, 0, records[0]["msg"])
+	assert.EqualValues(t, 1, toInt64(records[0]["id"]))
+	assert.EqualValues(t, 0, toInt64(records[0]["msg"]))
 
 	records, err = testEngine.Table("get_var5").Where(builder.Eq{"id": 1}).QueryInterface()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(records))
-	assert.EqualValues(t, 1, records[0]["id"])
-	assert.EqualValues(t, 0, records[0]["msg"])
+	assert.EqualValues(t, 1, toInt64(records[0]["id"]))
+	assert.EqualValues(t, 0, toInt64(records[0]["msg"]))
 }
 
 func TestQueryWithBuilder(t *testing.T) {
