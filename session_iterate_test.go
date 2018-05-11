@@ -89,4 +89,15 @@ func TestBufferIterate(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 7, cnt)
+
+	cnt = 0
+	err = testEngine.Where("id <= 10").BufferSize(2).Iterate(new(UserBufferIterate), func(i int, bean interface{}) error {
+		user := bean.(*UserBufferIterate)
+		assert.EqualValues(t, cnt+1, user.Id)
+		assert.EqualValues(t, true, user.IsMan)
+		cnt++
+		return nil
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 10, cnt)
 }
