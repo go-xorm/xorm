@@ -72,7 +72,7 @@ func TestParsePgx(t *testing.T) {
 
 		// Register DriverConfig
 		drvierConfig := stdlib.DriverConfig{}
-		stdlib.RegisterDriverConfig(drvierConfig)
+		stdlib.RegisterDriverConfig(&drvierConfig)
 		uri, err = driver.Parse("pgx",
 			drvierConfig.ConnectionString(test.in))
 		if err != nil && test.valid {
