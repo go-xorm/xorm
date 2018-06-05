@@ -1223,3 +1223,15 @@ func (p *pqDriver) Parse(driverName, dataSourceName string) (*core.Uri, error) {
 
 	return db, nil
 }
+
+type pqDriverPgx struct {
+	pqDriver
+}
+
+func (pgx *pqDriverPgx) Parse(driverName, dataSourceName string) (*core.Uri, error) {
+	// Remove the leading characters for driver to work
+	if len(dataSourceName) >= 9 && dataSourceName[0] == 0 {
+		dataSourceName = dataSourceName[9:]
+	}
+	return pgx.pqDriver.Parse(driverName, dataSourceName)
+}
