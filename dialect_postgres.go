@@ -1020,7 +1020,7 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 		col.Nullable = (isNullable == "YES")
 
 		switch strings.ToLower(dataType) {
-		case "character varying", "character", "string":
+		case "character varying", "character":
 			col.SQLType = core.SQLType{Name: core.Varchar, DefaultLength: 0, DefaultLength2: 0}
 		case "timestamp without time zone":
 			col.SQLType = core.SQLType{Name: core.DateTime, DefaultLength: 0, DefaultLength2: 0}
@@ -1037,11 +1037,11 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 		case "oid":
 			col.SQLType = core.SQLType{Name: core.BigInt, DefaultLength: 0, DefaultLength2: 0}
 		default:
-			startIdx := strings.Index(strings.ToLower(dataType), "string(")
+			startIdx := strings.Index(strings.ToLower(dataType), "varchar(")
 			if startIdx != -1 && strings.HasSuffix(dataType, ")") {
 				length := dataType[startIdx+8 : len(dataType)-1]
 				l, _ := strconv.Atoi(length)
-				col.SQLType = core.SQLType{Name: "STRING", DefaultLength: l, DefaultLength2: 0}
+				col.SQLType = core.SQLType{Name: "varchar", DefaultLength: l, DefaultLength2: 0}
 			} else {
 				col.SQLType = core.SQLType{Name: strings.ToUpper(dataType), DefaultLength: 0, DefaultLength2: 0}
 			}
