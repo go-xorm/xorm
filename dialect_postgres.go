@@ -952,7 +952,13 @@ func (db *postgres) IsColumnExist(tableName, colName string) (bool, error) {
 
 func (db *postgres) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{tableName}
-	s := `SELECT column_name, column_default, is_nullable, data_type, character_maximum_length, numeric_precision ,
+	s := `SELECT column_name, column_default, is_nullable, replace(data_type,'STRING','VARCHAR'),
+	character_maximum_length, numeric_precision,
+	CASE 
+ 	 WHEN numeric_precision IS NOT NULL AND lower(data_type) = 'decimal' THEN 10
+ 	 WHEN numeric_precision IS NOT NULL AND lower(data_type) != 'decimal' THEN 2
+ 	 ELSE NULL
+ 	 END AS numeric_precision_radix,
     CASE WHEN p.contype = 'p' THEN true ELSE false END AS primarykey,
     CASE WHEN p.contype = 'u' THEN true ELSE false END AS uniquekey
 FROM pg_attribute f
