@@ -757,9 +757,28 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 		fmt.Fprintf(&buf, "%v JOIN ", joinOP)
 	}
 
-	tbName := statement.Engine.TableName(tablename, true)
+	switch tp := tablename.(type) {
+	case *builder.Builder:
+		subSQL, subQueryArgs, err := tp.ToSQL()
+		if err != nil {
+			statement.lastError = err
+			return statement
+		}
+		fmt.Fprintf(&buf, "(%s) ON %v", subSQL, condition)
+		statement.joinArgs = append(statement.joinArgs, subQueryArgs...)
+	case builder.Builder:
+		subSQL, subQueryArgs, err := tp.ToSQL()
+		if err != nil {
+			statement.lastError = err
+			return statement
+		}
+		fmt.Fprintf(&buf, "(%s) ON %v", subSQL, condition)
+		statement.joinArgs = append(statement.joinArgs, subQueryArgs...)
+	default:
+		tbName := statement.Engine.TableName(tablename, true)
+		fmt.Fprintf(&buf, "%s ON %v", tbName, condition)
+	}
 
-	fmt.Fprintf(&buf, "%s ON %v", tbName, condition)
 	statement.JoinStr = buf.String()
 	statement.joinArgs = append(statement.joinArgs, args...)
 	return statement
