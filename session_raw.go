@@ -31,8 +31,7 @@ func (session *Session) argsConverter(args ...interface{}) []interface{} {
 			args[i] = t.In(session.engine.DatabaseTZ)
 		case *time.Time:
 			if t != nil {
-				dbTime := t.In(session.engine.DatabaseTZ)
-				args[i] = &dbTime
+				args[i] = t.In(session.engine.DatabaseTZ)
 			}
 		}
 	}
