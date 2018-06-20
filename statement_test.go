@@ -206,7 +206,7 @@ func TestDistinctAndCols(t *testing.T) {
 
 func TestUpdateIgnoreOnlyFromDBFields(t *testing.T) {
 	type TestOnlyFromDBField struct {
-		Key             int64  `xorm:"PK"`
+		Id              int64  `xorm:"PK"`
 		OnlyFromDBField string `xorm:"<-"`
 		OnlyToDBField   string `xorm:"->"`
 		IngoreField     string `xorm:"-"`
@@ -214,7 +214,7 @@ func TestUpdateIgnoreOnlyFromDBFields(t *testing.T) {
 
 	assertGetRecord := func() *TestOnlyFromDBField {
 		var record TestOnlyFromDBField
-		has, err := testEngine.Where("key = ?", 1).Get(&record)
+		has, err := testEngine.Where("id = ?", 1).Get(&record)
 		assert.NoError(t, err)
 		assert.EqualValues(t, true, has)
 		assert.EqualValues(t, "", record.OnlyFromDBField)
@@ -225,7 +225,7 @@ func TestUpdateIgnoreOnlyFromDBFields(t *testing.T) {
 	assertSync(t, new(TestOnlyFromDBField))
 
 	_, err := testEngine.Insert(&TestOnlyFromDBField{
-		Key:             1,
+		Id:              1,
 		OnlyFromDBField: "a",
 		OnlyToDBField:   "b",
 		IngoreField:     "c",
