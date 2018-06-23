@@ -128,3 +128,66 @@ func TestCombineTransactionSameMapper(t *testing.T) {
 	err = session.Commit()
 	assert.NoError(t, err)
 }
+
+func TestMultipleTransaction(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type MultipleTransaction struct {
+		Id   int64
+		Name string
+	}
+
+	assertSync(t, new(MultipleTransaction))
+
+	session := testEngine.NewSession()
+	defer session.Close()
+
+	err := session.Begin()
+	assert.NoError(t, err)
+
+	m1 := MultipleTransaction{Name: "xiaoxiao2"}
+	_, err = session.Insert(&m1)
+	assert.NoError(t, err)
+
+	user2 := MultipleTransaction{Name: "zzz"}
+	_, err = session.Where("id = ?", 0).Update(&user2)
+	assert.NoError(t, err)
+
+	err = session.Commit()
+	assert.NoError(t, err)
+
+	var ms []MultipleTransaction
+	err = session.Find(&ms)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(ms))
+
+	err = session.Begin()
+	assert.NoError(t, err)
+
+	_, err = session.Where("id=?", m1.Id).Delete(new(MultipleTransaction))
+	assert.NoError(t, err)
+
+	err = session.Commit()
+	assert.NoError(t, err)
+
+	ms = make([]MultipleTransaction, 0)
+	err = session.Find(&ms)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, len(ms))
+
+	err = session.Begin()
+	assert.NoError(t, err)
+
+	_, err = session.Insert(&MultipleTransaction{
+		Name: "ssss",
+	})
+	assert.NoError(t, err)
+
+	err = session.Rollback()
+	assert.NoError(t, err)
+
+	ms = make([]MultipleTransaction, 0)
+	err = session.Find(&ms)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, len(ms))
+}
