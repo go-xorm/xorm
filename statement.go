@@ -261,6 +261,10 @@ func (statement *Statement) buildUpdates(bean interface{},
 			continue
 		}
 
+		if col.MapType == core.ONLYFROMDB {
+			continue
+		}
+
 		fieldValuePtr, err := col.ValueOf(bean)
 		if err != nil {
 			engine.logger.Error(err)
