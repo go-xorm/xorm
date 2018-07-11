@@ -194,7 +194,7 @@ func (engine *Engine) Quote(value string) string {
 }
 
 // QuoteTo quotes string and writes into the buffer
-func (engine *Engine) QuoteTo(buf *bytes.Buffer, value string) {
+func (engine *Engine) QuoteTo(buf *builder.StringBuilder, value string) {
 	if buf == nil {
 		return
 	}

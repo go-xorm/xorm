@@ -204,30 +204,28 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 	}
 	cleanupProcessorsClosures(&session.beforeClosures)
 
-	var sql = "INSERT INTO %s (%v%v%v) VALUES (%v)"
-	var statement string
+	var sql string
 	if session.engine.dialect.DBType() == core.ORACLE {
-		sql = "INSERT ALL INTO %s (%v%v%v) VALUES (%v) SELECT 1 FROM DUAL"
 		temp := fmt.Sprintf(") INTO %s (%v%v%v) VALUES (",
 			session.engine.Quote(tableName),
 			session.engine.QuoteStr(),
 			strings.Join(colNames, session.engine.QuoteStr()+", "+session.engine.QuoteStr()),
 			session.engine.QuoteStr())
-		statement = fmt.Sprintf(sql,
+		sql = fmt.Sprintf("INSERT ALL INTO %s (%v%v%v) VALUES (%v) SELECT 1 FROM DUAL",
 			session.engine.Quote(tableName),
 			session.engine.QuoteStr(),
 			strings.Join(colNames, session.engine.QuoteStr()+", "+session.engine.QuoteStr()),
 			session.engine.QuoteStr(),
 			strings.Join(colMultiPlaces, temp))
 	} else {
-		statement = fmt.Sprintf(sql,
+		sql = fmt.Sprintf("INSERT INTO %s (%v%v%v) VALUES (%v)",
 			session.engine.Quote(tableName),
 			session.engine.QuoteStr(),
 			strings.Join(colNames, session.engine.QuoteStr()+", "+session.engine.QuoteStr()),
 			session.engine.QuoteStr(),
 			strings.Join(colMultiPlaces, "),("))
 	}
-	res, err := session.exec(statement, args...)
+	res, err := session.exec(sql, args...)
 	if err != nil {
 		return 0, err
 	}
