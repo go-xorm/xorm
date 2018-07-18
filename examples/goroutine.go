@@ -91,7 +91,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	engine.ShowSQL = true
+	engine.ShowSQL(true)
 	fmt.Println(engine)
 	test(engine)
 	fmt.Println("test end")
