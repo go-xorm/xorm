@@ -88,10 +88,7 @@ func (m *Migrate) Migrate() error {
 	}
 
 	if m.initSchema != nil && m.isFirstRun() {
-		if err := m.runInitSchema(); err != nil {
-			return err
-		}
-		return nil
+		return m.runInitSchema()
 	}
 
 	for _, migration := range m.migrations {
