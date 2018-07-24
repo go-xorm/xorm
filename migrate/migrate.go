@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/go-xorm/xorm"
+	"github.com/cochainio/xorm"
 )
 
 // MigrateFunc is the func signature for migrating.

@@ -1134,7 +1134,7 @@ func (engine *Engine) idTypeAssertion(col *core.Column, sid string) (interface{}
 			return nil, err
 		}
 		return n, nil
-	} else if col.SQLType.IsText() {
+	} else if col.SQLType.IsText() || col.SQLType.IsBlob() {
 		return sid, nil
 	} else {
 		return nil, errors.New("not supported")
