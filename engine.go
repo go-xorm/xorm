@@ -1417,6 +1417,16 @@ func (engine *Engine) Find(beans interface{}, condiBeans ...interface{}) error {
 	return session.Find(beans, condiBeans...)
 }
 
+// Pluck retrieve a list of column values.
+// colName is the column name where values from
+// slicePtr should be a slice which will filled by the list values
+// beans is optional which represents the table, should be a *Struct
+func (engine *Engine) Pluck(colName string, slicePtr interface{}, beans ...interface{}) error {
+	session := engine.NewSession()
+	defer session.Close()
+	return session.Pluck(colName, slicePtr, beans...)
+}
+
 // FindAndCount find the results and also return the counts
 func (engine *Engine) FindAndCount(rowsSlicePtr interface{}, condiBean ...interface{}) (int64, error) {
 	session := engine.NewSession()
