@@ -22,7 +22,7 @@ database:
 test:
   override:
     # './...' is a relative pattern which means all subdirectories
-    - go get -u github.com/wadey/gocovmerge;
+    - go get -u github.com/wadey/gocovmerge
     - go test -v -race -db="sqlite3" -conn_str="./test.db" -coverprofile=coverage1-1.txt -covermode=atomic
     - go test -v -race -db="sqlite3" -conn_str="./test.db" -cache=true -coverprofile=coverage1-2.txt -covermode=atomic
     - go test -v -race -db="mysql" -conn_str="root:@/xorm_test" -coverprofile=coverage2-1.txt -covermode=atomic
