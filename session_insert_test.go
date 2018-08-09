@@ -30,23 +30,6 @@ func TestInsertOne(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestInsertTimeFormat(t *testing.T) { // !DarthPestilane! format time when sqlTypeName is core.Varchar.
-	assert.NoError(t, prepareEngine())
-	type Test struct {
-		Id      int64  `xorm:"autoincr pk"`
-		Msg     string `xorm:"varchar(255)"`
-		Created string `xorm:"created"`
-	}
-	assert.NoError(t, testEngine.Sync2(new(Test)))
-	data := Test{Msg: "hi"}
-	_, err := testEngine.InsertOne(data)
-	assert.NoError(t, err)
-	_, err = testEngine.Get(&data)
-	assert.NoError(t, err)
-	_, err = time.Parse("2006-01-02 15:04:05", data.Created)
-	assert.NoError(t, err)
-}
-
 func TestInsertMulti(t *testing.T) {
 
 	assert.NoError(t, prepareEngine())

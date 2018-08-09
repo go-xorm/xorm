@@ -255,10 +255,12 @@ func TestTimeUserDeleted(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UserDeleted struct {
-		Id        string
-		CreatedAt time.Time `xorm:"created"`
-		UpdatedAt time.Time `xorm:"updated"`
-		DeletedAt time.Time `xorm:"deleted"`
+		Id           string
+		CreatedAt    time.Time `xorm:"created"`
+		UpdatedAt    time.Time `xorm:"updated"`
+		DeletedAt    time.Time `xorm:"deleted"`
+		CreatedAtStr string    `xorm:"datetime created"`
+		UpdatedAtStr string    `xorm:"datetime updated"`
 	}
 
 	assertSync(t, new(UserDeleted))
@@ -282,6 +284,7 @@ func TestTimeUserDeleted(t *testing.T) {
 	assert.EqualValues(t, formatTime(user.UpdatedAt), formatTime(user2.UpdatedAt))
 	assert.True(t, isTimeZero(user2.DeletedAt))
 	fmt.Println("user2", user2.CreatedAt, user2.UpdatedAt, user2.DeletedAt)
+	fmt.Println("user2 str", user2.CreatedAtStr, user2.UpdatedAtStr)
 
 	var user3 UserDeleted
 	cnt, err = testEngine.Where("id = ?", "lunny").Delete(&user3)
