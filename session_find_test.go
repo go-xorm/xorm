@@ -268,6 +268,15 @@ func TestOrder(t *testing.T) {
 	fmt.Println(users2)
 }
 
+func TestGroupBy(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(Userinfo))
+
+	users := make([]Userinfo, 0)
+	err := testEngine.GroupBy("id, username").Find(&users)
+	assert.NoError(t, err)
+}
+
 func TestHaving(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))

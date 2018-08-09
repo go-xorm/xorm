@@ -177,6 +177,14 @@ func (engine *Engine) QuoteStr() string {
 	return engine.dialect.QuoteStr()
 }
 
+func (engine *Engine) quoteColumns(columnStr string) string {
+	columns := strings.Split(columnStr, ",")
+	for i := 0; i < len(columns); i++ {
+		columns[i] = engine.Quote(strings.TrimSpace(columns[i]))
+	}
+	return strings.Join(columns, ",")
+}
+
 // Quote Use QuoteStr quote the string sql
 func (engine *Engine) Quote(value string) string {
 	value = strings.TrimSpace(value)
