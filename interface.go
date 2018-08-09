@@ -27,7 +27,7 @@ type Interface interface {
 	Delete(interface{}) (int64, error)
 	Distinct(columns ...string) *Session
 	DropIndexes(bean interface{}) error
-	Exec(string, ...interface{}) (sql.Result, error)
+	Exec(sqlOrAgrs ...interface{}) (sql.Result, error)
 	Exist(bean ...interface{}) (bool, error)
 	Find(interface{}, ...interface{}) error
 	FindAndCount(interface{}, ...interface{}) (int64, error)
