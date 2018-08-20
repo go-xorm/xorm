@@ -49,11 +49,17 @@ func (session *Session) queryRows(sqlStr string, args ...interface{}) (*core.Row
 
 	if session.isAutoCommit {
 		var db *core.DB
-		if session.engine.engineGroup != nil {
-			db = session.engine.engineGroup.Slave().DB()
-		} else {
+
+		if session.isMasterOwn{
 			db = session.DB()
+		}else{
+			if session.engine.engineGroup != nil {
+				db = session.engine.engineGroup.Slave().DB()
+			} else {
+				db = session.DB()
+			}
 		}
+
 
 		if session.prepareStmt {
 			// don't clear stmt since session will cache them
