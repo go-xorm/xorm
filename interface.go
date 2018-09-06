@@ -87,9 +87,13 @@ type EngineInterface interface {
 	NoAutoTime() *Session
 	Quote(string) string
 	SetCacher(string, core.Cacher)
+	SetConnMaxLifetime(time.Duration)
 	SetDefaultCacher(core.Cacher)
+	SetLogger(logger core.ILogger)
 	SetLogLevel(core.LogLevel)
 	SetMapper(core.IMapper)
+	SetMaxOpenConns(int)
+	SetMaxIdleConns(int)
 	SetSchema(string)
 	SetTZDatabase(tz *time.Location)
 	SetTZLocation(tz *time.Location)
