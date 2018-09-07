@@ -72,6 +72,7 @@ type EngineInterface interface {
 
 	Before(func(interface{})) *Session
 	Charset(charset string) *Session
+	ClearCache(...interface{}) error
 	CreateTables(...interface{}) error
 	DBMetas() ([]*core.Table, error)
 	Dialect() core.Dialect
@@ -83,6 +84,7 @@ type EngineInterface interface {
 	GetTableMapper() core.IMapper
 	GetTZDatabase() *time.Location
 	GetTZLocation() *time.Location
+	MapCacher(interface{}, core.Cacher) error
 	NewSession() *Session
 	NoAutoTime() *Session
 	Quote(string) string
@@ -97,6 +99,7 @@ type EngineInterface interface {
 	SetSchema(string)
 	SetTZDatabase(tz *time.Location)
 	SetTZLocation(tz *time.Location)
+	ShowExecTime(...bool)
 	ShowSQL(show ...bool)
 	Sync(...interface{}) error
 	Sync2(...interface{}) error
