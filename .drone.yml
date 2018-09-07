@@ -1,0 +1,59 @@
+workspace:
+  base: /go
+  path: src/github.com/go-xorm/xorm
+
+clone:
+  git:
+    image: plugins/git:next
+    depth: 50
+    tags: true
+
+pipeline:
+
+  test:
+    image: golang:1.8
+    #group: testing
+    #pull: true
+    commands:
+      - go get -t -d -v ./...
+      - go get -u github.com/go-xorm/core
+      - go get -u github.com/go-xorm/builder
+      - go build -v
+    when:
+      event: [ push, pull_request ]
+
+  test1:
+    image: golang:1.9
+    #group: testing
+    #pull: true
+    commands:
+      - go get -t -d -v ./...
+      - go get -u github.com/go-xorm/core
+      - go get -u github.com/go-xorm/builder
+      - go build -v
+    when:
+      event: [ push, pull_request ]
+
+  test2:
+    image: golang:1.10
+    #group: testing
+    #pull: true
+    commands:
+      - go get -t -d -v ./...
+      - go get -u github.com/go-xorm/core
+      - go get -u github.com/go-xorm/builder
+      - go build -v
+    when:
+      event: [ push, pull_request ]
+
+  test3:
+    image: golang:1.11
+    #group: testing
+    #pull: true
+    commands:
+      - go get -t -d -v ./...
+      - go get -u github.com/go-xorm/core
+      - go get -u github.com/go-xorm/builder
+      - go build -v
+    when:
+      event: [ push, pull_request ]
