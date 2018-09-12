@@ -15,38 +15,38 @@ import (
 func TestAutoTransaction(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	type Test struct {
+	type TestTx struct {
 		Id      int64     `xorm:"autoincr pk"`
 		Msg     string    `xorm:"varchar(255)"`
 		Created time.Time `xorm:"created"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(Test)))
+	assert.NoError(t, testEngine.Sync2(new(TestTx)))
 
 	engine := testEngine.(*Engine)
 
 	// will success
-	AutoTransaction(func(session *Session) (interface{}, error) {
-		_, err := session.Insert(Test{Msg: "hi"})
+	engine.Transaction(func(session *Session) (interface{}, error) {
+		_, err := session.Insert(TestTx{Msg: "hi"})
 		assert.NoError(t, err)
 
 		return nil, nil
-	}, engine)
+	})
 
-	has, err := engine.Exist(&Test{Msg: "hi"})
+	has, err := engine.Exist(&TestTx{Msg: "hi"})
 	assert.NoError(t, err)
 	assert.EqualValues(t, true, has)
 
 	// will rollback
-	_, err = AutoTransaction(func(session *Session) (interface{}, error) {
-		_, err := session.Insert(Test{Msg: "hello"})
+	_, err = engine.Transaction(func(session *Session) (interface{}, error) {
+		_, err := session.Insert(TestTx{Msg: "hello"})
 		assert.NoError(t, err)
 
 		return nil, fmt.Errorf("rollback")
-	}, engine)
+	})
 	assert.Error(t, err)
 
-	has, err = engine.Exist(&Test{Msg: "hello"})
+	has, err = engine.Exist(&TestTx{Msg: "hello"})
 	assert.NoError(t, err)
 	assert.EqualValues(t, false, has)
 }

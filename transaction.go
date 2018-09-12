@@ -4,8 +4,8 @@
 
 package xorm
 
-// AutoTransaction Execute sql wrapped in a transaction(abbr as tx), tx will automatic commit if no errors occurred
-func AutoTransaction(f func(*Session) (interface{}, error), engine *Engine) (interface{}, error) {
+// Transaction Execute sql wrapped in a transaction(abbr as tx), tx will automatic commit if no errors occurred
+func (engine *Engine) Transaction(f func(*Session) (interface{}, error)) (interface{}, error) {
 	session := engine.NewSession()
 	defer session.Close()
 
