@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -51,7 +52,8 @@ type Session struct {
 	lastSQL     string
 	lastSQLArgs []interface{}
 
-	err error
+	err     error
+	context context.Context
 }
 
 // Clone copy all the session's content and return a new session

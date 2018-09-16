@@ -66,7 +66,21 @@ func (session *Session) get(bean interface{}) (bool, error) {
 		}
 	}
 
-	return session.nocacheGet(beanValue.Elem().Kind(), table, bean, sqlStr, args...)
+	if session.context != nil {
+		//res := session.context.Value(fmt.Sprintf("%v-%v", sql, args))
+		//runtime.deepcopy()
+		//&res
+	}
+
+	has, err := session.nocacheGet(beanValue.Elem().Kind(), table, bean, sqlStr, args...)
+	if err != nil || !has {
+		return has, err
+	}
+	if session.context != nil {
+		//session.context.
+	}
+
+	return true, nil
 }
 
 func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bean interface{}, sqlStr string, args ...interface{}) (bool, error) {
