@@ -1169,4 +1169,29 @@ func TestNoPKIdQueryUpdate(t *testing.T) {
 	})
 	assert.Error(t, err)
 	assert.EqualValues(t, 0, cnt)
+
+	type UnvalidPKTable struct {
+		ID       int `xorm:"id"`
+		Username string
+	}
+
+	assertSync(t, new(UnvalidPKTable))
+
+	cnt, err = testEngine.Insert(&UnvalidPKTable{
+		ID:       1,
+		Username: "test",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var res2 UnvalidPKTable
+	has, err = testEngine.ID(1).Get(&res2)
+	assert.Error(t, err)
+	assert.False(t, has)
+
+	cnt, err = testEngine.ID(1).Update(&UnvalidPKTable{
+		Username: "test1",
+	})
+	assert.Error(t, err)
+	assert.EqualValues(t, 0, cnt)
 }
