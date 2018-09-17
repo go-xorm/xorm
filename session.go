@@ -18,6 +18,13 @@ import (
 	"github.com/go-xorm/core"
 )
 
+type sessionType int
+
+const (
+	engineSession sessionType = iota
+	groupSession
+)
+
 // Session keep a pointer to sql.DB and provides all execution of all
 // kind of database operations.
 type Session struct {
@@ -54,6 +61,8 @@ type Session struct {
 
 	err error
 	ctx context.Context
+
+	sessionType sessionType
 }
 
 // Clone copy all the session's content and return a new session
@@ -86,6 +95,7 @@ func (session *Session) Init() {
 	session.lastSQLArgs = []interface{}{}
 
 	session.ctx = session.engine.defaultContext
+	session.sessionType = engineSession
 }
 
 // Close release the connection from pool
