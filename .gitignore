@@ -28,5 +28,6 @@ temp_test.go
 .vscode
 xorm.test
 *.sqlite3
+test.db.sql
 
 .idea/
