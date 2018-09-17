@@ -337,6 +337,20 @@ func TestTagsDirection(t *testing.T) {
 	assert.EqualValues(t, "1", s.Uuid)
 	assert.EqualValues(t, "test", s.Name)
 
+	cnt, err = testEngine.ID(1).Update(&OnlyFromDBStruct{
+		Uuid: "3",
+		Name: "test1",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var s3 OnlyFromDBStruct
+	has, err = testEngine.ID(1).Get(&s3)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "1", s3.Uuid)
+	assert.EqualValues(t, "test1", s3.Name)
+
 	type OnlyToDBStruct struct {
 		Id   int64
 		Name string
