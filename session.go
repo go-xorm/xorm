@@ -27,6 +27,7 @@ type Session struct {
 	isAutoCommit           bool
 	isCommitedOrRollbacked bool
 	isAutoClose            bool
+	isMasterOwn		       bool
 
 	// Automatically reset the statement after operations that execute a SQL
 	// query such as Count(), Find(), Get(), ...
@@ -69,6 +70,7 @@ func (session *Session) Init() {
 	session.isAutoClose = false
 	session.autoResetStatement = true
 	session.prepareStmt = false
+	session.isMasterOwn = false
 
 	// !nashtsai! is lazy init better?
 	session.afterInsertBeans = make(map[interface{}]*[]func(interface{}), 0)

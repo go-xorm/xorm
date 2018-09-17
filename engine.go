@@ -313,6 +313,13 @@ func (engine *Engine) NewSession() *Session {
 	return session
 }
 
+func (engine *Engine) NewMasterSession() *Session {
+	session := &Session{engine: engine}
+	session.Init()
+	session.isMasterOwn=true
+	return session
+}
+
 // Close the engine
 func (engine *Engine) Close() error {
 	return engine.db.Close()
