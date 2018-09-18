@@ -84,6 +84,11 @@ func (session *Session) Init() {
 
 	session.lastSQL = ""
 	session.lastSQLArgs = []interface{}{}
+	if session.engine.enableContextCache {
+		session.context = context.Background()
+	} else {
+		session.context = nil
+	}
 }
 
 // Close release the connection from pool

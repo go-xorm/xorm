@@ -45,6 +45,7 @@ type Engine struct {
 	DatabaseTZ *time.Location // The timezone of the database
 
 	disableGlobalCache bool
+	enableContextCache bool
 
 	tagHandlers map[string]tagHandler
 
@@ -311,6 +312,11 @@ func (engine *Engine) NewSession() *Session {
 	session := &Session{engine: engine}
 	session.Init()
 	return session
+}
+
+// EnableContextCache will enable or disable context cache
+func (engine *Engine) EnableContextCache(enabled bool) {
+	engine.enableContextCache = enabled
 }
 
 // Close the engine

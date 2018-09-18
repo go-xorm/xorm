@@ -24,3 +24,14 @@ func (session *Session) PingContext(ctx context.Context) error {
 	session.engine.logger.Infof("PING DATABASE %v", session.engine.DriverName())
 	return session.DB().PingContext(ctx)
 }
+
+// WithContext cooperate with ctx
+func (session *Session) WithContext(ctx context.Context) *Session {
+	session.context = ctx
+	return session
+}
+
+// WithContext cooperate session with ctx
+func WithContext(sess *Session, ctx context.Context) *Session {
+	return sess.WithContext(ctx)
+}

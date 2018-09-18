@@ -5,8 +5,10 @@
 package xorm
 
 import (
+	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 
@@ -67,9 +69,14 @@ func (session *Session) get(bean interface{}) (bool, error) {
 	}
 
 	if session.context != nil {
-		//res := session.context.Value(fmt.Sprintf("%v-%v", sql, args))
-		//runtime.deepcopy()
-		//&res
+		res := session.context.Value(fmt.Sprintf("%v-%v", sqlStr, args))
+		if res != nil {
+			structValue := reflect.Indirect(reflect.ValueOf(bean))
+			structValue.Set(reflect.Indirect(reflect.ValueOf(res)))
+			session.lastSQL = ""
+			session.lastSQLArgs = nil
+			return true, nil
+		}
 	}
 
 	has, err := session.nocacheGet(beanValue.Elem().Kind(), table, bean, sqlStr, args...)
@@ -77,7 +84,7 @@ func (session *Session) get(bean interface{}) (bool, error) {
 		return has, err
 	}
 	if session.context != nil {
-		//session.context.
+		session.context = context.WithValue(session.context, fmt.Sprintf("%v-%v", sqlStr, args), bean)
 	}
 
 	return true, nil

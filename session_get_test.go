@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"testing"
@@ -318,4 +319,40 @@ func TestGetStructId(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 2, maxid.Id)
+}
+
+func TestContextGet(t *testing.T) {
+	type ContextGetStruct struct {
+		Id   int64
+		Name string
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(ContextGetStruct))
+
+	_, err := testEngine.Insert(&ContextGetStruct{Name: "1"})
+	assert.NoError(t, err)
+
+	sess := WithContext(testEngine.NewSession(), context.Background())
+	defer sess.Close()
+
+	var c2 ContextGetStruct
+	has, err := sess.ID(1).Get(&c2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 1, c2.Id)
+	assert.EqualValues(t, "1", c2.Name)
+	sql, args := sess.LastSQL()
+	assert.True(t, len(sql) > 0)
+	assert.True(t, len(args) > 0)
+
+	var c3 ContextGetStruct
+	has, err = sess.ID(1).Get(&c3)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 1, c3.Id)
+	assert.EqualValues(t, "1", c3.Name)
+	sql, args = sess.LastSQL()
+	assert.True(t, len(sql) == 0)
+	assert.True(t, len(args) == 0)
 }
