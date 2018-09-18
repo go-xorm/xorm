@@ -34,6 +34,8 @@ Xorm is a simple and powerful ORM for Go.
 
 * Postgres schema support
 
+* Context Get Cache
+
 ## Drivers Support
 
 Drivers for Go's sql package which currently support database/sql includes:
@@ -356,6 +358,33 @@ if _, err := session.Exec("delete from userinfo where username = ?", user2.Usern
 
 // add Commit() after all actions
 return session.Commit()
+```
+
+* Context Cache, if enabled, current query result will be cached on session and be used by next same statement on the same session.
+
+```Go
+    sess := engine.NewSession()
+	defer sess.Close()
+
+	var c2 ContextGetStruct
+	has, err := sess.ID(1).ContextCache().Get(&c2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 1, c2.Id)
+	assert.EqualValues(t, "1", c2.Name)
+	sql, args := sess.LastSQL()
+	assert.True(t, len(sql) > 0)
+	assert.True(t, len(args) > 0)
+
+	var c3 ContextGetStruct
+	has, err = sess.ID(1).Get(&c3)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 1, c3.Id)
+	assert.EqualValues(t, "1", c3.Name)
+	sql, args = sess.LastSQL()
+	assert.True(t, len(sql) == 0)
+	assert.True(t, len(args) == 0)
 ```
 
 ## Contributing

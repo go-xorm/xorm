@@ -83,7 +83,10 @@ func (session *Session) get(bean interface{}) (bool, error) {
 	if err != nil || !has {
 		return has, err
 	}
-	if session.context != nil {
+	if session.statement.enableContextCache {
+		if session.context == nil {
+			session.context = context.Background()
+		}
 		session.context = context.WithValue(session.context, fmt.Sprintf("%v-%v", sqlStr, args), bean)
 	}
 

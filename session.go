@@ -84,11 +84,7 @@ func (session *Session) Init() {
 
 	session.lastSQL = ""
 	session.lastSQLArgs = []interface{}{}
-	if session.engine.enableContextCache {
-		session.context = context.Background()
-	} else {
-		session.context = nil
-	}
+	session.context = nil
 }
 
 // Close release the connection from pool
@@ -107,6 +103,16 @@ func (session *Session) Close() {
 		session.stmtCache = nil
 		session.db = nil
 	}
+}
+
+// ContextCache enable context cache or not
+func (session *Session) ContextCache(enabled ...bool) *Session {
+	if len(enabled) > 0 {
+		session.statement.enableContextCache = enabled[0]
+	} else {
+		session.statement.enableContextCache = true
+	}
+	return session
 }
 
 // IsClosed returns if session is closed

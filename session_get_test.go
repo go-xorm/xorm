@@ -5,7 +5,6 @@
 package xorm
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"testing"
@@ -333,11 +332,11 @@ func TestContextGet(t *testing.T) {
 	_, err := testEngine.Insert(&ContextGetStruct{Name: "1"})
 	assert.NoError(t, err)
 
-	sess := WithContext(testEngine.NewSession(), context.Background())
+	sess := testEngine.NewSession()
 	defer sess.Close()
 
 	var c2 ContextGetStruct
-	has, err := sess.ID(1).Get(&c2)
+	has, err := sess.ID(1).ContextCache().Get(&c2)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 1, c2.Id)
