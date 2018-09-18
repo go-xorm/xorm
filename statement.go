@@ -100,6 +100,7 @@ func (statement *Statement) Init() {
 	statement.exprColumns = make(map[string]exprParam)
 	statement.cond = builder.NewCond()
 	statement.bufferSize = 0
+	statement.enableContextCache = false
 }
 
 // NoAutoCondition if you do not want convert bean's field as query condition, then use this function
