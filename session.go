@@ -106,12 +106,8 @@ func (session *Session) Close() {
 }
 
 // ContextCache enable context cache or not
-func (session *Session) ContextCache(enabled ...bool) *Session {
-	if len(enabled) > 0 {
-		session.statement.enableContextCache = enabled[0]
-	} else {
-		session.statement.enableContextCache = true
-	}
+func (session *Session) ContextCache() *Session {
+	session.statement.enableContextCache = true
 	return session
 }
 
