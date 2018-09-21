@@ -362,7 +362,9 @@ return session.Commit()
 
 ## 贡献
 
-如果您也想为Xorm贡献您的力量，请查看 [CONTRIBUTING](https://github.com/go-xorm/xorm/blob/master/CONTRIBUTING.md)。您也可以加入QQ群 280360085 技术帮助和讨论。
+如果您也想为Xorm贡献您的力量，请查看 [CONTRIBUTING](https://github.com/go-xorm/xorm/blob/master/CONTRIBUTING.md)。您也可以加入QQ群  技术帮助和讨论。
+群一：280360085 （已满）
+群二：795010183
 
 ## Credits
 
