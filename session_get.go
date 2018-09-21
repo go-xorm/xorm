@@ -68,6 +68,7 @@ func (session *Session) get(bean interface{}) (bool, error) {
 		}
 	}
 
+	var enableContextCache = session.statement.enableContextCache
 	if session.context != nil {
 		res := session.context.Value(fmt.Sprintf("%v-%v", sqlStr, args))
 		if res != nil {
@@ -83,7 +84,8 @@ func (session *Session) get(bean interface{}) (bool, error) {
 	if err != nil || !has {
 		return has, err
 	}
-	if session.statement.enableContextCache {
+
+	if enableContextCache {
 		if session.context == nil {
 			session.context = context.Background()
 		}
