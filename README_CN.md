@@ -386,10 +386,10 @@ res, err := engine.Transaction(func(sess *xorm.Session) (interface{}, error) {
 * Context Cache, if enabled, current query result will be cached on session and be used by next same statement on the same session.
 
 ```Go
-    sess := engine.NewSession()
+	sess := engine.NewSession()
 	defer sess.Close()
 
-    var context = xorm.NewMemoryContextCache()
+	var context = xorm.NewMemoryContextCache()
 
 	var c2 ContextGetStruct
 	has, err := sess.ID(1).ContextCache(context).Get(&c2)
