@@ -387,7 +387,7 @@ res, err := engine.Transaction(func(sess *xorm.Session) (interface{}, error) {
     sess := engine.NewSession()
 	defer sess.Close()
 
-    var context = xorm.NewContextCache()
+    var context = xorm.NewMemoryContextCache()
 
 	var c2 ContextGetStruct
 	has, err := sess.ID(1).ContextCache(context).Get(&c2)

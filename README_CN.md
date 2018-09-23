@@ -389,8 +389,10 @@ res, err := engine.Transaction(func(sess *xorm.Session) (interface{}, error) {
     sess := engine.NewSession()
 	defer sess.Close()
 
+    var context = xorm.NewMemoryContextCache()
+
 	var c2 ContextGetStruct
-	has, err := sess.ID(1).ContextCache().Get(&c2)
+	has, err := sess.ID(1).ContextCache(context).Get(&c2)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 1, c2.Id)
@@ -400,7 +402,7 @@ res, err := engine.Transaction(func(sess *xorm.Session) (interface{}, error) {
 	assert.True(t, len(args) > 0)
 
 	var c3 ContextGetStruct
-	has, err = sess.ID(1).Get(&c3)
+	has, err = sess.ID(1).ContextCache(context).Get(&c3)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 1, c3.Id)
