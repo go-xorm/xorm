@@ -5,7 +5,6 @@
 package xorm
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -52,8 +51,7 @@ type Session struct {
 	lastSQL     string
 	lastSQLArgs []interface{}
 
-	err     error
-	context context.Context
+	err error
 }
 
 // Clone copy all the session's content and return a new session
@@ -84,7 +82,6 @@ func (session *Session) Init() {
 
 	session.lastSQL = ""
 	session.lastSQLArgs = []interface{}{}
-	session.context = nil
 }
 
 // Close release the connection from pool
@@ -106,8 +103,8 @@ func (session *Session) Close() {
 }
 
 // ContextCache enable context cache or not
-func (session *Session) ContextCache() *Session {
-	session.statement.enableContextCache = true
+func (session *Session) ContextCache(context ContextCache) *Session {
+	session.statement.context = context
 	return session
 }
 

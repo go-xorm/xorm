@@ -335,8 +335,10 @@ func TestContextGet(t *testing.T) {
 	sess := testEngine.NewSession()
 	defer sess.Close()
 
+	context := NewMemoryContextCache()
+
 	var c2 ContextGetStruct
-	has, err := sess.ID(1).ContextCache().Get(&c2)
+	has, err := sess.ID(1).ContextCache(context).Get(&c2)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 1, c2.Id)
@@ -346,7 +348,7 @@ func TestContextGet(t *testing.T) {
 	assert.True(t, len(args) > 0)
 
 	var c3 ContextGetStruct
-	has, err = sess.ID(1).Get(&c3)
+	has, err = sess.ID(1).ContextCache(context).Get(&c3)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 1, c3.Id)
@@ -354,4 +356,33 @@ func TestContextGet(t *testing.T) {
 	sql, args = sess.LastSQL()
 	assert.True(t, len(sql) == 0)
 	assert.True(t, len(args) == 0)
+}
+
+func TestContextGet2(t *testing.T) {
+	type ContextGetStruct2 struct {
+		Id   int64
+		Name string
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(ContextGetStruct2))
+
+	_, err := testEngine.Insert(&ContextGetStruct2{Name: "1"})
+	assert.NoError(t, err)
+
+	context := NewMemoryContextCache()
+
+	var c2 ContextGetStruct2
+	has, err := testEngine.ID(1).ContextCache(context).Get(&c2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 1, c2.Id)
+	assert.EqualValues(t, "1", c2.Name)
+
+	var c3 ContextGetStruct2
+	has, err = testEngine.ID(1).ContextCache(context).Get(&c3)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 1, c3.Id)
+	assert.EqualValues(t, "1", c3.Name)
 }

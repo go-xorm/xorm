@@ -5,7 +5,6 @@
 package xorm
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -68,9 +67,9 @@ func (session *Session) get(bean interface{}) (bool, error) {
 		}
 	}
 
-	var enableContextCache = session.statement.enableContextCache
-	if session.context != nil {
-		res := session.context.Value(fmt.Sprintf("%v-%v", sqlStr, args))
+	context := session.statement.context
+	if context != nil {
+		res := context.Get(fmt.Sprintf("%v-%v", sqlStr, args))
 		if res != nil {
 			structValue := reflect.Indirect(reflect.ValueOf(bean))
 			structValue.Set(reflect.Indirect(reflect.ValueOf(res)))
@@ -85,11 +84,8 @@ func (session *Session) get(bean interface{}) (bool, error) {
 		return has, err
 	}
 
-	if enableContextCache {
-		if session.context == nil {
-			session.context = context.Background()
-		}
-		session.context = context.WithValue(session.context, fmt.Sprintf("%v-%v", sqlStr, args), bean)
+	if context != nil {
+		context.Put(fmt.Sprintf("%v-%v", sqlStr, args), bean)
 	}
 
 	return true, nil

@@ -32,6 +32,8 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * 内置SQL Builder支持
 
+* 上下文缓存支持
+
 ## 驱动支持
 
 目前支持的Go数据库驱动和对应的数据库如下：
@@ -358,6 +360,54 @@ if _, err := session.Exec("delete from userinfo where username = ?", user2.Usern
 
 // add Commit() after all actions
 return session.Commit()
+```
+
+* 事物的简写方法
+
+```Go
+res, err := engine.Transaction(func(sess *xorm.Session) (interface{}, error) {
+    user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
+    if _, err := session.Insert(&user1); err != nil {
+        return nil, err
+    }
+
+    user2 := Userinfo{Username: "yyy"}
+    if _, err := session.Where("id = ?", 2).Update(&user2); err != nil {
+        return nil, err
+    }
+
+    if _, err := session.Exec("delete from userinfo where username = ?", user2.Username); err != nil {
+        return nil, err
+    }
+    return nil, nil
+})
+```
+
+* Context Cache, if enabled, current query result will be cached on session and be used by next same statement on the same session.
+
+```Go
+    sess := engine.NewSession()
+	defer sess.Close()
+
+	var c2 ContextGetStruct
+	has, err := sess.ID(1).ContextCache().Get(&c2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 1, c2.Id)
+	assert.EqualValues(t, "1", c2.Name)
+	sql, args := sess.LastSQL()
+	assert.True(t, len(sql) > 0)
+	assert.True(t, len(args) > 0)
+
+	var c3 ContextGetStruct
+	has, err = sess.ID(1).Get(&c3)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 1, c3.Id)
+	assert.EqualValues(t, "1", c3.Name)
+	sql, args = sess.LastSQL()
+	assert.True(t, len(sql) == 0)
+	assert.True(t, len(args) == 0)
 ```
 
 ## 贡献

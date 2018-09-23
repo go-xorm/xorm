@@ -19,47 +19,47 @@ import (
 
 // Statement save all the sql info for executing SQL
 type Statement struct {
-	RefTable           *core.Table
-	Engine             *Engine
-	Start              int
-	LimitN             int
-	idParam            *core.PK
-	OrderStr           string
-	JoinStr            string
-	joinArgs           []interface{}
-	GroupByStr         string
-	HavingStr          string
-	ColumnStr          string
-	selectStr          string
-	useAllCols         bool
-	OmitStr            string
-	AltTableName       string
-	tableName          string
-	RawSQL             string
-	RawParams          []interface{}
-	UseCascade         bool
-	UseAutoJoin        bool
-	StoreEngine        string
-	Charset            string
-	UseCache           bool
-	UseAutoTime        bool
-	noAutoCondition    bool
-	IsDistinct         bool
-	IsForUpdate        bool
-	TableAlias         string
-	allUseBool         bool
-	checkVersion       bool
-	unscoped           bool
-	columnMap          columnMap
-	omitColumnMap      columnMap
-	mustColumnMap      map[string]bool
-	nullableMap        map[string]bool
-	incrColumns        map[string]incrParam
-	decrColumns        map[string]decrParam
-	exprColumns        map[string]exprParam
-	cond               builder.Cond
-	bufferSize         int
-	enableContextCache bool
+	RefTable        *core.Table
+	Engine          *Engine
+	Start           int
+	LimitN          int
+	idParam         *core.PK
+	OrderStr        string
+	JoinStr         string
+	joinArgs        []interface{}
+	GroupByStr      string
+	HavingStr       string
+	ColumnStr       string
+	selectStr       string
+	useAllCols      bool
+	OmitStr         string
+	AltTableName    string
+	tableName       string
+	RawSQL          string
+	RawParams       []interface{}
+	UseCascade      bool
+	UseAutoJoin     bool
+	StoreEngine     string
+	Charset         string
+	UseCache        bool
+	UseAutoTime     bool
+	noAutoCondition bool
+	IsDistinct      bool
+	IsForUpdate     bool
+	TableAlias      string
+	allUseBool      bool
+	checkVersion    bool
+	unscoped        bool
+	columnMap       columnMap
+	omitColumnMap   columnMap
+	mustColumnMap   map[string]bool
+	nullableMap     map[string]bool
+	incrColumns     map[string]incrParam
+	decrColumns     map[string]decrParam
+	exprColumns     map[string]exprParam
+	cond            builder.Cond
+	bufferSize      int
+	context         ContextCache
 }
 
 // Init reset all the statement's fields
@@ -100,7 +100,7 @@ func (statement *Statement) Init() {
 	statement.exprColumns = make(map[string]exprParam)
 	statement.cond = builder.NewCond()
 	statement.bufferSize = 0
-	statement.enableContextCache = false
+	statement.context = nil
 }
 
 // NoAutoCondition if you do not want convert bean's field as query condition, then use this function

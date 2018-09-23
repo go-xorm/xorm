@@ -34,7 +34,7 @@ Xorm is a simple and powerful ORM for Go.
 
 * Postgres schema support
 
-* Context Get Cache
+* Context Cache support
 
 ## Drivers Support
 
@@ -360,14 +360,37 @@ if _, err := session.Exec("delete from userinfo where username = ?", user2.Usern
 return session.Commit()
 ```
 
+* Or you can use `Transaction` to replace above codes.
+
+```Go
+res, err := engine.Transaction(func(sess *xorm.Session) (interface{}, error) {
+    user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
+    if _, err := session.Insert(&user1); err != nil {
+        return nil, err
+    }
+
+    user2 := Userinfo{Username: "yyy"}
+    if _, err := session.Where("id = ?", 2).Update(&user2); err != nil {
+        return nil, err
+    }
+
+    if _, err := session.Exec("delete from userinfo where username = ?", user2.Username); err != nil {
+        return nil, err
+    }
+    return nil, nil
+})
+```
+
 * Context Cache, if enabled, current query result will be cached on session and be used by next same statement on the same session.
 
 ```Go
     sess := engine.NewSession()
 	defer sess.Close()
 
+    var context = xorm.NewContextCache()
+
 	var c2 ContextGetStruct
-	has, err := sess.ID(1).ContextCache().Get(&c2)
+	has, err := sess.ID(1).ContextCache(context).Get(&c2)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 1, c2.Id)
@@ -377,7 +400,7 @@ return session.Commit()
 	assert.True(t, len(args) > 0)
 
 	var c3 ContextGetStruct
-	has, err = sess.ID(1).Get(&c3)
+	has, err = sess.ID(1).ContextCache(context).Get(&c3)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 1, c3.Id)
