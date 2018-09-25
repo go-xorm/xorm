@@ -102,6 +102,12 @@ func (session *Session) Close() {
 	}
 }
 
+// ContextCache enable context cache or not
+func (session *Session) ContextCache(context ContextCache) *Session {
+	session.statement.context = context
+	return session
+}
+
 // IsClosed returns if session is closed
 func (session *Session) IsClosed() bool {
 	return session.db == nil
