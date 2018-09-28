@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/core"
@@ -191,7 +192,24 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 		for _, v := range bValue.MapKeys() {
 			colNames = append(colNames, session.engine.Quote(v.String())+" = ?")
-			args = append(args, bValue.MapIndex(v).Interface())
+
+			val := bValue.MapIndex(v).Interface()
+			fType := reflect.TypeOf(val)
+			if fType.Kind() == reflect.Struct {
+				if fType.ConvertibleTo(core.TimeType) {
+					t := val.(time.Time)
+					// if the param is in specific timezone
+					if t.Location() != session.statement.Engine.DatabaseTZ &&
+						t.Location() != session.statement.Engine.TZLocation {
+						val = t
+					} else {
+						// shift to Engine.DatabaseTZ timezone
+						val = t.In(session.statement.Engine.DatabaseTZ)
+					}
+				}
+			}
+
+			args = append(args, val)
 		}
 	} else {
 		return 0, ErrParamsType
@@ -217,19 +235,19 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		}
 	}
 
-	//for update action to like "column = column + ?"
+	// for update action to like "column = column + ?"
 	incColumns := session.statement.getInc()
 	for _, v := range incColumns {
 		colNames = append(colNames, session.engine.Quote(v.colName)+" = "+session.engine.Quote(v.colName)+" + ?")
 		args = append(args, v.arg)
 	}
-	//for update action to like "column = column - ?"
+	// for update action to like "column = column - ?"
 	decColumns := session.statement.getDec()
 	for _, v := range decColumns {
 		colNames = append(colNames, session.engine.Quote(v.colName)+" = "+session.engine.Quote(v.colName)+" - ?")
 		args = append(args, v.arg)
 	}
-	//for update action to like "column = expression"
+	// for update action to like "column = expression"
 	exprColumns := session.statement.getExpr()
 	for _, v := range exprColumns {
 		colNames = append(colNames, session.engine.Quote(v.colName)+" = "+v.expr)
@@ -362,7 +380,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	}
 
 	if cacher := session.engine.getCacher(tableName); cacher != nil && session.statement.UseCache {
-		//session.cacheUpdate(table, tableName, sqlStr, args...)
+		// session.cacheUpdate(table, tableName, sqlStr, args...)
 		session.engine.logger.Debug("[cacheUpdate] clear table ", tableName)
 		cacher.ClearIds(tableName)
 		cacher.ClearBeans(tableName)
