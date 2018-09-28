@@ -8,7 +8,8 @@ clone:
     depth: 50
     tags: true
 
-mysql:
+services:
+  mysql:
     image: mysql:5.7
     environment:
       - MYSQL_DATABASE=xorm_test
@@ -16,15 +17,15 @@ mysql:
     when:
       event: [ push, tag, pull_request ]
 
-pgsql:
-  image: postgres:9.5
-  environment:
-    - POSTGRES_USER=postgres
-    - POSTGRES_DB=xorm_test
-  commands:
-    - psql xorm_test postgres -c "create schema xorm"
-  when:
-    event: [ push, tag, pull_request ]
+  pgsql:
+    image: postgres:9.5
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=xorm_test
+    commands:
+      - psql xorm_test postgres -c "create schema xorm"
+    when:
+      event: [ push, tag, pull_request ]
 
 pipeline:
   test:
