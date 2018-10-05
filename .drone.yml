@@ -22,8 +22,6 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_DB=xorm_test
-    commands:
-      - psql xorm_test postgres -c "create schema xorm"
     when:
       event: [ push, tag, pull_request ]
 
@@ -45,6 +43,18 @@ matrix:
     - 1.11
 
 pipeline:
+  init_postgres:
+    image: postgres:9.5
+    commands:
+      # wait for postgres service to become available
+      - |
+        until psql -U postgres -d xorm_test -h pgsql \
+         -c "SELECT 1;" >/dev/null 2>&1; do sleep 1; done
+      # query the database
+      - |
+        psql -U postgres -d xorm_test -h pgsql \
+          -c "create schema xorm;"
+
   build:
     image: golang:${GO_VERSION}
     commands:
