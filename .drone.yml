@@ -85,8 +85,8 @@ pipeline:
   test-mymysql:
     image: golang:${GO_VERSION}
     commands:
-      - go test -v -race -db="mymysql" -conn_str="tcp:mysql*xorm_test/root/" -coverprofile=coverage3-1.txt -covermode=atomic
-      - go test -v -race -db="mymysql" -conn_str="tcp:mysql*xorm_test/root/" -cache=true -coverprofile=coverage3-2.txt -covermode=atomic
+      - go test -v -race -db="mymysql" -conn_str="tcp:mysql:3306*xorm_test/root/" -coverprofile=coverage3-1.txt -covermode=atomic
+      - go test -v -race -db="mymysql" -conn_str="tcp:mysql:3306*xorm_test/root/" -cache=true -coverprofile=coverage3-2.txt -covermode=atomic
     when:
       event: [ push, pull_request ]
 
