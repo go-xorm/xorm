@@ -764,7 +764,9 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 			statement.lastError = err
 			return statement
 		}
-		fmt.Fprintf(&buf, "(%s) %s ON %v", subSQL, tp.TableName(), condition)
+		tbs := strings.Split(tp.TableName(), ".")
+		var aliasName = strings.Trim(tbs[len(tbs)-1], statement.Engine.QuoteStr())
+		fmt.Fprintf(&buf, "(%s) %s ON %v", subSQL, aliasName, condition)
 		statement.joinArgs = append(statement.joinArgs, subQueryArgs...)
 	case *builder.Builder:
 		subSQL, subQueryArgs, err := tp.ToSQL()
@@ -772,7 +774,9 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 			statement.lastError = err
 			return statement
 		}
-		fmt.Fprintf(&buf, "(%s) %s ON %v", subSQL, tp.TableName(), condition)
+		tbs := strings.Split(tp.TableName(), ".")
+		var aliasName = strings.Trim(tbs[len(tbs)-1], statement.Engine.QuoteStr())
+		fmt.Fprintf(&buf, "(%s) %s ON %v", subSQL, aliasName, condition)
 		statement.joinArgs = append(statement.joinArgs, subQueryArgs...)
 	default:
 		tbName := statement.Engine.TableName(tablename, true)
