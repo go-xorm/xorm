@@ -33,7 +33,7 @@ services:
       - MSSQL_PID=Developer
     commands:
       - echo 'CREATE DATABASE xorm_test' > create.sql
-      - /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P yourStrong(!)Password -i "create.sql"
+      - /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "yourStrong(!)Password" -i "create.sql"
 
 matrix:
   GO_VERSION:
