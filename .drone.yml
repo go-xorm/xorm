@@ -25,15 +25,15 @@ services:
     when:
       event: [ push, tag, pull_request ]
 
-  #mssql:
-  #  image: microsoft/mssql-server-linux:2017-CU11
-  #  environment:
-  #    - ACCEPT_EULA=Y
-  #    - SA_PASSWORD=yourStrong(!)Password
-  #    - MSSQL_PID=Developer
-  #  commands:
-  #    - echo 'CREATE DATABASE xorm_test' > create.sql
-  #    - /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P yourStrong(!)Password -i "create.sql"
+  mssql:
+    image: microsoft/mssql-server-linux:2017-CU11
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=yourStrong(!)Password
+      - MSSQL_PID=Developer
+    commands:
+      - echo 'CREATE DATABASE xorm_test' > create.sql
+      - /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P yourStrong(!)Password -i "create.sql"
 
 matrix:
   GO_VERSION:
@@ -111,7 +111,15 @@ pipeline:
     commands:
       - go test -v -race -db="postgres" -conn_str="postgres://postgres:@pgsql/xorm_test?sslmode=disable" -schema=xorm -coverprofile=coverage5-1.txt -covermode=atomic
       - go test -v -race -db="postgres" -conn_str="postgres://postgres:@pgsql/xorm_test?sslmode=disable" -schema=xorm -cache=true -coverprofile=coverage5-2.txt -covermode=atomic
-      - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt > coverage.txt
+    when:
+      event: [ push, pull_request ]
+  
+  test-mssql:
+    image: golang:${GO_VERSION}
+    commands:
+      - go test -v -race -db="mssql" -conn_str="server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test" -coverprofile=coverage6-1.txt -covermode=atomic
+      - go test -v -race -db="mssql" -conn_str="server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test" -cache=true -coverprofile=coverage6-2.txt -covermode=atomic
+      - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt coverage6-1.txt coverage6-2.txt > coverage.txt
     when:
       event: [ push, pull_request ]
 
