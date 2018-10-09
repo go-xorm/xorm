@@ -105,7 +105,7 @@ pipeline:
       - go test -v -race -db="postgres" -conn_str="postgres://postgres:@pgsql/xorm_test?sslmode=disable" -cache=true -coverprofile=coverage4-2.txt -covermode=atomic
     when:
       event: [ push, pull_request ]
-  
+
   test-postgres-schema:
     image: golang:${GO_VERSION}
     commands:
@@ -113,7 +113,7 @@ pipeline:
       - go test -v -race -db="postgres" -conn_str="postgres://postgres:@pgsql/xorm_test?sslmode=disable" -schema=xorm -cache=true -coverprofile=coverage5-2.txt -covermode=atomic
     when:
       event: [ push, pull_request ]
-  
+
   test-mssql:
     image: golang:${GO_VERSION}
     commands:
