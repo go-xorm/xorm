@@ -31,9 +31,8 @@ services:
       - ACCEPT_EULA=Y
       - SA_PASSWORD=yourStrong(!)Password
       - MSSQL_PID=Developer
-    commands:
-      - echo 'CREATE DATABASE xorm_test' > create.sql
-      - /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "yourStrong(!)Password" -i "create.sql"
+    when:
+      event: [push, tag, pull_request]
 
 matrix:
   GO_VERSION:
@@ -54,6 +53,12 @@ pipeline:
       - |
         psql -U postgres -d xorm_test -h pgsql \
           -c "create schema xorm;"
+  
+  init_mssql:
+    image: microsoft/mssql-server-linux:2017-CU11
+    commands:
+      - echo 'CREATE DATABASE xorm_test' > create.sql
+      - /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "yourStrong(!)Password" -i "create.sql"
 
   build:
     image: golang:${GO_VERSION}
