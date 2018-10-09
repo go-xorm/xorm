@@ -57,7 +57,11 @@ pipeline:
   init_mssql:
     image: microsoft/mssql-server-linux:2017-CU11
     commands:
+      - echo 'SELECT 1;' > ./select.sql
       - echo 'CREATE DATABASE xorm_test' > ./create.sql
+      - |
+        until /opt/mssql-tools/bin/sqlcmd -S mssql -U sa \
+         -i ./select.sql >/dev/null 2>&1; do sleep 1; done
       - /opt/mssql-tools/bin/sqlcmd -S mssql -U sa -P "yourStrong(!)Password" -i ./create.sql
 
   build:
