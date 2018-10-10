@@ -26,14 +26,15 @@ var (
 	dbType     string
 	connString string
 
-	db                 = flag.String("db", "sqlite3", "the tested database")
-	showSQL            = flag.Bool("show_sql", true, "show generated SQLs")
-	ptrConnStr         = flag.String("conn_str", "./test.db?cache=shared&mode=rwc", "test database connection string")
-	mapType            = flag.String("map_type", "snake", "indicate the name mapping")
-	cache              = flag.Bool("cache", false, "if enable cache")
-	cluster            = flag.Bool("cluster", false, "if this is a cluster")
-	splitter           = flag.String("splitter", ";", "the splitter on connstr for cluster")
-	schema             = flag.String("schema", "", "specify the schema")
+	db               = flag.String("db", "sqlite3", "the tested database")
+	showSQL          = flag.Bool("show_sql", true, "show generated SQLs")
+	ptrConnStr       = flag.String("conn_str", "./test.db?cache=shared&mode=rwc", "test database connection string")
+	mapType          = flag.String("map_type", "snake", "indicate the name mapping")
+	cache            = flag.Bool("cache", false, "if enable cache")
+	cacheRedisServer = flag.String("cache_redis_server", "127.0.0.1:6379", "if cache enabled this will enable redis cache mode")
+	cluster          = flag.Bool("cluster", false, "if this is a cluster")
+	splitter         = flag.String("splitter", ";", "the splitter on connstr for cluster")
+	schema           = flag.String("schema", "", "specify the schema")
 	ignoreSelectUpdate = flag.Bool("ignore_select_update", false, "ignore select update if implementation difference, only for tidb")
 )
 
@@ -106,8 +107,13 @@ func createEngine(dbType, connStr string) error {
 		testEngine.ShowSQL(*showSQL)
 		testEngine.SetLogLevel(core.LOG_DEBUG)
 		if *cache {
-			cacher := NewLRUCacher(NewMemoryStore(), 100000)
-			testEngine.SetDefaultCacher(cacher)
+			if *cacheRedisServer == "" {
+				cacher := NewLRUCacher(NewMemoryStore(), 100000)
+				testEngine.SetDefaultCacher(cacher)
+			} else {
+				cacher := xormrediscache.NewRedisCacher(*cacheRedisServer, "", xormrediscache.DEFAULT_EXPIRATION, testEngine.Logger())
+				testEngine.SetDefaultCacher(cacher)
+			}
 		}
 
 		if len(*mapType) > 0 {
