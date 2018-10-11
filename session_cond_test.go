@@ -23,7 +23,7 @@ func TestBuilder(t *testing.T) {
 	)
 
 	type Condition struct {
-		Id        int64
+		ID        int64
 		TableName string
 		ColName   string
 		Op        int
@@ -202,7 +202,7 @@ func TestFindAndCount(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type FindAndCount struct {
-		Id   int64
+		ID   int64
 		Name string
 	}
 

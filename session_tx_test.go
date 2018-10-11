@@ -133,7 +133,7 @@ func TestMultipleTransaction(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type MultipleTransaction struct {
-		Id   int64
+		ID   int64
 		Name string
 	}
 
@@ -164,7 +164,7 @@ func TestMultipleTransaction(t *testing.T) {
 	err = session.Begin()
 	assert.NoError(t, err)
 
-	_, err = session.Where("id=?", m1.Id).Delete(new(MultipleTransaction))
+	_, err = session.Where("id=?", m1.ID).Delete(new(MultipleTransaction))
 	assert.NoError(t, err)
 
 	err = session.Commit()

@@ -19,7 +19,7 @@ func TestUpdateMap(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UpdateTable struct {
-		Id   int64
+		ID   int64
 		Name string
 		Age  int
 	}
@@ -32,7 +32,7 @@ func TestUpdateMap(t *testing.T) {
 	_, err := testEngine.Insert(&tb)
 	assert.NoError(t, err)
 
-	cnt, err := testEngine.Table("update_table").Where("id = ?", tb.Id).Update(map[string]interface{}{
+	cnt, err := testEngine.Table("update_table").Where("id = ?", tb.ID).Update(map[string]interface{}{
 		"name": "test2",
 		"age":  36,
 	})
@@ -44,7 +44,7 @@ func TestUpdateLimit(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UpdateTable2 struct {
-		Id   int64
+		ID   int64
 		Name string
 		Age  int
 	}
@@ -59,7 +59,7 @@ func TestUpdateLimit(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 
 	tb.Name = "test2"
-	tb.Id = 0
+	tb.ID = 0
 	cnt, err = testEngine.Insert(&tb)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
@@ -79,7 +79,7 @@ func TestUpdateLimit(t *testing.T) {
 }
 
 type ForUpdate struct {
-	Id   int64 `xorm:"pk"`
+	ID   int64 `xorm:"pk"`
 	Name string
 }
 
@@ -208,7 +208,7 @@ func TestForUpdate(t *testing.T) {
 
 func TestWithIn(t *testing.T) {
 	type temp3 struct {
-		Id   int64  `xorm:"Id pk autoincr"`
+		ID   int64  `xorm:"ID pk autoincr"`
 		Name string `xorm:"Name"`
 		Test bool   `xorm:"Test"`
 	}
@@ -228,7 +228,7 @@ func TestWithIn(t *testing.T) {
 		},
 	})
 
-	cnt, err := testEngine.In("Id", 1, 2, 3, 4).Update(&temp3{Name: "aa"}, &temp3{Name: "user1"})
+	cnt, err := testEngine.In("ID", 1, 2, 3, 4).Update(&temp3{Name: "aa"}, &temp3{Name: "user1"})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, cnt)
 }
@@ -236,26 +236,26 @@ func TestWithIn(t *testing.T) {
 type Condi map[string]interface{}
 
 type UpdateAllCols struct {
-	Id     int64
+	ID     int64
 	Bool   bool
 	String string
 	Ptr    *string
 }
 
 type UpdateMustCols struct {
-	Id     int64
+	ID     int64
 	Bool   bool
 	String string
 }
 
 type UpdateIncr struct {
-	Id   int64
+	ID   int64
 	Cnt  int
 	Name string
 }
 
 type Article struct {
-	Id      int32  `xorm:"pk INT autoincr"`
+	ID      int32  `xorm:"pk INT autoincr"`
 	Name    string `xorm:"VARCHAR(45)"`
 	Img     string `xorm:"VARCHAR(100)"`
 	Aside   string `xorm:"VARCHAR(200)"`
@@ -434,25 +434,25 @@ func TestUpdate1(t *testing.T) {
 	}
 
 	if cnt != 1 {
-		err = errors.New(fmt.Sprintf("insert not returned 1 but %d", cnt))
+		err = fmt.Errorf("insert not returned 1 but %d", cnt)
 		t.Error(err)
 		panic(err)
 	}
 
-	if a.Id == 0 {
+	if a.ID == 0 {
 		err = errors.New("insert returned id is 0")
 		t.Error(err)
 		panic(err)
 	}
 
-	cnt, err = testEngine.ID(a.Id).Update(&Article{Name: "6"})
+	cnt, err = testEngine.ID(a.ID).Update(&Article{Name: "6"})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	if cnt != 1 {
-		err = errors.New(fmt.Sprintf("insert not returned 1 but %d", cnt))
+		err = fmt.Errorf("insert not returned 1 but %d", cnt)
 		t.Error(err)
 		panic(err)
 		return
@@ -467,23 +467,23 @@ func TestUpdate1(t *testing.T) {
 	_, err = testEngine.Insert(col1)
 	assert.NoError(t, err)
 
-	col2 := &UpdateAllCols{col1.Id, true, "", nil}
-	_, err = testEngine.ID(col2.Id).AllCols().Update(col2)
+	col2 := &UpdateAllCols{col1.ID, true, "", nil}
+	_, err = testEngine.ID(col2.ID).AllCols().Update(col2)
 	assert.NoError(t, err)
 
 	col3 := &UpdateAllCols{}
-	has, err = testEngine.ID(col2.Id).Get(col3)
+	has, err = testEngine.ID(col2.ID).Get(col3)
 	assert.NoError(t, err)
 
 	if !has {
-		err = errors.New(fmt.Sprintf("cannot get id %d", col2.Id))
+		err = fmt.Errorf("cannot get id %d", col2.ID)
 		t.Error(err)
 		panic(err)
 		return
 	}
 
 	if *col2 != *col3 {
-		err = errors.New(fmt.Sprintf("col2 should eq col3"))
+		err = fmt.Errorf("col2 should eq col3")
 		t.Error(err)
 		panic(err)
 		return
@@ -504,31 +504,31 @@ func TestUpdate1(t *testing.T) {
 			panic(err)
 		}
 
-		col2 := &UpdateMustCols{col1.Id, true, ""}
+		col2 := &UpdateMustCols{col1.ID, true, ""}
 		boolStr := testEngine.GetColumnMapper().Obj2Table("Bool")
 		stringStr := testEngine.GetColumnMapper().Obj2Table("String")
-		_, err = testEngine.ID(col2.Id).MustCols(boolStr, stringStr).Update(col2)
+		_, err = testEngine.ID(col2.ID).MustCols(boolStr, stringStr).Update(col2)
 		if err != nil {
 			t.Error(err)
 			panic(err)
 		}
 
 		col3 := &UpdateMustCols{}
-		has, err := testEngine.ID(col2.Id).Get(col3)
+		has, err := testEngine.ID(col2.ID).Get(col3)
 		if err != nil {
 			t.Error(err)
 			panic(err)
 		}
 
 		if !has {
-			err = errors.New(fmt.Sprintf("cannot get id %d", col2.Id))
+			err = fmt.Errorf("cannot get id %d", col2.ID)
 			t.Error(err)
 			panic(err)
 			return
 		}
 
 		if *col2 != *col3 {
-			err = errors.New(fmt.Sprintf("col2 should eq col3"))
+			err = fmt.Errorf("col2 should eq col3")
 			t.Error(err)
 			panic(err)
 			return
@@ -549,53 +549,53 @@ func TestUpdateIncrDecr(t *testing.T) {
 
 	colName := testEngine.GetColumnMapper().Obj2Table("Cnt")
 
-	cnt, err := testEngine.ID(col1.Id).Incr(colName).Update(col1)
+	cnt, err := testEngine.ID(col1.ID).Incr(colName).Update(col1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	newCol := new(UpdateIncr)
-	has, err := testEngine.ID(col1.Id).Get(newCol)
+	has, err := testEngine.ID(col1.ID).Get(newCol)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 1, newCol.Cnt)
 
-	cnt, err = testEngine.ID(col1.Id).Decr(colName).Update(col1)
+	cnt, err = testEngine.ID(col1.ID).Decr(colName).Update(col1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	newCol = new(UpdateIncr)
-	has, err = testEngine.ID(col1.Id).Get(newCol)
+	has, err = testEngine.ID(col1.ID).Get(newCol)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 0, newCol.Cnt)
 
-	cnt, err = testEngine.ID(col1.Id).Cols(colName).Incr(colName).Update(col1)
+	cnt, err = testEngine.ID(col1.ID).Cols(colName).Incr(colName).Update(col1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 }
 
 type UpdatedUpdate struct {
-	Id      int64
+	ID      int64
 	Updated time.Time `xorm:"updated"`
 }
 
 type UpdatedUpdate2 struct {
-	Id      int64
+	ID      int64
 	Updated int64 `xorm:"updated"`
 }
 
 type UpdatedUpdate3 struct {
-	Id      int64
+	ID      int64
 	Updated int `xorm:"updated bigint"`
 }
 
 type UpdatedUpdate4 struct {
-	Id      int64
+	ID      int64
 	Updated int `xorm:"updated"`
 }
 
 type UpdatedUpdate5 struct {
-	Id      int64
+	ID      int64
 	Updated time.Time `xorm:"updated bigint"`
 }
 
@@ -643,7 +643,7 @@ func TestUpdateUpdated(t *testing.T) {
 	assert.True(t, now.Unix() <= di20.Updated)
 
 	var di21 UpdatedUpdate2
-	has, err = testEngine.ID(di20.Id).Get(&di21)
+	has, err = testEngine.ID(di20.ID).Get(&di21)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, di20.Updated, di21.Updated)
@@ -808,22 +808,22 @@ func TestUpdateSameMapper(t *testing.T) {
 	assert.NoError(t, err)
 
 	if cnt != 1 {
-		err = errors.New(fmt.Sprintf("insert not returned 1 but %d", cnt))
+		err = fmt.Errorf("insert not returned 1 but %d", cnt)
 		t.Error(err)
 		panic(err)
 	}
 
-	if a.Id == 0 {
+	if a.ID == 0 {
 		err = errors.New("insert returned id is 0")
 		t.Error(err)
 		panic(err)
 	}
 
-	cnt, err = testEngine.ID(a.Id).Update(&Article{Name: "6"})
+	cnt, err = testEngine.ID(a.ID).Update(&Article{Name: "6"})
 	assert.NoError(t, err)
 
 	if cnt != 1 {
-		err = errors.New(fmt.Sprintf("insert not returned 1 but %d", cnt))
+		err = fmt.Errorf("insert not returned 1 but %d", cnt)
 		t.Error(err)
 		panic(err)
 		return
@@ -836,23 +836,23 @@ func TestUpdateSameMapper(t *testing.T) {
 	_, err = testEngine.Insert(col1)
 	assert.NoError(t, err)
 
-	col2 := &UpdateAllCols{col1.Id, true, "", nil}
-	_, err = testEngine.ID(col2.Id).AllCols().Update(col2)
+	col2 := &UpdateAllCols{col1.ID, true, "", nil}
+	_, err = testEngine.ID(col2.ID).AllCols().Update(col2)
 	assert.NoError(t, err)
 
 	col3 := &UpdateAllCols{}
-	has, err = testEngine.ID(col2.Id).Get(col3)
+	has, err = testEngine.ID(col2.ID).Get(col3)
 	assert.NoError(t, err)
 
 	if !has {
-		err = errors.New(fmt.Sprintf("cannot get id %d", col2.Id))
+		err = fmt.Errorf("cannot get id %d", col2.ID)
 		t.Error(err)
 		panic(err)
 		return
 	}
 
 	if *col2 != *col3 {
-		err = errors.New(fmt.Sprintf("col2 should eq col3"))
+		err = fmt.Errorf("col2 should eq col3")
 		t.Error(err)
 		panic(err)
 		return
@@ -866,25 +866,25 @@ func TestUpdateSameMapper(t *testing.T) {
 		_, err = testEngine.Insert(col1)
 		assert.NoError(t, err)
 
-		col2 := &UpdateMustCols{col1.Id, true, ""}
+		col2 := &UpdateMustCols{col1.ID, true, ""}
 		boolStr := testEngine.GetColumnMapper().Obj2Table("Bool")
 		stringStr := testEngine.GetColumnMapper().Obj2Table("String")
-		_, err = testEngine.ID(col2.Id).MustCols(boolStr, stringStr).Update(col2)
+		_, err = testEngine.ID(col2.ID).MustCols(boolStr, stringStr).Update(col2)
 		assert.NoError(t, err)
 
 		col3 := &UpdateMustCols{}
-		has, err := testEngine.ID(col2.Id).Get(col3)
+		has, err := testEngine.ID(col2.ID).Get(col3)
 		assert.NoError(t, err)
 
 		if !has {
-			err = errors.New(fmt.Sprintf("cannot get id %d", col2.Id))
+			err = fmt.Errorf("cannot get id %d", col2.ID)
 			t.Error(err)
 			panic(err)
 			return
 		}
 
 		if *col2 != *col3 {
-			err = errors.New(fmt.Sprintf("col2 should eq col3"))
+			err = fmt.Errorf("col2 should eq col3")
 			t.Error(err)
 			panic(err)
 			return
@@ -905,7 +905,7 @@ func TestUpdateSameMapper(t *testing.T) {
 			panic(err)
 		}
 
-		cnt, err := testEngine.ID(col1.Id).Incr("`Cnt`").Update(col1)
+		cnt, err := testEngine.ID(col1.ID).Incr("`Cnt`").Update(col1)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -917,7 +917,7 @@ func TestUpdateSameMapper(t *testing.T) {
 		}
 
 		newCol := new(UpdateIncr)
-		has, err := testEngine.ID(col1.Id).Get(newCol)
+		has, err := testEngine.ID(col1.ID).Get(newCol)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -954,7 +954,7 @@ func TestUseBool(t *testing.T) {
 	var fNumber int64
 	for _, u := range users {
 		if u.IsMan == false {
-			fNumber += 1
+			fNumber++
 		}
 	}
 
@@ -1025,7 +1025,7 @@ func TestNoUpdate(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type NoUpdate struct {
-		Id      int64
+		ID      int64
 		Content string
 	}
 
@@ -1046,7 +1046,7 @@ func TestNewUpdate(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type TbUserInfo struct {
-		Id       int64       `xorm:"pk autoincr unique BIGINT" json:"id"`
+		ID       int64       `xorm:"pk autoincr unique BIGINT" json:"id"`
 		Phone    string      `xorm:"not null unique VARCHAR(20)" json:"phone"`
 		UserName string      `xorm:"VARCHAR(20)" json:"user_name"`
 		Gender   int         `xorm:"default 0 INTEGER" json:"gender"`
@@ -1076,7 +1076,7 @@ func TestUpdateUpdate(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type PublicKeyUpdate struct {
-		Id          int64
+		ID          int64
 		UpdatedUnix int64 `xorm:"updated"`
 	}
 
@@ -1093,7 +1093,7 @@ func TestCreatedUpdated2(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type CreatedUpdatedStruct struct {
-		Id       int64
+		ID       int64
 		Name     string
 		CreateAt time.Time `xorm:"created" json:"create_at"`
 		UpdateAt time.Time `xorm:"updated" json:"update_at"`
@@ -1137,7 +1137,7 @@ func TestDeletedUpdate(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type DeletedUpdatedStruct struct {
-		Id        int64
+		ID        int64
 		Name      string
 		DeletedAt time.Time `xorm:"deleted"`
 	}
@@ -1151,7 +1151,7 @@ func TestDeletedUpdate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	cnt, err = testEngine.ID(s.Id).Delete(&DeletedUpdatedStruct{})
+	cnt, err = testEngine.ID(s.ID).Delete(&DeletedUpdatedStruct{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
@@ -1161,23 +1161,23 @@ func TestDeletedUpdate(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 
 	var s1 DeletedUpdatedStruct
-	has, err := testEngine.ID(s.Id).Get(&s1)
+	has, err := testEngine.ID(s.ID).Get(&s1)
 	assert.EqualValues(t, true, has)
 
-	cnt, err = testEngine.ID(s.Id).Delete(&DeletedUpdatedStruct{})
+	cnt, err = testEngine.ID(s.ID).Delete(&DeletedUpdatedStruct{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	cnt, err = testEngine.ID(s.Id).Cols("deleted_at").Update(&DeletedUpdatedStruct{})
+	cnt, err = testEngine.ID(s.ID).Cols("deleted_at").Update(&DeletedUpdatedStruct{})
 	assert.EqualValues(t, "No content found to be updated", err.Error())
 	assert.EqualValues(t, 0, cnt)
 
-	cnt, err = testEngine.ID(s.Id).Unscoped().Cols("deleted_at").Update(&DeletedUpdatedStruct{})
+	cnt, err = testEngine.ID(s.ID).Unscoped().Cols("deleted_at").Update(&DeletedUpdatedStruct{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	var s2 DeletedUpdatedStruct
-	has, err = testEngine.ID(s.Id).Get(&s2)
+	has, err = testEngine.ID(s.ID).Get(&s2)
 	assert.EqualValues(t, true, has)
 }
 
@@ -1185,7 +1185,7 @@ func TestUpdateMapCondition(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UpdateMapCondition struct {
-		Id     int64
+		ID     int64
 		String string
 	}
 
@@ -1200,13 +1200,13 @@ func TestUpdateMapCondition(t *testing.T) {
 	cnt, err := testEngine.Update(&UpdateMapCondition{
 		String: "string1",
 	}, map[string]interface{}{
-		"id": c.Id,
+		"id": c.ID,
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	var c2 UpdateMapCondition
-	has, err := testEngine.ID(c.Id).Get(&c2)
+	has, err := testEngine.ID(c.ID).Get(&c2)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, "string1", c2.String)
@@ -1216,7 +1216,7 @@ func TestUpdateMapContent(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UpdateMapContent struct {
-		Id     int64
+		ID     int64
 		Name   string
 		IsMan  bool
 		Age    int
@@ -1235,17 +1235,17 @@ func TestUpdateMapContent(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 18, c.Age)
 
-	cnt, err := testEngine.Table(new(UpdateMapContent)).ID(c.Id).Update(map[string]interface{}{"age": 0})
+	cnt, err := testEngine.Table(new(UpdateMapContent)).ID(c.ID).Update(map[string]interface{}{"age": 0})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	var c1 UpdateMapContent
-	has, err := testEngine.ID(c.Id).Get(&c1)
+	has, err := testEngine.ID(c.ID).Get(&c1)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 0, c1.Age)
 
-	cnt, err = testEngine.Table(new(UpdateMapContent)).ID(c.Id).Update(map[string]interface{}{
+	cnt, err = testEngine.Table(new(UpdateMapContent)).ID(c.ID).Update(map[string]interface{}{
 		"age":    16,
 		"is_man": false,
 		"gender": 2,
@@ -1254,14 +1254,14 @@ func TestUpdateMapContent(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 
 	var c2 UpdateMapContent
-	has, err = testEngine.ID(c.Id).Get(&c2)
+	has, err = testEngine.ID(c.ID).Get(&c2)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 16, c2.Age)
 	assert.EqualValues(t, false, c2.IsMan)
 	assert.EqualValues(t, 2, c2.Gender)
 
-	cnt, err = testEngine.Table(testEngine.TableName(new(UpdateMapContent))).ID(c.Id).Update(map[string]interface{}{
+	cnt, err = testEngine.Table(testEngine.TableName(new(UpdateMapContent))).ID(c.ID).Update(map[string]interface{}{
 		"age":    15,
 		"is_man": true,
 		"gender": 1,
@@ -1270,7 +1270,7 @@ func TestUpdateMapContent(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 
 	var c3 UpdateMapContent
-	has, err = testEngine.ID(c.Id).Get(&c3)
+	has, err = testEngine.ID(c.ID).Get(&c3)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 15, c3.Age)
@@ -1280,7 +1280,7 @@ func TestUpdateMapContent(t *testing.T) {
 
 func TestUpdateCondiBean(t *testing.T) {
 	type NeedUpdateBean struct {
-		Id   int64
+		ID   int64
 		Name string
 	}
 

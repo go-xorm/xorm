@@ -25,12 +25,12 @@ func TestMemoryStore(t *testing.T) {
 		assert.EqualValues(t, v, val)
 	}
 
-	for k, _ := range kvs {
+	for k := range kvs {
 		err := store.Del(k)
 		assert.NoError(t, err)
 	}
 
-	for k, _ := range kvs {
+	for k := range kvs {
 		_, err := store.Get(k)
 		assert.EqualValues(t, ErrNotExist, err)
 	}

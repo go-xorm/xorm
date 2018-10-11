@@ -15,7 +15,7 @@ func TestCacheFind(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type MailBox struct {
-		Id       int64 `xorm:"pk"`
+		ID       int64 `xorm:"pk"`
 		Username string
 		Password string
 	}
@@ -28,12 +28,12 @@ func TestCacheFind(t *testing.T) {
 
 	var inserts = []*MailBox{
 		{
-			Id:       0,
+			ID:       0,
 			Username: "user1",
 			Password: "pass1",
 		},
 		{
-			Id:       1,
+			ID:       1,
 			Username: "user2",
 			Password: "pass2",
 		},
@@ -45,7 +45,7 @@ func TestCacheFind(t *testing.T) {
 	assert.NoError(t, testEngine.Find(&boxes))
 	assert.EqualValues(t, 2, len(boxes))
 	for i, box := range boxes {
-		assert.Equal(t, inserts[i].Id, box.Id)
+		assert.Equal(t, inserts[i].ID, box.ID)
 		assert.Equal(t, inserts[i].Username, box.Username)
 		assert.Equal(t, inserts[i].Password, box.Password)
 	}
@@ -54,7 +54,7 @@ func TestCacheFind(t *testing.T) {
 	assert.NoError(t, testEngine.Find(&boxes))
 	assert.EqualValues(t, 2, len(boxes))
 	for i, box := range boxes {
-		assert.Equal(t, inserts[i].Id, box.Id)
+		assert.Equal(t, inserts[i].ID, box.ID)
 		assert.Equal(t, inserts[i].Username, box.Username)
 		assert.Equal(t, inserts[i].Password, box.Password)
 	}
@@ -63,13 +63,13 @@ func TestCacheFind(t *testing.T) {
 	assert.NoError(t, testEngine.Alias("a").Where("a.id > -1").Asc("a.id").Find(&boxes))
 	assert.EqualValues(t, 2, len(boxes))
 	for i, box := range boxes {
-		assert.Equal(t, inserts[i].Id, box.Id)
+		assert.Equal(t, inserts[i].ID, box.ID)
 		assert.Equal(t, inserts[i].Username, box.Username)
 		assert.Equal(t, inserts[i].Password, box.Password)
 	}
 
 	type MailBox4 struct {
-		Id       int64
+		ID       int64
 		Username string
 		Password string
 	}
@@ -78,7 +78,7 @@ func TestCacheFind(t *testing.T) {
 	assert.NoError(t, testEngine.Table("mail_box").Where("mail_box.id > -1").Asc("mail_box.id").Find(&boxes2))
 	assert.EqualValues(t, 2, len(boxes2))
 	for i, box := range boxes2 {
-		assert.Equal(t, inserts[i].Id, box.Id)
+		assert.Equal(t, inserts[i].ID, box.ID)
 		assert.Equal(t, inserts[i].Username, box.Username)
 		assert.Equal(t, inserts[i].Password, box.Password)
 	}
@@ -90,7 +90,7 @@ func TestCacheFind2(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type MailBox2 struct {
-		Id       uint64 `xorm:"pk"`
+		ID       uint64 `xorm:"pk"`
 		Username string
 		Password string
 	}
@@ -103,12 +103,12 @@ func TestCacheFind2(t *testing.T) {
 
 	var inserts = []*MailBox2{
 		{
-			Id:       0,
+			ID:       0,
 			Username: "user1",
 			Password: "pass1",
 		},
 		{
-			Id:       1,
+			ID:       1,
 			Username: "user2",
 			Password: "pass2",
 		},
@@ -120,7 +120,7 @@ func TestCacheFind2(t *testing.T) {
 	assert.NoError(t, testEngine.Find(&boxes))
 	assert.EqualValues(t, 2, len(boxes))
 	for i, box := range boxes {
-		assert.Equal(t, inserts[i].Id, box.Id)
+		assert.Equal(t, inserts[i].ID, box.ID)
 		assert.Equal(t, inserts[i].Username, box.Username)
 		assert.Equal(t, inserts[i].Password, box.Password)
 	}
@@ -129,7 +129,7 @@ func TestCacheFind2(t *testing.T) {
 	assert.NoError(t, testEngine.Find(&boxes))
 	assert.EqualValues(t, 2, len(boxes))
 	for i, box := range boxes {
-		assert.Equal(t, inserts[i].Id, box.Id)
+		assert.Equal(t, inserts[i].ID, box.ID)
 		assert.Equal(t, inserts[i].Username, box.Username)
 		assert.Equal(t, inserts[i].Password, box.Password)
 	}
@@ -141,7 +141,7 @@ func TestCacheGet(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type MailBox3 struct {
-		Id       uint64
+		ID       uint64
 		Username string
 		Password string
 	}
@@ -162,14 +162,14 @@ func TestCacheGet(t *testing.T) {
 	assert.NoError(t, err)
 
 	var box1 MailBox3
-	has, err := testEngine.Where("id = ?", inserts[0].Id).Get(&box1)
+	has, err := testEngine.Where("id = ?", inserts[0].ID).Get(&box1)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, "user1", box1.Username)
 	assert.EqualValues(t, "pass1", box1.Password)
 
 	var box2 MailBox3
-	has, err = testEngine.Where("id = ?", inserts[0].Id).Get(&box2)
+	has, err = testEngine.Where("id = ?", inserts[0].ID).Get(&box2)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, "user1", box2.Username)

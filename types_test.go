@@ -18,7 +18,7 @@ func TestArrayField(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type ArrayStruct struct {
-		Id   int64
+		ID   int64
 		Name [20]byte `xorm:"char(80)"`
 	}
 
@@ -113,7 +113,7 @@ func (s *ConvString) ToDB() ([]byte, error) {
 
 type ConvConfig struct {
 	Name string
-	Id   int64
+	ID   int64
 }
 
 func (s *ConvConfig) FromDB(data []byte) error {
@@ -268,11 +268,11 @@ type Status struct {
 }
 
 var (
-	_        core.Conversion   = &Status{}
-	Registed Status            = Status{"Registed", "white"}
-	Approved Status            = Status{"Approved", "green"}
-	Removed  Status            = Status{"Removed", "red"}
-	Statuses map[string]Status = map[string]Status{
+	_        core.Conversion = &Status{}
+	Registed                 = Status{"Registed", "white"}
+	Approved                 = Status{"Approved", "green"}
+	Removed                  = Status{"Removed", "red"}
+	Statuses                 = map[string]Status{
 		Registed.Name: Registed,
 		Approved.Name: Approved,
 		Removed.Name:  Removed,
@@ -283,9 +283,8 @@ func (s *Status) FromDB(bytes []byte) error {
 	if r, ok := Statuses[string(bytes)]; ok {
 		*s = r
 		return nil
-	} else {
-		return errors.New("no this data")
 	}
+	return errors.New("no this data")
 }
 
 func (s *Status) ToDB() ([]byte, error) {
@@ -293,7 +292,7 @@ func (s *Status) ToDB() ([]byte, error) {
 }
 
 type UserCus struct {
-	Id     int64
+	ID     int64
 	Name   string
 	Status Status `xorm:"varchar(40)"`
 }

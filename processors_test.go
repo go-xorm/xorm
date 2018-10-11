@@ -16,7 +16,7 @@ func TestBefore_Get(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type BeforeTable struct {
-		Id   int64
+		ID   int64
 		Name string
 		Val  string `xorm:"-"`
 	}
@@ -43,7 +43,7 @@ func TestBefore_Find(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type BeforeTable2 struct {
-		Id   int64
+		ID   int64
 		Name string
 		Val  string `xorm:"-"`
 	}
@@ -70,7 +70,7 @@ func TestBefore_Find(t *testing.T) {
 }
 
 type ProcessorsStruct struct {
-	Id int64
+	ID int64
 
 	B4InsertFlag      int
 	AfterInsertedFlag int
@@ -173,7 +173,7 @@ func TestProcessors(t *testing.T) {
 	}
 
 	p2 := &ProcessorsStruct{}
-	_, err = testEngine.ID(p.Id).Get(p2)
+	_, err = testEngine.ID(p.ID).Get(p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -308,7 +308,7 @@ func TestProcessors(t *testing.T) {
 	}
 
 	p2 = &ProcessorsStruct{}
-	_, err = testEngine.ID(p.Id).Get(p2)
+	_, err = testEngine.ID(p.ID).Get(p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -402,7 +402,7 @@ func TestProcessors(t *testing.T) {
 
 	for _, elem := range pslice {
 		p = &ProcessorsStruct{}
-		_, err = testEngine.ID(elem.Id).Get(p)
+		_, err = testEngine.ID(elem.ID).Get(p)
 		if err != nil {
 			t.Error(err)
 			panic(err)
@@ -508,12 +508,12 @@ func TestProcessorsTx(t *testing.T) {
 	}
 	session.Close()
 	p2 := &ProcessorsStruct{}
-	_, err = testEngine.ID(p.Id).Get(p2)
+	_, err = testEngine.ID(p.ID).Get(p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	} else {
-		if p2.Id > 0 {
+		if p2.ID > 0 {
 			err = errors.New("tx got committed upon insert!?")
 			t.Error(err)
 			panic(err)
@@ -569,7 +569,7 @@ func TestProcessorsTx(t *testing.T) {
 	}
 	session.Close()
 	p2 = &ProcessorsStruct{}
-	_, err = testEngine.ID(p.Id).Get(p2)
+	_, err = testEngine.ID(p.ID).Get(p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -587,7 +587,7 @@ func TestProcessorsTx(t *testing.T) {
 			t.Error(errors.New("AfterInsertedViaExt is set"))
 		}
 	}
-	insertedId := p2.Id
+	insertedID := p2.ID
 	// --
 
 	// test update processors with tx rollback
@@ -616,7 +616,7 @@ func TestProcessorsTx(t *testing.T) {
 
 	p = p2 // reset
 
-	_, err = session.ID(insertedId).Before(b4UpdateFunc).After(afterUpdateFunc).Update(p)
+	_, err = session.ID(insertedID).Before(b4UpdateFunc).After(afterUpdateFunc).Update(p)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -656,7 +656,7 @@ func TestProcessorsTx(t *testing.T) {
 	session.Close()
 
 	p2 = &ProcessorsStruct{}
-	_, err = testEngine.ID(insertedId).Get(p2)
+	_, err = testEngine.ID(insertedID).Get(p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -684,7 +684,7 @@ func TestProcessorsTx(t *testing.T) {
 		panic(err)
 	}
 
-	p = &ProcessorsStruct{Id: insertedId}
+	p = &ProcessorsStruct{ID: insertedID}
 
 	_, err = session.Update(p)
 	if err != nil {
@@ -729,7 +729,7 @@ func TestProcessorsTx(t *testing.T) {
 
 	p = &ProcessorsStruct{}
 
-	_, err = session.ID(insertedId).Before(b4UpdateFunc).After(afterUpdateFunc).Update(p)
+	_, err = session.ID(insertedID).Before(b4UpdateFunc).After(afterUpdateFunc).Update(p)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -767,7 +767,7 @@ func TestProcessorsTx(t *testing.T) {
 	}
 	session.Close()
 	p2 = &ProcessorsStruct{}
-	_, err = testEngine.ID(insertedId).Get(p2)
+	_, err = testEngine.ID(insertedID).Get(p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -813,7 +813,7 @@ func TestProcessorsTx(t *testing.T) {
 
 	p = &ProcessorsStruct{} // reset
 
-	_, err = session.ID(insertedId).Before(b4DeleteFunc).After(afterDeleteFunc).Delete(p)
+	_, err = session.ID(insertedID).Before(b4DeleteFunc).After(afterDeleteFunc).Delete(p)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -852,7 +852,7 @@ func TestProcessorsTx(t *testing.T) {
 	session.Close()
 
 	p2 = &ProcessorsStruct{}
-	_, err = testEngine.ID(insertedId).Get(p2)
+	_, err = testEngine.ID(insertedID).Get(p2)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -882,7 +882,7 @@ func TestProcessorsTx(t *testing.T) {
 
 	p = &ProcessorsStruct{}
 
-	_, err = session.ID(insertedId).Before(b4DeleteFunc).After(afterDeleteFunc).Delete(p)
+	_, err = session.ID(insertedID).Before(b4DeleteFunc).After(afterDeleteFunc).Delete(p)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -928,7 +928,7 @@ func TestProcessorsTx(t *testing.T) {
 		panic(err)
 	}
 
-	p = &ProcessorsStruct{Id: insertedId}
+	p = &ProcessorsStruct{ID: insertedID}
 	fmt.Println("delete")
 	_, err = session.Delete(p)
 
@@ -966,20 +966,20 @@ func TestProcessorsTx(t *testing.T) {
 }
 
 type AfterLoadStructA struct {
-	Id      int64
+	ID      int64
 	Content string
 }
 
 type AfterLoadStructB struct {
-	Id      int64
+	ID      int64
 	Content string
-	AId     int64
+	AID     int64
 	A       AfterLoadStructA `xorm:"-"`
 	Err     error            `xorm:"-"`
 }
 
 func (s *AfterLoadStructB) AfterLoad(session *Session) {
-	has, err := session.ID(s.AId).NoAutoCondition().Get(&s.A)
+	has, err := session.ID(s.AID).NoAutoCondition().Get(&s.A)
 	if err != nil {
 		s.Err = err
 		return
@@ -1002,20 +1002,20 @@ func TestAfterLoadProcessor(t *testing.T) {
 
 	var b = AfterLoadStructB{
 		Content: "testb",
-		AId:     a.Id,
+		AID:     a.ID,
 	}
 	_, err = testEngine.Insert(&b)
 	assert.NoError(t, err)
 
 	var b2 AfterLoadStructB
-	has, err := testEngine.ID(b.Id).Get(&b2)
+	has, err := testEngine.ID(b.ID).Get(&b2)
 	assert.NoError(t, err)
 	assert.True(t, has)
-	assert.EqualValues(t, a.Id, b2.A.Id)
+	assert.EqualValues(t, a.ID, b2.A.ID)
 	assert.EqualValues(t, a.Content, b2.A.Content)
 	assert.NoError(t, b2.Err)
 
-	b.Id = 0
+	b.ID = 0
 	_, err = testEngine.Insert(&b)
 	assert.NoError(t, err)
 
@@ -1024,19 +1024,19 @@ func TestAfterLoadProcessor(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(bs))
 	for i := 0; i < len(bs); i++ {
-		assert.EqualValues(t, a.Id, bs[i].A.Id)
+		assert.EqualValues(t, a.ID, bs[i].A.ID)
 		assert.EqualValues(t, a.Content, bs[i].A.Content)
 		assert.NoError(t, bs[i].Err)
 	}
 }
 
 type AfterInsertStruct struct {
-	Id int64
+	ID int64
 }
 
 func (a *AfterInsertStruct) AfterInsert() {
-	if a.Id == 0 {
-		panic("a.Id")
+	if a.ID == 0 {
+		panic("a.ID")
 	}
 }
 

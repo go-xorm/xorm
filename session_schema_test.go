@@ -19,7 +19,7 @@ func TestStoreEngine(t *testing.T) {
 	assert.NoError(t, testEngine.DropTables("user_store_engine"))
 
 	type UserinfoStoreEngine struct {
-		Id   int64
+		ID   int64
 		Name string
 	}
 
@@ -32,7 +32,7 @@ func TestCreateTable(t *testing.T) {
 	assert.NoError(t, testEngine.DropTables("user_user"))
 
 	type UserinfoCreateTable struct {
-		Id   int64
+		ID   int64
 		Name string
 	}
 
@@ -46,7 +46,7 @@ func TestCreateMultiTables(t *testing.T) {
 	defer session.Close()
 
 	type UserinfoMultiTable struct {
-		Id   int64
+		ID   int64
 		Name string
 	}
 
@@ -65,13 +65,13 @@ func TestCreateMultiTables(t *testing.T) {
 }
 
 type SyncTable1 struct {
-	Id   int64
+	ID   int64
 	Name string
 	Dev  int `xorm:"index"`
 }
 
 type SyncTable2 struct {
-	Id     int64
+	ID     int64
 	Name   string `xorm:"unique"`
 	Number string `xorm:"index"`
 	Dev    int
@@ -83,7 +83,7 @@ func (SyncTable2) TableName() string {
 }
 
 type SyncTable3 struct {
-	Id     int64
+	ID     int64
 	Name   string `xorm:"unique"`
 	Number string `xorm:"index"`
 	Dev    int
@@ -141,16 +141,16 @@ func TestIsTableEmpty(t *testing.T) {
 	}
 
 	type PictureEmpty struct {
-		Id          int64
-		Url         string `xorm:"unique"` //image's url
+		ID          int64
+		URL         string `xorm:"unique"` //image's url
 		Title       string
 		Description string
 		Created     time.Time `xorm:"created"`
 		ILike       int
 		PageView    int
-		From_url    string
-		Pre_url     string `xorm:"unique"` //pre view image's url
-		Uid         int64
+		FormURL     string
+		PreURL      string `xorm:"unique"` //pre view image's url
+		UID         int64
 	}
 
 	assert.NoError(t, testEngine.DropTables(&PictureEmpty{}, &NumericEmpty{}))
@@ -168,7 +168,7 @@ func TestIsTableEmpty(t *testing.T) {
 }
 
 type CustomTableName struct {
-	Id   int64
+	ID   int64
 	Name string
 }
 
@@ -194,7 +194,7 @@ func TestDump(t *testing.T) {
 }
 
 type IndexOrUnique struct {
-	Id        int64
+	ID        int64
 	Index     int `xorm:"index"`
 	Unique    int `xorm:"unique"`
 	Group1    int `xorm:"index(ttt)"`
@@ -249,9 +249,9 @@ func TestCharst(t *testing.T) {
 
 func TestSync2_1(t *testing.T) {
 	type WxTest struct {
-		Id                 int   `xorm:"not null pk autoincr INT(64)`
-		Passport_user_type int16 `xorm:"null int"`
-		Id_delete          int8  `xorm:"null int default 1"`
+		ID               int   `xorm:"not null pk autoincr INT(64)`
+		PassportUserType int16 `xorm:"null int"`
+		IDDelete         int8  `xorm:"null int default 1"`
 	}
 
 	assert.NoError(t, prepareEngine())
@@ -263,7 +263,7 @@ func TestSync2_1(t *testing.T) {
 
 func TestUnique_1(t *testing.T) {
 	type UserUnique struct {
-		Id        int64
+		ID        int64
 		UserName  string    `xorm:"unique varchar(25) not null"`
 		Password  string    `xorm:"varchar(255) not null"`
 		Admin     bool      `xorm:"not null"`
@@ -283,8 +283,8 @@ func TestUnique_1(t *testing.T) {
 
 func TestSync2_2(t *testing.T) {
 	type TestSync2Index struct {
-		Id     int64
-		UserId int64 `xorm:"index"`
+		ID     int64
+		UserID int64 `xorm:"index"`
 	}
 
 	assert.NoError(t, prepareEngine())

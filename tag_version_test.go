@@ -14,7 +14,7 @@ import (
 )
 
 type VersionS struct {
-	Id      int64
+	ID      int64
 	Name    string
 	Ver     int       `xorm:"version"`
 	Created time.Time `xorm:"created"`
@@ -49,14 +49,14 @@ func TestVersion1(t *testing.T) {
 	}
 
 	newVer := new(VersionS)
-	has, err := testEngine.ID(ver.Id).Get(newVer)
+	has, err := testEngine.ID(ver.ID).Get(newVer)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
 	if !has {
-		t.Error(errors.New(fmt.Sprintf("no version id is %v", ver.Id)))
+		t.Error(fmt.Errorf("no version id is %v", ver.ID))
 		panic(err)
 	}
 	fmt.Println(newVer)
@@ -67,7 +67,7 @@ func TestVersion1(t *testing.T) {
 	}
 
 	newVer.Name = "-------"
-	_, err = testEngine.ID(ver.Id).Update(newVer)
+	_, err = testEngine.ID(ver.ID).Update(newVer)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -78,7 +78,7 @@ func TestVersion1(t *testing.T) {
 	}
 
 	newVer = new(VersionS)
-	has, err = testEngine.ID(ver.Id).Get(newVer)
+	has, err = testEngine.ID(ver.ID).Get(newVer)
 	if err != nil {
 		t.Error(err)
 		panic(err)

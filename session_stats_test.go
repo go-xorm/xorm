@@ -141,12 +141,12 @@ func TestSQLCount(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UserinfoCount2 struct {
-		Id         int64
+		ID         int64
 		Departname string
 	}
 
 	type UserinfoBooks struct {
-		Id     int64
+		ID     int64
 		Pid    int64
 		IsOpen bool
 	}
@@ -163,7 +163,7 @@ func TestCountWithOthers(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type CountWithOthers struct {
-		Id   int64
+		ID   int64
 		Name string
 	}
 

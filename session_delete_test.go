@@ -15,22 +15,22 @@ func TestDelete(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UserinfoDelete struct {
-		Uid   int64 `xorm:"id pk not null autoincr"`
+		UID   int64 `xorm:"id pk not null autoincr"`
 		IsMan bool
 	}
 
 	assert.NoError(t, testEngine.Sync2(new(UserinfoDelete)))
 
-	user := UserinfoDelete{Uid: 1}
+	user := UserinfoDelete{UID: 1}
 	cnt, err := testEngine.Insert(&user)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	cnt, err = testEngine.Delete(&UserinfoDelete{Uid: user.Uid})
+	cnt, err = testEngine.Delete(&UserinfoDelete{UID: user.UID})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	user.Uid = 0
+	user.UID = 0
 	user.IsMan = true
 	has, err := testEngine.ID(1).Get(&user)
 	assert.NoError(t, err)
@@ -40,11 +40,11 @@ func TestDelete(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	cnt, err = testEngine.Where("id=?", user.Uid).Delete(&UserinfoDelete{})
+	cnt, err = testEngine.Where("id=?", user.UID).Delete(&UserinfoDelete{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	user.Uid = 0
+	user.UID = 0
 	user.IsMan = true
 	has, err = testEngine.ID(2).Get(&user)
 	assert.NoError(t, err)
@@ -55,7 +55,7 @@ func TestDeleted(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type Deleted struct {
-		Id        int64 `xorm:"pk"`
+		ID        int64 `xorm:"pk"`
 		Name      string
 		DeletedAt time.Time `xorm:"deleted"`
 	}
@@ -66,18 +66,18 @@ func TestDeleted(t *testing.T) {
 	err = testEngine.CreateTables(&Deleted{})
 	assert.NoError(t, err)
 
-	_, err = testEngine.InsertOne(&Deleted{Id: 1, Name: "11111"})
+	_, err = testEngine.InsertOne(&Deleted{ID: 1, Name: "11111"})
 	assert.NoError(t, err)
 
-	_, err = testEngine.InsertOne(&Deleted{Id: 2, Name: "22222"})
+	_, err = testEngine.InsertOne(&Deleted{ID: 2, Name: "22222"})
 	assert.NoError(t, err)
 
-	_, err = testEngine.InsertOne(&Deleted{Id: 3, Name: "33333"})
+	_, err = testEngine.InsertOne(&Deleted{ID: 3, Name: "33333"})
 	assert.NoError(t, err)
 
 	// Test normal Find()
 	var records1 []Deleted
-	err = testEngine.Where("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").Find(&records1, &Deleted{})
+	err = testEngine.Where("`"+testEngine.GetColumnMapper().Obj2Table("ID")+"` > 0").Find(&records1, &Deleted{})
 	assert.EqualValues(t, 3, len(records1))
 
 	// Test normal Get()
@@ -96,7 +96,7 @@ func TestDeleted(t *testing.T) {
 	assert.False(t, has)
 
 	var records2 []Deleted
-	err = testEngine.Where("`" + testEngine.GetColumnMapper().Obj2Table("Id") + "` > 0").Find(&records2)
+	err = testEngine.Where("`" + testEngine.GetColumnMapper().Obj2Table("ID") + "` > 0").Find(&records2)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(records2))
 
@@ -117,7 +117,7 @@ func TestDeleted(t *testing.T) {
 
 	// Test find all records whatever `deleted`.
 	var unscopedRecords1 []Deleted
-	err = testEngine.Unscoped().Where("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").Find(&unscopedRecords1, &Deleted{})
+	err = testEngine.Unscoped().Where("`"+testEngine.GetColumnMapper().Obj2Table("ID")+"` > 0").Find(&unscopedRecords1, &Deleted{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, len(unscopedRecords1))
 
@@ -127,13 +127,13 @@ func TestDeleted(t *testing.T) {
 	assert.EqualValues(t, 1, affected)
 
 	var unscopedRecords2 []Deleted
-	err = testEngine.Unscoped().Where("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").Find(&unscopedRecords2, &Deleted{})
+	err = testEngine.Unscoped().Where("`"+testEngine.GetColumnMapper().Obj2Table("ID")+"` > 0").Find(&unscopedRecords2, &Deleted{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(unscopedRecords2))
 
 	var records3 []Deleted
-	err = testEngine.Where("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").And("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"`> 1").
-		Or("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` = ?", 3).Find(&records3)
+	err = testEngine.Where("`"+testEngine.GetColumnMapper().Obj2Table("ID")+"` > 0").And("`"+testEngine.GetColumnMapper().Obj2Table("ID")+"`> 1").
+		Or("`"+testEngine.GetColumnMapper().Obj2Table("ID")+"` = ?", 3).Find(&records3)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(records3))
 }
@@ -146,7 +146,7 @@ func TestCacheDelete(t *testing.T) {
 	testEngine.SetDefaultCacher(cacher)
 
 	type CacheDeleteStruct struct {
-		Id int64
+		ID int64
 	}
 
 	err := testEngine.CreateTables(&CacheDeleteStruct{})
@@ -156,13 +156,13 @@ func TestCacheDelete(t *testing.T) {
 	assert.NoError(t, err)
 
 	aff, err := testEngine.Delete(&CacheDeleteStruct{
-		Id: 1,
+		ID: 1,
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, aff, 1)
 
 	aff, err = testEngine.Unscoped().Delete(&CacheDeleteStruct{
-		Id: 1,
+		ID: 1,
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, aff, 0)
@@ -174,7 +174,7 @@ func TestUnscopeDelete(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UnscopeDeleteStruct struct {
-		Id        int64
+		ID        int64
 		Name      string
 		DeletedAt time.Time `xorm:"deleted"`
 	}

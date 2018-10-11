@@ -184,7 +184,7 @@ func createTestStatement() *Statement {
 
 func TestDistinctAndCols(t *testing.T) {
 	type DistinctAndCols struct {
-		Id   int64
+		ID   int64
 		Name string
 	}
 
@@ -206,7 +206,7 @@ func TestDistinctAndCols(t *testing.T) {
 
 func TestUpdateIgnoreOnlyFromDBFields(t *testing.T) {
 	type TestOnlyFromDBField struct {
-		Id              int64  `xorm:"PK"`
+		ID              int64  `xorm:"PK"`
 		OnlyFromDBField string `xorm:"<-"`
 		OnlyToDBField   string `xorm:"->"`
 		IngoreField     string `xorm:"-"`
@@ -225,7 +225,7 @@ func TestUpdateIgnoreOnlyFromDBFields(t *testing.T) {
 	assertSync(t, new(TestOnlyFromDBField))
 
 	_, err := testEngine.Insert(&TestOnlyFromDBField{
-		Id:              1,
+		ID:              1,
 		OnlyFromDBField: "a",
 		OnlyToDBField:   "b",
 		IngoreField:     "c",

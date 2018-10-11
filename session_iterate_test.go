@@ -14,7 +14,7 @@ func TestIterate(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UserIterate struct {
-		Id    int64
+		ID    int64
 		IsMan bool
 	}
 
@@ -29,7 +29,7 @@ func TestIterate(t *testing.T) {
 	cnt = 0
 	err = testEngine.Iterate(new(UserIterate), func(i int, bean interface{}) error {
 		user := bean.(*UserIterate)
-		assert.EqualValues(t, 1, user.Id)
+		assert.EqualValues(t, 1, user.ID)
 		assert.EqualValues(t, true, user.IsMan)
 		cnt++
 		return nil
@@ -42,7 +42,7 @@ func TestBufferIterate(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UserBufferIterate struct {
-		Id    int64
+		ID    int64
 		IsMan bool
 	}
 
@@ -60,7 +60,7 @@ func TestBufferIterate(t *testing.T) {
 	var cnt = 0
 	err := testEngine.BufferSize(9).Iterate(new(UserBufferIterate), func(i int, bean interface{}) error {
 		user := bean.(*UserBufferIterate)
-		assert.EqualValues(t, cnt+1, user.Id)
+		assert.EqualValues(t, cnt+1, user.ID)
 		assert.EqualValues(t, true, user.IsMan)
 		cnt++
 		return nil
@@ -71,7 +71,7 @@ func TestBufferIterate(t *testing.T) {
 	cnt = 0
 	err = testEngine.Limit(20).BufferSize(9).Iterate(new(UserBufferIterate), func(i int, bean interface{}) error {
 		user := bean.(*UserBufferIterate)
-		assert.EqualValues(t, cnt+1, user.Id)
+		assert.EqualValues(t, cnt+1, user.ID)
 		assert.EqualValues(t, true, user.IsMan)
 		cnt++
 		return nil
@@ -82,7 +82,7 @@ func TestBufferIterate(t *testing.T) {
 	cnt = 0
 	err = testEngine.Limit(7).BufferSize(9).Iterate(new(UserBufferIterate), func(i int, bean interface{}) error {
 		user := bean.(*UserBufferIterate)
-		assert.EqualValues(t, cnt+1, user.Id)
+		assert.EqualValues(t, cnt+1, user.ID)
 		assert.EqualValues(t, true, user.IsMan)
 		cnt++
 		return nil

@@ -14,7 +14,7 @@ func TestCacheTag(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type CacheDomain struct {
-		Id   int64 `xorm:"pk cache"`
+		ID   int64 `xorm:"pk cache"`
 		Name string
 	}
 
@@ -26,7 +26,7 @@ func TestNoCacheTag(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type NoCacheDomain struct {
-		Id   int64 `xorm:"pk nocache"`
+		ID   int64 `xorm:"pk nocache"`
 		Name string
 	}
 

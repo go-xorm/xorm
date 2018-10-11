@@ -18,17 +18,17 @@ func TestJoinLimit(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type Salary struct {
-		Id  int64
+		ID  int64
 		Lid int64
 	}
 
 	type CheckList struct {
-		Id  int64
+		ID  int64
 		Eid int64
 	}
 
 	type Empsetting struct {
-		Id   int64
+		ID   int64
 		Name string
 	}
 
@@ -40,14 +40,14 @@ func TestJoinLimit(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 
 	var checklist = CheckList{
-		Eid: emp.Id,
+		Eid: emp.ID,
 	}
 	cnt, err = testEngine.Insert(&checklist)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	var salary = Salary{
-		Lid: checklist.Id,
+		Lid: checklist.ID,
 	}
 	cnt, err = testEngine.Insert(&salary)
 	assert.NoError(t, err)
@@ -123,13 +123,13 @@ func TestFind2(t *testing.T) {
 }
 
 type Team struct {
-	Id int64
+	ID int64
 }
 
 type TeamUser struct {
-	OrgId  int64
-	Uid    int64
-	TeamId int64
+	OrgID  int64
+	UID    int64
+	TeamID int64
 }
 
 func (TeamUser) TableName() string {
@@ -483,7 +483,7 @@ func TestFindMapPtrString(t *testing.T) {
 
 func TestFindBit(t *testing.T) {
 	type FindBitStruct struct {
-		Id  int64
+		ID  int64
 		Msg bool `xorm:"bit"`
 	}
 
@@ -541,7 +541,7 @@ func TestFindMark(t *testing.T) {
 
 func TestFindAndCountOneFunc(t *testing.T) {
 	type FindAndCountStruct struct {
-		Id      int64
+		ID      int64
 		Content string
 		Msg     bool `xorm:"bit"`
 	}
@@ -604,7 +604,7 @@ func (device *FindMapDevice) TableName() string {
 	return "devices"
 }
 
-func TestFindMapStringId(t *testing.T) {
+func TestFindMapStringID(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(FindMapDevice))
 
@@ -780,12 +780,12 @@ func TestFindCacheLimit(t *testing.T) {
 func TestFindJoin(t *testing.T) {
 	type SceneItem struct {
 		Type     int
-		DeviceId int64
+		DeviceID int64
 	}
 
 	type DeviceUserPrivrels struct {
-		UserId   int64
-		DeviceId int64
+		UserID   int64
+		DeviceID int64
 	}
 
 	assert.NoError(t, prepareEngine())

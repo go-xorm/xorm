@@ -14,7 +14,7 @@ func TestRows(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UserRows struct {
-		Id    int64
+		ID    int64
 		IsMan bool
 	}
 

@@ -14,7 +14,7 @@ func TestExistStruct(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type RecordExist struct {
-		Id   int64
+		ID   int64
 		Name string
 	}
 

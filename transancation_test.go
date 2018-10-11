@@ -16,7 +16,7 @@ func TestAutoTransaction(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type TestTx struct {
-		Id      int64     `xorm:"autoincr pk"`
+		ID      int64     `xorm:"autoincr pk"`
 		Msg     string    `xorm:"varchar(255)"`
 		Created time.Time `xorm:"created"`
 	}
