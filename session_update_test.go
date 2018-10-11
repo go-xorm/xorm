@@ -298,7 +298,7 @@ func TestUpdate1(t *testing.T) {
 
 	// update by id
 	user := Userinfo{Username: "xxx", Height: 1.2}
-	cnt, err := testEngine.ID(ori.Uid).Update(&user)
+	cnt, err := testEngine.ID(ori.UID).Update(&user)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -311,7 +311,7 @@ func TestUpdate1(t *testing.T) {
 	}
 
 	condi := Condi{"username": "zzz", "departname": ""}
-	cnt, err = testEngine.Table(&user).ID(ori.Uid).Update(&condi)
+	cnt, err = testEngine.Table(&user).ID(ori.UID).Update(&condi)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -349,7 +349,7 @@ func TestUpdate1(t *testing.T) {
 			t.Error(err)
 			panic(err)
 		}
-		userID := user.Uid
+		userID := user.UID
 
 		has, err := testEngine.ID(userID).
 			And("username = ?", user.Username).
@@ -779,12 +779,12 @@ func TestUpdateSameMapper(t *testing.T) {
 
 	// update by id
 	user := Userinfo{Username: "xxx", Height: 1.2}
-	cnt, err := testEngine.ID(ori.Uid).Update(&user)
+	cnt, err := testEngine.ID(ori.UID).Update(&user)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
 	condi := Condi{"Username": "zzz", "Departname": ""}
-	cnt, err = testEngine.Table(&user).ID(ori.Uid).Update(&condi)
+	cnt, err = testEngine.Table(&user).ID(ori.UID).Update(&condi)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 

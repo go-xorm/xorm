@@ -29,12 +29,12 @@ func TestLRUCache(t *testing.T) {
 		sid, err := pk.ToString()
 		assert.NoError(t, err)
 
-		cacher.PutIDs(tableName, "select * from cache_object1", sid)
-		ids := cacher.GetIDs(tableName, "select * from cache_object1")
+		cacher.PutIds(tableName, "select * from cache_object1", sid)
+		ids := cacher.GetIds(tableName, "select * from cache_object1")
 		assert.EqualValues(t, sid, ids)
 
-		cacher.ClearIDs(tableName)
-		ids2 := cacher.GetIDs(tableName, "select * from cache_object1")
+		cacher.ClearIds(tableName)
+		ids2 := cacher.GetIds(tableName, "select * from cache_object1")
 		assert.Nil(t, ids2)
 
 		obj2 := cacher.GetBean(tableName, sid)
