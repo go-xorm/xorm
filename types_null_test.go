@@ -17,7 +17,7 @@ import (
 )
 
 type NullType struct {
-	Id           int `xorm:"pk autoincr"`
+	ID           int `xorm:"pk autoincr"`
 	Name         sql.NullString
 	Age          sql.NullInt64
 	Height       sql.NullFloat64
@@ -88,7 +88,7 @@ func TestNullStructInsert(t *testing.T) {
 			panic(err)
 		}
 		fmt.Println(item)
-		if item.Id != 1 {
+		if item.ID != 1 {
 			err = errors.New("insert error")
 			t.Error(err)
 			panic(err)
@@ -108,7 +108,7 @@ func TestNullStructInsert(t *testing.T) {
 			panic(err)
 		}
 		fmt.Println(item)
-		if item.Id != 2 {
+		if item.ID != 2 {
 			err = errors.New("insert error")
 			t.Error(err)
 			panic(err)
@@ -278,7 +278,7 @@ func TestNullStructFind(t *testing.T) {
 			panic(err)
 		}
 		fmt.Println(item)
-		if item.Id != 1 || item.Name.Valid || item.Age.Valid || item.Height.Valid ||
+		if item.ID != 1 || item.Name.Valid || item.Age.Valid || item.Height.Valid ||
 			item.IsMan.Valid {
 			err = errors.New("insert error")
 			t.Error(err)
@@ -288,7 +288,7 @@ func TestNullStructFind(t *testing.T) {
 
 	if true {
 		item := new(NullType)
-		item.Id = 2
+		item.ID = 2
 
 		has, err := testEngine.Get(item)
 		if err != nil {

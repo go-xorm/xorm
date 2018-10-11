@@ -13,7 +13,7 @@ import (
 
 func TestLRUCache(t *testing.T) {
 	type CacheObject1 struct {
-		Id int64
+		ID int64
 	}
 
 	store := NewMemoryStore()

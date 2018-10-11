@@ -13,43 +13,43 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type IntId struct {
-	Id   int `xorm:"pk autoincr"`
+type IntID struct {
+	ID   int `xorm:"pk autoincr"`
 	Name string
 }
 
-type Int16Id struct {
-	Id   int16 `xorm:"pk autoincr"`
+type Int16ID struct {
+	ID   int16 `xorm:"pk autoincr"`
 	Name string
 }
 
-type Int32Id struct {
-	Id   int32 `xorm:"pk autoincr"`
+type Int32ID struct {
+	ID   int32 `xorm:"pk autoincr"`
 	Name string
 }
 
-type UintId struct {
-	Id   uint `xorm:"pk autoincr"`
+type UintID struct {
+	ID   uint `xorm:"pk autoincr"`
 	Name string
 }
 
-type Uint16Id struct {
-	Id   uint16 `xorm:"pk autoincr"`
+type Uint16ID struct {
+	ID   uint16 `xorm:"pk autoincr"`
 	Name string
 }
 
-type Uint32Id struct {
-	Id   uint32 `xorm:"pk autoincr"`
+type Uint32ID struct {
+	ID   uint32 `xorm:"pk autoincr"`
 	Name string
 }
 
-type Uint64Id struct {
-	Id   uint64 `xorm:"pk autoincr"`
+type Uint64ID struct {
+	ID   uint64 `xorm:"pk autoincr"`
 	Name string
 }
 
 type StringPK struct {
-	Id   string `xorm:"pk notnull"`
+	ID   string `xorm:"pk notnull"`
 	Name string
 }
 
@@ -65,22 +65,22 @@ type MyStringPK struct {
 	Name string
 }
 
-func TestIntId(t *testing.T) {
+func TestIntID(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(&IntId{})
+	err := testEngine.DropTables(&IntID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.CreateTables(&IntId{})
+	err = testEngine.CreateTables(&IntID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	cnt, err := testEngine.Insert(&IntId{Name: "test"})
+	cnt, err := testEngine.Insert(&IntID{Name: "test"})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -91,7 +91,7 @@ func TestIntId(t *testing.T) {
 		panic(err)
 	}
 
-	bean := new(IntId)
+	bean := new(IntID)
 	has, err := testEngine.Get(bean)
 	if err != nil {
 		t.Error(err)
@@ -103,7 +103,7 @@ func TestIntId(t *testing.T) {
 		panic(err)
 	}
 
-	beans := make([]IntId, 0)
+	beans := make([]IntID, 0)
 	err = testEngine.Find(&beans)
 	if err != nil {
 		t.Error(err)
@@ -115,7 +115,7 @@ func TestIntId(t *testing.T) {
 		panic(err)
 	}
 
-	beans2 := make(map[int]IntId)
+	beans2 := make(map[int]IntID)
 	err = testEngine.Find(&beans2)
 	if err != nil {
 		t.Error(err)
@@ -127,7 +127,7 @@ func TestIntId(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.ID(bean.Id).Delete(&IntId{})
+	cnt, err = testEngine.ID(bean.ID).Delete(&IntID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -139,22 +139,22 @@ func TestIntId(t *testing.T) {
 	}
 }
 
-func TestInt16Id(t *testing.T) {
+func TestInt16ID(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(&Int16Id{})
+	err := testEngine.DropTables(&Int16ID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.CreateTables(&Int16Id{})
+	err = testEngine.CreateTables(&Int16ID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	cnt, err := testEngine.Insert(&Int16Id{Name: "test"})
+	cnt, err := testEngine.Insert(&Int16ID{Name: "test"})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -166,7 +166,7 @@ func TestInt16Id(t *testing.T) {
 		panic(err)
 	}
 
-	bean := new(Int16Id)
+	bean := new(Int16ID)
 	has, err := testEngine.Get(bean)
 	if err != nil {
 		t.Error(err)
@@ -178,7 +178,7 @@ func TestInt16Id(t *testing.T) {
 		panic(err)
 	}
 
-	beans := make([]Int16Id, 0)
+	beans := make([]Int16ID, 0)
 	err = testEngine.Find(&beans)
 	if err != nil {
 		t.Error(err)
@@ -190,7 +190,7 @@ func TestInt16Id(t *testing.T) {
 		panic(err)
 	}
 
-	beans2 := make(map[int16]Int16Id, 0)
+	beans2 := make(map[int16]Int16ID, 0)
 	err = testEngine.Find(&beans2)
 	if err != nil {
 		t.Error(err)
@@ -202,7 +202,7 @@ func TestInt16Id(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.ID(bean.Id).Delete(&Int16Id{})
+	cnt, err = testEngine.ID(bean.ID).Delete(&Int16ID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -214,22 +214,22 @@ func TestInt16Id(t *testing.T) {
 	}
 }
 
-func TestInt32Id(t *testing.T) {
+func TestInt32ID(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(&Int32Id{})
+	err := testEngine.DropTables(&Int32ID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.CreateTables(&Int32Id{})
+	err = testEngine.CreateTables(&Int32ID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	cnt, err := testEngine.Insert(&Int32Id{Name: "test"})
+	cnt, err := testEngine.Insert(&Int32ID{Name: "test"})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -241,7 +241,7 @@ func TestInt32Id(t *testing.T) {
 		panic(err)
 	}
 
-	bean := new(Int32Id)
+	bean := new(Int32ID)
 	has, err := testEngine.Get(bean)
 	if err != nil {
 		t.Error(err)
@@ -253,7 +253,7 @@ func TestInt32Id(t *testing.T) {
 		panic(err)
 	}
 
-	beans := make([]Int32Id, 0)
+	beans := make([]Int32ID, 0)
 	err = testEngine.Find(&beans)
 	if err != nil {
 		t.Error(err)
@@ -265,7 +265,7 @@ func TestInt32Id(t *testing.T) {
 		panic(err)
 	}
 
-	beans2 := make(map[int32]Int32Id, 0)
+	beans2 := make(map[int32]Int32ID, 0)
 	err = testEngine.Find(&beans2)
 	if err != nil {
 		t.Error(err)
@@ -277,7 +277,7 @@ func TestInt32Id(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.ID(bean.Id).Delete(&Int32Id{})
+	cnt, err = testEngine.ID(bean.ID).Delete(&Int32ID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -289,22 +289,22 @@ func TestInt32Id(t *testing.T) {
 	}
 }
 
-func TestUintId(t *testing.T) {
+func TestUintID(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(&UintId{})
+	err := testEngine.DropTables(&UintID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.CreateTables(&UintId{})
+	err = testEngine.CreateTables(&UintID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	cnt, err := testEngine.Insert(&UintId{Name: "test"})
+	cnt, err := testEngine.Insert(&UintID{Name: "test"})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -315,7 +315,7 @@ func TestUintId(t *testing.T) {
 		panic(err)
 	}
 
-	var inserts = []UintId{
+	var inserts = []UintID{
 		{Name: "test1"},
 		{Name: "test2"},
 	}
@@ -330,7 +330,7 @@ func TestUintId(t *testing.T) {
 		panic(err)
 	}
 
-	bean := new(UintId)
+	bean := new(UintID)
 	has, err := testEngine.Get(bean)
 	if err != nil {
 		t.Error(err)
@@ -342,7 +342,7 @@ func TestUintId(t *testing.T) {
 		panic(err)
 	}
 
-	beans := make([]UintId, 0)
+	beans := make([]UintID, 0)
 	err = testEngine.Find(&beans)
 	if err != nil {
 		t.Error(err)
@@ -354,7 +354,7 @@ func TestUintId(t *testing.T) {
 		panic(err)
 	}
 
-	beans2 := make(map[uint]UintId, 0)
+	beans2 := make(map[uint]UintID, 0)
 	err = testEngine.Find(&beans2)
 	if err != nil {
 		t.Error(err)
@@ -366,7 +366,7 @@ func TestUintId(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.ID(bean.Id).Delete(&UintId{})
+	cnt, err = testEngine.ID(bean.ID).Delete(&UintID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -378,22 +378,22 @@ func TestUintId(t *testing.T) {
 	}
 }
 
-func TestUint16Id(t *testing.T) {
+func TestUint16ID(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(&Uint16Id{})
+	err := testEngine.DropTables(&Uint16ID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.CreateTables(&Uint16Id{})
+	err = testEngine.CreateTables(&Uint16ID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	cnt, err := testEngine.Insert(&Uint16Id{Name: "test"})
+	cnt, err := testEngine.Insert(&Uint16ID{Name: "test"})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -405,7 +405,7 @@ func TestUint16Id(t *testing.T) {
 		panic(err)
 	}
 
-	bean := new(Uint16Id)
+	bean := new(Uint16ID)
 	has, err := testEngine.Get(bean)
 	if err != nil {
 		t.Error(err)
@@ -417,7 +417,7 @@ func TestUint16Id(t *testing.T) {
 		panic(err)
 	}
 
-	beans := make([]Uint16Id, 0)
+	beans := make([]Uint16ID, 0)
 	err = testEngine.Find(&beans)
 	if err != nil {
 		t.Error(err)
@@ -429,7 +429,7 @@ func TestUint16Id(t *testing.T) {
 		panic(err)
 	}
 
-	beans2 := make(map[uint16]Uint16Id, 0)
+	beans2 := make(map[uint16]Uint16ID, 0)
 	err = testEngine.Find(&beans2)
 	if err != nil {
 		t.Error(err)
@@ -441,7 +441,7 @@ func TestUint16Id(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.ID(bean.Id).Delete(&Uint16Id{})
+	cnt, err = testEngine.ID(bean.ID).Delete(&Uint16ID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -453,22 +453,22 @@ func TestUint16Id(t *testing.T) {
 	}
 }
 
-func TestUint32Id(t *testing.T) {
+func TestUint32ID(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(&Uint32Id{})
+	err := testEngine.DropTables(&Uint32ID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.CreateTables(&Uint32Id{})
+	err = testEngine.CreateTables(&Uint32ID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	cnt, err := testEngine.Insert(&Uint32Id{Name: "test"})
+	cnt, err := testEngine.Insert(&Uint32ID{Name: "test"})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -480,7 +480,7 @@ func TestUint32Id(t *testing.T) {
 		panic(err)
 	}
 
-	bean := new(Uint32Id)
+	bean := new(Uint32ID)
 	has, err := testEngine.Get(bean)
 	if err != nil {
 		t.Error(err)
@@ -492,7 +492,7 @@ func TestUint32Id(t *testing.T) {
 		panic(err)
 	}
 
-	beans := make([]Uint32Id, 0)
+	beans := make([]Uint32ID, 0)
 	err = testEngine.Find(&beans)
 	if err != nil {
 		t.Error(err)
@@ -504,7 +504,7 @@ func TestUint32Id(t *testing.T) {
 		panic(err)
 	}
 
-	beans2 := make(map[uint32]Uint32Id, 0)
+	beans2 := make(map[uint32]Uint32ID, 0)
 	err = testEngine.Find(&beans2)
 	if err != nil {
 		t.Error(err)
@@ -516,7 +516,7 @@ func TestUint32Id(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.ID(bean.Id).Delete(&Uint32Id{})
+	cnt, err = testEngine.ID(bean.ID).Delete(&Uint32ID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -528,22 +528,22 @@ func TestUint32Id(t *testing.T) {
 	}
 }
 
-func TestUint64Id(t *testing.T) {
+func TestUint64ID(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	err := testEngine.DropTables(&Uint64Id{})
+	err := testEngine.DropTables(&Uint64ID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	err = testEngine.CreateTables(&Uint64Id{})
+	err = testEngine.CreateTables(&Uint64ID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 
-	idbean := &Uint64Id{Name: "test"}
+	idbean := &Uint64ID{Name: "test"}
 	cnt, err := testEngine.Insert(idbean)
 	if err != nil {
 		t.Error(err)
@@ -556,7 +556,7 @@ func TestUint64Id(t *testing.T) {
 		panic(err)
 	}
 
-	bean := new(Uint64Id)
+	bean := new(Uint64ID)
 	has, err := testEngine.Get(bean)
 	if err != nil {
 		t.Error(err)
@@ -568,11 +568,11 @@ func TestUint64Id(t *testing.T) {
 		panic(err)
 	}
 
-	if bean.Id != idbean.Id {
+	if bean.ID != idbean.ID {
 		panic(errors.New("should be equal"))
 	}
 
-	beans := make([]Uint64Id, 0)
+	beans := make([]Uint64ID, 0)
 	err = testEngine.Find(&beans)
 	if err != nil {
 		t.Error(err)
@@ -588,7 +588,7 @@ func TestUint64Id(t *testing.T) {
 		panic(errors.New("should be equal"))
 	}
 
-	beans2 := make(map[uint64]Uint64Id, 0)
+	beans2 := make(map[uint64]Uint64ID, 0)
 	err = testEngine.Find(&beans2)
 	if err != nil {
 		t.Error(err)
@@ -600,11 +600,11 @@ func TestUint64Id(t *testing.T) {
 		panic(err)
 	}
 
-	if *bean != beans2[bean.Id] {
+	if *bean != beans2[bean.ID] {
 		panic(errors.New("should be equal"))
 	}
 
-	cnt, err = testEngine.ID(bean.Id).Delete(&Uint64Id{})
+	cnt, err = testEngine.ID(bean.ID).Delete(&Uint64ID{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -631,7 +631,7 @@ func TestStringPK(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err := testEngine.Insert(&StringPK{Id: "1-1-2", Name: "test"})
+	cnt, err := testEngine.Insert(&StringPK{ID: "1-1-2", Name: "test"})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -679,7 +679,7 @@ func TestStringPK(t *testing.T) {
 		panic(err)
 	}
 
-	cnt, err = testEngine.ID(bean.Id).Delete(&StringPK{})
+	cnt, err = testEngine.ID(bean.ID).Delete(&StringPK{})
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -692,8 +692,8 @@ func TestStringPK(t *testing.T) {
 }
 
 type CompositeKey struct {
-	Id1       int64 `xorm:"id1 pk"`
-	Id2       int64 `xorm:"id2 pk"`
+	ID1       int64 `xorm:"id1 pk"`
+	ID2       int64 `xorm:"id2 pk"`
 	UpdateStr string
 }
 
@@ -790,9 +790,9 @@ func TestCompositeKey2(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type User struct {
-		UserId   string `xorm:"varchar(19) not null pk"`
+		UserID   string `xorm:"varchar(19) not null pk"`
 		NickName string `xorm:"varchar(19) not null"`
-		GameId   uint32 `xorm:"integer pk"`
+		GameID   uint32 `xorm:"integer pk"`
 		Score    int32  `xorm:"integer"`
 	}
 
@@ -855,9 +855,9 @@ func TestCompositeKey2(t *testing.T) {
 
 type MyString string
 type UserPK2 struct {
-	UserId   MyString `xorm:"varchar(19) not null pk"`
+	UserID   MyString `xorm:"varchar(19) not null pk"`
 	NickName string   `xorm:"varchar(19) not null"`
-	GameId   uint32   `xorm:"integer pk"`
+	GameID   uint32   `xorm:"integer pk"`
 	Score    int32    `xorm:"integer"`
 }
 
@@ -921,7 +921,7 @@ func TestCompositeKey3(t *testing.T) {
 	}
 }
 
-func TestMyIntId(t *testing.T) {
+func TestMyIntID(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	err := testEngine.DropTables(&MyIntPK{})
@@ -1009,7 +1009,7 @@ func TestMyIntId(t *testing.T) {
 	}
 }
 
-func TestMyStringId(t *testing.T) {
+func TestMyStringID(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	err := testEngine.DropTables(&MyStringPK{})
@@ -1099,7 +1099,7 @@ func TestMyStringId(t *testing.T) {
 
 func TestSingleAutoIncrColumn(t *testing.T) {
 	type Account struct {
-		Id int64 `xorm:"pk autoincr"`
+		ID int64 `xorm:"pk autoincr"`
 	}
 
 	assert.NoError(t, prepareEngine())
@@ -1145,7 +1145,7 @@ func TestCompositePK(t *testing.T) {
 	assert.EqualValues(t, "tid", pkCols[1].Name)
 }
 
-func TestNoPKIdQueryUpdate(t *testing.T) {
+func TestNoPKIDQueryUpdate(t *testing.T) {
 	type NoPKTable struct {
 		Username string
 	}

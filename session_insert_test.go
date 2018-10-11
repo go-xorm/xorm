@@ -18,7 +18,7 @@ func TestInsertOne(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type Test struct {
-		Id      int64     `xorm:"autoincr pk"`
+		ID      int64     `xorm:"autoincr pk"`
 		Msg     string    `xorm:"varchar(255)"`
 		Created time.Time `xorm:"created"`
 	}
@@ -34,7 +34,7 @@ func TestInsertMulti(t *testing.T) {
 
 	assert.NoError(t, prepareEngine())
 	type TestMulti struct {
-		Id   int64  `xorm:"int(11) pk"`
+		ID   int64  `xorm:"int(11) pk"`
 		Name string `xorm:"varchar(255)"`
 	}
 
@@ -110,7 +110,7 @@ func TestInsertOneIfPkIsPoint(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type TestPoint struct {
-		Id      *int64     `xorm:"autoincr pk notnull 'id'"`
+		ID      *int64     `xorm:"autoincr pk notnull 'id'"`
 		Msg     *string    `xorm:"varchar(255)"`
 		Created *time.Time `xorm:"created"`
 	}
@@ -126,7 +126,7 @@ func TestInsertOneIfPkIsPointRename(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	type ID *int64
 	type TestPoint2 struct {
-		Id      ID         `xorm:"autoincr pk notnull 'id'"`
+		ID      ID         `xorm:"autoincr pk notnull 'id'"`
 		Msg     *string    `xorm:"varchar(255)"`
 		Created *time.Time `xorm:"created"`
 	}
@@ -143,9 +143,9 @@ func TestInsert(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	user := Userinfo{0, "xiaolunwen", "dev", "lunny", time.Now(),
-		Userdetail{Id: 1}, 1.78, []byte{1, 2, 3}, true}
+		Userdetail{ID: 1}, 1.78, []byte{1, 2, 3}, true}
 	cnt, err := testEngine.Insert(&user)
-	fmt.Println(user.Uid)
+	fmt.Println(user.UID)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -156,13 +156,13 @@ func TestInsert(t *testing.T) {
 		panic(err)
 	}
 
-	if user.Uid <= 0 {
+	if user.UID <= 0 {
 		err = errors.New("not return id error")
 		t.Error(err)
 		panic(err)
 	}
 
-	user.Uid = 0
+	user.UID = 0
 	cnt, err = testEngine.Insert(&user)
 	if err == nil {
 		err = errors.New("insert failed but no return error")
@@ -184,9 +184,9 @@ func TestInsertAutoIncr(t *testing.T) {
 
 	// auto increment insert
 	user := Userinfo{Username: "xiaolunwen2", Departname: "dev", Alias: "lunny", Created: time.Now(),
-		Detail: Userdetail{Id: 1}, Height: 1.78, Avatar: []byte{1, 2, 3}, IsMan: true}
+		Detail: Userdetail{ID: 1}, Height: 1.78, Avatar: []byte{1, 2, 3}, IsMan: true}
 	cnt, err := testEngine.Insert(&user)
-	fmt.Println(user.Uid)
+	fmt.Println(user.UID)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -196,13 +196,13 @@ func TestInsertAutoIncr(t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
-	if user.Uid <= 0 {
+	if user.UID <= 0 {
 		t.Error(errors.New("not return id error"))
 	}
 }
 
 type DefaultInsert struct {
-	Id      int64
+	ID      int64
 	Status  int `xorm:"default -1"`
 	Name    string
 	Created time.Time `xorm:"created"`
@@ -251,9 +251,9 @@ func TestInsertDefault(t *testing.T) {
 }
 
 type DefaultInsert2 struct {
-	Id        int64
+	ID        int64
 	Name      string
-	Url       string    `xorm:"text"`
+	URL       string    `xorm:"text"`
 	CheckTime time.Time `xorm:"not null default '2000-01-01 00:00:00' TIMESTAMP"`
 }
 
@@ -312,32 +312,32 @@ func TestInsertDefault2(t *testing.T) {
 }
 
 type CreatedInsert struct {
-	Id      int64
+	ID      int64
 	Created time.Time `xorm:"created"`
 }
 
 type CreatedInsert2 struct {
-	Id      int64
+	ID      int64
 	Created int64 `xorm:"created"`
 }
 
 type CreatedInsert3 struct {
-	Id      int64
+	ID      int64
 	Created int `xorm:"created bigint"`
 }
 
 type CreatedInsert4 struct {
-	Id      int64
+	ID      int64
 	Created int `xorm:"created"`
 }
 
 type CreatedInsert5 struct {
-	Id      int64
+	ID      int64
 	Created time.Time `xorm:"created bigint"`
 }
 
 type CreatedInsert6 struct {
-	Id      int64
+	ID      int64
 	Created time.Time `xorm:"created bigint"`
 }
 
@@ -480,9 +480,9 @@ func TestInsertCreated(t *testing.T) {
 	fmt.Println("ci6:", ci6, "di6:", di6)
 }
 
-type JsonTime time.Time
+type JSONTime time.Time
 
-func (j JsonTime) format() string {
+func (j JSONTime) format() string {
 	t := time.Time(j)
 	if t.IsZero() {
 		return ""
@@ -491,53 +491,53 @@ func (j JsonTime) format() string {
 	return t.Format("2006-01-02")
 }
 
-func (j JsonTime) MarshalText() ([]byte, error) {
+func (j JSONTime) MarshalText() ([]byte, error) {
 	return []byte(j.format()), nil
 }
 
-func (j JsonTime) MarshalJSON() ([]byte, error) {
+func (j JSONTime) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + j.format() + `"`), nil
 }
 
 func TestDefaultTime3(t *testing.T) {
 	type PrepareTask struct {
-		Id int `xorm:"not null pk autoincr INT(11)" json:"id"`
+		ID int `xorm:"not null pk autoincr INT(11)" json:"id"`
 		// ...
-		StartTime JsonTime `xorm:"not null default '2006-01-02 15:04:05' TIMESTAMP index" json:"start_time"`
-		EndTime   JsonTime `xorm:"not null default '2006-01-02 15:04:05' TIMESTAMP" json:"end_time"`
+		StartTime JSONTime `xorm:"not null default '2006-01-02 15:04:05' TIMESTAMP index" json:"start_time"`
+		EndTime   JSONTime `xorm:"not null default '2006-01-02 15:04:05' TIMESTAMP" json:"end_time"`
 		Cuser     string   `xorm:"not null default '' VARCHAR(64) index" json:"cuser"`
 		Muser     string   `xorm:"not null default '' VARCHAR(64)" json:"muser"`
-		Ctime     JsonTime `xorm:"not null default CURRENT_TIMESTAMP TIMESTAMP created" json:"ctime"`
-		Mtime     JsonTime `xorm:"not null default CURRENT_TIMESTAMP TIMESTAMP updated" json:"mtime"`
+		Ctime     JSONTime `xorm:"not null default CURRENT_TIMESTAMP TIMESTAMP created" json:"ctime"`
+		Mtime     JSONTime `xorm:"not null default CURRENT_TIMESTAMP TIMESTAMP updated" json:"mtime"`
 	}
 
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(PrepareTask))
 
 	prepareTask := &PrepareTask{
-		StartTime: JsonTime(time.Now()),
-		Cuser:     "userId",
-		Muser:     "userId",
+		StartTime: JSONTime(time.Now()),
+		Cuser:     "userID",
+		Muser:     "userID",
 	}
 	cnt, err := testEngine.Omit("end_time").InsertOne(prepareTask)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 }
 
-type MyJsonTime struct {
-	Id      int64    `json:"id"`
-	Created JsonTime `xorm:"created" json:"created_at"`
+type MyJSONTime struct {
+	ID      int64    `json:"id"`
+	Created JSONTime `xorm:"created" json:"created_at"`
 }
 
-func TestCreatedJsonTime(t *testing.T) {
+func TestCreatedJSONTime(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	di5 := new(MyJsonTime)
+	di5 := new(MyJSONTime)
 	err := testEngine.Sync2(di5)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ci5 := &MyJsonTime{}
+	ci5 := &MyJSONTime{}
 	_, err = testEngine.Insert(ci5)
 	if err != nil {
 		t.Fatal(err)
@@ -554,7 +554,7 @@ func TestCreatedJsonTime(t *testing.T) {
 	}
 	fmt.Println("ci5:", ci5, "di5:", di5)
 
-	var dis = make([]MyJsonTime, 0)
+	var dis = make([]MyJSONTime, 0)
 	err = testEngine.Find(&dis)
 	if err != nil {
 		t.Fatal(err)
@@ -598,7 +598,7 @@ func TestInsertMulti2(t *testing.T) {
 	}
 
 	if cnt != int64(len(users2)) {
-		err = errors.New(fmt.Sprintf("insert not returned %v", len(users2)))
+		err = fmt.Errorf("insert not returned %v", len(users2))
 		t.Error(err)
 		panic(err)
 	}
@@ -609,7 +609,7 @@ func TestInsertTwoTable(t *testing.T) {
 
 	assertSync(t, new(Userinfo), new(Userdetail))
 
-	userdetail := Userdetail{ /*Id: 1, */ Intro: "I'm a very beautiful women.", Profile: "sfsaf"}
+	userdetail := Userdetail{ /*ID: 1, */ Intro: "I'm a very beautiful women.", Profile: "sfsaf"}
 	userinfo := Userinfo{Username: "xlw3", Departname: "dev", Alias: "lunny4", Created: time.Now(), Detail: userdetail}
 
 	cnt, err := testEngine.Insert(&userinfo, &userdetail)
@@ -618,13 +618,13 @@ func TestInsertTwoTable(t *testing.T) {
 		panic(err)
 	}
 
-	if userinfo.Uid <= 0 {
+	if userinfo.UID <= 0 {
 		err = errors.New("not return id error")
 		t.Error(err)
 		panic(err)
 	}
 
-	if userdetail.Id <= 0 {
+	if userdetail.ID <= 0 {
 		err = errors.New("not return id error")
 		t.Error(err)
 		panic(err)
@@ -641,7 +641,7 @@ func TestInsertCreatedInt64(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type TestCreatedInt64 struct {
-		Id      int64  `xorm:"autoincr pk"`
+		ID      int64  `xorm:"autoincr pk"`
 		Msg     string `xorm:"varchar(255)"`
 		Created int64  `xorm:"created"`
 	}
@@ -698,7 +698,7 @@ func TestInsertMulti3(t *testing.T) {
 }
 
 type MyUserinfo2 struct {
-	Uid        int64  `xorm:"id pk not null autoincr"`
+	UID        int64  `xorm:"id pk not null autoincr"`
 	Username   string `xorm:"unique"`
 	Departname string
 	Alias      string `xorm:"-"`

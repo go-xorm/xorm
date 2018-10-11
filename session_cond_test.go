@@ -23,7 +23,7 @@ func TestBuilder(t *testing.T) {
 	)
 
 	type Condition struct {
-		Id        int64
+		ID        int64
 		TableName string
 		ColName   string
 		Op        int
@@ -131,8 +131,8 @@ func TestIn(t *testing.T) {
 	var ids []int64
 	var idsStr string
 	for _, u := range usrs {
-		ids = append(ids, u.Uid)
-		idsStr = fmt.Sprintf("%d,", u.Uid)
+		ids = append(ids, u.UID)
+		idsStr = fmt.Sprintf("%d,", u.UID)
 	}
 	idsStr = idsStr[:len(idsStr)-1]
 
@@ -149,7 +149,7 @@ func TestIn(t *testing.T) {
 	assert.EqualValues(t, 3, len(users))
 
 	for _, user := range users {
-		if user.Uid != ids[0] && user.Uid != ids[1] && user.Uid != ids[2] {
+		if user.UID != ids[0] && user.UID != ids[1] && user.UID != ids[2] {
 			err = errors.New("in uses should be " + idsStr + " total 3")
 			assert.NoError(t, err)
 		}
@@ -167,7 +167,7 @@ func TestIn(t *testing.T) {
 	assert.EqualValues(t, 3, len(users))
 
 	for _, user := range users {
-		if user.Uid != ids[0] && user.Uid != ids[1] && user.Uid != ids[2] {
+		if user.UID != ids[0] && user.UID != ids[1] && user.UID != ids[2] {
 			err = errors.New("in uses should be " + idsStr + " total 3")
 			assert.NoError(t, err)
 		}
@@ -202,7 +202,7 @@ func TestFindAndCount(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type FindAndCount struct {
-		Id   int64
+		ID   int64
 		Name string
 	}
 

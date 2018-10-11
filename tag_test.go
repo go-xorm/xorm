@@ -16,7 +16,7 @@ import (
 )
 
 type UserCU struct {
-	Id      int64
+	ID      int64
 	Name    string
 	Created time.Time `xorm:"created"`
 	Updated time.Time `xorm:"updated"`
@@ -52,7 +52,7 @@ func TestCreatedAndUpdated(t *testing.T) {
 	}
 
 	u.Name = "xxx"
-	cnt, err = testEngine.ID(u.Id).Update(u)
+	cnt, err = testEngine.ID(u.ID).Update(u)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -64,7 +64,7 @@ func TestCreatedAndUpdated(t *testing.T) {
 		return
 	}
 
-	u.Id = 0
+	u.ID = 0
 	u.Created = time.Now().Add(-time.Hour * 24 * 365)
 	u.Updated = u.Created
 	fmt.Println(u)
@@ -82,7 +82,7 @@ func TestCreatedAndUpdated(t *testing.T) {
 }
 
 type StrangeName struct {
-	Id_t int64 `xorm:"pk autoincr"`
+	IDT  int64 `xorm:"pk autoincr"`
 	Name string
 }
 
@@ -115,7 +115,7 @@ func TestCreatedUpdated(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type CreatedUpdated struct {
-		Id       int64
+		ID       int64
 		Name     string
 		Value    float64   `xorm:"numeric"`
 		Created  time.Time `xorm:"created"`
@@ -131,13 +131,13 @@ func TestCreatedUpdated(t *testing.T) {
 	assert.NoError(t, err)
 
 	c2 := new(CreatedUpdated)
-	has, err := testEngine.ID(c.Id).Get(c2)
+	has, err := testEngine.ID(c.ID).Get(c2)
 	assert.NoError(t, err)
 
 	assert.True(t, has)
 
-	c2.Value -= 1
-	_, err = testEngine.ID(c2.Id).Update(c2)
+	c2.Value--
+	_, err = testEngine.ID(c2.ID).Update(c2)
 	assert.NoError(t, err)
 }
 
@@ -145,7 +145,7 @@ func TestCreatedUpdatedInt64(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type CreatedUpdatedInt64 struct {
-		Id       int64
+		ID       int64
 		Name     string
 		Value    float64 `xorm:"numeric"`
 		Created  int64   `xorm:"created"`
@@ -160,17 +160,17 @@ func TestCreatedUpdatedInt64(t *testing.T) {
 	assert.NoError(t, err)
 
 	c2 := new(CreatedUpdatedInt64)
-	has, err := testEngine.ID(c.Id).Get(c2)
+	has, err := testEngine.ID(c.ID).Get(c2)
 	assert.NoError(t, err)
 	assert.True(t, has)
 
-	c2.Value -= 1
-	_, err = testEngine.ID(c2.Id).Update(c2)
+	c2.Value--
+	_, err = testEngine.ID(c2.ID).Update(c2)
 	assert.NoError(t, err)
 }
 
 type Lowercase struct {
-	Id    int64
+	ID    int64
 	Name  string
 	ended int64 `xorm:"-"`
 }
@@ -208,7 +208,7 @@ func TestAutoIncrTag(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type TestAutoIncr1 struct {
-		Id int64
+		ID int64
 	}
 
 	tb := testEngine.TableInfo(new(TestAutoIncr1))
@@ -219,7 +219,7 @@ func TestAutoIncrTag(t *testing.T) {
 	assert.Equal(t, "id", cols[0].Name)
 
 	type TestAutoIncr2 struct {
-		Id int64 `xorm:"id"`
+		ID int64 `xorm:"id"`
 	}
 
 	tb = testEngine.TableInfo(new(TestAutoIncr2))
@@ -230,7 +230,7 @@ func TestAutoIncrTag(t *testing.T) {
 	assert.Equal(t, "id", cols[0].Name)
 
 	type TestAutoIncr3 struct {
-		Id int64 `xorm:"'ID'"`
+		ID int64 `xorm:"'ID'"`
 	}
 
 	tb = testEngine.TableInfo(new(TestAutoIncr3))
@@ -241,7 +241,7 @@ func TestAutoIncrTag(t *testing.T) {
 	assert.Equal(t, "ID", cols[0].Name)
 
 	type TestAutoIncr4 struct {
-		Id int64 `xorm:"pk"`
+		ID int64 `xorm:"pk"`
 	}
 
 	tb = testEngine.TableInfo(new(TestAutoIncr4))
@@ -260,7 +260,7 @@ func TestTagComment(t *testing.T) {
 	}
 
 	type TestComment1 struct {
-		Id int64 `xorm:"comment(主键)"`
+		ID int64 `xorm:"comment(主键)"`
 	}
 
 	assert.NoError(t, testEngine.Sync2(new(TestComment1)))
@@ -274,7 +274,7 @@ func TestTagComment(t *testing.T) {
 	assert.NoError(t, testEngine.DropTables(new(TestComment1)))
 
 	type TestComment2 struct {
-		Id int64 `xorm:"comment('主键')"`
+		ID int64 `xorm:"comment('主键')"`
 	}
 
 	assert.NoError(t, testEngine.Sync2(new(TestComment2)))
@@ -290,7 +290,7 @@ func TestTagDefault(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type DefaultStruct struct {
-		Id   int64
+		ID   int64
 		Name string
 		Age  int `xorm:"default(10)"`
 	}
@@ -316,16 +316,16 @@ func TestTagsDirection(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type OnlyFromDBStruct struct {
-		Id   int64
+		ID   int64
 		Name string
-		Uuid string `xorm:"<- default '1'"`
+		UUID string `xorm:"<- default '1'"`
 	}
 
 	assertSync(t, new(OnlyFromDBStruct))
 
 	cnt, err := testEngine.Insert(&OnlyFromDBStruct{
 		Name: "test",
-		Uuid: "2",
+		UUID: "2",
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
@@ -334,11 +334,11 @@ func TestTagsDirection(t *testing.T) {
 	has, err := testEngine.ID(1).Get(&s)
 	assert.NoError(t, err)
 	assert.True(t, has)
-	assert.EqualValues(t, "1", s.Uuid)
+	assert.EqualValues(t, "1", s.UUID)
 	assert.EqualValues(t, "test", s.Name)
 
 	cnt, err = testEngine.ID(1).Update(&OnlyFromDBStruct{
-		Uuid: "3",
+		UUID: "3",
 		Name: "test1",
 	})
 	assert.NoError(t, err)
@@ -348,20 +348,20 @@ func TestTagsDirection(t *testing.T) {
 	has, err = testEngine.ID(1).Get(&s3)
 	assert.NoError(t, err)
 	assert.True(t, has)
-	assert.EqualValues(t, "1", s3.Uuid)
+	assert.EqualValues(t, "1", s3.UUID)
 	assert.EqualValues(t, "test1", s3.Name)
 
 	type OnlyToDBStruct struct {
-		Id   int64
+		ID   int64
 		Name string
-		Uuid string `xorm:"->"`
+		UUID string `xorm:"->"`
 	}
 
 	assertSync(t, new(OnlyToDBStruct))
 
 	cnt, err = testEngine.Insert(&OnlyToDBStruct{
 		Name: "test",
-		Uuid: "2",
+		UUID: "2",
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
@@ -370,7 +370,7 @@ func TestTagsDirection(t *testing.T) {
 	has, err = testEngine.ID(1).Get(&s2)
 	assert.NoError(t, err)
 	assert.True(t, has)
-	assert.EqualValues(t, "", s2.Uuid)
+	assert.EqualValues(t, "", s2.UUID)
 	assert.EqualValues(t, "test", s2.Name)
 }
 
@@ -378,7 +378,7 @@ func TestTagTime(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type TagUTCStruct struct {
-		Id      int64
+		ID      int64
 		Name    string
 		Created time.Time `xorm:"created utc"`
 	}

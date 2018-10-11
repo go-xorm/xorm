@@ -17,14 +17,14 @@ func TestTimeUserTime(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type TimeUser struct {
-		Id       string
+		ID       string
 		OperTime time.Time
 	}
 
 	assertSync(t, new(TimeUser))
 
 	var user = TimeUser{
-		Id:       "lunny",
+		ID:       "lunny",
 		OperTime: time.Now(),
 	}
 
@@ -53,14 +53,14 @@ func TestTimeUserTimeDiffLoc(t *testing.T) {
 	testEngine.SetTZDatabase(dbLoc)
 
 	type TimeUser2 struct {
-		Id       string
+		ID       string
 		OperTime time.Time
 	}
 
 	assertSync(t, new(TimeUser2))
 
 	var user = TimeUser2{
-		Id:       "lunny",
+		ID:       "lunny",
 		OperTime: time.Now(),
 	}
 
@@ -83,14 +83,14 @@ func TestTimeUserCreated(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UserCreated struct {
-		Id        string
+		ID        string
 		CreatedAt time.Time `xorm:"created"`
 	}
 
 	assertSync(t, new(UserCreated))
 
 	var user = UserCreated{
-		Id: "lunny",
+		ID: "lunny",
 	}
 
 	fmt.Println("user", user.CreatedAt)
@@ -118,14 +118,14 @@ func TestTimeUserCreatedDiffLoc(t *testing.T) {
 	testEngine.SetTZDatabase(dbLoc)
 
 	type UserCreated2 struct {
-		Id        string
+		ID        string
 		CreatedAt time.Time `xorm:"created"`
 	}
 
 	assertSync(t, new(UserCreated2))
 
 	var user = UserCreated2{
-		Id: "lunny",
+		ID: "lunny",
 	}
 
 	fmt.Println("user", user.CreatedAt)
@@ -147,7 +147,7 @@ func TestTimeUserUpdated(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UserUpdated struct {
-		Id        string
+		ID        string
 		CreatedAt time.Time `xorm:"created"`
 		UpdatedAt time.Time `xorm:"updated"`
 	}
@@ -155,7 +155,7 @@ func TestTimeUserUpdated(t *testing.T) {
 	assertSync(t, new(UserUpdated))
 
 	var user = UserUpdated{
-		Id: "lunny",
+		ID: "lunny",
 	}
 
 	fmt.Println("user", user.CreatedAt, user.UpdatedAt)
@@ -175,7 +175,7 @@ func TestTimeUserUpdated(t *testing.T) {
 	fmt.Println("user2", user2.CreatedAt, user2.UpdatedAt)
 
 	var user3 = UserUpdated{
-		Id: "lunny2",
+		ID: "lunny2",
 	}
 
 	cnt, err = testEngine.Update(&user3)
@@ -204,7 +204,7 @@ func TestTimeUserUpdatedDiffLoc(t *testing.T) {
 	testEngine.SetTZDatabase(dbLoc)
 
 	type UserUpdated2 struct {
-		Id        string
+		ID        string
 		CreatedAt time.Time `xorm:"created"`
 		UpdatedAt time.Time `xorm:"updated"`
 	}
@@ -212,7 +212,7 @@ func TestTimeUserUpdatedDiffLoc(t *testing.T) {
 	assertSync(t, new(UserUpdated2))
 
 	var user = UserUpdated2{
-		Id: "lunny",
+		ID: "lunny",
 	}
 
 	fmt.Println("user", user.CreatedAt, user.UpdatedAt)
@@ -232,7 +232,7 @@ func TestTimeUserUpdatedDiffLoc(t *testing.T) {
 	fmt.Println("user2", user2.CreatedAt, user2.UpdatedAt)
 
 	var user3 = UserUpdated2{
-		Id: "lunny2",
+		ID: "lunny2",
 	}
 
 	cnt, err = testEngine.Update(&user3)
@@ -255,7 +255,7 @@ func TestTimeUserDeleted(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UserDeleted struct {
-		Id        string
+		ID        string
 		CreatedAt time.Time `xorm:"created"`
 		UpdatedAt time.Time `xorm:"updated"`
 		DeletedAt time.Time `xorm:"deleted"`
@@ -264,7 +264,7 @@ func TestTimeUserDeleted(t *testing.T) {
 	assertSync(t, new(UserDeleted))
 
 	var user = UserDeleted{
-		Id: "lunny",
+		ID: "lunny",
 	}
 
 	cnt, err := testEngine.Insert(&user)
@@ -308,7 +308,7 @@ func TestTimeUserDeletedDiffLoc(t *testing.T) {
 	testEngine.SetTZDatabase(dbLoc)
 
 	type UserDeleted2 struct {
-		Id        string
+		ID        string
 		CreatedAt time.Time `xorm:"created"`
 		UpdatedAt time.Time `xorm:"updated"`
 		DeletedAt time.Time `xorm:"deleted"`
@@ -317,7 +317,7 @@ func TestTimeUserDeletedDiffLoc(t *testing.T) {
 	assertSync(t, new(UserDeleted2))
 
 	var user = UserDeleted2{
-		Id: "lunny",
+		ID: "lunny",
 	}
 
 	cnt, err := testEngine.Insert(&user)
@@ -351,27 +351,27 @@ func TestTimeUserDeletedDiffLoc(t *testing.T) {
 	fmt.Println("user3", user3.DeletedAt, user4.DeletedAt)
 }
 
-type JsonDate time.Time
+type JSONDate time.Time
 
-func (j JsonDate) MarshalJSON() ([]byte, error) {
+func (j JSONDate) MarshalJSON() ([]byte, error) {
 	if time.Time(j).IsZero() {
 		return []byte(`""`), nil
 	}
 	return []byte(`"` + time.Time(j).Format("2006-01-02 15:04:05") + `"`), nil
 }
 
-func (j *JsonDate) UnmarshalJSON(value []byte) error {
+func (j *JSONDate) UnmarshalJSON(value []byte) error {
 	var v = strings.TrimSpace(strings.Trim(string(value), "\""))
 
 	t, err := time.ParseInLocation("2006-01-02 15:04:05", v, time.Local)
 	if err != nil {
 		return err
 	}
-	*j = JsonDate(t)
+	*j = JSONDate(t)
 	return nil
 }
 
-func (j *JsonDate) Unix() int64 {
+func (j *JSONDate) Unix() int64 {
 	return (*time.Time)(j).Unix()
 }
 
@@ -379,16 +379,16 @@ func TestCustomTimeUserDeleted(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UserDeleted3 struct {
-		Id        string
-		CreatedAt JsonDate `xorm:"created"`
-		UpdatedAt JsonDate `xorm:"updated"`
-		DeletedAt JsonDate `xorm:"deleted"`
+		ID        string
+		CreatedAt JSONDate `xorm:"created"`
+		UpdatedAt JSONDate `xorm:"updated"`
+		DeletedAt JSONDate `xorm:"deleted"`
 	}
 
 	assertSync(t, new(UserDeleted3))
 
 	var user = UserDeleted3{
-		Id: "lunny",
+		ID: "lunny",
 	}
 
 	cnt, err := testEngine.Insert(&user)
@@ -432,16 +432,16 @@ func TestCustomTimeUserDeletedDiffLoc(t *testing.T) {
 	testEngine.SetTZDatabase(dbLoc)
 
 	type UserDeleted4 struct {
-		Id        string
-		CreatedAt JsonDate `xorm:"created"`
-		UpdatedAt JsonDate `xorm:"updated"`
-		DeletedAt JsonDate `xorm:"deleted"`
+		ID        string
+		CreatedAt JSONDate `xorm:"created"`
+		UpdatedAt JSONDate `xorm:"updated"`
+		DeletedAt JSONDate `xorm:"deleted"`
 	}
 
 	assertSync(t, new(UserDeleted4))
 
 	var user = UserDeleted4{
-		Id: "lunny",
+		ID: "lunny",
 	}
 
 	cnt, err := testEngine.Insert(&user)

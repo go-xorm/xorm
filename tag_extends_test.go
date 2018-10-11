@@ -15,7 +15,7 @@ import (
 )
 
 type tempUser struct {
-	Id       int64
+	ID       int64
 	Username string
 }
 
@@ -34,7 +34,7 @@ type tempUser4 struct {
 }
 
 type Userinfo struct {
-	Uid        int64  `xorm:"id pk not null autoincr"`
+	UID        int64  `xorm:"id pk not null autoincr"`
 	Username   string `xorm:"unique"`
 	Departname string
 	Alias      string `xorm:"-"`
@@ -46,7 +46,7 @@ type Userinfo struct {
 }
 
 type Userdetail struct {
-	Id      int64
+	ID      int64
 	Intro   string `xorm:"text"`
 	Profile string `xorm:"varchar(2000)"`
 }
@@ -86,7 +86,7 @@ func TestExtends(t *testing.T) {
 	}
 
 	tu3 := &tempUser2{tempUser{0, "extends update"}, ""}
-	_, err = testEngine.ID(tu2.TempUser.Id).Update(tu3)
+	_, err = testEngine.ID(tu2.TempUser.ID).Update(tu3)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -124,7 +124,7 @@ func TestExtends(t *testing.T) {
 	}
 
 	tu10 := &tempUser4{tempUser2{tempUser{0, "extends update"}, ""}}
-	_, err = testEngine.ID(tu9.TempUser2.TempUser.Id).Update(tu10)
+	_, err = testEngine.ID(tu9.TempUser2.TempUser.ID).Update(tu10)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -160,7 +160,7 @@ func TestExtends(t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
-	if tu5.Temp.Id != 1 || tu5.Temp.Username != "extends" ||
+	if tu5.Temp.ID != 1 || tu5.Temp.Username != "extends" ||
 		tu5.Departname != "dev depart" {
 		err = errors.New("error get data extends")
 		t.Error(err)
@@ -168,7 +168,7 @@ func TestExtends(t *testing.T) {
 	}
 
 	tu6 := &tempUser3{&tempUser{0, "extends update"}, ""}
-	_, err = testEngine.ID(tu5.Temp.Id).Update(tu6)
+	_, err = testEngine.ID(tu5.Temp.ID).Update(tu6)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -204,7 +204,7 @@ func TestExtends(t *testing.T) {
 	qt := testEngine.Quote
 	ui := testEngine.TableName(new(Userinfo), true)
 	ud := testEngine.TableName(&detail, true)
-	uiid := testEngine.GetColumnMapper().Obj2Table("Id")
+	uiid := testEngine.GetColumnMapper().Obj2Table("ID")
 	udid := "detail_id"
 	sql := fmt.Sprintf("select * from %s, %s where %s.%s = %s.%s",
 		qt(ui), qt(ud), qt(ui), qt(udid), qt(ud), qt(uiid))
@@ -216,7 +216,7 @@ func TestExtends(t *testing.T) {
 		panic(err)
 	}
 	fmt.Println(info)
-	if info.Userinfo.Uid == 0 || info.Userdetail.Id == 0 {
+	if info.Userinfo.UID == 0 || info.Userdetail.ID == 0 {
 		err = errors.New("all of the id should has value")
 		t.Error(err)
 		panic(err)
@@ -236,7 +236,7 @@ func TestExtends(t *testing.T) {
 		t.Error(err)
 		panic(err)
 	}
-	if info2.Userinfo.Uid == 0 || info2.Userdetail.Id == 0 {
+	if info2.Userinfo.UID == 0 || info2.Userdetail.ID == 0 {
 		err = errors.New("all of the id should has value")
 		t.Error(err)
 		panic(err)
@@ -257,26 +257,26 @@ func TestExtends(t *testing.T) {
 }
 
 type MessageBase struct {
-	Id     int64 `xorm:"int(11) pk autoincr"`
-	TypeId int64 `xorm:"int(11) notnull"`
+	ID     int64 `xorm:"int(11) pk autoincr"`
+	TypeID int64 `xorm:"int(11) notnull"`
 }
 
 type Message struct {
 	MessageBase `xorm:"extends"`
 	Title       string    `xorm:"varchar(100) notnull"`
 	Content     string    `xorm:"text notnull"`
-	Uid         int64     `xorm:"int(11) notnull"`
-	ToUid       int64     `xorm:"int(11) notnull"`
+	UID         int64     `xorm:"int(11) notnull"`
+	ToUID       int64     `xorm:"int(11) notnull"`
 	CreateTime  time.Time `xorm:"datetime notnull created"`
 }
 
 type MessageUser struct {
-	Id   int64
+	ID   int64
 	Name string
 }
 
 type MessageType struct {
-	Id   int64
+	ID   int64
 	Name string
 }
 
@@ -319,12 +319,12 @@ func TestExtends2(t *testing.T) {
 
 	msg := Message{
 		MessageBase: MessageBase{
-			Id: msgtype.Id,
+			ID: msgtype.ID,
 		},
 		Title:   "test",
 		Content: "test",
-		Uid:     sender.Id,
-		ToUid:   receiver.Id,
+		UID:     sender.ID,
+		ToUID:   receiver.ID,
 	}
 	if testEngine.Dialect().DBType() == core.MSSQL {
 		_, err = testEngine.Exec("SET IDENTITY_INSERT message ON")
@@ -344,9 +344,9 @@ func TestExtends2(t *testing.T) {
 	msgTableName := quote(testEngine.TableName(mapper("Message"), true))
 
 	list := make([]Message, 0)
-	err = testEngine.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").
-		Join("LEFT", []string{userTableName, "receiver"}, "`receiver`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("ToUid")+"`").
-		Join("LEFT", []string{typeTableName, "type"}, "`type`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Id")+"`").
+	err = testEngine.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("ID")+"`="+msgTableName+".`"+mapper("UID")+"`").
+		Join("LEFT", []string{userTableName, "receiver"}, "`receiver`.`"+mapper("ID")+"`="+msgTableName+".`"+mapper("ToUID")+"`").
+		Join("LEFT", []string{typeTableName, "type"}, "`type`.`"+mapper("ID")+"`="+msgTableName+".`"+mapper("ID")+"`").
 		Find(&list)
 	assert.NoError(t, err)
 
@@ -356,7 +356,7 @@ func TestExtends2(t *testing.T) {
 		panic(err)
 	}
 
-	if list[0].Id != msg.Id {
+	if list[0].ID != msg.ID {
 		err = errors.New(fmt.Sprintln("should message equal", list[0], msg))
 		t.Error(err)
 		panic(err)
@@ -389,12 +389,12 @@ func TestExtends3(t *testing.T) {
 
 	msg := Message{
 		MessageBase: MessageBase{
-			Id: msgtype.Id,
+			ID: msgtype.ID,
 		},
 		Title:   "test",
 		Content: "test",
-		Uid:     sender.Id,
-		ToUid:   receiver.Id,
+		UID:     sender.ID,
+		ToUID:   receiver.ID,
 	}
 	if testEngine.Dialect().DBType() == core.MSSQL {
 		_, err = testEngine.Exec("SET IDENTITY_INSERT message ON")
@@ -410,9 +410,9 @@ func TestExtends3(t *testing.T) {
 	msgTableName := quote(testEngine.TableName(mapper("Message"), true))
 
 	list := make([]MessageExtend3, 0)
-	err = testEngine.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").
-		Join("LEFT", []string{userTableName, "receiver"}, "`receiver`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("ToUid")+"`").
-		Join("LEFT", []string{typeTableName, "type"}, "`type`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Id")+"`").
+	err = testEngine.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("ID")+"`="+msgTableName+".`"+mapper("UID")+"`").
+		Join("LEFT", []string{userTableName, "receiver"}, "`receiver`.`"+mapper("ID")+"`="+msgTableName+".`"+mapper("ToUID")+"`").
+		Join("LEFT", []string{typeTableName, "type"}, "`type`.`"+mapper("ID")+"`="+msgTableName+".`"+mapper("ID")+"`").
 		Find(&list)
 	assert.NoError(t, err)
 
@@ -422,25 +422,25 @@ func TestExtends3(t *testing.T) {
 		panic(err)
 	}
 
-	if list[0].Message.Id != msg.Id {
+	if list[0].Message.ID != msg.ID {
 		err = errors.New(fmt.Sprintln("should message equal", list[0].Message, msg))
 		t.Error(err)
 		panic(err)
 	}
 
-	if list[0].Sender.Id != sender.Id || list[0].Sender.Name != sender.Name {
+	if list[0].Sender.ID != sender.ID || list[0].Sender.Name != sender.Name {
 		err = errors.New(fmt.Sprintln("should sender equal", list[0].Sender, sender))
 		t.Error(err)
 		panic(err)
 	}
 
-	if list[0].Receiver.Id != receiver.Id || list[0].Receiver.Name != receiver.Name {
+	if list[0].Receiver.ID != receiver.ID || list[0].Receiver.Name != receiver.Name {
 		err = errors.New(fmt.Sprintln("should receiver equal", list[0].Receiver, receiver))
 		t.Error(err)
 		panic(err)
 	}
 
-	if list[0].Type.Id != msgtype.Id || list[0].Type.Name != msgtype.Name {
+	if list[0].Type.ID != msgtype.ID || list[0].Type.Name != msgtype.Name {
 		err = errors.New(fmt.Sprintln("should msgtype equal", list[0].Type, msgtype))
 		t.Error(err)
 		panic(err)
@@ -472,11 +472,11 @@ func TestExtends4(t *testing.T) {
 
 	msg := Message{
 		MessageBase: MessageBase{
-			Id: msgtype.Id,
+			ID: msgtype.ID,
 		},
 		Title:   "test",
 		Content: "test",
-		Uid:     sender.Id,
+		UID:     sender.ID,
 	}
 	if testEngine.Dialect().DBType() == core.MSSQL {
 		_, err = testEngine.Exec("SET IDENTITY_INSERT message ON")
@@ -495,8 +495,8 @@ func TestExtends4(t *testing.T) {
 	msgTableName := quote(testEngine.TableName(mapper("Message"), true))
 
 	list := make([]MessageExtend4, 0)
-	err = testEngine.Table(msgTableName).Join("LEFT", userTableName, userTableName+".`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").
-		Join("LEFT", typeTableName, typeTableName+".`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Id")+"`").
+	err = testEngine.Table(msgTableName).Join("LEFT", userTableName, userTableName+".`"+mapper("ID")+"`="+msgTableName+".`"+mapper("UID")+"`").
+		Join("LEFT", typeTableName, typeTableName+".`"+mapper("ID")+"`="+msgTableName+".`"+mapper("ID")+"`").
 		Find(&list)
 	if err != nil {
 		t.Error(err)
@@ -509,19 +509,19 @@ func TestExtends4(t *testing.T) {
 		panic(err)
 	}
 
-	if list[0].Message.Id != msg.Id {
+	if list[0].Message.ID != msg.ID {
 		err = errors.New(fmt.Sprintln("should message equal", list[0].Message, msg))
 		t.Error(err)
 		panic(err)
 	}
 
-	if list[0].MessageUser.Id != sender.Id || list[0].MessageUser.Name != sender.Name {
+	if list[0].MessageUser.ID != sender.ID || list[0].MessageUser.Name != sender.Name {
 		err = errors.New(fmt.Sprintln("should sender equal", list[0].MessageUser, sender))
 		t.Error(err)
 		panic(err)
 	}
 
-	if list[0].MessageType.Id != msgtype.Id || list[0].MessageType.Name != msgtype.Name {
+	if list[0].MessageType.ID != msgtype.ID || list[0].MessageType.Name != msgtype.Name {
 		err = errors.New(fmt.Sprintln("should msgtype equal", list[0].MessageType, msgtype))
 		t.Error(err)
 		panic(err)

@@ -18,7 +18,7 @@ func TestGetVar(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type GetVar struct {
-		Id      int64  `xorm:"autoincr pk"`
+		ID      int64  `xorm:"autoincr pk"`
 		Msg     string `xorm:"varchar(255)"`
 		Age     int
 		Money   float32
@@ -61,7 +61,7 @@ func TestGetVar(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, true, id.Valid)
-	assert.EqualValues(t, data.Id, id.Int64)
+	assert.EqualValues(t, data.ID, id.Int64)
 
 	var msgNull sql.NullString
 	has, err = testEngine.Table("get_var").Cols("msg").Get(&msgNull)
@@ -150,7 +150,7 @@ func TestGetStruct(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UserinfoGet struct {
-		Uid   int `xorm:"pk autoincr"`
+		UID   int `xorm:"pk autoincr"`
 		IsMan bool
 	}
 
@@ -161,33 +161,33 @@ func TestGetStruct(t *testing.T) {
 		_, err = testEngine.Exec("SET IDENTITY_INSERT userinfo_get ON")
 		assert.NoError(t, err)
 	}
-	cnt, err := testEngine.Insert(&UserinfoGet{Uid: 2})
+	cnt, err := testEngine.Insert(&UserinfoGet{UID: 2})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	user := UserinfoGet{Uid: 2}
+	user := UserinfoGet{UID: 2}
 	has, err := testEngine.Get(&user)
 	assert.NoError(t, err)
 	assert.True(t, has)
 
-	type NoIdUser struct {
+	type NoIDUser struct {
 		User   string `xorm:"unique"`
 		Remain int64
 		Total  int64
 	}
 
-	assert.NoError(t, testEngine.Sync2(&NoIdUser{}))
+	assert.NoError(t, testEngine.Sync2(&NoIDUser{}))
 
 	userCol := testEngine.GetColumnMapper().Obj2Table("User")
-	_, err = testEngine.Where("`"+userCol+"` = ?", "xlw").Delete(&NoIdUser{})
+	_, err = testEngine.Where("`"+userCol+"` = ?", "xlw").Delete(&NoIDUser{})
 	assert.NoError(t, err)
 
-	cnt, err = testEngine.Insert(&NoIdUser{"xlw", 20, 100})
+	cnt, err = testEngine.Insert(&NoIDUser{"xlw", 20, 100})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	noIdUser := new(NoIdUser)
-	has, err = testEngine.Where("`"+userCol+"` = ?", "xlw").Get(noIdUser)
+	noIDUser := new(NoIDUser)
+	has, err = testEngine.Where("`"+userCol+"` = ?", "xlw").Get(noIDUser)
 	assert.NoError(t, err)
 	assert.True(t, has)
 }
@@ -196,7 +196,7 @@ func TestGetSlice(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UserinfoSlice struct {
-		Uid   int `xorm:"pk autoincr"`
+		UID   int `xorm:"pk autoincr"`
 		IsMan bool
 	}
 
@@ -212,7 +212,7 @@ func TestGetError(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type GetError struct {
-		Uid   int `xorm:"pk autoincr"`
+		UID   int `xorm:"pk autoincr"`
 		IsMan bool
 	}
 
@@ -231,30 +231,30 @@ func TestGetError(t *testing.T) {
 func TestJSONString(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	type JsonString struct {
-		Id      int64
+	type JSONString struct {
+		ID      int64
 		Content string `xorm:"json"`
 	}
-	type JsonJson struct {
-		Id      int64
+	type JSONJSON struct {
+		ID      int64
 		Content []string `xorm:"json"`
 	}
 
-	assertSync(t, new(JsonJson))
+	assertSync(t, new(JSONJSON))
 
-	_, err := testEngine.Insert(&JsonJson{
+	_, err := testEngine.Insert(&JSONJSON{
 		Content: []string{"1", "2"},
 	})
 	assert.NoError(t, err)
 
-	var js JsonString
+	var js JSONString
 	has, err := testEngine.Table("json_json").Get(&js)
 	assert.NoError(t, err)
 	assert.True(t, has)
-	assert.EqualValues(t, 1, js.Id)
+	assert.EqualValues(t, 1, js.ID)
 	assert.EqualValues(t, `["1","2"]`, js.Content)
 
-	var jss []JsonString
+	var jss []JSONString
 	err = testEngine.Table("json_json").Find(&jss)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(jss))
@@ -265,10 +265,10 @@ func TestGetActionMapping(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type ActionMapping struct {
-		ActionId    string `xorm:"pk"`
+		ActionID    string `xorm:"pk"`
 		ActionName  string `xorm:"index"`
-		ScriptId    string `xorm:"unique"`
-		RollbackId  string `xorm:"unique"`
+		ScriptID    string `xorm:"unique"`
+		RollbackID  string `xorm:"unique"`
 		Env         string
 		Tags        string
 		Description string
@@ -279,8 +279,8 @@ func TestGetActionMapping(t *testing.T) {
 	assertSync(t, new(ActionMapping))
 
 	_, err := testEngine.Insert(&ActionMapping{
-		ActionId: "1",
-		ScriptId: "2",
+		ActionID: "1",
+		ScriptID: "2",
 	})
 	assert.NoError(t, err)
 
@@ -294,9 +294,9 @@ func TestGetActionMapping(t *testing.T) {
 	assert.EqualValues(t, "", valuesSlice[1])
 }
 
-func TestGetStructId(t *testing.T) {
+func TestGetStructID(t *testing.T) {
 	type TestGetStruct struct {
-		Id int64
+		ID int64
 	}
 
 	assert.NoError(t, prepareEngine())
@@ -308,7 +308,7 @@ func TestGetStructId(t *testing.T) {
 	assert.NoError(t, err)
 
 	type maxidst struct {
-		Id int64
+		ID int64
 	}
 
 	//var id int64
@@ -317,12 +317,12 @@ func TestGetStructId(t *testing.T) {
 	has, err := testEngine.SQL(sql).Get(&maxid)
 	assert.NoError(t, err)
 	assert.True(t, has)
-	assert.EqualValues(t, 2, maxid.Id)
+	assert.EqualValues(t, 2, maxid.ID)
 }
 
 func TestContextGet(t *testing.T) {
 	type ContextGetStruct struct {
-		Id   int64
+		ID   int64
 		Name string
 	}
 
@@ -341,7 +341,7 @@ func TestContextGet(t *testing.T) {
 	has, err := sess.ID(1).NoCache().ContextCache(context).Get(&c2)
 	assert.NoError(t, err)
 	assert.True(t, has)
-	assert.EqualValues(t, 1, c2.Id)
+	assert.EqualValues(t, 1, c2.ID)
 	assert.EqualValues(t, "1", c2.Name)
 	sql, args := sess.LastSQL()
 	assert.True(t, len(sql) > 0)
@@ -351,7 +351,7 @@ func TestContextGet(t *testing.T) {
 	has, err = sess.ID(1).NoCache().ContextCache(context).Get(&c3)
 	assert.NoError(t, err)
 	assert.True(t, has)
-	assert.EqualValues(t, 1, c3.Id)
+	assert.EqualValues(t, 1, c3.ID)
 	assert.EqualValues(t, "1", c3.Name)
 	sql, args = sess.LastSQL()
 	assert.True(t, len(sql) == 0)
@@ -360,7 +360,7 @@ func TestContextGet(t *testing.T) {
 
 func TestContextGet2(t *testing.T) {
 	type ContextGetStruct2 struct {
-		Id   int64
+		ID   int64
 		Name string
 	}
 
@@ -376,13 +376,13 @@ func TestContextGet2(t *testing.T) {
 	has, err := testEngine.ID(1).NoCache().ContextCache(context).Get(&c2)
 	assert.NoError(t, err)
 	assert.True(t, has)
-	assert.EqualValues(t, 1, c2.Id)
+	assert.EqualValues(t, 1, c2.ID)
 	assert.EqualValues(t, "1", c2.Name)
 
 	var c3 ContextGetStruct2
 	has, err = testEngine.ID(1).NoCache().ContextCache(context).Get(&c3)
 	assert.NoError(t, err)
 	assert.True(t, has)
-	assert.EqualValues(t, 1, c3.Id)
+	assert.EqualValues(t, 1, c3.ID)
 	assert.EqualValues(t, "1", c3.Name)
 }

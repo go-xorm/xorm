@@ -20,7 +20,7 @@ func TestQueryString(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type GetVar2 struct {
-		Id      int64  `xorm:"autoincr pk"`
+		ID      int64  `xorm:"autoincr pk"`
 		Msg     string `xorm:"varchar(255)"`
 		Age     int
 		Money   float32
@@ -51,7 +51,7 @@ func TestQueryString2(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type GetVar3 struct {
-		Id  int64 `xorm:"autoincr pk"`
+		ID  int64 `xorm:"autoincr pk"`
 		Msg bool  `xorm:"bit"`
 	}
 
@@ -111,7 +111,7 @@ func TestQueryInterface(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type GetVarInterface struct {
-		Id      int64  `xorm:"autoincr pk"`
+		ID      int64  `xorm:"autoincr pk"`
 		Msg     string `xorm:"varchar(255)"`
 		Age     int
 		Money   float32
@@ -142,7 +142,7 @@ func TestQueryNoParams(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type QueryNoParams struct {
-		Id      int64  `xorm:"autoincr pk"`
+		ID      int64  `xorm:"autoincr pk"`
 		Msg     string `xorm:"varchar(255)"`
 		Age     int
 		Money   float32
@@ -191,7 +191,7 @@ func TestQueryStringNoParam(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type GetVar4 struct {
-		Id  int64 `xorm:"autoincr pk"`
+		ID  int64 `xorm:"autoincr pk"`
 		Msg bool  `xorm:"bit"`
 	}
 
@@ -228,7 +228,7 @@ func TestQueryInterfaceNoParam(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type GetVar5 struct {
-		Id  int64 `xorm:"autoincr pk"`
+		ID  int64 `xorm:"autoincr pk"`
 		Msg bool  `xorm:"bit"`
 	}
 
@@ -257,7 +257,7 @@ func TestQueryWithBuilder(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type QueryWithBuilder struct {
-		Id      int64  `xorm:"autoincr pk"`
+		ID      int64  `xorm:"autoincr pk"`
 		Msg     string `xorm:"varchar(255)"`
 		Age     int
 		Money   float32

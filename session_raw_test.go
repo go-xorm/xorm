@@ -15,7 +15,7 @@ func TestExecAndQuery(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	type UserinfoQuery struct {
-		Uid  int
+		UID  int
 		Name string
 	}
 
