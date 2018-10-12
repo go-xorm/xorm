@@ -182,6 +182,23 @@ func rows2Strings(rows *core.Rows) (resultsSlice []map[string]string, err error)
 	return resultsSlice, nil
 }
 
+func rows2SliceString(rows *core.Rows) (resultsSlice [][]string, err error) {
+	fields, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		record := make([]string, len(fields), len(fields))
+		err = rows.ScanSlice(&record)
+		if err != nil {
+			return nil, err
+		}
+		resultsSlice = append(resultsSlice, record)
+	}
+
+	return resultsSlice, nil
+}
+
 // QueryString runs a raw sql and return records as []map[string]string
 func (session *Session) QueryString(sqlorArgs ...interface{}) ([]map[string]string, error) {
 	if session.isAutoClose {
@@ -200,6 +217,26 @@ func (session *Session) QueryString(sqlorArgs ...interface{}) ([]map[string]stri
 	defer rows.Close()
 
 	return rows2Strings(rows)
+}
+
+// QuerySliceString runs a raw sql and return records as [][]string
+func (session *Session) QuerySliceString(sqlorArgs ...interface{}) ([][]string, error) {
+	if session.isAutoClose {
+		defer session.Close()
+	}
+
+	sqlStr, args, err := session.genQuerySQL(sqlorArgs...)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := session.queryRows(sqlStr, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return rows2SliceString(rows)
 }
 
 func row2mapInterface(rows *core.Rows, fields []string) (resultsMap map[string]interface{}, err error) {
