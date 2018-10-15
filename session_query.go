@@ -166,6 +166,34 @@ func row2mapStr(rows *core.Rows, fields []string) (resultsMap map[string]string,
 	return result, nil
 }
 
+func row2sliceStr(rows *core.Rows, fields []string) (results []string, err error) {
+	result := make([]string, 0, len(fields))
+	scanResultContainers := make([]interface{}, len(fields))
+	for i := 0; i < len(fields); i++ {
+		var scanResultContainer interface{}
+		scanResultContainers[i] = &scanResultContainer
+	}
+	if err := rows.Scan(scanResultContainers...); err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < len(fields); i++ {
+		rawValue := reflect.Indirect(reflect.ValueOf(scanResultContainers[i]))
+		// if row is null then as empty string
+		if rawValue.Interface() == nil {
+			result = append(result, "")
+			continue
+		}
+
+		if data, err := value2String(&rawValue); err == nil {
+			result = append(result, data)
+		} else {
+			return nil, err
+		}
+	}
+	return result, nil
+}
+
 func rows2Strings(rows *core.Rows) (resultsSlice []map[string]string, err error) {
 	fields, err := rows.Columns()
 	if err != nil {
@@ -188,8 +216,7 @@ func rows2SliceString(rows *core.Rows) (resultsSlice [][]string, err error) {
 		return nil, err
 	}
 	for rows.Next() {
-		record := make([]string, len(fields), len(fields))
-		err = rows.ScanSlice(&record)
+		record, err := row2sliceStr(rows, fields)
 		if err != nil {
 			return nil, err
 		}
