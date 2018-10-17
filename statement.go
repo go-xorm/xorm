@@ -22,7 +22,7 @@ type Statement struct {
 	RefTable        *core.Table
 	Engine          *Engine
 	Start           int
-	LimitN          int
+	LimitN          *int
 	idParam         *core.PK
 	OrderStr        string
 	JoinStr         string
@@ -66,7 +66,7 @@ type Statement struct {
 func (statement *Statement) Init() {
 	statement.RefTable = nil
 	statement.Start = 0
-	statement.LimitN = 0
+	statement.LimitN = nil
 	statement.OrderStr = ""
 	statement.UseCascade = true
 	statement.JoinStr = ""
@@ -689,7 +689,7 @@ func (statement *Statement) Top(limit int) *Statement {
 
 // Limit generate LIMIT start, limit statement
 func (statement *Statement) Limit(limit int, start ...int) *Statement {
-	statement.LimitN = limit
+	statement.LimitN = &limit
 	if len(start) > 0 {
 		statement.Start = start[0]
 	}
@@ -1062,9 +1062,11 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit, n
 		fromStr = fmt.Sprintf("%v %v", fromStr, statement.JoinStr)
 	}
 
+	pLimitN := statement.LimitN
 	if dialect.DBType() == core.MSSQL {
-		if statement.LimitN > 0 {
-			top = fmt.Sprintf(" TOP %d ", statement.LimitN)
+		if pLimitN != nil {
+			LimitNValue := *pLimitN
+			top = fmt.Sprintf(" TOP %d ", LimitNValue)
 		}
 		if statement.Start > 0 {
 			var column string
@@ -1125,16 +1127,20 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit, n
 	if needLimit {
 		if dialect.DBType() != core.MSSQL && dialect.DBType() != core.ORACLE {
 			if statement.Start > 0 {
-				fmt.Fprintf(&buf, " LIMIT %v OFFSET %v", statement.LimitN, statement.Start)
-			} else if statement.LimitN > 0 {
-				fmt.Fprint(&buf, " LIMIT ", statement.LimitN)
+				if pLimitN != nil {
+					fmt.Fprintf(&buf, " LIMIT %v OFFSET %v", *pLimitN, statement.Start)
+				} else {
+					fmt.Fprintf(&buf, "LIMIT 0 OFFSET %v", statement.Start)
+				}
+			} else if pLimitN != nil {
+				fmt.Fprint(&buf, " LIMIT ", *pLimitN)
 			}
 		} else if dialect.DBType() == core.ORACLE {
-			if statement.Start != 0 || statement.LimitN != 0 {
+			if statement.Start != 0 || pLimitN != nil {
 				oldString := buf.String()
 				buf.Reset()
 				fmt.Fprintf(&buf, "SELECT %v FROM (SELECT %v,ROWNUM RN FROM (%v) at WHERE ROWNUM <= %d) aat WHERE RN > %d",
-					columnStr, columnStr, oldString, statement.Start+statement.LimitN, statement.Start)
+					columnStr, columnStr, oldString, statement.Start+*pLimitN, statement.Start)
 			}
 		}
 	}
@@ -1191,8 +1197,9 @@ func (statement *Statement) convertIDSQL(sqlStr string) string {
 		}
 
 		var top string
-		if statement.LimitN > 0 && statement.Engine.dialect.DBType() == core.MSSQL {
-			top = fmt.Sprintf("TOP %d ", statement.LimitN)
+		pLimitN := statement.LimitN
+		if pLimitN != nil && statement.Engine.dialect.DBType() == core.MSSQL {
+			top = fmt.Sprintf("TOP %d ", *pLimitN)
 		}
 
 		newsql := fmt.Sprintf("SELECT %s%s FROM %v", top, colstrs, sqls[1])

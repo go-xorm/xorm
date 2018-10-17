@@ -296,11 +296,12 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	var tableName = session.statement.TableName()
 	// TODO: Oracle support needed
 	var top string
-	if st.LimitN > 0 {
+	if st.LimitN != nil {
+		limitValue := *st.LimitN
 		if st.Engine.dialect.DBType() == core.MYSQL {
-			condSQL = condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
+			condSQL = condSQL + fmt.Sprintf(" LIMIT %d", limitValue)
 		} else if st.Engine.dialect.DBType() == core.SQLITE {
-			tempCondSQL := condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
+			tempCondSQL := condSQL + fmt.Sprintf(" LIMIT %d", limitValue)
 			cond = cond.And(builder.Expr(fmt.Sprintf("rowid IN (SELECT rowid FROM %v %v)",
 				session.engine.Quote(tableName), tempCondSQL), condArgs...))
 			condSQL, condArgs, err = builder.ToSQL(cond)
@@ -311,7 +312,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 				condSQL = "WHERE " + condSQL
 			}
 		} else if st.Engine.dialect.DBType() == core.POSTGRES {
-			tempCondSQL := condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
+			tempCondSQL := condSQL + fmt.Sprintf(" LIMIT %d", limitValue)
 			cond = cond.And(builder.Expr(fmt.Sprintf("CTID IN (SELECT CTID FROM %v %v)",
 				session.engine.Quote(tableName), tempCondSQL), condArgs...))
 			condSQL, condArgs, err = builder.ToSQL(cond)
@@ -326,7 +327,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			if st.OrderStr != "" && st.Engine.dialect.DBType() == core.MSSQL &&
 				table != nil && len(table.PrimaryKeys) == 1 {
 				cond = builder.Expr(fmt.Sprintf("%s IN (SELECT TOP (%d) %s FROM %v%v)",
-					table.PrimaryKeys[0], st.LimitN, table.PrimaryKeys[0],
+					table.PrimaryKeys[0], limitValue, table.PrimaryKeys[0],
 					session.engine.Quote(tableName), condSQL), condArgs...)
 
 				condSQL, condArgs, err = builder.ToSQL(cond)
@@ -337,7 +338,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 					condSQL = "WHERE " + condSQL
 				}
 			} else {
-				top = fmt.Sprintf("TOP (%d) ", st.LimitN)
+				top = fmt.Sprintf("TOP (%d) ", limitValue)
 			}
 		}
 	}

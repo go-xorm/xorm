@@ -61,9 +61,9 @@ func (session *Session) bufferIterate(bean interface{}, fun IterFunc) error {
 	}
 
 	var bufferSize = session.statement.bufferSize
-	var limit = session.statement.LimitN
-	if limit > 0 && bufferSize > limit {
-		bufferSize = limit
+	var pLimitN = session.statement.LimitN
+	if pLimitN != nil && bufferSize > *pLimitN {
+		bufferSize = *pLimitN
 	}
 	var start = session.statement.Start
 	v := rValue(bean)
@@ -83,11 +83,11 @@ func (session *Session) bufferIterate(bean interface{}, fun IterFunc) error {
 		}
 
 		start = start + slice.Elem().Len()
-		if limit > 0 && idx+bufferSize > limit {
-			bufferSize = limit - idx
+		if pLimitN != nil && idx+bufferSize > *pLimitN {
+			bufferSize = *pLimitN - idx
 		}
 
-		if bufferSize <= 0 || slice.Elem().Len() < bufferSize || idx == limit {
+		if bufferSize <= 0 || slice.Elem().Len() < bufferSize || (pLimitN != nil && idx == *pLimitN) {
 			break
 		}
 	}

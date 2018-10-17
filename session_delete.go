@@ -97,7 +97,8 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if len(condSQL) == 0 && session.statement.LimitN == 0 {
+	pLimitN := session.statement.LimitN
+	if len(condSQL) == 0 && pLimitN == nil && *pLimitN == 0 {
 		return 0, ErrNeedDeletedCond
 	}
 
@@ -115,8 +116,9 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	if len(session.statement.OrderStr) > 0 {
 		orderSQL += fmt.Sprintf(" ORDER BY %s", session.statement.OrderStr)
 	}
-	if session.statement.LimitN > 0 {
-		orderSQL += fmt.Sprintf(" LIMIT %d", session.statement.LimitN)
+	if pLimitN != nil && *pLimitN > 0 {
+		limitNValue := *pLimitN
+		orderSQL += fmt.Sprintf(" LIMIT %d", limitNValue)
 	}
 
 	if len(orderSQL) > 0 {
@@ -135,7 +137,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 			} else {
 				deleteSQL += " WHERE " + inSQL
 			}
-		// TODO: how to handle delete limit on mssql?
+			// TODO: how to handle delete limit on mssql?
 		case core.MSSQL:
 			return 0, ErrNotImplemented
 		default:
@@ -176,7 +178,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 				} else {
 					realSQL += " WHERE " + inSQL
 				}
-			// TODO: how to handle delete limit on mssql?
+				// TODO: how to handle delete limit on mssql?
 			case core.MSSQL:
 				return 0, ErrNotImplemented
 			default:
