@@ -224,6 +224,43 @@ func TestQueryStringNoParam(t *testing.T) {
 	}
 }
 
+func TestQuerySliceStringNoParam(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type GetVar6 struct {
+		Id  int64 `xorm:"autoincr pk"`
+		Msg bool  `xorm:"bit"`
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(GetVar6)))
+
+	var data = GetVar6{
+		Msg: false,
+	}
+	_, err := testEngine.Insert(data)
+	assert.NoError(t, err)
+
+	records, err := testEngine.Table("get_var6").Limit(1).QuerySliceString()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(records))
+	assert.EqualValues(t, "1", records[0][0])
+	if testEngine.Dialect().URI().DbType == core.POSTGRES {
+		assert.EqualValues(t, "false", records[0][1])
+	} else {
+		assert.EqualValues(t, "0", records[0][1])
+	}
+
+	records, err = testEngine.Table("get_var6").Where(builder.Eq{"id": 1}).QuerySliceString()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(records))
+	assert.EqualValues(t, "1", records[0][0])
+	if testEngine.Dialect().URI().DbType == core.POSTGRES {
+		assert.EqualValues(t, "false", records[0][1])
+	} else {
+		assert.EqualValues(t, "0", records[0][1])
+	}
+}
+
 func TestQueryInterfaceNoParam(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
