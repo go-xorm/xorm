@@ -1047,7 +1047,7 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 			}
 		}
 		if _, ok := core.SqlTypes[col.SQLType.Name]; !ok {
-			return nil, nil, fmt.Errorf("Unknown colType: %v", dataType)
+			return nil, nil, fmt.Errorf("Unknown colType: %s - %s", dataType, col.SQLType.Name)
 		}
 
 		col.Length = maxLen
