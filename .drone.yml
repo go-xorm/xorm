@@ -53,16 +53,13 @@ pipeline:
       - |
         psql -U postgres -d xorm_test -h pgsql \
           -c "create schema xorm;"
-  
+
   init_mssql:
-    image: microsoft/mssql-server-linux:2017-CU11
+    image: microsoft/mssql-tools
     commands:
-      - echo 'SELECT 1;' > ./select.sql
-      - echo 'CREATE DATABASE xorm_test' > ./create.sql
-      - |
-        until /opt/mssql-tools/bin/sqlcmd -S mssql -U sa \
-         -i ./select.sql >/dev/null 2>&1; do sleep 1; done
-      - /opt/mssql-tools/bin/sqlcmd -S mssql -U sa -P "yourStrong(!)Password" -i ./create.sql
+      - sqlcmd -S mssql -U sa -P "yourStrong(!)Password" -Q "CREATE DATABASE xorm_test"
+    when:
+      event: [ push, tag, pull_request ]
 
   build:
     image: golang:${GO_VERSION}
