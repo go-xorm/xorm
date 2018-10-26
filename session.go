@@ -845,3 +845,12 @@ func (session *Session) Unscoped() *Session {
 	session.statement.Unscoped()
 	return session
 }
+
+func (session *Session) setIntegerFieldValue(fieldValue *reflect.Value, version int64) {
+	switch fieldValue.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		fieldValue.SetInt(version)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		fieldValue.SetUint(uint64(version))
+	}
+}
