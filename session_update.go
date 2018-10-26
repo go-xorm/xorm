@@ -116,7 +116,7 @@ func (session *Session) cacheUpdate(table *core.Table, tableName, sqlStr string,
 					} else {
 						session.engine.logger.Debug("[cacheUpdate] set bean field", bean, colName, fieldValue.Interface())
 						if col.IsVersion && session.statement.checkVersion {
-							session.freshVersionFieldValue(fieldValue, false)
+							session.incrVersionFieldValue(fieldValue)
 						} else {
 							fieldValue.Set(reflect.ValueOf(args[idx]))
 						}
@@ -357,7 +357,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		return 0, err
 	} else if doIncVer {
 		if verValue != nil && verValue.IsValid() && verValue.CanSet() {
-			session.freshVersionFieldValue(verValue, false)
+			session.incrVersionFieldValue(verValue)
 		}
 	}
 

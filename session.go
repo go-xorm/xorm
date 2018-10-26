@@ -846,19 +846,11 @@ func (session *Session) Unscoped() *Session {
 	return session
 }
 
-func (session *Session) freshVersionFieldValue(fieldValue *reflect.Value, isInsert bool) {
+func (session *Session) incrVersionFieldValue(fieldValue *reflect.Value) {
 	switch fieldValue.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		if isInsert {
-			fieldValue.SetInt(1)
-		} else {
-			fieldValue.SetInt(fieldValue.Int() + 1)
-		}
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		if isInsert {
-			fieldValue.SetUint(1)
-		} else {
-			fieldValue.SetUint(fieldValue.Uint() + 1)
-		}
+		fieldValue.SetInt(fieldValue.Int() + 1)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		fieldValue.SetUint(fieldValue.Uint() + 1)
 	}
 }
