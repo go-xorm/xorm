@@ -397,7 +397,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			if err != nil {
 				session.engine.logger.Error(err)
 			} else if verValue.IsValid() && verValue.CanSet() {
-				session.setIntegerFieldValue(verValue, 1)
+				session.freshVersionFieldValue(verValue, true)
 			}
 		}
 
@@ -440,7 +440,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			if err != nil {
 				session.engine.logger.Error(err)
 			} else if verValue.IsValid() && verValue.CanSet() {
-				session.setIntegerFieldValue(verValue, 1)
+				session.freshVersionFieldValue(verValue, true)
 			}
 		}
 
@@ -481,7 +481,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			if err != nil {
 				session.engine.logger.Error(err)
 			} else if verValue.IsValid() && verValue.CanSet() {
-				session.setIntegerFieldValue(verValue, 1)
+				session.freshVersionFieldValue(verValue, true)
 			}
 		}
 
