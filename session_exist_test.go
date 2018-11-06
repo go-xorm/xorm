@@ -75,6 +75,5 @@ func TestExistStruct(t *testing.T) {
 	assert.False(t, has)
 
 	has, err = testEngine.Table("record_exist").ID(100).Where("name = ?", "test1").Exist()
-	assert.NoError(t, err)
-	assert.False(t, has)
+	assert.Error(t, err)
 }
