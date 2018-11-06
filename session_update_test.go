@@ -1133,6 +1133,54 @@ func TestCreatedUpdated2(t *testing.T) {
 	assert.True(t, s2.UpdateAt.Unix() > s2.CreateAt.Unix())
 }
 
+func TestDeletedUpdate(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type DeletedUpdatedStruct struct {
+		Id        int64
+		Name      string
+		DeletedAt time.Time `xorm:"deleted"`
+	}
+
+	assertSync(t, new(DeletedUpdatedStruct))
+
+	var s = DeletedUpdatedStruct{
+		Name: "test",
+	}
+	cnt, err := testEngine.Insert(&s)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	cnt, err = testEngine.ID(s.Id).Delete(&DeletedUpdatedStruct{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	s.DeletedAt = time.Time{}
+	cnt, err = testEngine.Unscoped().Nullable("deleted_at").Update(&s)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var s1 DeletedUpdatedStruct
+	has, err := testEngine.ID(s.Id).Get(&s1)
+	assert.EqualValues(t, true, has)
+
+	cnt, err = testEngine.ID(s.Id).Delete(&DeletedUpdatedStruct{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	cnt, err = testEngine.ID(s.Id).Cols("deleted_at").Update(&DeletedUpdatedStruct{})
+	assert.EqualValues(t, "No content found to be updated", err.Error())
+	assert.EqualValues(t, 0, cnt)
+
+	cnt, err = testEngine.ID(s.Id).Unscoped().Cols("deleted_at").Update(&DeletedUpdatedStruct{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var s2 DeletedUpdatedStruct
+	has, err = testEngine.ID(s.Id).Get(&s2)
+	assert.EqualValues(t, true, has)
+}
+
 func TestUpdateMapCondition(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
