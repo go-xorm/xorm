@@ -46,6 +46,51 @@ func TestInsertMulti(t *testing.T) {
 	assert.EqualValues(t, 3, num)
 }
 
+func TestInsertMultiWithOmit(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type TestMultiOmit struct {
+		Id      int64  `xorm:"int(11) pk"`
+		Name    string `xorm:"varchar(255)"`
+		Omitted string `xorm:"varchar(255) 'omitted'"`
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(TestMultiOmit)))
+
+	l := []interface{}{
+		TestMultiOmit{Id: 1, Name: "1", Omitted: "1"},
+		TestMultiOmit{Id: 2, Name: "1", Omitted: "2"},
+		TestMultiOmit{Id: 3, Name: "1", Omitted: "3"},
+	}
+
+	check := func() {
+		var ls []TestMultiOmit
+		err := testEngine.NewSession().Find(&ls)
+		assert.NoError(t, err)
+		assert.EqualValues(t, 3, len(ls))
+
+		for e := range ls {
+			assert.EqualValues(t, "", ls[e].Omitted)
+		}
+	}
+
+	num, err := testEngine.NewSession().Omit("omitted").
+		Insert(l ...)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, num)
+	check()
+
+	num, err = testEngine.NewSession().Delete(TestMultiOmit{Name: "1"})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, num)
+
+	num, err = testEngine.NewSession().Omit("omitted").
+		Insert(l)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, num)
+	check()
+}
+
 func insertMultiDatas(step int, datas interface{}) (num int64, err error) {
 	sliceValue := reflect.Indirect(reflect.ValueOf(datas))
 	var iLen int64

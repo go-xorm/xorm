@@ -23,6 +23,16 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 		defer session.Close()
 	}
 
+	var copyOfOmitColMap columnMap
+	var copyOfOmitStr string
+
+	if len(session.statement.omitColumnMap) > 0 {
+		copyOfOmitColMap = make([]string, len(session.statement.omitColumnMap))
+		copy(copyOfOmitColMap, session.statement.omitColumnMap)
+
+		copyOfOmitStr = session.statement.OmitStr
+	}
+
 	for _, bean := range beans {
 		sliceValue := reflect.Indirect(reflect.ValueOf(bean))
 		if sliceValue.Kind() == reflect.Slice {
@@ -45,6 +55,11 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 				}
 			}
 		} else {
+			if len(copyOfOmitColMap) > 0 {
+				session.statement.omitColumnMap = copyOfOmitColMap
+				session.statement.OmitStr = copyOfOmitStr
+			}
+
 			cnt, err := session.innerInsert(bean)
 			if err != nil {
 				return affected, err
@@ -424,7 +439,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 
 		return 1, nil
 	} else if session.engine.dialect.DBType() == core.POSTGRES && len(table.AutoIncrement) > 0 {
-		//assert table.AutoIncrement != ""
+		// assert table.AutoIncrement != ""
 		sqlStr = sqlStr + " RETURNING " + session.engine.Quote(table.AutoIncrement)
 		res, err := session.queryBytes(sqlStr, args...)
 
