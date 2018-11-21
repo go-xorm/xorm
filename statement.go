@@ -60,6 +60,7 @@ type Statement struct {
 	cond            builder.Cond
 	bufferSize      int
 	context         ContextCache
+	lastError       error
 }
 
 // Init reset all the statement's fields
@@ -101,6 +102,7 @@ func (statement *Statement) Init() {
 	statement.cond = builder.NewCond()
 	statement.bufferSize = 0
 	statement.context = nil
+	statement.lastError = nil
 }
 
 // NoAutoCondition if you do not want convert bean's field as query condition, then use this function
@@ -125,13 +127,13 @@ func (statement *Statement) SQL(query interface{}, args ...interface{}) *Stateme
 		var err error
 		statement.RawSQL, statement.RawParams, err = query.(*builder.Builder).ToSQL()
 		if err != nil {
-			statement.Engine.logger.Error(err)
+			statement.lastError = err
 		}
 	case string:
 		statement.RawSQL = query.(string)
 		statement.RawParams = args
 	default:
-		statement.Engine.logger.Error("unsupported sql type")
+		statement.lastError = errors.New("unsupported sql type")
 	}
 
 	return statement
@@ -160,7 +162,7 @@ func (statement *Statement) And(query interface{}, args ...interface{}) *Stateme
 			}
 		}
 	default:
-		// TODO: not support condition type
+		statement.lastError = errors.New("unsupported condition type")
 	}
 
 	return statement

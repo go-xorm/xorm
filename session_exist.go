@@ -19,6 +19,10 @@ func (session *Session) Exist(bean ...interface{}) (bool, error) {
 		defer session.Close()
 	}
 
+	if session.statement.lastError != nil {
+		return false, session.statement.lastError
+	}
+
 	var sqlStr string
 	var args []interface{}
 	var err error
