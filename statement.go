@@ -384,6 +384,9 @@ func (statement *Statement) buildUpdates(bean interface{},
 				val = engine.formatColTime(col, t)
 			} else if nulType, ok := fieldValue.Interface().(driver.Valuer); ok {
 				val, _ = nulType.Value()
+				if val == nil && !requiredField {
+					continue
+				}
 			} else {
 				if !col.SQLType.IsJson() {
 					engine.autoMapType(fieldValue)
