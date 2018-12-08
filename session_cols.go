@@ -149,12 +149,6 @@ func (session *Session) Cols(columns ...string) *Session {
 	return session
 }
 
-// RawCols generate raw "col1, col2" statement
-func (session *Session) RawCols(columns ...string) *Session {
-	session.statement.ColumnStr = strings.Join(columns, ", ")
-	return session
-}
-
 // AllCols ask all columns
 func (session *Session) AllCols() *Session {
 	session.statement.AllCols()
