@@ -58,7 +58,7 @@ func (session *Session) get(bean interface{}) (bool, error) {
 	table := session.statement.RefTable
 
 	if session.canCache() && beanValue.Elem().Kind() == reflect.Struct {
-		if cacher := session.engine.getCacher(table.Name); cacher != nil &&
+		if cacher := session.engine.getCacher(session.statement.TableName()); cacher != nil &&
 			!session.statement.unscoped {
 			has, err := session.cacheGet(bean, sqlStr, args...)
 			if err != ErrCacheFailed {

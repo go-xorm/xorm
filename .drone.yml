@@ -82,6 +82,14 @@ pipeline:
     when:
       event: [ push, pull_request ]
 
+  test-mysql-utf8mb4:
+    image: golang:${GO_VERSION}
+    commands:
+      - go test -v -race -db="mysql" -conn_str="root:@tcp(mysql)/xorm_test?charset=utf8mb4" -coverprofile=coverage2.1-1.txt -covermode=atomic
+      - go test -v -race -db="mysql" -conn_str="root:@tcp(mysql)/xorm_test?charset=utf8mb4" -cache=true -coverprofile=coverage2.1-2.txt -covermode=atomic
+    when:
+      event: [ push, pull_request ]
+
   test-mymysql:
     image: golang:${GO_VERSION}
     commands:
@@ -103,7 +111,7 @@ pipeline:
     commands:
       - go test -v -race -db="postgres" -conn_str="postgres://postgres:@pgsql/xorm_test?sslmode=disable" -schema=xorm -coverprofile=coverage5-1.txt -covermode=atomic
       - go test -v -race -db="postgres" -conn_str="postgres://postgres:@pgsql/xorm_test?sslmode=disable" -schema=xorm -cache=true -coverprofile=coverage5-2.txt -covermode=atomic
-      - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt > coverage.txt
+      - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt > coverage.txt
     when:
       event: [ push, pull_request ]
 

@@ -383,7 +383,7 @@ res, err := engine.Transaction(func(sess *xorm.Session) (interface{}, error) {
 })
 ```
 
-* Context Cache, if enabled, current query result will be cached on session and be used by next same statement on the same session.
+* 上下文缓存，如果启用，那么针对单个对象的查询将会被缓存到系统中，可以被下一个查询使用。
 
 ```Go
 	sess := engine.NewSession()
