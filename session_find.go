@@ -176,7 +176,7 @@ func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{})
 	}
 
 	if session.canCache() {
-		if cacher := session.engine.getCacher(table.Name); cacher != nil &&
+		if cacher := session.engine.getCacher(session.statement.TableName()); cacher != nil &&
 			!session.statement.IsDistinct &&
 			!session.statement.unscoped {
 			err = session.cacheFind(sliceElementType, sqlStr, rowsSlicePtr, args...)
