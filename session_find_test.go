@@ -600,8 +600,49 @@ type FindMapDevice struct {
 	Status   int
 }
 
-func (device *FindMapDevice) TableName() string {
+func (*FindMapDevice) TableName() string {
 	return "devices"
+}
+
+func (*FindMapDevice) Slice() []InFindMapDevice {
+	return []InFindMapDevice{&FindMapDevice{}}
+}
+
+func (*FindMapDevice) Bean() InFindMapDevice {
+	return &FindMapDevice{}
+}
+
+type InFindMapDevice interface {
+	TableName() string
+	Slice() []InFindMapDevice
+	Bean() InFindMapDevice
+}
+
+func TestFindInterfaceTableName(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(FindMapDevice))
+
+	cnt, err := testEngine.Insert(&FindMapDevice{
+		Deviceid: "1",
+		Status:   1,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var record FindMapDevice
+	err = testEngine.Find(record.Slice())
+	assert.NoError(t, err)
+
+	err = testEngine.Find(record.Slice())
+	assert.NoError(t, err)
+
+	has, err := testEngine.Get(record.Bean())
+	assert.NoError(t, err)
+	assert.True(t, has)
+
+	has, err = testEngine.Exist(&FindMapDevice{})
+	assert.NoError(t, err)
+	assert.True(t, has)
 }
 
 func TestFindMapStringId(t *testing.T) {
