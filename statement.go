@@ -636,6 +636,9 @@ func (statement *Statement) Cols(columns ...string) *Statement {
 
 	statement.ColumnStr = strings.Join(newColumns, ", ")
 	statement.ColumnStr = strings.Replace(statement.ColumnStr, statement.Engine.quote("*"), "*", -1)
+	var quoteStr = statement.Engine.dialect.QuoteStr()
+	statement.ColumnStr = strings.Replace(statement.ColumnStr, " AS ", quoteStr+" AS "+quoteStr, -1)
+	statement.ColumnStr = strings.Replace(statement.ColumnStr, " as ", quoteStr+" AS "+quoteStr, -1)
 	return statement
 }
 
