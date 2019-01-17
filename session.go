@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -52,6 +53,7 @@ type Session struct {
 	lastSQLArgs []interface{}
 
 	err error
+	ctx context.Context
 }
 
 // Clone copy all the session's content and return a new session
@@ -82,6 +84,8 @@ func (session *Session) Init() {
 
 	session.lastSQL = ""
 	session.lastSQLArgs = []interface{}{}
+
+	session.ctx = session.engine.defaultContext
 }
 
 // Close release the connection from pool
@@ -275,7 +279,7 @@ func (session *Session) doPrepare(db *core.DB, sqlStr string) (stmt *core.Stmt, 
 	var has bool
 	stmt, has = session.stmtCache[crc]
 	if !has {
-		stmt, err = db.Prepare(sqlStr)
+		stmt, err = db.PrepareContext(session.ctx, sqlStr)
 		if err != nil {
 			return nil, err
 		}
