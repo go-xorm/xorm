@@ -386,3 +386,37 @@ func TestContextGet2(t *testing.T) {
 	assert.EqualValues(t, 1, c3.Id)
 	assert.EqualValues(t, "1", c3.Name)
 }
+
+type GetCustomTableInterface interface {
+	TableName() string
+}
+
+type MyGetCustomTableImpletation struct {
+	Id   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+const getCustomTableName = "GetCustomTableInterface"
+
+func (m *MyGetCustomTableImpletation) TableName() string {
+	return getCustomTableName
+}
+
+func TestGetCustomTableInterface(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+	assert.NoError(t, testEngine.Table(getCustomTableName).Sync2(new(MyGetCustomTableImpletation)))
+
+	exist, err := testEngine.IsTableExist(getCustomTableName)
+	assert.NoError(t, err)
+	assert.True(t, exist)
+
+	_, err = testEngine.Insert(&MyGetCustomTableImpletation{
+		Name: "xlw",
+	})
+	assert.NoError(t, err)
+
+	var c GetCustomTableInterface = new(MyGetCustomTableImpletation)
+	has, err := testEngine.Get(c)
+	assert.NoError(t, err)
+	assert.True(t, has)
+}
