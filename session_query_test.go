@@ -334,3 +334,47 @@ func TestQueryWithBuilder(t *testing.T) {
 	assert.NoError(t, err)
 	assertResult(t, results)
 }
+
+func TestJoinWithSubQuery(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type JoinWithSubQuery1 struct {
+		Id       int64  `xorm:"autoincr pk"`
+		Msg      string `xorm:"varchar(255)"`
+		DepartId int64
+		Money    float32
+	}
+
+	type JoinWithSubQueryDepart struct {
+		Id   int64 `xorm:"autoincr pk"`
+		Name string
+	}
+
+	testEngine.ShowSQL(true)
+
+	assert.NoError(t, testEngine.Sync2(new(JoinWithSubQuery1), new(JoinWithSubQueryDepart)))
+
+	var depart = JoinWithSubQueryDepart{
+		Name: "depart1",
+	}
+	cnt, err := testEngine.Insert(&depart)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var q = JoinWithSubQuery1{
+		Msg:      "message",
+		DepartId: depart.Id,
+		Money:    3000,
+	}
+
+	cnt, err = testEngine.Insert(&q)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var querys []JoinWithSubQuery1
+	err = testEngine.Join("INNER", builder.Select("id").From(testEngine.Quote(testEngine.TableName("join_with_sub_query_depart", true))),
+		"join_with_sub_query_depart.id = join_with_sub_query1.depart_id").Find(&querys)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(querys))
+	assert.EqualValues(t, q, querys[0])
+}
