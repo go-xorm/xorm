@@ -780,3 +780,82 @@ func TestAnonymousStruct(t *testing.T) {
 	})
 	assert.NoError(t, err)
 }
+
+func TestInsertMap(t *testing.T) {
+	type InsertMap struct {
+		Id     int64
+		Width  uint32
+		Height uint32
+		Name   string
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(InsertMap))
+
+	cnt, err := testEngine.Table(new(InsertMap)).Insert(map[string]interface{}{
+		"width":  20,
+		"height": 10,
+		"name":   "lunny",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var im InsertMap
+	has, err := testEngine.Get(&im)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 20, im.Width)
+	assert.EqualValues(t, 10, im.Height)
+	assert.EqualValues(t, "lunny", im.Name)
+
+	cnt, err = testEngine.Table("insert_map").Insert(map[string]interface{}{
+		"width":  30,
+		"height": 10,
+		"name":   "lunny",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var ims []InsertMap
+	err = testEngine.Find(&ims)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(ims))
+	assert.EqualValues(t, 20, ims[0].Width)
+	assert.EqualValues(t, 10, ims[0].Height)
+	assert.EqualValues(t, "lunny", ims[0].Name)
+	assert.EqualValues(t, 30, ims[1].Width)
+	assert.EqualValues(t, 10, ims[1].Height)
+	assert.EqualValues(t, "lunny", ims[1].Name)
+
+	cnt, err = testEngine.Table("insert_map").Insert([]map[string]interface{}{
+		{
+			"width":  40,
+			"height": 10,
+			"name":   "lunny",
+		},
+		{
+			"width":  50,
+			"height": 10,
+			"name":   "lunny",
+		},
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, cnt)
+
+	ims = make([]InsertMap, 0, 4)
+	err = testEngine.Find(&ims)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 4, len(ims))
+	assert.EqualValues(t, 20, ims[0].Width)
+	assert.EqualValues(t, 10, ims[0].Height)
+	assert.EqualValues(t, "lunny", ims[1].Name)
+	assert.EqualValues(t, 30, ims[1].Width)
+	assert.EqualValues(t, 10, ims[1].Height)
+	assert.EqualValues(t, "lunny", ims[1].Name)
+	assert.EqualValues(t, 40, ims[2].Width)
+	assert.EqualValues(t, 10, ims[2].Height)
+	assert.EqualValues(t, "lunny", ims[2].Name)
+	assert.EqualValues(t, 50, ims[3].Width)
+	assert.EqualValues(t, 10, ims[3].Height)
+	assert.EqualValues(t, "lunny", ims[3].Name)
+}
