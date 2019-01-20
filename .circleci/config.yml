@@ -32,7 +32,6 @@ jobs:
       - run: go build -v
 
       - run: go get -u github.com/wadey/gocovmerge
-      - run: golint ./...
 
       - run: go test -v -race -db="sqlite3" -conn_str="./test.db" -coverprofile=coverage1-1.txt -covermode=atomic
       - run: go test -v -race -db="sqlite3" -conn_str="./test.db" -cache=true -coverprofile=coverage1-2.txt -covermode=atomic
