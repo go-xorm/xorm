@@ -247,7 +247,7 @@ type CountWithTableName struct {
 	Name string
 }
 
-func (c *CountWithTableName) TableName() string {
+func (CountWithTableName) TableName() string {
 	return "count_with_table_name1"
 }
 
@@ -261,12 +261,16 @@ func TestWithTableName(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_, err = testEngine.Insert(&CountWithTableName{
+	_, err = testEngine.Insert(CountWithTableName{
 		Name: "limit",
 	})
 	assert.NoError(t, err)
 
 	total, err := testEngine.OrderBy("id desc").Count(new(CountWithTableName))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, total)
+
+	total, err = testEngine.OrderBy("id desc").Count(CountWithTableName{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, total)
 }
