@@ -133,7 +133,7 @@ func (statement *Statement) SQL(query interface{}, args ...interface{}) *Stateme
 		statement.RawSQL = query.(string)
 		statement.RawParams = args
 	default:
-		statement.lastError = errors.New("unsupported sql type")
+		statement.lastError = ErrUnSupportedSQLType
 	}
 
 	return statement
