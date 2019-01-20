@@ -59,9 +59,7 @@ type Session struct {
 	lastSQL     string
 	lastSQLArgs []interface{}
 
-	err error
-	ctx context.Context
-
+	ctx         context.Context
 	sessionType sessionType
 }
 
@@ -95,7 +93,6 @@ func (session *Session) Init() {
 	session.lastSQLArgs = []interface{}{}
 
 	session.ctx = session.engine.defaultContext
-	session.sessionType = engineSession
 }
 
 // Close release the connection from pool
