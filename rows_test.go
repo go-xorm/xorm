@@ -67,3 +67,68 @@ func TestRows(t *testing.T) {
 	}
 	assert.EqualValues(t, 1, cnt)
 }
+
+func TestRowsMyTableName(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type UserRowsMyTable struct {
+		Id    int64
+		IsMan bool
+	}
+
+	var tableName = "user_rows_my_table_name"
+
+	assert.NoError(t, testEngine.Table(tableName).Sync2(new(UserRowsMyTable)))
+
+	cnt, err := testEngine.Table(tableName).Insert(&UserRowsMyTable{
+		IsMan: true,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	rows, err := testEngine.Table(tableName).Rows(new(UserRowsMyTable))
+	assert.NoError(t, err)
+	defer rows.Close()
+
+	cnt = 0
+	user := new(UserRowsMyTable)
+	for rows.Next() {
+		err = rows.Scan(user)
+		assert.NoError(t, err)
+		cnt++
+	}
+	assert.EqualValues(t, 1, cnt)
+}
+
+type UserRowsSpecTable struct {
+	Id    int64
+	IsMan bool
+}
+
+func (UserRowsSpecTable) TableName() string {
+	return "user_rows_my_table_name"
+}
+
+func TestRowsSpecTableName(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+	assert.NoError(t, testEngine.Sync2(new(UserRowsSpecTable)))
+
+	cnt, err := testEngine.Insert(&UserRowsSpecTable{
+		IsMan: true,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	rows, err := testEngine.Rows(new(UserRowsSpecTable))
+	assert.NoError(t, err)
+	defer rows.Close()
+
+	cnt = 0
+	user := new(UserRowsSpecTable)
+	for rows.Next() {
+		err = rows.Scan(user)
+		assert.NoError(t, err)
+		cnt++
+	}
+	assert.EqualValues(t, 1, cnt)
+}
