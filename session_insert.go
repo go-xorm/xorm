@@ -676,6 +676,10 @@ func (session *Session) insertMapInterface(m map[string]interface{}) (int64, err
 		args = append(args, m[colName])
 	}
 
+	if err := session.cacheInsert(tableName); err != nil {
+		return 0, err
+	}
+
 	res, err := session.exec(sql, args...)
 	if err != nil {
 		return 0, err
@@ -702,6 +706,10 @@ func (session *Session) insertMapString(m map[string]string) (int64, error) {
 	var args = make([]interface{}, 0, len(m))
 	for _, colName := range columns {
 		args = append(args, m[colName])
+	}
+
+	if err := session.cacheInsert(tableName); err != nil {
+		return 0, err
 	}
 
 	res, err := session.exec(sql, args...)
