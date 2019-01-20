@@ -162,7 +162,7 @@ func (statement *Statement) And(query interface{}, args ...interface{}) *Stateme
 			}
 		}
 	default:
-		statement.lastError = errors.New("unsupported condition type")
+		statement.lastError = ErrConditionType
 	}
 
 	return statement

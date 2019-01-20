@@ -1331,3 +1331,21 @@ func TestUpdateCondiBean(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, has)
 }
+
+func TestWhereCondErrorWhenUpdate(t *testing.T) {
+	type AuthRequestError struct {
+		ChallengeToken string
+		RequestToken   string
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(AuthRequestError))
+
+	_, err := testEngine.Cols("challenge_token", "request_token", "challenge_agent", "status").
+		Where(&AuthRequestError{ChallengeToken: "1"}).
+		Update(&AuthRequestError{
+			ChallengeToken: "2",
+		})
+	assert.Error(t, err)
+	assert.EqualValues(t, ErrConditionType, err)
+}
