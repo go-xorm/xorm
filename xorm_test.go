@@ -54,11 +54,10 @@ func createEngine(dbType, connStr string) error {
 				}
 				defer rows.Close()
 
-				if rows.Next() {
-					break
-				}
-				if _, err = db.Exec("CREATE DATABASE xorm_test"); err != nil {
-					return fmt.Errorf("db.Exec: %v", err)
+				if !rows.Next() {
+					if _, err = db.Exec("CREATE DATABASE xorm_test"); err != nil {
+						return fmt.Errorf("db.Exec: %v", err)
+					}
 				}
 				if schema != nil {
 					if _, err = db.Exec("CREATE SCHEMA " + *schema); err != nil {
