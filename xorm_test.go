@@ -38,10 +38,18 @@ func createEngine(dbType, connStr string) error {
 
 		if !*cluster {
 			// create databases if not exist
-			db, err := sql.Open(dbType, connStr)
+			var db *sql.DB
+			var err error
+			if strings.ToLower(dbType) != core.MSSQL {
+				db, err = sql.Open(dbType, connStr)
+			} else {
+				db, err = sql.Open(dbType, strings.Replace(connStr, "xorm_test", "master", -1))
+			}
+
 			if err != nil {
 				return err
 			}
+
 			switch strings.ToLower(dbType) {
 			case core.MSSQL:
 				if _, err = db.Exec("If(db_id(N'xorm_test') IS NULL) BEGIN CREATE DATABASE xorm_test; END;"); err != nil {
