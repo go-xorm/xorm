@@ -669,7 +669,11 @@ func (session *Session) insertMapInterface(m map[string]interface{}) (int64, err
 	qm := strings.Repeat("?,", len(columns))
 	qm = "(" + qm[:len(qm)-1] + ")"
 
-	tableName := session.statement.AltTableName
+	tableName := session.statement.TableName()
+	if len(tableName) <= 0 {
+		return 0, ErrTableNotFound
+	}
+
 	var sql = "INSERT INTO `" + tableName + "` (`" + strings.Join(columns, "`,`") + "`) VALUES " + qm
 	var args = make([]interface{}, 0, len(m))
 	for _, colName := range columns {
@@ -701,7 +705,11 @@ func (session *Session) insertMapString(m map[string]string) (int64, error) {
 	qm := strings.Repeat("?,", len(columns))
 	qm = "(" + qm[:len(qm)-1] + ")"
 
-	tableName := session.statement.AltTableName
+	tableName := session.statement.TableName()
+	if len(tableName) <= 0 {
+		return 0, ErrTableNotFound
+	}
+
 	var sql = "INSERT INTO `" + tableName + "` (`" + strings.Join(columns, "`,`") + "`) VALUES " + qm
 	var args = make([]interface{}, 0, len(m))
 	for _, colName := range columns {
