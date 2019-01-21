@@ -669,7 +669,7 @@ func (session *Session) insertMapInterface(m map[string]interface{}) (int64, err
 	qm := strings.Repeat("?,", len(columns))
 	qm = "(" + qm[:len(qm)-1] + ")"
 
-	tableName := session.statement.TableName()
+	tableName := session.engine.Quote(session.statement.TableName())
 	if len(tableName) <= 0 {
 		return 0, ErrTableNotFound
 	}
@@ -705,7 +705,7 @@ func (session *Session) insertMapString(m map[string]string) (int64, error) {
 	qm := strings.Repeat("?,", len(columns))
 	qm = "(" + qm[:len(qm)-1] + ")"
 
-	tableName := session.statement.TableName()
+	tableName := session.engine.Quote(session.statement.TableName())
 	if len(tableName) <= 0 {
 		return 0, ErrTableNotFound
 	}
