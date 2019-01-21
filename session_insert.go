@@ -660,6 +660,10 @@ func (session *Session) genInsertColumns(bean interface{}) ([]string, []interfac
 }
 
 func (session *Session) insertMapInterface(m map[string]interface{}) (int64, error) {
+	if len(m) == 0 {
+		return 0, ErrParamsType
+	}
+
 	var columns = make([]string, 0, len(m))
 	for k := range m {
 		columns = append(columns, k)
@@ -674,7 +678,7 @@ func (session *Session) insertMapInterface(m map[string]interface{}) (int64, err
 		return 0, ErrTableNotFound
 	}
 
-	var sql = "INSERT INTO `" + tableName + "` (`" + strings.Join(columns, "`,`") + "`) VALUES " + qm
+	var sql = fmt.Sprintf("INSERT INTO %s (`%s`) VALUES %s", tableName, strings.Join(columns, "`,`"), qm)
 	var args = make([]interface{}, 0, len(m))
 	for _, colName := range columns {
 		args = append(args, m[colName])
@@ -696,6 +700,10 @@ func (session *Session) insertMapInterface(m map[string]interface{}) (int64, err
 }
 
 func (session *Session) insertMapString(m map[string]string) (int64, error) {
+	if len(m) == 0 {
+		return 0, ErrParamsType
+	}
+
 	var columns = make([]string, 0, len(m))
 	for k := range m {
 		columns = append(columns, k)
@@ -710,7 +718,7 @@ func (session *Session) insertMapString(m map[string]string) (int64, error) {
 		return 0, ErrTableNotFound
 	}
 
-	var sql = "INSERT INTO `" + tableName + "` (`" + strings.Join(columns, "`,`") + "`) VALUES " + qm
+	var sql = fmt.Sprintf("INSERT INTO %s (`%s`) VALUES %s", tableName, strings.Join(columns, "`,`"), qm)
 	var args = make([]interface{}, 0, len(m))
 	for _, colName := range columns {
 		args = append(args, m[colName])
