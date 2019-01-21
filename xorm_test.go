@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"testing"
@@ -41,7 +42,7 @@ func createEngine(dbType, connStr string) error {
 			if err != nil {
 				return err
 			}
-			switch strings.ToUpper(dbType) {
+			switch strings.ToLower(dbType) {
 			case core.MSSQL:
 				if _, err = db.Exec("If(db_id(N'xorm_test') IS NULL) BEGIN CREATE DATABASE xorm_test; END;"); err != nil {
 					return fmt.Errorf("db.Exec: %v", err)
@@ -58,6 +59,11 @@ func createEngine(dbType, connStr string) error {
 				}
 				if _, err = db.Exec("CREATE DATABASE xorm_test"); err != nil {
 					return fmt.Errorf("db.Exec: %v", err)
+				}
+				if schema != nil {
+					if _, err = db.Exec("CREATE SCHEMA " + *schema); err != nil {
+						return fmt.Errorf("db.Exec: %v", err)
+					}
 				}
 			case core.MYSQL:
 				if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS xorm_test"); err != nil {
@@ -126,7 +132,7 @@ func TestMain(m *testing.M) {
 		}
 	} else {
 		if ptrConnStr == nil {
-			fmt.Println("you should indicate conn string")
+			log.Fatal("you should indicate conn string")
 			return
 		}
 		connString = *ptrConnStr
@@ -143,7 +149,7 @@ func TestMain(m *testing.M) {
 		fmt.Println("testing", dbType, connString)
 
 		if err := prepareEngine(); err != nil {
-			fmt.Println(err)
+			log.Fatal(err)
 			return
 		}
 
