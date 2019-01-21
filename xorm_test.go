@@ -56,12 +56,12 @@ func createEngine(dbType, connStr string) error {
 
 				if !rows.Next() {
 					if _, err = db.Exec("CREATE DATABASE xorm_test"); err != nil {
-						return fmt.Errorf("db.Exec: %v", err)
+						return fmt.Errorf("CREATE DATABASE: %v", err)
 					}
 				}
-				if schema != nil {
+				if *schema != "" {
 					if _, err = db.Exec("CREATE SCHEMA " + *schema); err != nil {
-						return fmt.Errorf("db.Exec: %v", err)
+						return fmt.Errorf("CREATE SCHEMA: %v", err)
 					}
 				}
 			case core.MYSQL:
