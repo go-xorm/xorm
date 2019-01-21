@@ -22,7 +22,7 @@ jobs:
           POSTGRES_USER: root
           POSTGRES_DB: xorm_test
 
-      - image: microsoft/mssql-server-linux:2017-CU11
+      - image: microsoft/mssql-server-linux:latest
         environment:
           ACCEPT_EULA: Y
           SA_PASSWORD: yourStrong(!)Password
@@ -30,16 +30,6 @@ jobs:
 
     working_directory: /go/src/github.com/go-xorm/xorm
     steps:
-      - run:
-          name: Wait for MSSQL
-          command: >
-            c=0;
-            for i in `seq 30`; do
-              echo "Waiting for mssql"
-              sqlcmd -H localhost -U sa -P "yourStrong(!)Password" -Q "CREATE DATABASE xorm_test" > /dev/null > /dev/null && c=0 && break || c=$? && sleep 1
-            done;
-            exit $c
-            
       - checkout
 
       - run: go get -t -d -v ./...

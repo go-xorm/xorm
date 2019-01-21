@@ -1,6 +1,7 @@
 package xorm
 
 import (
+	"database/sql"
 	"flag"
 	"fmt"
 	"os"
@@ -35,6 +36,36 @@ func createEngine(dbType, connStr string) error {
 		var err error
 
 		if !*cluster {
+			// create databases if not exist
+			db, err := sql.Open(dbType, connStr)
+			if err != nil {
+				return err
+			}
+			switch strings.ToUpper(dbType) {
+			case core.MSSQL:
+				if _, err = db.Exec("If(db_id(N'xorm_test') IS NULL) BEGIN CREATE DATABASE xorm_test; END;"); err != nil {
+					return fmt.Errorf("db.Exec: %v", err)
+				}
+			case core.POSTGRES:
+				rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = 'xorm_test'"))
+				if err != nil {
+					return fmt.Errorf("db.Query: %v", err)
+				}
+				defer rows.Close()
+
+				if rows.Next() {
+					break
+				}
+				if _, err = db.Exec("CREATE DATABASE xorm_test"); err != nil {
+					return fmt.Errorf("db.Exec: %v", err)
+				}
+			case core.MYSQL:
+				if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS xorm_test"); err != nil {
+					return fmt.Errorf("db.Exec: %v", err)
+				}
+			}
+			db.Close()
+
 			testEngine, err = NewEngine(dbType, connStr)
 		} else {
 			testEngine, err = NewEngineGroup(dbType, strings.Split(connStr, *splitter))
