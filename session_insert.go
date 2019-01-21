@@ -673,12 +673,12 @@ func (session *Session) insertMapInterface(m map[string]interface{}) (int64, err
 	qm := strings.Repeat("?,", len(columns))
 	qm = "(" + qm[:len(qm)-1] + ")"
 
-	tableName := session.engine.Quote(session.statement.TableName())
+	tableName := session.statement.TableName()
 	if len(tableName) <= 0 {
 		return 0, ErrTableNotFound
 	}
 
-	var sql = fmt.Sprintf("INSERT INTO %s (`%s`) VALUES %s", tableName, strings.Join(columns, "`,`"), qm)
+	var sql = fmt.Sprintf("INSERT INTO %s (`%s`) VALUES %s", session.engine.Quote(tableName), strings.Join(columns, "`,`"), qm)
 	var args = make([]interface{}, 0, len(m))
 	for _, colName := range columns {
 		args = append(args, m[colName])
@@ -713,12 +713,12 @@ func (session *Session) insertMapString(m map[string]string) (int64, error) {
 	qm := strings.Repeat("?,", len(columns))
 	qm = "(" + qm[:len(qm)-1] + ")"
 
-	tableName := session.engine.Quote(session.statement.TableName())
+	tableName := session.statement.TableName()
 	if len(tableName) <= 0 {
 		return 0, ErrTableNotFound
 	}
 
-	var sql = fmt.Sprintf("INSERT INTO %s (`%s`) VALUES %s", tableName, strings.Join(columns, "`,`"), qm)
+	var sql = fmt.Sprintf("INSERT INTO %s (`%s`) VALUES %s", session.engine.Quote(tableName), strings.Join(columns, "`,`"), qm)
 	var args = make([]interface{}, 0, len(m))
 	for _, colName := range columns {
 		args = append(args, m[colName])
