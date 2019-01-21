@@ -60,7 +60,7 @@ func createEngine(dbType, connStr string) error {
 					}
 				}
 				if *schema != "" {
-					if _, err = db.Exec("CREATE SCHEMA " + *schema); err != nil {
+					if _, err = db.Exec("CREATE SCHEMA IF NOT EXISTS " + *schema); err != nil {
 						return fmt.Errorf("CREATE SCHEMA: %v", err)
 					}
 				}
