@@ -309,16 +309,24 @@ func TestCustomType2(t *testing.T) {
 	_, err = testEngine.Exec("delete from " + testEngine.Quote(tableName))
 	assert.NoError(t, err)
 
+	session := testEngine.NewSession()
+	defer session.Close()
+
 	if testEngine.Dialect().DBType() == core.MSSQL {
-		return
-		/*_, err = engine.Exec("set IDENTITY_INSERT " + tableName + " on")
-		if err != nil {
-			t.Fatal(err)
-		}*/
+		err = session.Begin()
+		assert.NoError(t, err)
+		_, err = session.Exec("set IDENTITY_INSERT " + tableName + " on")
+		assert.NoError(t, err)
 	}
 
-	_, err = testEngine.Insert(&UserCus{1, "xlw", Registed})
+	cnt, err := session.Insert(&UserCus{1, "xlw", Registed})
 	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	if testEngine.Dialect().DBType() == core.MSSQL {
+		err = session.Commit()
+		assert.NoError(t, err)
+	}
 
 	user := UserCus{}
 	exist, err := testEngine.ID(1).Get(&user)
