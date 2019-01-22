@@ -1089,7 +1089,7 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit, n
 
 	if dialect.DBType() == core.MSSQL {
 		if statement.LimitN > 0 {
-			top = fmt.Sprintf(" TOP %d ", statement.LimitN)
+			top = fmt.Sprintf("TOP %d ", statement.LimitN)
 		}
 		if statement.Start > 0 {
 			var column string

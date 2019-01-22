@@ -373,19 +373,28 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 
 	var sqlStr string
 	var tableName = session.statement.TableName()
+	var output string
+	if session.engine.dialect.DBType() == core.MSSQL && len(table.AutoIncrement) > 0 {
+		output = fmt.Sprintf(" OUTPUT Inserted.%s", table.AutoIncrement)
+	}
 	if len(colPlaces) > 0 {
-		sqlStr = fmt.Sprintf("INSERT INTO %s (%v%v%v) VALUES (%v)",
+		sqlStr = fmt.Sprintf("INSERT INTO %s (%v%v%v)%s VALUES (%v)",
 			session.engine.Quote(tableName),
 			session.engine.QuoteStr(),
 			strings.Join(colNames, session.engine.Quote(", ")),
 			session.engine.QuoteStr(),
+			output,
 			colPlaces)
 	} else {
 		if session.engine.dialect.DBType() == core.MYSQL {
 			sqlStr = fmt.Sprintf("INSERT INTO %s VALUES ()", session.engine.Quote(tableName))
 		} else {
-			sqlStr = fmt.Sprintf("INSERT INTO %s DEFAULT VALUES", session.engine.Quote(tableName))
+			sqlStr = fmt.Sprintf("INSERT INTO %s%s DEFAULT VALUES", session.engine.Quote(tableName), output)
 		}
+	}
+
+	if len(table.AutoIncrement) > 0 && session.engine.dialect.DBType() == core.POSTGRES {
+		sqlStr = sqlStr + " RETURNING " + session.engine.Quote(table.AutoIncrement)
 	}
 
 	handleAfterInsertProcessorFunc := func(bean interface{}) {
@@ -459,9 +468,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		aiValue.Set(int64ToIntValue(id, aiValue.Type()))
 
 		return 1, nil
-	} else if session.engine.dialect.DBType() == core.POSTGRES && len(table.AutoIncrement) > 0 {
-		//assert table.AutoIncrement != ""
-		sqlStr = sqlStr + " RETURNING " + session.engine.Quote(table.AutoIncrement)
+	} else if len(table.AutoIncrement) > 0 && (session.engine.dialect.DBType() == core.POSTGRES || session.engine.dialect.DBType() == core.MSSQL) {
 		res, err := session.queryBytes(sqlStr, args...)
 
 		if err != nil {
@@ -481,7 +488,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		}
 
 		if len(res) < 1 {
-			return 0, errors.New("insert no error but not returned id")
+			return 0, errors.New("insert successfully but not returned id")
 		}
 
 		idByte := res[0][table.AutoIncrement]
@@ -660,6 +667,10 @@ func (session *Session) genInsertColumns(bean interface{}) ([]string, []interfac
 }
 
 func (session *Session) insertMapInterface(m map[string]interface{}) (int64, error) {
+	if len(m) == 0 {
+		return 0, ErrParamsType
+	}
+
 	var columns = make([]string, 0, len(m))
 	for k := range m {
 		columns = append(columns, k)
@@ -669,8 +680,12 @@ func (session *Session) insertMapInterface(m map[string]interface{}) (int64, err
 	qm := strings.Repeat("?,", len(columns))
 	qm = "(" + qm[:len(qm)-1] + ")"
 
-	tableName := session.statement.AltTableName
-	var sql = "INSERT INTO `" + tableName + "` (`" + strings.Join(columns, "`,`") + "`) VALUES " + qm
+	tableName := session.statement.TableName()
+	if len(tableName) <= 0 {
+		return 0, ErrTableNotFound
+	}
+
+	var sql = fmt.Sprintf("INSERT INTO %s (`%s`) VALUES %s", session.engine.Quote(tableName), strings.Join(columns, "`,`"), qm)
 	var args = make([]interface{}, 0, len(m))
 	for _, colName := range columns {
 		args = append(args, m[colName])
@@ -692,6 +707,10 @@ func (session *Session) insertMapInterface(m map[string]interface{}) (int64, err
 }
 
 func (session *Session) insertMapString(m map[string]string) (int64, error) {
+	if len(m) == 0 {
+		return 0, ErrParamsType
+	}
+
 	var columns = make([]string, 0, len(m))
 	for k := range m {
 		columns = append(columns, k)
@@ -701,8 +720,12 @@ func (session *Session) insertMapString(m map[string]string) (int64, error) {
 	qm := strings.Repeat("?,", len(columns))
 	qm = "(" + qm[:len(qm)-1] + ")"
 
-	tableName := session.statement.AltTableName
-	var sql = "INSERT INTO `" + tableName + "` (`" + strings.Join(columns, "`,`") + "`) VALUES " + qm
+	tableName := session.statement.TableName()
+	if len(tableName) <= 0 {
+		return 0, ErrTableNotFound
+	}
+
+	var sql = fmt.Sprintf("INSERT INTO %s (`%s`) VALUES %s", session.engine.Quote(tableName), strings.Join(columns, "`,`"), qm)
 	var args = make([]interface{}, 0, len(m))
 	for _, colName := range columns {
 		args = append(args, m[colName])
