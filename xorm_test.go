@@ -41,25 +41,21 @@ func createEngine(dbType, connStr string) error {
 		var err error
 
 		if !*cluster {
-			// create databases if not exist
-			var db *sql.DB
-			var err error
-			if strings.ToLower(dbType) != core.MSSQL {
-				db, err = sql.Open(dbType, connStr)
-			} else {
-				db, err = sql.Open(dbType, strings.Replace(connStr, "xorm_test", "master", -1))
-			}
-
-			if err != nil {
-				return err
-			}
-
 			switch strings.ToLower(dbType) {
 			case core.MSSQL:
+				db, err := sql.Open(dbType, strings.Replace(connStr, "xorm_test", "master", -1))
+				if err != nil {
+					return err
+				}
 				if _, err = db.Exec("If(db_id(N'xorm_test') IS NULL) BEGIN CREATE DATABASE xorm_test; END;"); err != nil {
 					return fmt.Errorf("db.Exec: %v", err)
 				}
+				db.Close()
 			case core.POSTGRES:
+				db, err := sql.Open(dbType, connStr)
+				if err != nil {
+					return err
+				}
 				rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = 'xorm_test'"))
 				if err != nil {
 					return fmt.Errorf("db.Query: %v", err)
@@ -76,12 +72,17 @@ func createEngine(dbType, connStr string) error {
 						return fmt.Errorf("CREATE SCHEMA: %v", err)
 					}
 				}
+				db.Close()
 			case core.MYSQL:
+				db, err := sql.Open(dbType, strings.Replace(connStr, "xorm_test", "mysql", -1))
+				if err != nil {
+					return err
+				}
 				if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS xorm_test"); err != nil {
 					return fmt.Errorf("db.Exec: %v", err)
 				}
+				db.Close()
 			}
-			db.Close()
 
 			testEngine, err = NewEngine(dbType, connStr)
 		} else {
