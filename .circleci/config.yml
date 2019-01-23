@@ -31,6 +31,7 @@ jobs:
       - image: pingcap/tidb:v2.1.2
 
       - image: cockroachdb/cockroach:v2.1.4
+        command: start --insecure
 
     working_directory: /go/src/github.com/go-xorm/xorm
     steps:
