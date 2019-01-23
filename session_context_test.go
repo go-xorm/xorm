@@ -24,10 +24,7 @@ func TestQueryContext(t *testing.T) {
 	_, err := testEngine.Insert(&ContextQueryStruct{Name: "1"})
 	assert.NoError(t, err)
 
-	sess := testEngine.NewSession()
-	defer sess.Close()
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Microsecond)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 	defer cancel()
 	has, err := testEngine.Context(ctx).Exist(&ContextQueryStruct{Name: "1"})
 	assert.Error(t, err)
