@@ -70,6 +70,12 @@ func createEngine(dbType, connStr string) error {
 					}
 				}
 				if *schema != "" {
+					db.Close()
+					db, err = sql.Open(dbType, connStr)
+					if err != nil {
+						return err
+					}
+					defer db.Close()
 					if _, err = db.Exec("CREATE SCHEMA IF NOT EXISTS " + *schema); err != nil {
 						return fmt.Errorf("CREATE SCHEMA: %v", err)
 					}
