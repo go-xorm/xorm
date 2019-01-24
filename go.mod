@@ -3,6 +3,7 @@ module github.com/go-xorm/xorm
 require (
 	cloud.google.com/go v0.34.0 // indirect
 	github.com/cockroachdb/apd v1.1.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/go-xorm/builder v0.3.3
