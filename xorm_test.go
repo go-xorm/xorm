@@ -26,14 +26,15 @@ var (
 	dbType     string
 	connString string
 
-	db         = flag.String("db", "sqlite3", "the tested database")
-	showSQL    = flag.Bool("show_sql", true, "show generated SQLs")
-	ptrConnStr = flag.String("conn_str", "./test.db?cache=shared&mode=rwc", "test database connection string")
-	mapType    = flag.String("map_type", "snake", "indicate the name mapping")
-	cache      = flag.Bool("cache", false, "if enable cache")
-	cluster    = flag.Bool("cluster", false, "if this is a cluster")
-	splitter   = flag.String("splitter", ";", "the splitter on connstr for cluster")
-	schema     = flag.String("schema", "", "specify the schema")
+	db                 = flag.String("db", "sqlite3", "the tested database")
+	showSQL            = flag.Bool("show_sql", true, "show generated SQLs")
+	ptrConnStr         = flag.String("conn_str", "./test.db?cache=shared&mode=rwc", "test database connection string")
+	mapType            = flag.String("map_type", "snake", "indicate the name mapping")
+	cache              = flag.Bool("cache", false, "if enable cache")
+	cluster            = flag.Bool("cluster", false, "if this is a cluster")
+	splitter           = flag.String("splitter", ";", "the splitter on connstr for cluster")
+	schema             = flag.String("schema", "", "specify the schema")
+	ignoreSelectUpdate = flag.Bool("ignore_select_update", false, "ignore select update if implementation difference, only for tidb")
 )
 
 func createEngine(dbType, connStr string) error {
@@ -41,25 +42,22 @@ func createEngine(dbType, connStr string) error {
 		var err error
 
 		if !*cluster {
-			// create databases if not exist
-			var db *sql.DB
-			var err error
-			if strings.ToLower(dbType) != core.MSSQL {
-				db, err = sql.Open(dbType, connStr)
-			} else {
-				db, err = sql.Open(dbType, strings.Replace(connStr, "xorm_test", "master", -1))
-			}
-
-			if err != nil {
-				return err
-			}
-
 			switch strings.ToLower(dbType) {
 			case core.MSSQL:
+				db, err := sql.Open(dbType, strings.Replace(connStr, "xorm_test", "master", -1))
+				if err != nil {
+					return err
+				}
 				if _, err = db.Exec("If(db_id(N'xorm_test') IS NULL) BEGIN CREATE DATABASE xorm_test; END;"); err != nil {
 					return fmt.Errorf("db.Exec: %v", err)
 				}
+				db.Close()
+				*ignoreSelectUpdate = true
 			case core.POSTGRES:
+				db, err := sql.Open(dbType, connStr)
+				if err != nil {
+					return err
+				}
 				rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = 'xorm_test'"))
 				if err != nil {
 					return fmt.Errorf("db.Query: %v", err)
@@ -76,16 +74,27 @@ func createEngine(dbType, connStr string) error {
 						return fmt.Errorf("CREATE SCHEMA: %v", err)
 					}
 				}
+				db.Close()
+				*ignoreSelectUpdate = true
 			case core.MYSQL:
+				db, err := sql.Open(dbType, strings.Replace(connStr, "xorm_test", "mysql", -1))
+				if err != nil {
+					return err
+				}
 				if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS xorm_test"); err != nil {
 					return fmt.Errorf("db.Exec: %v", err)
 				}
+				db.Close()
+			default:
+				*ignoreSelectUpdate = true
 			}
-			db.Close()
 
 			testEngine, err = NewEngine(dbType, connStr)
 		} else {
 			testEngine, err = NewEngineGroup(dbType, strings.Split(connStr, *splitter))
+			if dbType != "mysql" && dbType != "mymysql" {
+				*ignoreSelectUpdate = true
+			}
 		}
 		if err != nil {
 			return err

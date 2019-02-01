@@ -110,7 +110,7 @@ func setupForUpdate(engine EngineInterface) error {
 }
 
 func TestForUpdate(t *testing.T) {
-	if testEngine.Dialect().DriverName() != "mysql" && testEngine.Dialect().DriverName() != "mymysql" {
+	if *ignoreSelectUpdate {
 		return
 	}
 
