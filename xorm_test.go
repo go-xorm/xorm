@@ -26,14 +26,15 @@ var (
 	dbType     string
 	connString string
 
-	db         = flag.String("db", "sqlite3", "the tested database")
-	showSQL    = flag.Bool("show_sql", true, "show generated SQLs")
-	ptrConnStr = flag.String("conn_str", "./test.db?cache=shared&mode=rwc", "test database connection string")
-	mapType    = flag.String("map_type", "snake", "indicate the name mapping")
-	cache      = flag.Bool("cache", false, "if enable cache")
-	cluster    = flag.Bool("cluster", false, "if this is a cluster")
-	splitter   = flag.String("splitter", ";", "the splitter on connstr for cluster")
-	schema     = flag.String("schema", "", "specify the schema")
+	db                 = flag.String("db", "sqlite3", "the tested database")
+	showSQL            = flag.Bool("show_sql", true, "show generated SQLs")
+	ptrConnStr         = flag.String("conn_str", "./test.db?cache=shared&mode=rwc", "test database connection string")
+	mapType            = flag.String("map_type", "snake", "indicate the name mapping")
+	cache              = flag.Bool("cache", false, "if enable cache")
+	cluster            = flag.Bool("cluster", false, "if this is a cluster")
+	splitter           = flag.String("splitter", ";", "the splitter on connstr for cluster")
+	schema             = flag.String("schema", "", "specify the schema")
+	ignoreSelectUpdate = flag.Bool("ignore_select_update", false, "ignore select update if implementation difference, only for tidb")
 )
 
 func createEngine(dbType, connStr string) error {
@@ -51,6 +52,7 @@ func createEngine(dbType, connStr string) error {
 					return fmt.Errorf("db.Exec: %v", err)
 				}
 				db.Close()
+				*ignoreSelectUpdate = true
 			case core.POSTGRES:
 				db, err := sql.Open(dbType, connStr)
 				if err != nil {
@@ -73,6 +75,7 @@ func createEngine(dbType, connStr string) error {
 					}
 				}
 				db.Close()
+				*ignoreSelectUpdate = true
 			case core.MYSQL:
 				db, err := sql.Open(dbType, strings.Replace(connStr, "xorm_test", "mysql", -1))
 				if err != nil {
@@ -82,11 +85,16 @@ func createEngine(dbType, connStr string) error {
 					return fmt.Errorf("db.Exec: %v", err)
 				}
 				db.Close()
+			default:
+				*ignoreSelectUpdate = true
 			}
 
 			testEngine, err = NewEngine(dbType, connStr)
 		} else {
 			testEngine, err = NewEngineGroup(dbType, strings.Split(connStr, *splitter))
+			if dbType != "mysql" && dbType != "mymysql" {
+				*ignoreSelectUpdate = true
+			}
 		}
 		if err != nil {
 			return err
