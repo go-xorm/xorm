@@ -59,8 +59,8 @@ jobs:
       - run: go test -v -race -db="mssql" -conn_str="server=localhost;user id=sa;password=yourStrong(!)Password;database=xorm_test" -cache=true -coverprofile=coverage6-2.txt -covermode=atomic
       - run: go test -v -race -db="mysql" -conn_str="root:@tcp(localhost:4000)/xorm_test" -ignore_select_update=true -coverprofile=coverage7-1.txt -covermode=atomic
       - run: go test -v -race -db="mysql" -conn_str="root:@tcp(localhost:4000)/xorm_test" -ignore_select_update=true -cache=true -coverprofile=coverage7-2.txt -covermode=atomic
-      - run: go test -v -race -db="postgres" -conn_str="user=root port=26257 dbname=xorm_test sslmode=disable" -coverprofile=coverage8-1.txt -covermode=atomic
-      - run: go test -v -race -db="postgres" -conn_str="user=root port=26257 dbname=xorm_test sslmode=disable" -cache=true -coverprofile=coverage8-2.txt -covermode=atomic
+      - run: go test -v -race -db="postgres" -conn_str="user=root port=26257 dbname=xorm_test sslmode=disable experimental_serial_normalization=sql_sequence" -coverprofile=coverage8-1.txt -covermode=atomic
+      - run: go test -v -race -db="postgres" -conn_str="user=root port=26257 dbname=xorm_test sslmode=disable experimental_serial_normalization=sql_sequence" -cache=true -coverprofile=coverage8-2.txt -covermode=atomic
       - run: gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt coverage6-1.txt coverage6-2.txt coverage7-1.txt coverage7-2.txt coverage8-1.txt coverage8-2.txt > coverage.txt
 
       - run: bash <(curl -s https://codecov.io/bash)
