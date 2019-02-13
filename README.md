@@ -363,7 +363,7 @@ return session.Commit()
 * Or you can use `Transaction` to replace above codes.
 
 ```Go
-res, err := engine.Transaction(func(sess *xorm.Session) (interface{}, error) {
+res, err := engine.Transaction(func(session *xorm.Session) (interface{}, error) {
     user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
     if _, err := session.Insert(&user1); err != nil {
         return nil, err
