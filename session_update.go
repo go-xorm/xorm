@@ -280,7 +280,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			return 0, err
 		}
 
-		cond = cond.And(builder.Eq{session.engine.Quote(table.Version): verValue.Interface()})
+		// cond = cond.And(builder.Eq{session.engine.Quote(table.Version): verValue.Interface()})
 		colNames = append(colNames, session.engine.Quote(table.Version)+" = "+session.engine.Quote(table.Version)+" + 1")
 	}
 
