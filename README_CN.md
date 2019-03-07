@@ -162,11 +162,11 @@ has, err := engine.SQL("select id from user").Get(&id)
 // SELECT id FROM user WHERE name = ?
 
 var valuesMap = make(map[string]string)
-has, err := engine.Where("id = ?", id).Get(&valuesMap)
+has, err := engine.Table(&user).Where("id = ?", id).Get(&valuesMap)
 // SELECT * FROM user WHERE id = ?
 
 var valuesSlice = make([]interface{}, len(cols))
-has, err := engine.Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
+has, err := engine.Table(&user).Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
 // SELECT col1, col2, col3 FROM user WHERE id = ?
 ```
 
