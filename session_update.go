@@ -116,7 +116,7 @@ func (session *Session) cacheUpdate(table *core.Table, tableName, sqlStr string,
 					} else {
 						session.engine.logger.Debug("[cacheUpdate] set bean field", bean, colName, fieldValue.Interface())
 						if col.IsVersion && session.statement.checkVersion {
-							fieldValue.SetInt(fieldValue.Int() + 1)
+							session.incrVersionFieldValue(fieldValue)
 						} else {
 							fieldValue.Set(reflect.ValueOf(args[idx]))
 						}
@@ -145,6 +145,10 @@ func (session *Session) cacheUpdate(table *core.Table, tableName, sqlStr string,
 func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int64, error) {
 	if session.isAutoClose {
 		defer session.Close()
+	}
+
+	if session.statement.lastError != nil {
+		return 0, session.statement.lastError
 	}
 
 	v := rValue(bean)
@@ -357,7 +361,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		return 0, err
 	} else if doIncVer {
 		if verValue != nil && verValue.IsValid() && verValue.CanSet() {
-			verValue.SetInt(verValue.Int() + 1)
+			session.incrVersionFieldValue(verValue)
 		}
 	}
 

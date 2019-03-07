@@ -79,6 +79,10 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		defer session.Close()
 	}
 
+	if session.statement.lastError != nil {
+		return 0, session.statement.lastError
+	}
+
 	if err := session.statement.setRefBean(bean); err != nil {
 		return 0, err
 	}
@@ -199,7 +203,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		})
 	}
 
-	if cacher := session.engine.getCacher(tableName); cacher != nil && session.statement.UseCache {
+	if cacher := session.engine.getCacher(tableNameNoQuote); cacher != nil && session.statement.UseCache {
 		session.cacheDelete(table, tableNameNoQuote, deleteSQL, argsForCache...)
 	}
 

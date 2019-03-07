@@ -84,7 +84,11 @@ func TestGetVar(t *testing.T) {
 	assert.Equal(t, "1.5", fmt.Sprintf("%.1f", money))
 
 	var money2 float64
-	has, err = testEngine.SQL("SELECT money FROM " + testEngine.TableName("get_var", true) + " LIMIT 1").Get(&money2)
+	if testEngine.Dialect().DBType() == core.MSSQL {
+		has, err = testEngine.SQL("SELECT TOP 1 money FROM " + testEngine.TableName("get_var", true)).Get(&money2)
+	} else {
+		has, err = testEngine.SQL("SELECT money FROM " + testEngine.TableName("get_var", true) + " LIMIT 1").Get(&money2)
+	}
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, "1.5", fmt.Sprintf("%.1f", money2))
@@ -156,14 +160,23 @@ func TestGetStruct(t *testing.T) {
 
 	assert.NoError(t, testEngine.Sync2(new(UserinfoGet)))
 
+	session := testEngine.NewSession()
+	defer session.Close()
+
 	var err error
 	if testEngine.Dialect().DBType() == core.MSSQL {
-		_, err = testEngine.Exec("SET IDENTITY_INSERT userinfo_get ON")
+		err = session.Begin()
+		assert.NoError(t, err)
+		_, err = session.Exec("SET IDENTITY_INSERT userinfo_get ON")
 		assert.NoError(t, err)
 	}
-	cnt, err := testEngine.Insert(&UserinfoGet{Uid: 2})
+	cnt, err := session.Insert(&UserinfoGet{Uid: 2})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
+	if testEngine.Dialect().DBType() == core.MSSQL {
+		err = session.Commit()
+		assert.NoError(t, err)
+	}
 
 	user := UserinfoGet{Uid: 2}
 	has, err := testEngine.Get(&user)
@@ -318,4 +331,105 @@ func TestGetStructId(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, 2, maxid.Id)
+}
+
+func TestContextGet(t *testing.T) {
+	type ContextGetStruct struct {
+		Id   int64
+		Name string
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(ContextGetStruct))
+
+	_, err := testEngine.Insert(&ContextGetStruct{Name: "1"})
+	assert.NoError(t, err)
+
+	sess := testEngine.NewSession()
+	defer sess.Close()
+
+	context := NewMemoryContextCache()
+
+	var c2 ContextGetStruct
+	has, err := sess.ID(1).NoCache().ContextCache(context).Get(&c2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 1, c2.Id)
+	assert.EqualValues(t, "1", c2.Name)
+	sql, args := sess.LastSQL()
+	assert.True(t, len(sql) > 0)
+	assert.True(t, len(args) > 0)
+
+	var c3 ContextGetStruct
+	has, err = sess.ID(1).NoCache().ContextCache(context).Get(&c3)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 1, c3.Id)
+	assert.EqualValues(t, "1", c3.Name)
+	sql, args = sess.LastSQL()
+	assert.True(t, len(sql) == 0)
+	assert.True(t, len(args) == 0)
+}
+
+func TestContextGet2(t *testing.T) {
+	type ContextGetStruct2 struct {
+		Id   int64
+		Name string
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(ContextGetStruct2))
+
+	_, err := testEngine.Insert(&ContextGetStruct2{Name: "1"})
+	assert.NoError(t, err)
+
+	context := NewMemoryContextCache()
+
+	var c2 ContextGetStruct2
+	has, err := testEngine.ID(1).NoCache().ContextCache(context).Get(&c2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 1, c2.Id)
+	assert.EqualValues(t, "1", c2.Name)
+
+	var c3 ContextGetStruct2
+	has, err = testEngine.ID(1).NoCache().ContextCache(context).Get(&c3)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 1, c3.Id)
+	assert.EqualValues(t, "1", c3.Name)
+}
+
+type GetCustomTableInterface interface {
+	TableName() string
+}
+
+type MyGetCustomTableImpletation struct {
+	Id   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+const getCustomTableName = "GetCustomTableInterface"
+
+func (m *MyGetCustomTableImpletation) TableName() string {
+	return getCustomTableName
+}
+
+func TestGetCustomTableInterface(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+	assert.NoError(t, testEngine.Table(getCustomTableName).Sync2(new(MyGetCustomTableImpletation)))
+
+	exist, err := testEngine.IsTableExist(getCustomTableName)
+	assert.NoError(t, err)
+	assert.True(t, exist)
+
+	_, err = testEngine.Insert(&MyGetCustomTableImpletation{
+		Name: "xlw",
+	})
+	assert.NoError(t, err)
+
+	var c GetCustomTableInterface = new(MyGetCustomTableImpletation)
+	has, err := testEngine.Get(c)
+	assert.NoError(t, err)
+	assert.True(t, has)
 }
