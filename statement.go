@@ -6,7 +6,6 @@ package xorm
 
 import (
 	"database/sql/driver"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -408,7 +407,7 @@ func (statement *Statement) buildUpdates(bean interface{},
 				} else {
 					// Blank struct could not be as update data
 					if requiredField || !isStructZero(fieldValue) {
-						bytes, err := json.Marshal(fieldValue.Interface())
+						bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
 						if err != nil {
 							panic(fmt.Sprintf("mashal %v failed", fieldValue.Interface()))
 						}
@@ -437,7 +436,7 @@ func (statement *Statement) buildUpdates(bean interface{},
 			}
 
 			if col.SQLType.IsText() {
-				bytes, err := json.Marshal(fieldValue.Interface())
+				bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
 				if err != nil {
 					engine.logger.Error(err)
 					continue
@@ -457,7 +456,7 @@ func (statement *Statement) buildUpdates(bean interface{},
 					fieldType.Elem().Kind() == reflect.Uint8 {
 					val = fieldValue.Slice(0, 0).Interface()
 				} else {
-					bytes, err = json.Marshal(fieldValue.Interface())
+					bytes, err = DefaultJSONHandler.Marshal(fieldValue.Interface())
 					if err != nil {
 						engine.logger.Error(err)
 						continue

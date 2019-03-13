@@ -5,7 +5,6 @@
 package xorm
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -117,21 +116,21 @@ type ConvConfig struct {
 }
 
 func (s *ConvConfig) FromDB(data []byte) error {
-	return json.Unmarshal(data, s)
+	return DefaultJSONHandler.Unmarshal(data, s)
 }
 
 func (s *ConvConfig) ToDB() ([]byte, error) {
-	return json.Marshal(s)
+	return DefaultJSONHandler.Marshal(s)
 }
 
 type SliceType []*ConvConfig
 
 func (s *SliceType) FromDB(data []byte) error {
-	return json.Unmarshal(data, s)
+	return DefaultJSONHandler.Unmarshal(data, s)
 }
 
 func (s *SliceType) ToDB() ([]byte, error) {
-	return json.Marshal(s)
+	return DefaultJSONHandler.Marshal(s)
 }
 
 type ConvStruct struct {
