@@ -1349,3 +1349,44 @@ func TestWhereCondErrorWhenUpdate(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualValues(t, ErrConditionType, err)
 }
+
+func TestUpdateDeleted(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type UpdateDeletedStruct struct {
+		Id        int64
+		Name      string
+		DeletedAt time.Time `xorm:"deleted"`
+	}
+
+	assertSync(t, new(UpdateDeletedStruct))
+
+	var s = UpdateDeletedStruct{
+		Name: "test",
+	}
+	cnt, err := testEngine.Insert(&s)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	cnt, err = testEngine.ID(s.Id).Delete(&UpdateDeletedStruct{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	cnt, err = testEngine.ID(s.Id).Update(&UpdateDeletedStruct{
+		Name: "test1",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, cnt)
+
+	cnt, err = testEngine.Table(&UpdateDeletedStruct{}).ID(s.Id).Update(map[string]interface{}{
+		"name": "test1",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, cnt)
+
+	cnt, err = testEngine.ID(s.Id).Unscoped().Update(&UpdateDeletedStruct{
+		Name: "test1",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+}
