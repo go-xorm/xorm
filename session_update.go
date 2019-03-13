@@ -244,23 +244,39 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	}
 
 	var autoCond builder.Cond
-	if !session.statement.noAutoCondition && len(condiBean) > 0 {
-		if c, ok := condiBean[0].(map[string]interface{}); ok {
-			autoCond = builder.Eq(c)
-		} else {
-			ct := reflect.TypeOf(condiBean[0])
-			k := ct.Kind()
-			if k == reflect.Ptr {
-				k = ct.Elem().Kind()
-			}
-			if k == reflect.Struct {
-				var err error
-				autoCond, err = session.statement.buildConds(session.statement.RefTable, condiBean[0], true, true, false, true, false)
-				if err != nil {
-					return 0, err
-				}
+	if !session.statement.noAutoCondition {
+		condBeanIsStruct := false
+		if len(condiBean) > 0 {
+			if c, ok := condiBean[0].(map[string]interface{}); ok {
+				autoCond = builder.Eq(c)
 			} else {
-				return 0, ErrConditionType
+				ct := reflect.TypeOf(condiBean[0])
+				k := ct.Kind()
+				if k == reflect.Ptr {
+					k = ct.Elem().Kind()
+				}
+				if k == reflect.Struct {
+					var err error
+					autoCond, err = session.statement.buildConds(session.statement.RefTable, condiBean[0], true, true, false, true, false)
+					if err != nil {
+						return 0, err
+					}
+					condBeanIsStruct = true
+				} else {
+					return 0, ErrConditionType
+				}
+			}
+		}
+
+		if !condBeanIsStruct && table != nil {
+			if col := table.DeletedColumn(); col != nil && !session.statement.unscoped { // tag "deleted" is enabled
+				autoCond1 := session.engine.CondDeleted(session.engine.Quote(col.Name))
+
+				if autoCond == nil {
+					autoCond = autoCond1
+				} else {
+					autoCond = autoCond.And(autoCond1)
+				}
 			}
 		}
 	}
