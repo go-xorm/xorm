@@ -73,11 +73,14 @@ func TestCombineTransaction(t *testing.T) {
 	_, err = session.Insert(&user1)
 	assert.NoError(t, err)
 
+	tableName := mapper.Obj2Table("Userinfo")
+	userName := mapper.Obj2Table("Username")
+
 	user2 := Userinfo{Username: "zzz"}
 	_, err = session.Where("id = ?", 0).Update(&user2)
 	assert.NoError(t, err)
 
-	_, err = session.Exec("delete from "+testEngine.TableName("userinfo", true)+" where username = ?", user2.Username)
+	_, err = session.Exec("delete from "+testEngine.TableName(tableName, true)+" where "+userName+" = ?", user2.Username)
 	assert.NoError(t, err)
 
 	err = session.Commit()

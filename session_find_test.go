@@ -54,11 +54,17 @@ func TestJoinLimit(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 
 	tableName := mapper.Obj2Table("CheckList")
+	tableName2 := mapper.Obj2Table("Salary")
+	tableName3 := mapper.Obj2Table("Empsetting")
+
+	idName := mapper.Obj2Table("Id")
+	lIDName := mapper.Obj2Table("Lid")
+	eIDName := mapper.Obj2Table("Eid")
 
 	var salaries []Salary
-	err = testEngine.Table("salary").
-		Join("INNER", tableName, tableName+".id = salary.lid").
-		Join("LEFT", "empsetting", "empsetting.id = "+tableName+".eid").
+	err = testEngine.Table(tableName2).
+		Join("INNER", tableName, tableName+"."+idName+" = "+tableName2+"."+lIDName).
+		Join("LEFT", tableName3, tableName3+"."+idName+" = "+tableName+"."+eIDName).
 		Limit(10, 0).
 		Find(&salaries)
 	assert.NoError(t, err)
