@@ -197,8 +197,10 @@ func TestDistinctAndCols(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
+	tableName := mapper.Obj2Table("DistinctAndCols")
+
 	var names []string
-	err = testEngine.Table("distinct_and_cols").Cols("name").Distinct("name").Find(&names)
+	err = testEngine.Table(tableName).Cols("name").Distinct("name").Find(&names)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(names))
 	assert.EqualValues(t, "test", names[0])

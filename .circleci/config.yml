@@ -49,8 +49,8 @@ jobs:
 
       - run: go test -v -race -db="mysql" -conn_str="root:@/xorm_test" -coverprofile=coverage2-1.txt -covermode=atomic
       - run: go test -v -race -db="mysql" -conn_str="root:@/xorm_test" -cache=true -coverprofile=coverage2-2.txt -covermode=atomic
-      - run: go test -v -race -db="mysql" -conn_str="root:@/xorm_test" -map_type=same -coverprofile=coverage2-1.txt -covermode=atomic
-      - run: go test -v -race -db="mysql" -conn_str="root:@/xorm_test" -map_type=same -cache=true -coverprofile=coverage2-2.txt -covermode=atomic
+      - run: go test -v -race -db="mysql" -conn_str="root:@/xorm_test" -map_type=same -coverprofile=coverage2-3.txt -covermode=atomic
+      - run: go test -v -race -db="mysql" -conn_str="root:@/xorm_test" -map_type=same -cache=true -coverprofile=coverage2-4.txt -covermode=atomic
 
       - run: go test -v -race -db="mymysql" -conn_str="xorm_test/root/" -coverprofile=coverage3-1.txt -covermode=atomic
       - run: go test -v -race -db="mymysql" -conn_str="xorm_test/root/" -cache=true -coverprofile=coverage3-2.txt -covermode=atomic
@@ -62,6 +62,6 @@ jobs:
       - run: go test -v -race -db="mssql" -conn_str="server=localhost;user id=sa;password=yourStrong(!)Password;database=xorm_test" -cache=true -coverprofile=coverage6-2.txt -covermode=atomic
       - run: go test -v -race -db="mysql" -conn_str="root:@tcp(localhost:4000)/xorm_test" -ignore_select_update=true -coverprofile=coverage7-1.txt -covermode=atomic
       - run: go test -v -race -db="mysql" -conn_str="root:@tcp(localhost:4000)/xorm_test" -ignore_select_update=true -cache=true -coverprofile=coverage7-2.txt -covermode=atomic
-      - run: gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt coverage6-1.txt coverage6-2.txt coverage7-1.txt coverage7-2.txt > coverage.txt
+      - run: gocovmerge coverage1-1.txt coverage1-2.txt coverage1-3.txt coverage1-4.txt coverage2-1.txt coverage2-2.txt  coverage2-3.txt coverage2-4.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt coverage6-1.txt coverage6-2.txt coverage7-1.txt coverage7-2.txt > coverage.txt
 
       - run: bash <(curl -s https://codecov.io/bash)

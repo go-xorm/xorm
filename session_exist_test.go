@@ -54,23 +54,25 @@ func TestExistStruct(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, has)
 
-	has, err = testEngine.SQL("select * from "+testEngine.TableName("record_exist", true)+" where name = ?", "test1").Exist()
+	tableName := mapper.Obj2Table("RecordExist")
+
+	has, err = testEngine.SQL("select * from "+testEngine.TableName(tableName, true)+" where name = ?", "test1").Exist()
 	assert.NoError(t, err)
 	assert.True(t, has)
 
-	has, err = testEngine.SQL("select * from "+testEngine.TableName("record_exist", true)+" where name = ?", "test2").Exist()
+	has, err = testEngine.SQL("select * from "+testEngine.TableName(tableName, true)+" where name = ?", "test2").Exist()
 	assert.NoError(t, err)
 	assert.False(t, has)
 
-	has, err = testEngine.Table("record_exist").Exist()
+	has, err = testEngine.Table(tableName).Exist()
 	assert.NoError(t, err)
 	assert.True(t, has)
 
-	has, err = testEngine.Table("record_exist").Where("name = ?", "test1").Exist()
+	has, err = testEngine.Table(tableName).Where("name = ?", "test1").Exist()
 	assert.NoError(t, err)
 	assert.True(t, has)
 
-	has, err = testEngine.Table("record_exist").Where("name = ?", "test2").Exist()
+	has, err = testEngine.Table(tableName).Where("name = ?", "test2").Exist()
 	assert.NoError(t, err)
 	assert.False(t, has)
 }

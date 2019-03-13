@@ -783,7 +783,9 @@ func TestInsertMap(t *testing.T) {
 	assert.EqualValues(t, 10, im.Height)
 	assert.EqualValues(t, "lunny", im.Name)
 
-	cnt, err = testEngine.Table("insert_map").Insert(map[string]interface{}{
+	tableName := mapper.Obj2Table("InsertMap")
+
+	cnt, err = testEngine.Table(tableName).Insert(map[string]interface{}{
 		"width":  30,
 		"height": 10,
 		"name":   "lunny",
@@ -802,7 +804,7 @@ func TestInsertMap(t *testing.T) {
 	assert.EqualValues(t, 10, ims[1].Height)
 	assert.EqualValues(t, "lunny", ims[1].Name)
 
-	cnt, err = testEngine.Table("insert_map").Insert([]map[string]interface{}{
+	cnt, err = testEngine.Table(tableName).Insert([]map[string]interface{}{
 		{
 			"width":  40,
 			"height": 10,

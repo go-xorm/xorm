@@ -53,10 +53,12 @@ func TestJoinLimit(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
+	tableName := mapper.Obj2Table("CheckList")
+
 	var salaries []Salary
 	err = testEngine.Table("salary").
-		Join("INNER", "check_list", "check_list.id = salary.lid").
-		Join("LEFT", "empsetting", "empsetting.id = check_list.eid").
+		Join("INNER", tableName, tableName+".id = salary.lid").
+		Join("LEFT", "empsetting", "empsetting.id = "+tableName+".eid").
 		Limit(10, 0).
 		Find(&salaries)
 	assert.NoError(t, err)
@@ -133,7 +135,7 @@ type TeamUser struct {
 }
 
 func (TeamUser) TableName() string {
-	return "team_user"
+	return mapper.Obj2Table("TeamUser")
 }
 
 func TestFind3(t *testing.T) {
@@ -142,51 +144,58 @@ func TestFind3(t *testing.T) {
 	err := testEngine.Sync2(new(Team), teamUser)
 	assert.NoError(t, err)
 
+	tableName := mapper.Obj2Table("TeamUser")
+	teamTableName := mapper.Obj2Table("Team")
+	idName := mapper.Obj2Table("Id")
+	orgIDName := mapper.Obj2Table("OrgId")
+	uidName := mapper.Obj2Table("Uid")
+	teamIDName := mapper.Obj2Table("TeamId")
+
 	var teams []Team
-	err = testEngine.Cols("`team`.id").
-		Where("`team_user`.org_id=?", 1).
-		And("`team_user`.uid=?", 2).
-		Join("INNER", "`team_user`", "`team_user`.team_id=`team`.id").
+	err = testEngine.Cols("`"+teamTableName+"`."+idName).
+		Where("`"+tableName+"`."+orgIDName+"=?", 1).
+		And("`"+tableName+"`."+uidName+"=?", 2).
+		Join("INNER", "`"+tableName+"`", "`"+tableName+"`."+teamIDName+"=`"+teamTableName+"`."+idName).
 		Find(&teams)
 	assert.NoError(t, err)
 
 	teams = make([]Team, 0)
-	err = testEngine.Cols("`team`.id").
-		Where("`team_user`.org_id=?", 1).
-		And("`team_user`.uid=?", 2).
-		Join("INNER", teamUser, "`team_user`.team_id=`team`.id").
+	err = testEngine.Cols("`"+teamTableName+"`."+idName).
+		Where("`"+tableName+"`."+orgIDName+"=?", 1).
+		And("`"+tableName+"`."+uidName+"=?", 2).
+		Join("INNER", teamUser, "`"+tableName+"`."+teamIDName+"=`"+teamTableName+"`."+idName).
 		Find(&teams)
 	assert.NoError(t, err)
 
 	teams = make([]Team, 0)
-	err = testEngine.Cols("`team`.id").
-		Where("`team_user`.org_id=?", 1).
-		And("`team_user`.uid=?", 2).
-		Join("INNER", []interface{}{teamUser}, "`team_user`.team_id=`team`.id").
+	err = testEngine.Cols("`"+teamTableName+"`."+idName).
+		Where("`"+tableName+"`."+orgIDName+"=?", 1).
+		And("`"+tableName+"`."+uidName+"=?", 2).
+		Join("INNER", []interface{}{teamUser}, "`"+tableName+"`."+teamIDName+"=`"+teamTableName+"`."+idName).
 		Find(&teams)
 	assert.NoError(t, err)
 
 	teams = make([]Team, 0)
-	err = testEngine.Cols("`team`.id").
-		Where("`tu`.org_id=?", 1).
-		And("`tu`.uid=?", 2).
-		Join("INNER", []string{"team_user", "tu"}, "`tu`.team_id=`team`.id").
+	err = testEngine.Cols("`"+teamTableName+"`.id").
+		Where("`tu`."+orgIDName+"=?", 1).
+		And("`tu`."+uidName+"=?", 2).
+		Join("INNER", []string{tableName, "tu"}, "`tu`."+teamIDName+"=`"+teamTableName+"`."+idName).
 		Find(&teams)
 	assert.NoError(t, err)
 
 	teams = make([]Team, 0)
-	err = testEngine.Cols("`team`.id").
-		Where("`tu`.org_id=?", 1).
-		And("`tu`.uid=?", 2).
-		Join("INNER", []interface{}{"team_user", "tu"}, "`tu`.team_id=`team`.id").
+	err = testEngine.Cols("`"+teamTableName+"`."+idName).
+		Where("`tu`."+orgIDName+"=?", 1).
+		And("`tu`."+uidName+"=?", 2).
+		Join("INNER", []interface{}{tableName, "tu"}, "`tu`."+teamIDName+"=`"+teamTableName+"`."+idName).
 		Find(&teams)
 	assert.NoError(t, err)
 
 	teams = make([]Team, 0)
-	err = testEngine.Cols("`team`.id").
-		Where("`tu`.org_id=?", 1).
-		And("`tu`.uid=?", 2).
-		Join("INNER", []interface{}{teamUser, "tu"}, "`tu`.team_id=`team`.id").
+	err = testEngine.Cols("`"+teamTableName+"`."+idName).
+		Where("`tu`."+orgIDName+"=?", 1).
+		And("`tu`."+uidName+"=?", 2).
+		Join("INNER", []interface{}{teamUser, "tu"}, "`tu`."+teamIDName+"=`"+teamTableName+"`."+idName).
 		Find(&teams)
 	assert.NoError(t, err)
 }
@@ -197,10 +206,8 @@ func TestFindMap(t *testing.T) {
 
 	users := make(map[int64]Userinfo)
 	err := testEngine.Find(&users)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+
 	for _, user := range users {
 		fmt.Println(user)
 	}
@@ -212,10 +219,8 @@ func TestFindMap2(t *testing.T) {
 
 	users := make(map[int64]*Userinfo)
 	err := testEngine.Find(&users)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+
 	for id, user := range users {
 		fmt.Println(id, user)
 	}
@@ -791,13 +796,20 @@ func TestFindJoin(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(SceneItem), new(DeviceUserPrivrels))
 
+	tableName1 := mapper.Obj2Table("SceneItem")
+	tableName2 := mapper.Obj2Table("DeviceUserPrivrels")
+
+	deviceIDName := mapper.Obj2Table("DeviceId")
+	userIDName := mapper.Obj2Table("UserId")
+	typeName := mapper.Obj2Table("Type")
+
 	var scenes []SceneItem
-	err := testEngine.Join("LEFT OUTER", "device_user_privrels", "device_user_privrels.device_id=scene_item.device_id").
-		Where("scene_item.type=?", 3).Or("device_user_privrels.user_id=?", 339).Find(&scenes)
+	err := testEngine.Join("LEFT OUTER", tableName2, tableName1+"."+deviceIDName+"="+tableName2+"."+deviceIDName).
+		Where(tableName1+"."+typeName+"=?", 3).Or(tableName2+"."+userIDName+"=?", 339).Find(&scenes)
 	assert.NoError(t, err)
 
 	scenes = make([]SceneItem, 0)
-	err = testEngine.Join("LEFT OUTER", new(DeviceUserPrivrels), "device_user_privrels.device_id=scene_item.device_id").
-		Where("scene_item.type=?", 3).Or("device_user_privrels.user_id=?", 339).Find(&scenes)
+	err = testEngine.Join("LEFT OUTER", new(DeviceUserPrivrels), tableName1+"."+deviceIDName+"="+tableName2+"."+deviceIDName).
+		Where(tableName1+"."+typeName+"=?", 3).Or(tableName2+"."+userIDName+"=?", 339).Find(&scenes)
 	assert.NoError(t, err)
 }

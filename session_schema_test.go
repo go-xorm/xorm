@@ -79,7 +79,7 @@ type SyncTable2 struct {
 }
 
 func (SyncTable2) TableName() string {
-	return "sync_table1"
+	return mapper.Obj2Table("SyncTable1")
 }
 
 type SyncTable3 struct {
@@ -91,7 +91,7 @@ type SyncTable3 struct {
 }
 
 func (s *SyncTable3) TableName() string {
-	return "sync_table1"
+	return mapper.Obj2Table("SyncTable1")
 }
 
 func TestSyncTable(t *testing.T) {
@@ -99,24 +99,26 @@ func TestSyncTable(t *testing.T) {
 
 	assert.NoError(t, testEngine.Sync2(new(SyncTable1)))
 
+	tableName := mapper.Obj2Table("SyncTable1")
+
 	tables, err := testEngine.DBMetas()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(tables))
-	assert.EqualValues(t, "sync_table1", tables[0].Name)
+	assert.EqualValues(t, tableName, tables[0].Name)
 
 	assert.NoError(t, testEngine.Sync2(new(SyncTable2)))
 
 	tables, err = testEngine.DBMetas()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(tables))
-	assert.EqualValues(t, "sync_table1", tables[0].Name)
+	assert.EqualValues(t, tableName, tables[0].Name)
 
 	assert.NoError(t, testEngine.Sync2(new(SyncTable3)))
 
 	tables, err = testEngine.DBMetas()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(tables))
-	assert.EqualValues(t, "sync_table1", tables[0].Name)
+	assert.EqualValues(t, tableName, tables[0].Name)
 }
 
 func TestIsTableExist(t *testing.T) {
@@ -227,8 +229,10 @@ func TestMetaInfo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(tables))
 	tableNames := []string{tables[0].Name, tables[1].Name}
+
+	tableName2 := mapper.Obj2Table("IndexOrUnique")
 	assert.Contains(t, tableNames, "customtablename")
-	assert.Contains(t, tableNames, "index_or_unique")
+	assert.Contains(t, tableNames, tableName2)
 }
 
 func TestCharst(t *testing.T) {
@@ -273,10 +277,12 @@ func TestUnique_1(t *testing.T) {
 
 	assert.NoError(t, prepareEngine())
 
-	assert.NoError(t, testEngine.DropTables("user_unique"))
+	tableName := mapper.Obj2Table("UserUnique")
+
+	assert.NoError(t, testEngine.DropTables(tableName))
 	assert.NoError(t, testEngine.Sync2(new(UserUnique)))
 
-	assert.NoError(t, testEngine.DropTables("user_unique"))
+	assert.NoError(t, testEngine.DropTables(tableName))
 	assert.NoError(t, testEngine.CreateTables(new(UserUnique)))
 	assert.NoError(t, testEngine.CreateUniques(new(UserUnique)))
 }

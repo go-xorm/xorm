@@ -186,11 +186,12 @@ func TestCount(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, total)
 
-	total, err = testEngine.Where(cond).Table("userinfo_count").Count()
+	tableName := mapper.Obj2Table("UserinfoCount")
+	total, err = testEngine.Where(cond).Table(tableName).Count()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, total)
 
-	total, err = testEngine.Table("userinfo_count").Count()
+	total, err = testEngine.Table(tableName).Count()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, total)
 }
@@ -211,7 +212,9 @@ func TestSQLCount(t *testing.T) {
 
 	assertSync(t, new(UserinfoCount2), new(UserinfoBooks))
 
-	total, err := testEngine.SQL("SELECT count(id) FROM " + testEngine.TableName("userinfo_count2", true)).
+	tableName := mapper.Obj2Table("UserinfoCount2")
+	idName := mapper.Obj2Table("Id")
+	total, err := testEngine.SQL("SELECT count(" + idName + ") FROM " + testEngine.TableName(tableName, true)).
 		Count()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, total)
@@ -237,7 +240,8 @@ func TestCountWithOthers(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	total, err := testEngine.OrderBy("id desc").Limit(1).Count(new(CountWithOthers))
+	idName := mapper.Obj2Table("Id")
+	total, err := testEngine.OrderBy(idName + " desc").Limit(1).Count(new(CountWithOthers))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, total)
 }
@@ -266,11 +270,13 @@ func TestWithTableName(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	total, err := testEngine.OrderBy("id desc").Count(new(CountWithTableName))
+	idName := mapper.Obj2Table("Id")
+
+	total, err := testEngine.OrderBy(idName + " desc").Count(new(CountWithTableName))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, total)
 
-	total, err = testEngine.OrderBy("id desc").Count(CountWithTableName{})
+	total, err = testEngine.OrderBy(idName + " desc").Count(CountWithTableName{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, total)
 }

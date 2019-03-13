@@ -32,9 +32,13 @@ func TestUpdateMap(t *testing.T) {
 	_, err := testEngine.Insert(&tb)
 	assert.NoError(t, err)
 
-	cnt, err := testEngine.Table("update_table").Where("id = ?", tb.Id).Update(map[string]interface{}{
-		"name": "test2",
-		"age":  36,
+	tableName := mapper.Obj2Table("UpdateTable")
+	nameName := mapper.Obj2Table("Name")
+	ageName := mapper.Obj2Table("age")
+
+	cnt, err := testEngine.Table(tableName).Where("id = ?", tb.Id).Update(map[string]interface{}{
+		nameName: "test2",
+		ageName:  36,
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
@@ -64,7 +68,9 @@ func TestUpdateLimit(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	cnt, err = testEngine.OrderBy("name desc").Limit(1).Update(&UpdateTable2{
+	nameName := mapper.Obj2Table("Name")
+
+	cnt, err = testEngine.OrderBy(nameName + " desc").Limit(1).Update(&UpdateTable2{
 		Age: 30,
 	})
 	assert.NoError(t, err)
@@ -268,7 +274,8 @@ func TestUpdateMap2(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(UpdateMustCols))
 
-	_, err := testEngine.Table("update_must_cols").Where("id =?", 1).Update(map[string]interface{}{
+	tableName := mapper.Obj2Table("UpdateMustCols")
+	_, err := testEngine.Table(tableName).Where("id =?", 1).Update(map[string]interface{}{
 		"bool": true,
 	})
 	assert.NoError(t, err)
@@ -305,6 +312,13 @@ func TestUpdate1(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, total, cnt)
 
+	userName := mapper.Obj2Table("Username")
+	heightName := mapper.Obj2Table("Height")
+	departName := mapper.Obj2Table("Departname")
+	detailIDName := "detail_id"
+	isMan := mapper.Obj2Table("IsMan")
+	createdName := mapper.Obj2Table("Created")
+
 	// nullable update
 	{
 		user := &Userinfo{Username: "not null data", Height: 180.5}
@@ -313,29 +327,29 @@ func TestUpdate1(t *testing.T) {
 
 		userID := user.Uid
 		has, err := testEngine.ID(userID).
-			And("username = ?", user.Username).
-			And("height = ?", user.Height).
-			And("departname = ?", "").
-			And("detail_id = ?", 0).
-			And("is_man = ?", 0).
+			And(userName+" = ?", user.Username).
+			And(heightName+" = ?", user.Height).
+			And(departName+" = ?", "").
+			And(detailIDName+" = ?", 0).
+			And(isMan+" = ?", 0).
 			Get(&Userinfo{})
 		assert.NoError(t, err)
 		assert.True(t, has)
 
 		updatedUser := &Userinfo{Username: "null data"}
 		cnt, err = testEngine.ID(userID).
-			Nullable("height", "departname", "is_man", "created").
+			Nullable(heightName, departName, isMan, createdName).
 			Update(updatedUser)
 		assert.NoError(t, err)
 		assert.EqualValues(t, 1, cnt)
 
 		has, err = testEngine.ID(userID).
-			And("username = ?", updatedUser.Username).
-			And("height IS NULL").
-			And("departname IS NULL").
-			And("is_man IS NULL").
-			And("created IS NULL").
-			And("detail_id = ?", 0).
+			And(userName+" = ?", updatedUser.Username).
+			And(heightName+" IS NULL").
+			And(departName+" IS NULL").
+			And(isMan+" IS NULL").
+			And(createdName+" IS NULL").
+			And(detailIDName+" = ?", 0).
 			Get(&Userinfo{})
 		assert.NoError(t, err)
 		assert.True(t, has)
@@ -1024,8 +1038,9 @@ func TestDeletedUpdate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
+	deletedAtName := mapper.Obj2Table("DeletedAt")
 	s.DeletedAt = time.Time{}
-	cnt, err = testEngine.Unscoped().Nullable("deleted_at").Update(&s)
+	cnt, err = testEngine.Unscoped().Nullable(deletedAtName).Update(&s)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
@@ -1037,11 +1052,11 @@ func TestDeletedUpdate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	cnt, err = testEngine.ID(s.Id).Cols("deleted_at").Update(&DeletedUpdatedStruct{})
+	cnt, err = testEngine.ID(s.Id).Cols(deletedAtName).Update(&DeletedUpdatedStruct{})
 	assert.EqualValues(t, "No content found to be updated", err.Error())
 	assert.EqualValues(t, 0, cnt)
 
-	cnt, err = testEngine.ID(s.Id).Unscoped().Cols("deleted_at").Update(&DeletedUpdatedStruct{})
+	cnt, err = testEngine.ID(s.Id).Unscoped().Cols(deletedAtName).Update(&DeletedUpdatedStruct{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
@@ -1066,10 +1081,12 @@ func TestUpdateMapCondition(t *testing.T) {
 	_, err := testEngine.Insert(&c)
 	assert.NoError(t, err)
 
+	idName := mapper.Obj2Table("Id")
+
 	cnt, err := testEngine.Update(&UpdateMapCondition{
 		String: "string1",
 	}, map[string]interface{}{
-		"id": c.Id,
+		idName: c.Id,
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
@@ -1104,7 +1121,11 @@ func TestUpdateMapContent(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 18, c.Age)
 
-	cnt, err := testEngine.Table(new(UpdateMapContent)).ID(c.Id).Update(map[string]interface{}{"age": 0})
+	ageName := mapper.Obj2Table("Age")
+	isManName := mapper.Obj2Table("IsMan")
+	genderName := mapper.Obj2Table("Gender")
+
+	cnt, err := testEngine.Table(new(UpdateMapContent)).ID(c.Id).Update(map[string]interface{}{ageName: 0})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
@@ -1115,9 +1136,9 @@ func TestUpdateMapContent(t *testing.T) {
 	assert.EqualValues(t, 0, c1.Age)
 
 	cnt, err = testEngine.Table(new(UpdateMapContent)).ID(c.Id).Update(map[string]interface{}{
-		"age":    16,
-		"is_man": false,
-		"gender": 2,
+		ageName:    16,
+		isManName:  false,
+		genderName: 2,
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
@@ -1131,9 +1152,9 @@ func TestUpdateMapContent(t *testing.T) {
 	assert.EqualValues(t, 2, c2.Gender)
 
 	cnt, err = testEngine.Table(testEngine.TableName(new(UpdateMapContent))).ID(c.Id).Update(map[string]interface{}{
-		"age":    15,
-		"is_man": true,
-		"gender": 1,
+		ageName:    15,
+		isManName:  true,
+		genderName: 1,
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
