@@ -151,10 +151,10 @@ func TestFind3(t *testing.T) {
 
 	tableName := mapper.Obj2Table("TeamUser")
 	teamTableName := mapper.Obj2Table("Team")
-	idName := mapper.Obj2Table("Id")
-	orgIDName := mapper.Obj2Table("OrgId")
-	uidName := mapper.Obj2Table("Uid")
-	teamIDName := mapper.Obj2Table("TeamId")
+	idName := "`" + mapper.Obj2Table("Id") + "`"
+	orgIDName := "`" + mapper.Obj2Table("OrgId") + "`"
+	uidName := "`" + mapper.Obj2Table("Uid") + "`"
+	teamIDName := "`" + mapper.Obj2Table("TeamId") + "`"
 
 	var teams []Team
 	err = testEngine.Cols("`"+teamTableName+"`."+idName).
@@ -181,7 +181,7 @@ func TestFind3(t *testing.T) {
 	assert.NoError(t, err)
 
 	teams = make([]Team, 0)
-	err = testEngine.Cols("`"+teamTableName+"`.id").
+	err = testEngine.Cols("`"+teamTableName+"`."+idName).
 		Where("`tu`."+orgIDName+"=?", 1).
 		And("`tu`."+uidName+"=?", 2).
 		Join("INNER", []string{tableName, "tu"}, "`tu`."+teamIDName+"=`"+teamTableName+"`."+idName).
@@ -267,7 +267,7 @@ func TestOrder(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
 
-	idName := mapper.Obj2Table("Id")
+	idName := "id"
 	userName := mapper.Obj2Table("Username")
 	heightName := mapper.Obj2Table("Height")
 
@@ -286,7 +286,7 @@ func TestGroupBy(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
 
-	idName := mapper.Obj2Table("Id")
+	idName := "id"
 	userName := mapper.Obj2Table("Username")
 
 	users := make([]Userinfo, 0)
@@ -298,7 +298,7 @@ func TestHaving(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
 
-	userName := mapper.Obj2Table("Username")
+	userName := "`" + mapper.Obj2Table("Username") + "`"
 
 	users := make([]Userinfo, 0)
 	err := testEngine.GroupBy(userName).Having(userName + "='xlw'").Find(&users)
@@ -319,7 +319,7 @@ func TestFindInts(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
-	idName := mapper.Obj2Table("Id")
+	idName := "id"
 
 	var idsInt64 []int64
 	err := testEngine.Table(userinfo).Cols(idName).Desc(idName).Find(&idsInt64)
@@ -363,7 +363,7 @@ func TestFindStrings(t *testing.T) {
 	assertSync(t, new(Userinfo))
 	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
 	username := testEngine.GetColumnMapper().Obj2Table("Username")
-	idName := mapper.Obj2Table("Id")
+	idName := "id"
 
 	var idsString []string
 	err := testEngine.Table(userinfo).Cols(username).Desc(idName).Find(&idsString)
@@ -378,7 +378,7 @@ func TestFindMyString(t *testing.T) {
 	assertSync(t, new(Userinfo))
 	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
 	username := testEngine.GetColumnMapper().Obj2Table("Username")
-	idName := mapper.Obj2Table("Id")
+	idName := "id"
 
 	var idsMyString []MyString
 	err := testEngine.Table(userinfo).Cols(username).Desc(idName).Find(&idsMyString)
@@ -394,7 +394,7 @@ func TestFindInterface(t *testing.T) {
 
 	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
 	username := testEngine.GetColumnMapper().Obj2Table("Username")
-	idName := mapper.Obj2Table("Id")
+	idName := "id"
 
 	var idsInterface []interface{}
 	err := testEngine.Table(userinfo).Cols(username).Desc(idName).Find(&idsInterface)
@@ -409,7 +409,7 @@ func TestFindSliceBytes(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
-	idName := mapper.Obj2Table("Id")
+	idName := "id"
 
 	var ids [][][]byte
 	err := testEngine.Table(userinfo).Desc(idName).Find(&ids)
@@ -426,7 +426,7 @@ func TestFindSlicePtrString(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
-	idName := mapper.Obj2Table("Id")
+	idName := "id"
 
 	var ids [][]*string
 	err := testEngine.Table(userinfo).Desc(idName).Find(&ids)
@@ -443,7 +443,7 @@ func TestFindMapBytes(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
-	idName := mapper.Obj2Table("Id")
+	idName := "id"
 
 	var ids []map[string][]byte
 	err := testEngine.Table(userinfo).Desc(idName).Find(&ids)
@@ -460,7 +460,7 @@ func TestFindMapPtrString(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
-	idName := mapper.Obj2Table("Id")
+	idName := "id"
 
 	var ids []map[string]*string
 	err := testEngine.Table(userinfo).Desc(idName).Find(&ids)
@@ -497,7 +497,6 @@ func TestFindBit(t *testing.T) {
 }
 
 func TestFindMark(t *testing.T) {
-
 	type Mark struct {
 		Mark1 string `xorm:"VARCHAR(1)"`
 		Mark2 string `xorm:"VARCHAR(1)"`
@@ -557,27 +556,31 @@ func TestFindAndCountOneFunc(t *testing.T) {
 	assert.EqualValues(t, 2, len(results))
 	assert.EqualValues(t, 2, cnt)
 
+	idName := "`" + mapper.Obj2Table("Id") + "`"
+	msgName := "`" + mapper.Obj2Table("Msg") + "`"
+	contentName := "`" + mapper.Obj2Table("Content") + "`"
+
 	results = make([]FindAndCountStruct, 0, 1)
-	cnt, err = testEngine.Where("msg = ?", true).FindAndCount(&results)
+	cnt, err = testEngine.Where(msgName+" = ?", true).FindAndCount(&results)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))
 	assert.EqualValues(t, 1, cnt)
 
 	results = make([]FindAndCountStruct, 0, 1)
-	cnt, err = testEngine.Where("msg = ?", true).Limit(1).FindAndCount(&results)
+	cnt, err = testEngine.Where(msgName+" = ?", true).Limit(1).FindAndCount(&results)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))
 	assert.EqualValues(t, 1, cnt)
 
 	results = make([]FindAndCountStruct, 0, 1)
-	cnt, err = testEngine.Where("msg = ?", true).Select("id, content, msg").
+	cnt, err = testEngine.Where(msgName+" = ?", true).Select(idName + ", " + contentName + ", " + msgName).
 		Limit(1).FindAndCount(&results)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))
 	assert.EqualValues(t, 1, cnt)
 
 	results = make([]FindAndCountStruct, 0, 1)
-	cnt, err = testEngine.Where("msg = ?", true).Desc("id").
+	cnt, err = testEngine.Where(msgName+" = ?", true).Desc(idName).
 		Limit(1).FindAndCount(&results)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))

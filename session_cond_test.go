@@ -38,6 +38,7 @@ func TestBuilder(t *testing.T) {
 
 	colNameName := "`" + mapper.Obj2Table("ColName") + "`"
 	opName := "`" + mapper.Obj2Table("Op") + "`"
+	valueName := "`" + mapper.Obj2Table("Value") + "`"
 
 	var cond Condition
 	has, err := testEngine.Where(builder.Eq{colNameName: "col1"}).Get(&cond)
@@ -51,7 +52,7 @@ func TestBuilder(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, true, has, "records should exist")
 
-	has, err = testEngine.Where(builder.Eq{colNameName: "col1", opName: OpEqual, "value": "1"}).
+	has, err = testEngine.Where(builder.Eq{colNameName: "col1", opName: OpEqual, valueName: "1"}).
 		NoAutoCondition().
 		Get(&cond)
 	assert.NoError(t, err)
