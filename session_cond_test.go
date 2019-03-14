@@ -36,8 +36,8 @@ func TestBuilder(t *testing.T) {
 	_, err = testEngine.Insert(&Condition{TableName: "table1", ColName: "col1", Op: OpEqual, Value: "1"})
 	assert.NoError(t, err)
 
-	colNameName := mapper.Obj2Table("ColName")
-	opName := mapper.Obj2Table("Op")
+	colNameName := "`" + mapper.Obj2Table("ColName") + "`"
+	opName := "`" + mapper.Obj2Table("Op") + "`"
 
 	var cond Condition
 	has, err := testEngine.Where(builder.Eq{colNameName: "col1"}).Get(&cond)
@@ -45,7 +45,7 @@ func TestBuilder(t *testing.T) {
 	assert.Equal(t, true, has, "records should exist")
 
 	has, err = testEngine.Where(builder.Eq{colNameName: "col1"}.
-		And(builder.Eq{"op": OpEqual})).
+		And(builder.Eq{opName: OpEqual})).
 		NoAutoCondition().
 		Get(&cond)
 	assert.NoError(t, err)
@@ -223,7 +223,7 @@ func TestFindAndCount(t *testing.T) {
 
 	var results []FindAndCount
 	nameName := mapper.Obj2Table("Name")
-	sess := testEngine.Where(nameName+" = ?", "test1")
+	sess := testEngine.Where("`"+nameName+"` = ?", "test1")
 	conds := sess.Conds()
 	err = sess.Find(&results)
 	assert.NoError(t, err)
