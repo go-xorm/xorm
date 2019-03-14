@@ -140,7 +140,8 @@ func TestLowerCase(t *testing.T) {
 
 	err := testEngine.Sync2(&Lowercase{})
 	assert.NoError(t, err)
-	_, err = testEngine.Where("id > 0").Delete(&Lowercase{})
+	idName := mapper.Obj2Table("Id")
+	_, err = testEngine.Where("`" + idName + "` > 0").Delete(&Lowercase{})
 	assert.NoError(t, err)
 
 	_, err = testEngine.Insert(&Lowercase{ended: 1})
@@ -526,7 +527,8 @@ func TestTagTime(t *testing.T) {
 	assert.EqualValues(t, s.Created.Format("2006-01-02 15:04:05"), u.Created.Format("2006-01-02 15:04:05"))
 
 	var tm string
-	has, err = testEngine.Table(&s).Cols("created").Get(&tm)
+	createdName := "`" + mapper.Obj2Table("Created") + "`"
+	has, err = testEngine.Table(&s).Cols(createdName).Get(&tm)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, s.Created.UTC().Format("2006-01-02 15:04:05"),

@@ -79,7 +79,7 @@ func TestCombineTransaction(t *testing.T) {
 	_, err = session.Where("id = ?", 0).Update(&user2)
 	assert.NoError(t, err)
 
-	_, err = session.Exec("delete from "+testEngine.TableName(tableName, true)+" where "+userName+" = ?", user2.Username)
+	_, err = session.Exec("delete from `"+testEngine.TableName(tableName, true)+"` where `"+userName+"` = ?", user2.Username)
 	assert.NoError(t, err)
 
 	err = session.Commit()
@@ -107,7 +107,8 @@ func TestMultipleTransaction(t *testing.T) {
 	assert.NoError(t, err)
 
 	user2 := MultipleTransaction{Name: "zzz"}
-	_, err = session.Where("id = ?", 0).Update(&user2)
+	idName := mapper.Obj2Table("Id")
+	_, err = session.Where("`"+idName+"` = ?", 0).Update(&user2)
 	assert.NoError(t, err)
 
 	err = session.Commit()
@@ -121,7 +122,7 @@ func TestMultipleTransaction(t *testing.T) {
 	err = session.Begin()
 	assert.NoError(t, err)
 
-	_, err = session.Where("id=?", m1.Id).Delete(new(MultipleTransaction))
+	_, err = session.Where("`"+idName+"`=?", m1.Id).Delete(new(MultipleTransaction))
 	assert.NoError(t, err)
 
 	err = session.Commit()

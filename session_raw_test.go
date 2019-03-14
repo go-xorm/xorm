@@ -25,13 +25,13 @@ func TestExecAndQuery(t *testing.T) {
 	uidName := mapper.Obj2Table("Uid")
 	nameName := mapper.Obj2Table("Name")
 
-	res, err := testEngine.Exec("INSERT INTO "+testEngine.TableName(tableName, true)+" ("+uidName+", "+nameName+") VALUES (?, ?)", 1, "user")
+	res, err := testEngine.Exec("INSERT INTO `"+testEngine.TableName(tableName, true)+"` (`"+uidName+"`, `"+nameName+"`) VALUES (?, ?)", 1, "user")
 	assert.NoError(t, err)
 	cnt, err := res.RowsAffected()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	results, err := testEngine.Query("select * from " + testEngine.TableName(tableName, true))
+	results, err := testEngine.Query("select * from `" + testEngine.TableName(tableName, true) + "`")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))
 	id, err := strconv.Atoi(string(results[0][uidName]))

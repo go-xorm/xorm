@@ -768,10 +768,14 @@ func TestInsertMap(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(InsertMap))
 
+	widthName := mapper.Obj2Table("Width")
+	heightName := mapper.Obj2Table("Height")
+	nameName := mapper.Obj2Table("Name")
+
 	cnt, err := testEngine.Table(new(InsertMap)).Insert(map[string]interface{}{
-		"width":  20,
-		"height": 10,
-		"name":   "lunny",
+		widthName:  20,
+		heightName: 10,
+		nameName:   "lunny",
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
@@ -787,9 +791,9 @@ func TestInsertMap(t *testing.T) {
 	tableName := mapper.Obj2Table("InsertMap")
 
 	cnt, err = testEngine.Table(tableName).Insert(map[string]interface{}{
-		"width":  30,
-		"height": 10,
-		"name":   "lunny",
+		widthName:  30,
+		heightName: 10,
+		nameName:   "lunny",
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
@@ -807,14 +811,14 @@ func TestInsertMap(t *testing.T) {
 
 	cnt, err = testEngine.Table(tableName).Insert([]map[string]interface{}{
 		{
-			"width":  40,
-			"height": 10,
-			"name":   "lunny",
+			widthName:  40,
+			heightName: 10,
+			nameName:   "lunny",
 		},
 		{
-			"width":  50,
-			"height": 10,
-			"name":   "lunny",
+			widthName:  50,
+			heightName: 10,
+			nameName:   "lunny",
 		},
 	})
 	assert.NoError(t, err)

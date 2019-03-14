@@ -35,16 +35,20 @@ func TestGetVar(t *testing.T) {
 	_, err := testEngine.InsertOne(&data)
 	assert.NoError(t, err)
 
-	tableName := mapper.Obj2Table("GetVar")
+	tableName := "`" + mapper.Obj2Table("GetVar") + "`"
+	idName := mapper.Obj2Table("Id")
+	msgName := mapper.Obj2Table("Msg")
+	ageName := mapper.Obj2Table("Age")
+	moneyName := mapper.Obj2Table("Money")
 
 	var msg string
-	has, err := testEngine.Table(tableName).Cols("msg").Get(&msg)
+	has, err := testEngine.Table(tableName).Cols("`" + msgName + "`").Get(&msg)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, "hi", msg)
 
 	var age int
-	has, err = testEngine.Table(tableName).Cols("age").Get(&age)
+	has, err = testEngine.Table(tableName).Cols("`" + ageName + "`").Get(&age)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, 28, age)
@@ -56,9 +60,9 @@ func TestGetVar(t *testing.T) {
 	assert.Equal(t, 28, ageMax)
 
 	var age2 int64
-	has, err = testEngine.Table(tableName).Cols("age").
-		Where("age > ?", 20).
-		And("age < ?", 30).
+	has, err = testEngine.Table(tableName).Cols("`"+ageName+"`").
+		Where("`"+ageName+"` > ?", 20).
+		And("`"+ageName+"` < ?", 30).
 		Get(&age2)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
@@ -128,51 +132,46 @@ func TestGetVar(t *testing.T) {
 	assert.EqualValues(t, 28, age10)
 
 	var id sql.NullInt64
-	has, err = testEngine.Table(tableName).Cols("id").Get(&id)
+	has, err = testEngine.Table(tableName).Cols("`" + idName + "`").Get(&id)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, true, id.Valid)
 	assert.EqualValues(t, data.Id, id.Int64)
 
 	var msgNull sql.NullString
-	has, err = testEngine.Table(tableName).Cols("msg").Get(&msgNull)
+	has, err = testEngine.Table(tableName).Cols("`" + msgName + "`").Get(&msgNull)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, true, msgNull.Valid)
 	assert.EqualValues(t, data.Msg, msgNull.String)
 
 	var nullMoney sql.NullFloat64
-	has, err = testEngine.Table(tableName).Cols("money").Get(&nullMoney)
+	has, err = testEngine.Table(tableName).Cols("`" + moneyName + "`").Get(&nullMoney)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, true, nullMoney.Valid)
 	assert.EqualValues(t, data.Money, nullMoney.Float64)
 
 	var money float64
-	has, err = testEngine.Table(tableName).Cols("money").Get(&money)
+	has, err = testEngine.Table(tableName).Cols("`" + moneyName + "`").Get(&money)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, "1.5", fmt.Sprintf("%.1f", money))
 
 	var money2 float64
 	if testEngine.Dialect().DBType() == core.MSSQL {
-		has, err = testEngine.SQL("SELECT TOP 1 money FROM " + testEngine.TableName(tableName, true)).Get(&money2)
+		has, err = testEngine.SQL("SELECT TOP 1 `" + moneyName + "` FROM " + testEngine.TableName(tableName, true)).Get(&money2)
 	} else {
-		has, err = testEngine.SQL("SELECT money FROM " + testEngine.TableName(tableName, true) + " LIMIT 1").Get(&money2)
+		has, err = testEngine.SQL("SELECT `" + moneyName + "` FROM " + testEngine.TableName(tableName, true) + " LIMIT 1").Get(&money2)
 	}
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, "1.5", fmt.Sprintf("%.1f", money2))
 
 	var money3 float64
-	has, err = testEngine.SQL("SELECT money FROM " + testEngine.TableName(tableName, true) + " WHERE money > 20").Get(&money3)
+	has, err = testEngine.SQL("SELECT `" + moneyName + "` FROM " + testEngine.TableName(tableName, true) + " WHERE `" + moneyName + "` > 20").Get(&money3)
 	assert.NoError(t, err)
 	assert.Equal(t, false, has)
-
-	idName := mapper.Obj2Table("Id")
-	ageName := mapper.Obj2Table("Age")
-	msgName := mapper.Obj2Table("Msg")
-	moneyName := mapper.Obj2Table("Money")
 
 	var valuesString = make(map[string]string)
 	has, err = testEngine.Table(tableName).Get(&valuesString)
@@ -187,7 +186,7 @@ func TestGetVar(t *testing.T) {
 	// for mymysql driver, interface{} will be []byte, so ignore it currently
 	if testEngine.Dialect().DriverName() != "mymysql" {
 		var valuesInter = make(map[string]interface{})
-		has, err = testEngine.Table(tableName).Where(idName+" = ?", 1).Select("*").Get(&valuesInter)
+		has, err = testEngine.Table(tableName).Where("`"+idName+"` = ?", 1).Select("*").Get(&valuesInter)
 		assert.NoError(t, err)
 		assert.Equal(t, true, has)
 		assert.Equal(t, 5, len(valuesInter))
@@ -405,10 +404,10 @@ func TestGetStructId(t *testing.T) {
 		Id int64
 	}
 
-	idName := mapper.Obj2Table("Id")
+	idName := "`" + mapper.Obj2Table("Id") + "`"
 	//var id int64
 	var maxid maxidst
-	sql := "select max(" + idName + ") as id from " + testEngine.TableName(&TestGetStruct{}, true)
+	sql := "select max(" + idName + ") as id from " + testEngine.Quote(testEngine.TableName(&TestGetStruct{}, true))
 	has, err := testEngine.SQL(sql).Get(&maxid)
 	assert.NoError(t, err)
 	assert.True(t, has)

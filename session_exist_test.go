@@ -56,7 +56,7 @@ func TestExistStruct(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, has)
 
-	tableName := mapper.Obj2Table("RecordExist")
+	tableName := "`" + mapper.Obj2Table("RecordExist") + "`"
 
 	has, err = testEngine.SQL("select * from "+testEngine.TableName(tableName, true)+" where "+nameName+" = ?", "test1").Exist()
 	assert.NoError(t, err)

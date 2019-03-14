@@ -197,10 +197,11 @@ func TestDistinctAndCols(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	tableName := mapper.Obj2Table("DistinctAndCols")
+	tableName := "`" + mapper.Obj2Table("DistinctAndCols") + "`"
+	nameName := "`" + mapper.Obj2Table("Name") + "`"
 
 	var names []string
-	err = testEngine.Table(tableName).Cols("name").Distinct("name").Find(&names)
+	err = testEngine.Table(tableName).Cols(nameName).Distinct(nameName).Find(&names)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(names))
 	assert.EqualValues(t, "test", names[0])
@@ -214,9 +215,11 @@ func TestUpdateIgnoreOnlyFromDBFields(t *testing.T) {
 		IngoreField     string `xorm:"-"`
 	}
 
+	idName := mapper.Obj2Table("Id")
+
 	assertGetRecord := func() *TestOnlyFromDBField {
 		var record TestOnlyFromDBField
-		has, err := testEngine.Where("id = ?", 1).Get(&record)
+		has, err := testEngine.Where("`"+idName+"` = ?", 1).Get(&record)
 		assert.NoError(t, err)
 		assert.EqualValues(t, true, has)
 		assert.EqualValues(t, "", record.OnlyFromDBField)

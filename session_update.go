@@ -183,6 +183,9 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		if session.statement.ColumnStr == "" {
 			colNames, args = session.statement.buildUpdates(bean, false, false,
 				false, false, true)
+			if session.statement.lastError != nil {
+				return 0, err
+			}
 		} else {
 			colNames, args, err = session.genUpdateColumns(bean)
 			if err != nil {

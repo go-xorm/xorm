@@ -52,13 +52,13 @@ func TestJoinLimit(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	tableName := mapper.Obj2Table("CheckList")
-	tableName2 := mapper.Obj2Table("Salary")
-	tableName3 := mapper.Obj2Table("Empsetting")
+	tableName := "`" + mapper.Obj2Table("CheckList") + "`"
+	tableName2 := "`" + mapper.Obj2Table("Salary") + "`"
+	tableName3 := "`" + mapper.Obj2Table("Empsetting") + "`"
 
-	idName := mapper.Obj2Table("Id")
-	lIDName := mapper.Obj2Table("Lid")
-	eIDName := mapper.Obj2Table("Eid")
+	idName := "`" + mapper.Obj2Table("Id") + "`"
+	lIDName := "`" + mapper.Obj2Table("Lid") + "`"
+	eIDName := "`" + mapper.Obj2Table("Eid") + "`"
 
 	var salaries []Salary
 	err = testEngine.Table(tableName2).
@@ -286,11 +286,11 @@ func TestGroupBy(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
 
-	idName := "id"
+	idName := "`id`"
 	userName := mapper.Obj2Table("Username")
 
 	users := make([]Userinfo, 0)
-	err := testEngine.GroupBy(idName + ", " + userName).Find(&users)
+	err := testEngine.GroupBy(idName + ", `" + userName + "`").Find(&users)
 	assert.NoError(t, err)
 }
 
@@ -609,17 +609,20 @@ func TestFindMapStringId(t *testing.T) {
 
 	deviceIDs := []string{"1"}
 
+	deviceIDName := "`" + mapper.Obj2Table("Deviceid") + "`"
+	statusName := "`" + mapper.Obj2Table("Status") + "`"
+
 	deviceMaps := make(map[string]*FindMapDevice, len(deviceIDs))
 	err = testEngine.
-		Where("status = ?", 1).
-		In("deviceid", deviceIDs).
+		Where(statusName+" = ?", 1).
+		In(deviceIDName, deviceIDs).
 		Find(&deviceMaps)
 	assert.NoError(t, err)
 
 	deviceMaps2 := make(map[string]FindMapDevice, len(deviceIDs))
 	err = testEngine.
-		Where("status = ?", 1).
-		In("deviceid", deviceIDs).
+		Where(statusName+" = ?", 1).
+		In(deviceIDName, deviceIDs).
 		Find(&deviceMaps2)
 	assert.NoError(t, err)
 
@@ -650,7 +653,7 @@ func TestFindMapStringId(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	sum, err := testEngine.SumInt(new(FindMapDevice), "status")
+	sum, err := testEngine.SumInt(new(FindMapDevice), statusName)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, sum)
 
@@ -783,12 +786,12 @@ func TestFindJoin(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(SceneItem), new(DeviceUserPrivrels))
 
-	tableName1 := mapper.Obj2Table("SceneItem")
-	tableName2 := mapper.Obj2Table("DeviceUserPrivrels")
+	tableName1 := "`" + mapper.Obj2Table("SceneItem") + "`"
+	tableName2 := "`" + mapper.Obj2Table("DeviceUserPrivrels") + "`"
 
-	deviceIDName := mapper.Obj2Table("DeviceId")
-	userIDName := mapper.Obj2Table("UserId")
-	typeName := mapper.Obj2Table("Type")
+	deviceIDName := "`" + mapper.Obj2Table("DeviceId") + "`"
+	userIDName := "`" + mapper.Obj2Table("UserId") + "`"
+	typeName := "`" + mapper.Obj2Table("Type") + "`"
 
 	var scenes []SceneItem
 	err := testEngine.Join("LEFT OUTER", tableName2, tableName1+"."+deviceIDName+"="+tableName2+"."+deviceIDName).
