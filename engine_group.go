@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"time"
 
 	"github.com/go-xorm/core"
@@ -72,6 +73,13 @@ func (eg *EngineGroup) Close() error {
 		}
 	}
 	return nil
+}
+
+// Context returned a group session
+func (eg *EngineGroup) Context(ctx context.Context) *Session {
+	sess := eg.NewSession()
+	sess.isAutoClose = true
+	return sess.Context(ctx)
 }
 
 // NewSession returned a group session
