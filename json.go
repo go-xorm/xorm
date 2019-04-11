@@ -14,7 +14,7 @@ type JSONInterface interface {
 
 var (
 	// DefaultJSONHandler default json handler
-	DefaultJSONHandler = StdJSON{}
+	DefaultJSONHandler JSONInterface = StdJSON{}
 )
 
 // StdJSON implements JSONInterface via encoding/json
