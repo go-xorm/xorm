@@ -90,7 +90,7 @@ func (session *Session) Init() {
 
 	session.afterProcessors = make([]executedProcessor, 0)
 
-	session.logger = session.logger
+	session.logger = session.engine.logger
 
 	session.lastSQL = ""
 	session.lastSQLArgs = []interface{}{}
