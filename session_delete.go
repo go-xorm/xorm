@@ -61,14 +61,14 @@ func (session *Session) cacheDelete(table *core.Table, tableName, sqlStr string,
 	}
 
 	for _, id := range ids {
-		session.engine.logger.Debug("[cacheDelete] delete cache obj:", tableName, id)
+		session.logger.Debug("[cacheDelete] delete cache obj:", tableName, id)
 		sid, err := id.ToString()
 		if err != nil {
 			return err
 		}
 		cacher.DelBean(tableName, sid)
 	}
-	session.engine.logger.Debug("[cacheDelete] clear cache table:", tableName)
+	session.logger.Debug("[cacheDelete] clear cache table:", tableName)
 	cacher.ClearIds(tableName)
 	return nil
 }
