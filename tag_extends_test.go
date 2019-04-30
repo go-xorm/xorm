@@ -486,3 +486,123 @@ func TestExtends4(t *testing.T) {
 		panic(err)
 	}
 }
+
+type Size struct {
+	ID     int64   `xorm:"int(4) 'id' pk autoincr"`
+	Width  float32 `json:"width" xorm:"float 'Width'"`
+	Height float32 `json:"height" xorm:"float 'Height'"`
+}
+
+type Book struct {
+	ID         int64 `xorm:"int(4) 'id' pk autoincr"`
+	SizeOpen   *Size `xorm:"extends('Open')"`
+	SizeClosed *Size `xorm:"extends('Closed')"`
+	Size       *Size `xorm:"extends('')"`
+}
+
+func TestExtends5(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+	err := testEngine.DropTables(&Book{}, &Size{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = testEngine.CreateTables(&Size{}, &Book{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	var sc = Size{Width: 0.2, Height: 0.4}
+	var so = Size{Width: 0.2, Height: 0.8}
+	var s = Size{Width: 0.15, Height: 1.5}
+	var bk1 = Book{
+		SizeOpen:   &so,
+		SizeClosed: &sc,
+		Size:       &s,
+	}
+	var bk2 = Book{
+		SizeOpen: &so,
+	}
+	var bk3 = Book{
+		SizeClosed: &sc,
+		Size:       &s,
+	}
+	var bk4 = Book{}
+	var bk5 = Book{Size: &s}
+	_, err = testEngine.Insert(&sc, &so, &s, &bk1, &bk2, &bk3, &bk4, &bk5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var books = map[int64]Book{
+		bk1.ID: bk1,
+		bk2.ID: bk2,
+		bk3.ID: bk3,
+		bk4.ID: bk4,
+		bk5.ID: bk5,
+	}
+
+	session := testEngine.NewSession()
+	defer session.Close()
+
+	var mapper = testEngine.GetTableMapper().Obj2Table
+	var quote = testEngine.Quote
+	bookTableName := quote(testEngine.TableName(mapper("Book"), true))
+	sizeTableName := quote(testEngine.TableName(mapper("Size"), true))
+
+	list := make([]Book, 0)
+	err = session.
+		Select(fmt.Sprintf(
+			"%s.%s, sc.%s AS %s, sc.%s AS %s, s.%s, s.%s",
+			quote(bookTableName),
+			quote("id"),
+			quote("Width"),
+			quote("ClosedWidth"),
+			quote("Height"),
+			quote("ClosedHeight"),
+			quote("Width"),
+			quote("Height"),
+		)).
+		Table(bookTableName).
+		Join(
+			"LEFT",
+			sizeTableName+" AS `sc`",
+			bookTableName+".`SizeClosed`=sc.`id`",
+		).
+		Join(
+			"LEFT",
+			sizeTableName+" AS `s`",
+			bookTableName+".`Size`=s.`id`",
+		).
+		Find(&list)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	for _, book := range list {
+		if ok := assert.Equal(t, books[book.ID].SizeClosed.Width, book.SizeClosed.Width); !ok {
+			t.Error("Not bounded size closed")
+			panic("Not bounded size closed")
+		}
+
+		if ok := assert.Equal(t, books[book.ID].SizeClosed.Height, book.SizeClosed.Height); !ok {
+			t.Error("Not bounded size closed")
+			panic("Not bounded size closed")
+		}
+
+		if books[book.ID].Size != nil || book.Size != nil {
+			if ok := assert.Equal(t, books[book.ID].Size.Width, book.Size.Width); !ok {
+				t.Error("Not bounded size")
+				panic("Not bounded size")
+			}
+
+			if ok := assert.Equal(t, books[book.ID].Size.Height, book.Size.Height); !ok {
+				t.Error("Not bounded size")
+				panic("Not bounded size")
+			}
+		}
+	}
+}
