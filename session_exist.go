@@ -34,6 +34,8 @@ func (session *Session) Exist(bean ...interface{}) (bool, error) {
 				return false, ErrTableNotFound
 			}
 
+			tableName = session.statement.Engine.Quote(tableName)
+
 			if session.statement.cond.IsValid() {
 				condSQL, condArgs, err := builder.ToSQL(session.statement.cond)
 				if err != nil {
