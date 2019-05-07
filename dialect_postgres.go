@@ -1131,7 +1131,7 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error)
 			return nil, err
 		}
 		indexName = strings.Trim(indexName, `" `)
-		if strings.HasSuffix(indexName, "_pkey") || strings.HasSuffix("primary") {
+		if strings.HasSuffix(indexName, "_pkey") || strings.HasSuffix(indexName, "primary") {
 			continue
 		}
 		if strings.HasPrefix(indexdef, "CREATE UNIQUE INDEX") {
