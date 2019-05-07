@@ -1,4 +1,4 @@
-module github.com/go-xorm/xorm
+module github.com/yuanfan/xorm
 
 require (
 	cloud.google.com/go v0.34.0 // indirect
