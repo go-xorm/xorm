@@ -319,7 +319,11 @@ func (statement *Statement) buildUpdates(bean interface{},
 			if err != nil {
 				engine.logger.Error(err)
 			} else {
-				val = data
+				if nil==data {
+					val=nil
+				}else{
+					val = data
+				}
 			}
 			goto APPEND
 		}

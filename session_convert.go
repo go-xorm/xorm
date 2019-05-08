@@ -554,6 +554,9 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		if col.SQLType.IsBlob() {
 			return data, nil
 		}
+		if nil==data {
+			return nil,nil
+		}		
 		return string(data), nil
 	}
 
