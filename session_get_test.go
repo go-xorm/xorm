@@ -47,6 +47,12 @@ func TestGetVar(t *testing.T) {
 	assert.Equal(t, true, has)
 	assert.Equal(t, 28, age)
 
+	var ageMax int
+	has, err = testEngine.SQL("SELECT max(age) FROM `get_var`").Get(&ageMax)
+	assert.NoError(t, err)
+	assert.Equal(t, true, has)
+	assert.Equal(t, 28, ageMax)
+
 	var age2 int64
 	has, err = testEngine.Table("get_var").Cols("age").
 		Where("age > ?", 20).
