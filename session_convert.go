@@ -585,6 +585,22 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 			return tf, nil
 		}
 
+		if col.SQLType.IsText() {
+			bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
+			if err != nil {
+				session.engine.logger.Error(err)
+				return 0, err
+			}
+			return string(bytes), nil
+		} else if col.SQLType.IsBlob() {
+			bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
+			if err != nil {
+				session.engine.logger.Error(err)
+				return 0, err
+			}
+			return bytes, nil
+		}
+
 		if !col.SQLType.IsJson() {
 			// !<winxxp>! 增加支持driver.Valuer接口的结构，如sql.NullString
 			if v, ok := fieldValue.Interface().(driver.Valuer); ok {
@@ -602,21 +618,6 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 			return 0, fmt.Errorf("no primary key for col %v", col.Name)
 		}
 
-		if col.SQLType.IsText() {
-			bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
-			if err != nil {
-				session.engine.logger.Error(err)
-				return 0, err
-			}
-			return string(bytes), nil
-		} else if col.SQLType.IsBlob() {
-			bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
-			if err != nil {
-				session.engine.logger.Error(err)
-				return 0, err
-			}
-			return bytes, nil
-		}
 		return nil, fmt.Errorf("Unsupported type %v", fieldValue.Type())
 	case reflect.Complex64, reflect.Complex128:
 		bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
