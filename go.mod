@@ -6,9 +6,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952
 	github.com/go-sql-driver/mysql v1.4.1
-	github.com/go-xorm/builder v0.3.3
-	github.com/go-xorm/core v0.6.2
-	github.com/go-xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a // indirect
 	github.com/google/go-cmp v0.2.0 // indirect
 	github.com/jackc/fake v0.0.0-20150926172116-812a484cc733 // indirect
 	github.com/jackc/pgx v3.3.0+incompatible
@@ -22,4 +19,6 @@ require (
 	github.com/ziutek/mymysql v1.5.4
 	golang.org/x/crypto v0.0.0-20190122013713-64072686203f // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
+	xorm.io/builder v0.3.5
+	xorm.io/core v0.6.3
 )

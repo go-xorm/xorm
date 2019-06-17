@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
+	"xorm.io/builder"
+	"xorm.io/core"
 )
 
 const (
