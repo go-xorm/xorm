@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 )
 
 // tbNameWithSchema will automatically add schema prefix on table name

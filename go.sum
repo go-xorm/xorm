@@ -10,10 +10,6 @@ github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952 h1:b5OnbZD49
 github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952/go.mod h1:xN/JuLBIz4bjkxNmByTiV1IbhfnYb6oo99phBn4Eqhc=
 github.com/go-sql-driver/mysql v1.4.1 h1:g24URVg0OFbNUTx9qqY1IRZ9D9z3iPyi5zKhQZpNwpA=
 github.com/go-sql-driver/mysql v1.4.1/go.mod h1:zAC/RDZ24gD3HViQzih4MyKcchzm+sOG5ZlKdlhCg5w=
-github.com/go-xorm/builder v0.3.3 h1:v8grgrwOGv/iHXIEhIvOwHZIPLrpxRKSX8yWSMLFn/4=
-github.com/go-xorm/builder v0.3.3/go.mod h1:v8mE3MFBgtL+RGFNfUnAMUqqfk/Y4W5KuwCFQIEpQLk=
-github.com/go-xorm/core v0.6.2 h1:EJLcSxf336POJr670wKB55Mah9f93xzvGYzNRgnT8/Y=
-github.com/go-xorm/core v0.6.2/go.mod h1:bwPIfLdm/FzWgVUH8WPVlr+uJhscvNGFcaZKXsI3n2c=
 github.com/go-xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:9wScpmSP5A3Bk8V3XHWUcJmYTh+ZnlHVyc+A4oZYS3Y=
 github.com/go-xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:56xuuqnHyryaerycW3BfssRdxQstACi0Epw/yC5E2xM=
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
@@ -53,3 +49,9 @@ google.golang.org/appengine v1.4.0 h1:/wp5JvzpHIxhs/dumFmF7BXTf3Z+dd4uXta4kVyO50
 google.golang.org/appengine v1.4.0/go.mod h1:xpcJRLb0r/rnEns0DIKYYv+WjYCduHsrkT7/EB5XEv4=
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 h1:qIbj1fsPNlZgppZ+VLlY7N33q108Sa+fhmuc+sWQYwY=
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+xorm.io/builder v0.3.5 h1:EilU39fvWDxjb1cDaELpYhsF+zziRBhew8xk4pngO+A=
+xorm.io/builder v0.3.5/go.mod h1:ZFbByS/KxZI1FKRjL05PyJ4YrK2bcxlUaAxdum5aTR8=
+xorm.io/core v0.6.2 h1:EJLcSxf336POJr670wKB55Mah9f93xzvGYzNRgnT8/Y=
+xorm.io/core v0.6.2/go.mod h1:bwPIfLdm/FzWgVUH8WPVlr+uJhscvNGFcaZKXsI3n2c=
+xorm.io/core v0.6.3 h1:n1NhVZt1s2oLw1BZfX2ocIJsHyso259uPgg63BGr37M=
+xorm.io/core v0.6.3/go.mod h1:8kz/C6arVW/O9vk3PgCiMJO2hIAm1UcuOL3dSPyZ2qo=
