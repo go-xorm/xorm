@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 )
 
 // Interface defines the interface which Engine, EngineGroup and Session will implementate.
@@ -28,7 +28,7 @@ type Interface interface {
 	Delete(interface{}) (int64, error)
 	Distinct(columns ...string) *Session
 	DropIndexes(bean interface{}) error
-	Exec(sqlOrAgrs ...interface{}) (sql.Result, error)
+	Exec(sqlOrArgs ...interface{}) (sql.Result, error)
 	Exist(bean ...interface{}) (bool, error)
 	Find(interface{}, ...interface{}) error
 	FindAndCount(interface{}, ...interface{}) (int64, error)
@@ -50,9 +50,9 @@ type Interface interface {
 	Omit(columns ...string) *Session
 	OrderBy(order string) *Session
 	Ping() error
-	Query(sqlOrAgrs ...interface{}) (resultsSlice []map[string][]byte, err error)
-	QueryInterface(sqlorArgs ...interface{}) ([]map[string]interface{}, error)
-	QueryString(sqlorArgs ...interface{}) ([]map[string]string, error)
+	Query(sqlOrArgs ...interface{}) (resultsSlice []map[string][]byte, err error)
+	QueryInterface(sqlOrArgs ...interface{}) ([]map[string]interface{}, error)
+	QueryString(sqlOrArgs ...interface{}) ([]map[string]string, error)
 	Rows(bean interface{}) (*Rows, error)
 	SetExpr(string, string) *Session
 	SQL(interface{}, ...interface{}) *Session

@@ -38,6 +38,22 @@ func TestRows(t *testing.T) {
 		cnt++
 	}
 	assert.EqualValues(t, 1, cnt)
+	assert.False(t, rows.Next())
+	assert.NoError(t, rows.Close())
+
+	rows0, err := testEngine.Where("1>1").Rows(new(UserRows))
+	assert.NoError(t, err)
+	defer rows0.Close()
+
+	cnt = 0
+	user0 := new(UserRows)
+	for rows0.Next() {
+		err = rows0.Scan(user0)
+		assert.NoError(t, err)
+		cnt++
+	}
+	assert.EqualValues(t, 0, cnt)
+	assert.NoError(t, rows0.Close())
 
 	sess := testEngine.NewSession()
 	defer sess.Close()

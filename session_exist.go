@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
+	"xorm.io/builder"
+	"xorm.io/core"
 )
 
 // Exist returns true if the record exist otherwise return false
@@ -33,6 +33,8 @@ func (session *Session) Exist(bean ...interface{}) (bool, error) {
 			if len(tableName) <= 0 {
 				return false, ErrTableNotFound
 			}
+
+			tableName = session.statement.Engine.Quote(tableName)
 
 			if session.statement.cond.IsValid() {
 				condSQL, condArgs, err := builder.ToSQL(session.statement.cond)

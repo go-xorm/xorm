@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
+	"xorm.io/builder"
+	"xorm.io/core"
 )
 
 func (session *Session) queryPreprocess(sqlStr *string, paramStr ...interface{}) {
@@ -194,14 +194,14 @@ func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, er
 	return session.DB().ExecContext(session.ctx, sqlStr, args...)
 }
 
-func convertSQLOrArgs(sqlorArgs ...interface{}) (string, []interface{}, error) {
-	switch sqlorArgs[0].(type) {
+func convertSQLOrArgs(sqlOrArgs ...interface{}) (string, []interface{}, error) {
+	switch sqlOrArgs[0].(type) {
 	case string:
-		return sqlorArgs[0].(string), sqlorArgs[1:], nil
+		return sqlOrArgs[0].(string), sqlOrArgs[1:], nil
 	case *builder.Builder:
-		return sqlorArgs[0].(*builder.Builder).ToSQL()
+		return sqlOrArgs[0].(*builder.Builder).ToSQL()
 	case builder.Builder:
-		bd := sqlorArgs[0].(builder.Builder)
+		bd := sqlOrArgs[0].(builder.Builder)
 		return bd.ToSQL()
 	}
 
@@ -209,16 +209,16 @@ func convertSQLOrArgs(sqlorArgs ...interface{}) (string, []interface{}, error) {
 }
 
 // Exec raw sql
-func (session *Session) Exec(sqlorArgs ...interface{}) (sql.Result, error) {
+func (session *Session) Exec(sqlOrArgs ...interface{}) (sql.Result, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
 
-	if len(sqlorArgs) == 0 {
+	if len(sqlOrArgs) == 0 {
 		return nil, ErrUnSupportedType
 	}
 
-	sqlStr, args, err := convertSQLOrArgs(sqlorArgs...)
+	sqlStr, args, err := convertSQLOrArgs(sqlOrArgs...)
 	if err != nil {
 		return nil, err
 	}

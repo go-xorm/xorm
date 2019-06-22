@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 	"github.com/stretchr/testify/assert"
 )
 
