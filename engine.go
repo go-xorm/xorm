@@ -1601,6 +1601,18 @@ func (engine *Engine) formatTime(sqlTypeName string, t time.Time) (v interface{}
 	return
 }
 
+//AssertColumnSameMapper returns if the implementor of column mapper is core.SameMapper or *core.SameMapper
+func (engine *Engine) AssertColumnSameMapper() bool {
+	switch engine.GetColumnMapper().(type) {
+	case *core.SameMapper:
+		return true
+	case core.SameMapper:
+		return true
+	default:
+		return false
+	}
+}
+
 // GetColumnMapper returns the column name mapper
 func (engine *Engine) GetColumnMapper() core.IMapper {
 	return engine.ColumnMapper

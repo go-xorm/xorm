@@ -535,7 +535,10 @@ func (statement *Statement) ID(id interface{}) *Statement {
 
 // Incr Generate  "Update ... Set column = column + arg" statement
 func (statement *Statement) Incr(column string, arg ...interface{}) *Statement {
-	k := strings.ToLower(column)
+	k := column
+	if !statement.Engine.AssertColumnSameMapper() {
+		k = strings.ToLower(column)
+	}
 	if len(arg) > 0 {
 		statement.incrColumns[k] = incrParam{column, arg[0]}
 	} else {
@@ -546,7 +549,10 @@ func (statement *Statement) Incr(column string, arg ...interface{}) *Statement {
 
 // Decr Generate  "Update ... Set column = column - arg" statement
 func (statement *Statement) Decr(column string, arg ...interface{}) *Statement {
-	k := strings.ToLower(column)
+	k := column
+	if !statement.Engine.AssertColumnSameMapper() {
+		k = strings.ToLower(column)
+	}
 	if len(arg) > 0 {
 		statement.decrColumns[k] = decrParam{column, arg[0]}
 	} else {
@@ -557,7 +563,10 @@ func (statement *Statement) Decr(column string, arg ...interface{}) *Statement {
 
 // SetExpr Generate  "Update ... Set column = {expression}" statement
 func (statement *Statement) SetExpr(column string, expression string) *Statement {
-	k := strings.ToLower(column)
+	k := column
+	if !statement.Engine.AssertColumnSameMapper() {
+		k = strings.ToLower(column)
+	}
 	statement.exprColumns[k] = exprParam{column, expression}
 	return statement
 }
