@@ -20,6 +20,7 @@ func (session *Session) genQuerySQL(sqlOrArgs ...interface{}) (string, []interfa
 		return convertSQLOrArgs(sqlOrArgs...)
 	}
 
+	sqlStr = session.comment + sqlStr
 	if session.statement.RawSQL != "" {
 		return session.statement.RawSQL, session.statement.RawParams, nil
 	}
