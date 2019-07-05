@@ -35,6 +35,8 @@ type Session struct {
 	isCommitedOrRollbacked bool
 	isAutoClose            bool
 
+	logger core.ILogger
+
 	// Automatically reset the statement after operations that execute a SQL
 	// query such as Count(), Find(), Get(), ...
 	autoResetStatement bool
@@ -87,6 +89,8 @@ func (session *Session) Init() {
 	session.stmtCache = make(map[uint32]*core.Stmt)
 
 	session.afterProcessors = make([]executedProcessor, 0)
+
+	session.logger = session.engine.logger
 
 	session.lastSQL = ""
 	session.lastSQLArgs = []interface{}{}
@@ -424,7 +428,7 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 		fieldValue, err := session.getField(dataStruct, key, table, idx)
 		if err != nil {
 			if !strings.Contains(err.Error(), "is not valid") {
-				session.engine.logger.Warn(err)
+				session.logger.Warn(err)
 			}
 			continue
 		}
@@ -609,7 +613,7 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 					z, _ := t.Zone()
 					// set new location if database don't save timezone or give an incorrect timezone
 					if len(z) == 0 || t.Year() == 0 || t.Location().String() != dbTZ.String() { // !nashtsai! HACK tmp work around for lib/pq doesn't properly time with location
-						session.engine.logger.Debugf("empty zone key[%v] : %v | zone: %v | location: %+v\n", key, t, z, *t.Location())
+						session.logger.Debugf("empty zone key[%v] : %v | zone: %v | location: %+v\n", key, t, z, *t.Location())
 						t = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(),
 							t.Minute(), t.Second(), t.Nanosecond(), dbTZ)
 					}
@@ -627,7 +631,7 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 						hasAssigned = true
 						t, err := session.byte2Time(col, d)
 						if err != nil {
-							session.engine.logger.Error("byte2Time error:", err.Error())
+							session.logger.Error("byte2Time error:", err.Error())
 							hasAssigned = false
 						} else {
 							fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
@@ -636,7 +640,7 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 						hasAssigned = true
 						t, err := session.str2Time(col, d)
 						if err != nil {
-							session.engine.logger.Error("byte2Time error:", err.Error())
+							session.logger.Error("byte2Time error:", err.Error())
 							hasAssigned = false
 						} else {
 							fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
@@ -649,7 +653,7 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 				// !<winxxp>! 增加支持sql.Scanner接口的结构，如sql.NullString
 				hasAssigned = true
 				if err := nulVal.Scan(vv.Interface()); err != nil {
-					session.engine.logger.Error("sql.Sanner error:", err.Error())
+					session.logger.Error("sql.Sanner error:", err.Error())
 					hasAssigned = false
 				}
 			} else if col.SQLType.IsJson() {
@@ -863,4 +867,19 @@ func (session *Session) incrVersionFieldValue(fieldValue *reflect.Value) {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		fieldValue.SetUint(fieldValue.Uint() + 1)
 	}
+}
+
+// SetLogger set the new logger
+func (session *Session) SetLogger(logger core.ILogger) {
+	session.logger = logger
+}
+
+// Logger return the logger interface
+func (session *Session) Logger() core.ILogger {
+	return session.logger
+}
+
+// SetLogLevel sets the logger level
+func (session *Session) SetLogLevel(level core.LogLevel) {
+	session.logger.SetLevel(level)
 }

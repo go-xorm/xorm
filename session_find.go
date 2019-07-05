@@ -188,7 +188,7 @@ func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{})
 				return err
 			}
 			err = nil // !nashtsai! reset err to nil for ErrCacheFailed
-			session.engine.logger.Warn("Cache Find Failed")
+			session.logger.Warn("Cache Find Failed")
 		}
 	}
 
@@ -354,7 +354,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 		for rows.Next() {
 			i++
 			if i > 500 {
-				session.engine.logger.Debug("[cacheFind] ids length > 500, no cache")
+				session.logger.Debug("[cacheFind] ids length > 500, no cache")
 				return ErrCacheFailed
 			}
 			var res = make([]string, len(table.PrimaryKeys))
@@ -373,13 +373,13 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 			ids = append(ids, pk)
 		}
 
-		session.engine.logger.Debug("[cacheFind] cache sql:", ids, tableName, sqlStr, newsql, args)
+		session.logger.Debug("[cacheFind] cache sql:", ids, tableName, sqlStr, newsql, args)
 		err = core.PutCacheSql(cacher, ids, tableName, newsql, args)
 		if err != nil {
 			return err
 		}
 	} else {
-		session.engine.logger.Debug("[cacheFind] cache hit sql:", tableName, sqlStr, newsql, args)
+		session.logger.Debug("[cacheFind] cache hit sql:", tableName, sqlStr, newsql, args)
 	}
 
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
@@ -398,7 +398,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 			ides = append(ides, id)
 			ididxes[sid] = idx
 		} else {
-			session.engine.logger.Debug("[cacheFind] cache hit bean:", tableName, id, bean)
+			session.logger.Debug("[cacheFind] cache hit bean:", tableName, id, bean)
 
 			pk := session.engine.IdOf(bean)
 			xid, err := pk.ToString()
@@ -407,7 +407,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 			}
 
 			if sid != xid {
-				session.engine.logger.Error("[cacheFind] error cache", xid, sid, bean)
+				session.logger.Error("[cacheFind] error cache", xid, sid, bean)
 				return ErrCacheFailed
 			}
 			temps[idx] = bean
@@ -457,7 +457,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 
 			bean := rv.Interface()
 			temps[ididxes[sid]] = bean
-			session.engine.logger.Debug("[cacheFind] cache bean:", tableName, id, bean, temps)
+			session.logger.Debug("[cacheFind] cache bean:", tableName, id, bean, temps)
 			cacher.PutBean(tableName, sid, bean)
 		}
 	}
@@ -465,7 +465,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 	for j := 0; j < len(temps); j++ {
 		bean := temps[j]
 		if bean == nil {
-			session.engine.logger.Warn("[cacheFind] cache no hit:", tableName, ids[j], temps)
+			session.logger.Warn("[cacheFind] cache no hit:", tableName, ids[j], temps)
 			// return errors.New("cache error") // !nashtsai! no need to return error, but continue instead
 			continue
 		}
