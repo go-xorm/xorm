@@ -1157,8 +1157,12 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit, n
 			if statement.Start != 0 || statement.LimitN != 0 {
 				oldString := buf.String()
 				buf.Reset()
+				rawColStr := columnStr
+				if rawColStr == "*" {
+					rawColStr = "at.*"
+				}
 				fmt.Fprintf(&buf, "SELECT %v FROM (SELECT %v,ROWNUM RN FROM (%v) at WHERE ROWNUM <= %d) aat WHERE RN > %d",
-					columnStr, columnStr, oldString, statement.Start+statement.LimitN, statement.Start)
+					columnStr, rawColStr, oldString, statement.Start+statement.LimitN, statement.Start)
 			}
 		}
 	}
