@@ -319,6 +319,7 @@ func convertPKToValue(table *core.Table, dst interface{}, pk core.PK) error {
 }
 
 func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr interface{}, args ...interface{}) (err error) {
+	defer session.resetStatement()
 	if !session.canCache() ||
 		indexNoCase(sqlStr, "having") != -1 ||
 		indexNoCase(sqlStr, "group by") != -1 {

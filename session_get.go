@@ -150,6 +150,7 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bea
 }
 
 func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interface{}) (has bool, err error) {
+	defer session.resetStatement()
 	// if has no reftable, then don't use cache currently
 	if !session.canCache() {
 		return false, ErrCacheFailed

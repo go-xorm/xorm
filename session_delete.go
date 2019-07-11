@@ -13,6 +13,7 @@ import (
 )
 
 func (session *Session) cacheDelete(table *core.Table, tableName, sqlStr string, args ...interface{}) error {
+	defer session.resetStatement()
 	if table == nil ||
 		session.tx != nil {
 		return ErrCacheFailed
