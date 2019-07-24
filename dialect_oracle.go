@@ -552,7 +552,7 @@ func (db *oracle) IsReserved(name string) bool {
 }
 
 func (db *oracle) Quote(name string) string {
-	return "\"" + name + "\""
+	return "[" + name + "]"
 }
 
 func (db *oracle) SupportEngine() bool {
