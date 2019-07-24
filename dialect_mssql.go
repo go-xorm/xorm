@@ -286,10 +286,6 @@ func (db *mssql) Quote(name string) string {
 	return "\"" + name + "\""
 }
 
-func (db *mssql) QuoteStr() string {
-	return "\""
-}
-
 func (db *mssql) SupportEngine() bool {
 	return false
 }
