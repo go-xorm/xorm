@@ -175,13 +175,6 @@ func (engine *Engine) SupportInsertMany() bool {
 	return engine.dialect.SupportInsertMany()
 }
 
-// QuoteStr Engine's database use which character as quote.
-// mysql, sqlite use ` and postgres use "
-// Deprecated, use Quote() instead
-func (engine *Engine) QuoteStr() string {
-	return engine.dialect.QuoteStr()
-}
-
 func (engine *Engine) quoteColumns(columnStr string) string {
 	columns := strings.Split(columnStr, ",")
 	for i := 0; i < len(columns); i++ {
