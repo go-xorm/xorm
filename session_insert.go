@@ -242,23 +242,17 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 
 	var sql string
 	if session.engine.dialect.DBType() == core.ORACLE {
-		temp := fmt.Sprintf(") INTO %s (%v%v%v) VALUES (",
+		temp := fmt.Sprintf(") INTO %s (%v) VALUES (",
 			session.engine.Quote(tableName),
-			session.engine.QuoteStr(),
-			strings.Join(colNames, session.engine.QuoteStr()+", "+session.engine.QuoteStr()),
-			session.engine.QuoteStr())
-		sql = fmt.Sprintf("INSERT ALL INTO %s (%v%v%v) VALUES (%v) SELECT 1 FROM DUAL",
+			quoteColumns(colNames, session.engine.Quote, ","))
+		sql = fmt.Sprintf("INSERT ALL INTO %s (%v) VALUES (%v) SELECT 1 FROM DUAL",
 			session.engine.Quote(tableName),
-			session.engine.QuoteStr(),
-			strings.Join(colNames, session.engine.QuoteStr()+", "+session.engine.QuoteStr()),
-			session.engine.QuoteStr(),
+			quoteColumns(colNames, session.engine.Quote, ","),
 			strings.Join(colMultiPlaces, temp))
 	} else {
-		sql = fmt.Sprintf("INSERT INTO %s (%v%v%v) VALUES (%v)",
+		sql = fmt.Sprintf("INSERT INTO %s (%v) VALUES (%v)",
 			session.engine.Quote(tableName),
-			session.engine.QuoteStr(),
-			strings.Join(colNames, session.engine.QuoteStr()+", "+session.engine.QuoteStr()),
-			session.engine.QuoteStr(),
+			quoteColumns(colNames, session.engine.Quote, ","),
 			strings.Join(colMultiPlaces, "),("))
 	}
 	res, err := session.exec(sql, args...)
@@ -378,11 +372,9 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		output = fmt.Sprintf(" OUTPUT Inserted.%s", table.AutoIncrement)
 	}
 	if len(colPlaces) > 0 {
-		sqlStr = fmt.Sprintf("INSERT INTO %s (%v%v%v)%s VALUES (%v)",
+		sqlStr = fmt.Sprintf("INSERT INTO %s (%v)%s VALUES (%v)",
 			session.engine.Quote(tableName),
-			session.engine.QuoteStr(),
-			strings.Join(colNames, session.engine.Quote(", ")),
-			session.engine.QuoteStr(),
+			quoteColumns(colNames, session.engine.Quote, ","),
 			output,
 			colPlaces)
 	} else {
