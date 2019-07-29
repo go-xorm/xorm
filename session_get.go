@@ -138,7 +138,7 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bea
 			return true, err
 		}
 		if res.Valid {
-			*(bean.(*int)) = int(res.Int64)
+			*(bean.(*int8)) = int8(res.Int64)
 		}
 		return true, nil
 	case *int16:
