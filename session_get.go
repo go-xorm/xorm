@@ -24,6 +24,8 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 }
 
 func (session *Session) get(bean interface{}) (bool, error) {
+	defer session.resetStatement()
+
 	if session.statement.lastError != nil {
 		return false, session.statement.lastError
 	}
@@ -75,6 +77,8 @@ func (session *Session) get(bean interface{}) (bool, error) {
 	if context != nil {
 		res := context.Get(fmt.Sprintf("%v-%v", sqlStr, args))
 		if res != nil {
+			session.engine.logger.Debug("hit context cache", sqlStr)
+
 			structValue := reflect.Indirect(reflect.ValueOf(bean))
 			structValue.Set(reflect.Indirect(reflect.ValueOf(res)))
 			session.lastSQL = ""
