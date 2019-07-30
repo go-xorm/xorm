@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -266,6 +266,15 @@ func TestOrder(t *testing.T) {
 	err = testEngine.Asc("id", "username").Desc("height").Find(&users2)
 	assert.NoError(t, err)
 	fmt.Println(users2)
+}
+
+func TestGroupBy(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(Userinfo))
+
+	users := make([]Userinfo, 0)
+	err := testEngine.GroupBy("id, username").Find(&users)
+	assert.NoError(t, err)
 }
 
 func TestHaving(t *testing.T) {

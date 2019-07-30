@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,12 +18,13 @@ func isFloatEq(i, j float64, precision int) bool {
 }
 
 func TestSum(t *testing.T) {
-	assert.NoError(t, prepareEngine())
-
 	type SumStruct struct {
 		Int   int
 		Float float32
 	}
+
+	assert.NoError(t, prepareEngine())
+	assert.NoError(t, testEngine.Sync2(new(SumStruct)))
 
 	var (
 		cases = []SumStruct{
@@ -39,8 +40,6 @@ func TestSum(t *testing.T) {
 		i += v.Int
 		f += v.Float
 	}
-
-	assert.NoError(t, testEngine.Sync2(new(SumStruct)))
 
 	cnt, err := testEngine.Insert(cases)
 	assert.NoError(t, err)
@@ -68,6 +67,65 @@ func TestSum(t *testing.T) {
 	})
 
 	sumsInt, err := testEngine.SumsInt(new(SumStruct), colInt)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(sumsInt))
+	assert.EqualValues(t, i, int(sumsInt[0]))
+}
+
+type SumStructWithTableName struct {
+	Int   int
+	Float float32
+}
+
+func (s SumStructWithTableName) TableName() string {
+	return "sum_struct_with_table_name_1"
+}
+
+func TestSumWithTableName(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+	assert.NoError(t, testEngine.Sync2(new(SumStructWithTableName)))
+
+	var (
+		cases = []SumStructWithTableName{
+			{1, 6.2},
+			{2, 5.3},
+			{92, -0.2},
+		}
+	)
+
+	var i int
+	var f float32
+	for _, v := range cases {
+		i += v.Int
+		f += v.Float
+	}
+
+	cnt, err := testEngine.Insert(cases)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, cnt)
+
+	colInt := testEngine.GetColumnMapper().Obj2Table("Int")
+	colFloat := testEngine.GetColumnMapper().Obj2Table("Float")
+
+	sumInt, err := testEngine.Sum(new(SumStructWithTableName), colInt)
+	assert.NoError(t, err)
+	assert.EqualValues(t, int(sumInt), i)
+
+	sumFloat, err := testEngine.Sum(new(SumStructWithTableName), colFloat)
+	assert.NoError(t, err)
+	assert.Condition(t, func() bool {
+		return isFloatEq(sumFloat, float64(f), 2)
+	})
+
+	sums, err := testEngine.Sums(new(SumStructWithTableName), colInt, colFloat)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(sums))
+	assert.EqualValues(t, i, int(sums[0]))
+	assert.Condition(t, func() bool {
+		return isFloatEq(sums[1], float64(f), 2)
+	})
+
+	sumsInt, err := testEngine.SumsInt(new(SumStructWithTableName), colInt)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(sumsInt))
 	assert.EqualValues(t, i, int(sumsInt[0]))
@@ -180,6 +238,39 @@ func TestCountWithOthers(t *testing.T) {
 	assert.NoError(t, err)
 
 	total, err := testEngine.OrderBy("id desc").Limit(1).Count(new(CountWithOthers))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, total)
+}
+
+type CountWithTableName struct {
+	Id   int64
+	Name string
+}
+
+func (CountWithTableName) TableName() string {
+	return "count_with_table_name1"
+}
+
+func TestWithTableName(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	assertSync(t, new(CountWithTableName))
+
+	_, err := testEngine.Insert(&CountWithTableName{
+		Name: "orderby",
+	})
+	assert.NoError(t, err)
+
+	_, err = testEngine.Insert(CountWithTableName{
+		Name: "limit",
+	})
+	assert.NoError(t, err)
+
+	total, err := testEngine.OrderBy("id desc").Count(new(CountWithTableName))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, total)
+
+	total, err = testEngine.OrderBy("id desc").Count(CountWithTableName{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, total)
 }

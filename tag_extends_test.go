@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -60,63 +60,37 @@ func TestExtends(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	err := testEngine.DropTables(&tempUser2{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	err = testEngine.CreateTables(&tempUser2{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	tu := &tempUser2{tempUser{0, "extends"}, "dev depart"}
 	_, err = testEngine.Insert(tu)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	tu2 := &tempUser2{}
 	_, err = testEngine.Get(tu2)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	tu3 := &tempUser2{tempUser{0, "extends update"}, ""}
 	_, err = testEngine.ID(tu2.TempUser.Id).Update(tu3)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	err = testEngine.DropTables(&tempUser4{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	err = testEngine.CreateTables(&tempUser4{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	tu8 := &tempUser4{tempUser2{tempUser{0, "extends"}, "dev depart"}}
 	_, err = testEngine.Insert(tu8)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	tu9 := &tempUser4{}
 	_, err = testEngine.Get(tu9)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+
 	if tu9.TempUser2.TempUser.Username != tu8.TempUser2.TempUser.Username || tu9.TempUser2.Departname != tu8.TempUser2.Departname {
 		err = errors.New(fmt.Sprintln("not equal for", tu8, tu9))
 		t.Error(err)
@@ -125,36 +99,22 @@ func TestExtends(t *testing.T) {
 
 	tu10 := &tempUser4{tempUser2{tempUser{0, "extends update"}, ""}}
 	_, err = testEngine.ID(tu9.TempUser2.TempUser.Id).Update(tu10)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	err = testEngine.DropTables(&tempUser3{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	err = testEngine.CreateTables(&tempUser3{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	tu4 := &tempUser3{&tempUser{0, "extends"}, "dev depart"}
 	_, err = testEngine.Insert(tu4)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	tu5 := &tempUser3{}
 	_, err = testEngine.Get(tu5)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+
 	if tu5.Temp == nil {
 		err = errors.New("error get data extends")
 		t.Error(err)
@@ -169,22 +129,12 @@ func TestExtends(t *testing.T) {
 
 	tu6 := &tempUser3{&tempUser{0, "extends update"}, ""}
 	_, err = testEngine.ID(tu5.Temp.Id).Update(tu6)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	users := make([]tempUser3, 0)
 	err = testEngine.Find(&users)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-	if len(users) != 1 {
-		err = errors.New("error get data not 1")
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(users), "error get data not 1")
 
 	assertSync(t, new(Userinfo), new(Userdetail))
 
@@ -249,10 +199,7 @@ func TestExtends(t *testing.T) {
 		Join("LEFT", qt(ud), qt(ui)+"."+qt("detail_id")+" = "+qt(ud)+"."+qt(uiid)).
 		NoCascade().
 		Find(&infos2)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 	fmt.Println(infos2)
 }
 
@@ -297,25 +244,16 @@ func TestExtends2(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	err := testEngine.DropTables(&Message{}, &MessageUser{}, &MessageType{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	err = testEngine.CreateTables(&Message{}, &MessageUser{}, &MessageType{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	var sender = MessageUser{Name: "sender"}
 	var receiver = MessageUser{Name: "receiver"}
 	var msgtype = MessageType{Name: "type"}
 	_, err = testEngine.Insert(&sender, &receiver, &msgtype)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	msg := Message{
 		MessageBase: MessageBase{
@@ -326,15 +264,24 @@ func TestExtends2(t *testing.T) {
 		Uid:     sender.Id,
 		ToUid:   receiver.Id,
 	}
+
+	session := testEngine.NewSession()
+	defer session.Close()
+
+	// MSSQL deny insert identity column excep declare as below
 	if testEngine.Dialect().DBType() == core.MSSQL {
-		_, err = testEngine.Exec("SET IDENTITY_INSERT message ON")
+		err = session.Begin()
+		assert.NoError(t, err)
+		_, err = session.Exec("SET IDENTITY_INSERT message ON")
 		assert.NoError(t, err)
 	}
+	cnt, err := session.Insert(&msg)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
 
-	_, err = testEngine.Insert(&msg)
-	if err != nil {
-		t.Error(err)
-		panic(err)
+	if testEngine.Dialect().DBType() == core.MSSQL {
+		err = session.Commit()
+		assert.NoError(t, err)
 	}
 
 	var mapper = testEngine.GetTableMapper().Obj2Table
@@ -344,23 +291,14 @@ func TestExtends2(t *testing.T) {
 	msgTableName := quote(testEngine.TableName(mapper("Message"), true))
 
 	list := make([]Message, 0)
-	err = testEngine.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").
+	err = session.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").
 		Join("LEFT", []string{userTableName, "receiver"}, "`receiver`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("ToUid")+"`").
 		Join("LEFT", []string{typeTableName, "type"}, "`type`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Id")+"`").
 		Find(&list)
 	assert.NoError(t, err)
 
-	if len(list) != 1 {
-		err = errors.New(fmt.Sprintln("should have 1 message, got", len(list)))
-		t.Error(err)
-		panic(err)
-	}
-
-	if list[0].Id != msg.Id {
-		err = errors.New(fmt.Sprintln("should message equal", list[0], msg))
-		t.Error(err)
-		panic(err)
-	}
+	assert.EqualValues(t, 1, len(list), fmt.Sprintln("should have 1 message, got", len(list)))
+	assert.EqualValues(t, msg.Id, list[0].Id, fmt.Sprintln("should message equal", list[0], msg))
 }
 
 func TestExtends3(t *testing.T) {
@@ -396,12 +334,24 @@ func TestExtends3(t *testing.T) {
 		Uid:     sender.Id,
 		ToUid:   receiver.Id,
 	}
+
+	session := testEngine.NewSession()
+	defer session.Close()
+
+	// MSSQL deny insert identity column excep declare as below
 	if testEngine.Dialect().DBType() == core.MSSQL {
-		_, err = testEngine.Exec("SET IDENTITY_INSERT message ON")
+		err = session.Begin()
+		assert.NoError(t, err)
+		_, err = session.Exec("SET IDENTITY_INSERT message ON")
 		assert.NoError(t, err)
 	}
-	_, err = testEngine.Insert(&msg)
+	_, err = session.Insert(&msg)
 	assert.NoError(t, err)
+
+	if testEngine.Dialect().DBType() == core.MSSQL {
+		err = session.Commit()
+		assert.NoError(t, err)
+	}
 
 	var mapper = testEngine.GetTableMapper().Obj2Table
 	var quote = testEngine.Quote
@@ -410,7 +360,7 @@ func TestExtends3(t *testing.T) {
 	msgTableName := quote(testEngine.TableName(mapper("Message"), true))
 
 	list := make([]MessageExtend3, 0)
-	err = testEngine.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").
+	err = session.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").
 		Join("LEFT", []string{userTableName, "receiver"}, "`receiver`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("ToUid")+"`").
 		Join("LEFT", []string{typeTableName, "type"}, "`type`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Id")+"`").
 		Find(&list)
@@ -478,14 +428,23 @@ func TestExtends4(t *testing.T) {
 		Content: "test",
 		Uid:     sender.Id,
 	}
+
+	session := testEngine.NewSession()
+	defer session.Close()
+
+	// MSSQL deny insert identity column excep declare as below
 	if testEngine.Dialect().DBType() == core.MSSQL {
-		_, err = testEngine.Exec("SET IDENTITY_INSERT message ON")
+		err = session.Begin()
+		assert.NoError(t, err)
+		_, err = session.Exec("SET IDENTITY_INSERT message ON")
 		assert.NoError(t, err)
 	}
-	_, err = testEngine.Insert(&msg)
-	if err != nil {
-		t.Error(err)
-		panic(err)
+	_, err = session.Insert(&msg)
+	assert.NoError(t, err)
+
+	if testEngine.Dialect().DBType() == core.MSSQL {
+		err = session.Commit()
+		assert.NoError(t, err)
 	}
 
 	var mapper = testEngine.GetTableMapper().Obj2Table
@@ -495,7 +454,7 @@ func TestExtends4(t *testing.T) {
 	msgTableName := quote(testEngine.TableName(mapper("Message"), true))
 
 	list := make([]MessageExtend4, 0)
-	err = testEngine.Table(msgTableName).Join("LEFT", userTableName, userTableName+".`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").
+	err = session.Table(msgTableName).Join("LEFT", userTableName, userTableName+".`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").
 		Join("LEFT", typeTableName, typeTableName+".`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Id")+"`").
 		Find(&list)
 	if err != nil {
@@ -525,5 +484,125 @@ func TestExtends4(t *testing.T) {
 		err = errors.New(fmt.Sprintln("should msgtype equal", list[0].MessageType, msgtype))
 		t.Error(err)
 		panic(err)
+	}
+}
+
+type Size struct {
+	ID     int64   `xorm:"int(4) 'id' pk autoincr"`
+	Width  float32 `json:"width" xorm:"float 'Width'"`
+	Height float32 `json:"height" xorm:"float 'Height'"`
+}
+
+type Book struct {
+	ID         int64 `xorm:"int(4) 'id' pk autoincr"`
+	SizeOpen   *Size `xorm:"extends('Open')"`
+	SizeClosed *Size `xorm:"extends('Closed')"`
+	Size       *Size `xorm:"extends('')"`
+}
+
+func TestExtends5(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+	err := testEngine.DropTables(&Book{}, &Size{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	err = testEngine.CreateTables(&Size{}, &Book{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	var sc = Size{Width: 0.2, Height: 0.4}
+	var so = Size{Width: 0.2, Height: 0.8}
+	var s = Size{Width: 0.15, Height: 1.5}
+	var bk1 = Book{
+		SizeOpen:   &so,
+		SizeClosed: &sc,
+		Size:       &s,
+	}
+	var bk2 = Book{
+		SizeOpen: &so,
+	}
+	var bk3 = Book{
+		SizeClosed: &sc,
+		Size:       &s,
+	}
+	var bk4 = Book{}
+	var bk5 = Book{Size: &s}
+	_, err = testEngine.Insert(&sc, &so, &s, &bk1, &bk2, &bk3, &bk4, &bk5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var books = map[int64]Book{
+		bk1.ID: bk1,
+		bk2.ID: bk2,
+		bk3.ID: bk3,
+		bk4.ID: bk4,
+		bk5.ID: bk5,
+	}
+
+	session := testEngine.NewSession()
+	defer session.Close()
+
+	var mapper = testEngine.GetTableMapper().Obj2Table
+	var quote = testEngine.Quote
+	bookTableName := quote(testEngine.TableName(mapper("Book"), true))
+	sizeTableName := quote(testEngine.TableName(mapper("Size"), true))
+
+	list := make([]Book, 0)
+	err = session.
+		Select(fmt.Sprintf(
+			"%s.%s, sc.%s AS %s, sc.%s AS %s, s.%s, s.%s",
+			quote(bookTableName),
+			quote("id"),
+			quote("Width"),
+			quote("ClosedWidth"),
+			quote("Height"),
+			quote("ClosedHeight"),
+			quote("Width"),
+			quote("Height"),
+		)).
+		Table(bookTableName).
+		Join(
+			"LEFT",
+			sizeTableName+" AS `sc`",
+			bookTableName+".`SizeClosed`=sc.`id`",
+		).
+		Join(
+			"LEFT",
+			sizeTableName+" AS `s`",
+			bookTableName+".`Size`=s.`id`",
+		).
+		Find(&list)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	for _, book := range list {
+		if ok := assert.Equal(t, books[book.ID].SizeClosed.Width, book.SizeClosed.Width); !ok {
+			t.Error("Not bounded size closed")
+			panic("Not bounded size closed")
+		}
+
+		if ok := assert.Equal(t, books[book.ID].SizeClosed.Height, book.SizeClosed.Height); !ok {
+			t.Error("Not bounded size closed")
+			panic("Not bounded size closed")
+		}
+
+		if books[book.ID].Size != nil || book.Size != nil {
+			if ok := assert.Equal(t, books[book.ID].Size.Width, book.Size.Width); !ok {
+				t.Error("Not bounded size")
+				panic("Not bounded size")
+			}
+
+			if ok := assert.Equal(t, books[book.ID].Size.Height, book.Size.Height); !ok {
+				t.Error("Not bounded size")
+				panic("Not bounded size")
+			}
+		}
 	}
 }

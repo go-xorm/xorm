@@ -5,12 +5,11 @@
 package xorm
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -117,21 +116,21 @@ type ConvConfig struct {
 }
 
 func (s *ConvConfig) FromDB(data []byte) error {
-	return json.Unmarshal(data, s)
+	return DefaultJSONHandler.Unmarshal(data, s)
 }
 
 func (s *ConvConfig) ToDB() ([]byte, error) {
-	return json.Marshal(s)
+	return DefaultJSONHandler.Marshal(s)
 }
 
 type SliceType []*ConvConfig
 
 func (s *SliceType) FromDB(data []byte) error {
-	return json.Unmarshal(data, s)
+	return DefaultJSONHandler.Unmarshal(data, s)
 }
 
 func (s *SliceType) ToDB() ([]byte, error) {
-	return json.Marshal(s)
+	return DefaultJSONHandler.Marshal(s)
 }
 
 type ConvStruct struct {
@@ -309,16 +308,24 @@ func TestCustomType2(t *testing.T) {
 	_, err = testEngine.Exec("delete from " + testEngine.Quote(tableName))
 	assert.NoError(t, err)
 
+	session := testEngine.NewSession()
+	defer session.Close()
+
 	if testEngine.Dialect().DBType() == core.MSSQL {
-		return
-		/*_, err = engine.Exec("set IDENTITY_INSERT " + tableName + " on")
-		if err != nil {
-			t.Fatal(err)
-		}*/
+		err = session.Begin()
+		assert.NoError(t, err)
+		_, err = session.Exec("set IDENTITY_INSERT " + tableName + " on")
+		assert.NoError(t, err)
 	}
 
-	_, err = testEngine.Insert(&UserCus{1, "xlw", Registed})
+	cnt, err := session.Insert(&UserCus{1, "xlw", Registed})
 	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	if testEngine.Dialect().DBType() == core.MSSQL {
+		err = session.Commit()
+		assert.NoError(t, err)
+	}
 
 	user := UserCus{}
 	exist, err := testEngine.ID(1).Get(&user)

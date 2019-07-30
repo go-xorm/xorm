@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"xorm.io/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,10 +22,26 @@ func TestDelete(t *testing.T) {
 
 	assert.NoError(t, testEngine.Sync2(new(UserinfoDelete)))
 
+	session := testEngine.NewSession()
+	defer session.Close()
+
+	var err error
+	if testEngine.Dialect().DBType() == core.MSSQL {
+		err = session.Begin()
+		assert.NoError(t, err)
+		_, err = session.Exec("SET IDENTITY_INSERT userinfo_delete ON")
+		assert.NoError(t, err)
+	}
+
 	user := UserinfoDelete{Uid: 1}
-	cnt, err := testEngine.Insert(&user)
+	cnt, err := session.Insert(&user)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
+
+	if testEngine.Dialect().DBType() == core.MSSQL {
+		err = session.Commit()
+		assert.NoError(t, err)
+	}
 
 	cnt, err = testEngine.Delete(&UserinfoDelete{Uid: user.Uid})
 	assert.NoError(t, err)
@@ -40,7 +57,7 @@ func TestDelete(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	cnt, err = testEngine.Where("id=?", user.Uid).Delete(&UserinfoDelete{})
+	cnt, err = testEngine.Where("`id`=?", user.Uid).Delete(&UserinfoDelete{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 

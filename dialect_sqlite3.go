@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 )
 
 var (
@@ -202,10 +202,6 @@ func (db *sqlite3) Quote(name string) string {
 	return "`" + name + "`"
 }
 
-func (db *sqlite3) QuoteStr() string {
-	return "`"
-}
-
 func (db *sqlite3) AutoIncrStr() string {
 	return "AUTOINCREMENT"
 }
@@ -233,7 +229,7 @@ func (db *sqlite3) TableCheckSql(tableName string) (string, []interface{}) {
 }
 
 func (db *sqlite3) DropIndexSql(tableName string, index *core.Index) string {
-	//var unique string
+	// var unique string
 	quote := db.Quote
 	idxName := index.Name
 
@@ -452,5 +448,9 @@ type sqlite3Driver struct {
 }
 
 func (p *sqlite3Driver) Parse(driverName, dataSourceName string) (*core.Uri, error) {
+	if strings.Contains(dataSourceName, "?") {
+		dataSourceName = dataSourceName[:strings.Index(dataSourceName, "?")]
+	}
+
 	return &core.Uri{DbType: core.SQLITE, DbName: dataSourceName}, nil
 }

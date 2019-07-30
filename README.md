@@ -28,11 +28,13 @@ Xorm is a simple and powerful ORM for Go.
 
 * Optimistic Locking support
 
-* SQL Builder support via [github.com/go-xorm/builder](https://github.com/go-xorm/builder)
+* SQL Builder support via [xorm.io/builder](https://xorm.io/builder)
 
 * Automatical Read/Write seperatelly
 
 * Postgres schema support
+
+* Context Cache support
 
 ## Drivers Support
 
@@ -149,20 +151,20 @@ has, err := engine.Where("name = ?", name).Desc("id").Get(&user)
 // SELECT * FROM user WHERE name = ? ORDER BY id DESC LIMIT 1
 
 var name string
-has, err := engine.Where("id = ?", id).Cols("name").Get(&name)
+has, err := engine.Table(&user).Where("id = ?", id).Cols("name").Get(&name)
 // SELECT name FROM user WHERE id = ?
 
 var id int64
-has, err := engine.Where("name = ?", name).Cols("id").Get(&id)
+has, err := engine.Table(&user).Where("name = ?", name).Cols("id").Get(&id)
 has, err := engine.SQL("select id from user").Get(&id)
 // SELECT id FROM user WHERE name = ?
 
 var valuesMap = make(map[string]string)
-has, err := engine.Where("id = ?", id).Get(&valuesMap)
+has, err := engine.Table(&user).Where("id = ?", id).Get(&valuesMap)
 // SELECT * FROM user WHERE id = ?
 
 var valuesSlice = make([]interface{}, len(cols))
-has, err := engine.Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
+has, err := engine.Table(&user).Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
 // SELECT col1, col2, col3 FROM user WHERE id = ?
 ```
 
@@ -282,6 +284,13 @@ counts, err := engine.Count(&user)
 // SELECT count(*) AS total FROM user
 ```
 
+* `FindAndCount` combines function `Find` with `Count` which is usually used in query by page
+
+```Go
+var users []User
+counts, err := engine.FindAndCount(&users)
+```
+
 * `Sum` sum functions
 
 ```Go
@@ -356,6 +365,56 @@ if _, err := session.Exec("delete from userinfo where username = ?", user2.Usern
 
 // add Commit() after all actions
 return session.Commit()
+```
+
+* Or you can use `Transaction` to replace above codes.
+
+```Go
+res, err := engine.Transaction(func(session *xorm.Session) (interface{}, error) {
+    user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
+    if _, err := session.Insert(&user1); err != nil {
+        return nil, err
+    }
+
+    user2 := Userinfo{Username: "yyy"}
+    if _, err := session.Where("id = ?", 2).Update(&user2); err != nil {
+        return nil, err
+    }
+
+    if _, err := session.Exec("delete from userinfo where username = ?", user2.Username); err != nil {
+        return nil, err
+    }
+    return nil, nil
+})
+```
+
+* Context Cache, if enabled, current query result will be cached on session and be used by next same statement on the same session.
+
+```Go
+	sess := engine.NewSession()
+	defer sess.Close()
+
+	var context = xorm.NewMemoryContextCache()
+
+	var c2 ContextGetStruct
+	has, err := sess.ID(1).ContextCache(context).Get(&c2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 1, c2.Id)
+	assert.EqualValues(t, "1", c2.Name)
+	sql, args := sess.LastSQL()
+	assert.True(t, len(sql) > 0)
+	assert.True(t, len(args) > 0)
+
+	var c3 ContextGetStruct
+	has, err = sess.ID(1).ContextCache(context).Get(&c3)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 1, c3.Id)
+	assert.EqualValues(t, "1", c3.Name)
+	sql, args = sess.LastSQL()
+	assert.True(t, len(sql) == 0)
+	assert.True(t, len(args) == 0)
 ```
 
 ## Contributing
