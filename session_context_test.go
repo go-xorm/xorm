@@ -26,6 +26,9 @@ func TestQueryContext(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 	defer cancel()
+
+	time.Sleep(time.Nanosecond)
+
 	has, err := testEngine.Context(ctx).Exist(&ContextQueryStruct{Name: "1"})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "context deadline exceeded")

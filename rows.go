@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 )
 
 // Rows rows wrapper a rows to
@@ -113,17 +113,9 @@ func (rows *Rows) Close() error {
 		defer rows.session.Close()
 	}
 
-	if rows.lastError == nil {
-		if rows.rows != nil {
-			rows.lastError = rows.rows.Close()
-			if rows.lastError != nil {
-				return rows.lastError
-			}
-		}
-	} else {
-		if rows.rows != nil {
-			defer rows.rows.Close()
-		}
+	if rows.rows != nil {
+		return rows.rows.Close()
 	}
+
 	return rows.lastError
 }

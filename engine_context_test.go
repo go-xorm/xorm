@@ -20,6 +20,8 @@ func TestPingContext(t *testing.T) {
 	ctx, canceled := context.WithTimeout(context.Background(), time.Nanosecond)
 	defer canceled()
 
+	time.Sleep(time.Nanosecond)
+
 	err := testEngine.(*Engine).PingContext(ctx)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "context deadline exceeded")

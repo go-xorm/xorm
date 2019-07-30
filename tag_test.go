@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-xorm/core"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/core"
 )
 
 type UserCU struct {

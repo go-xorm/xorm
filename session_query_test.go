@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
+	"xorm.io/builder"
+	"xorm.io/core"
 
 	"github.com/stretchr/testify/assert"
 )
