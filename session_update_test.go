@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-xorm/core"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/core"
 )
 
 func TestUpdateMap(t *testing.T) {
@@ -110,7 +110,7 @@ func setupForUpdate(engine EngineInterface) error {
 }
 
 func TestForUpdate(t *testing.T) {
-	if testEngine.Dialect().DriverName() != "mysql" && testEngine.Dialect().DriverName() != "mymysql" {
+	if *ignoreSelectUpdate {
 		return
 	}
 
@@ -1330,4 +1330,63 @@ func TestUpdateCondiBean(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.True(t, has)
+}
+
+func TestWhereCondErrorWhenUpdate(t *testing.T) {
+	type AuthRequestError struct {
+		ChallengeToken string
+		RequestToken   string
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(AuthRequestError))
+
+	_, err := testEngine.Cols("challenge_token", "request_token", "challenge_agent", "status").
+		Where(&AuthRequestError{ChallengeToken: "1"}).
+		Update(&AuthRequestError{
+			ChallengeToken: "2",
+		})
+	assert.Error(t, err)
+	assert.EqualValues(t, ErrConditionType, err)
+}
+
+func TestUpdateDeleted(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type UpdateDeletedStruct struct {
+		Id        int64
+		Name      string
+		DeletedAt time.Time `xorm:"deleted"`
+	}
+
+	assertSync(t, new(UpdateDeletedStruct))
+
+	var s = UpdateDeletedStruct{
+		Name: "test",
+	}
+	cnt, err := testEngine.Insert(&s)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	cnt, err = testEngine.ID(s.Id).Delete(&UpdateDeletedStruct{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	cnt, err = testEngine.ID(s.Id).Update(&UpdateDeletedStruct{
+		Name: "test1",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, cnt)
+
+	cnt, err = testEngine.Table(&UpdateDeletedStruct{}).ID(s.Id).Update(map[string]interface{}{
+		"name": "test1",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, cnt)
+
+	cnt, err = testEngine.ID(s.Id).Unscoped().Update(&UpdateDeletedStruct{
+		Name: "test1",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
 }

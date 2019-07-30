@@ -1,15 +1,21 @@
+// Copyright 2018 The Xorm Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package xorm
 
 import (
+	"database/sql"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"testing"
 
 	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/ziutek/mymysql/godrv"
@@ -20,14 +26,15 @@ var (
 	dbType     string
 	connString string
 
-	db         = flag.String("db", "sqlite3", "the tested database")
-	showSQL    = flag.Bool("show_sql", true, "show generated SQLs")
-	ptrConnStr = flag.String("conn_str", "./test.db?cache=shared&mode=rwc", "test database connection string")
-	mapType    = flag.String("map_type", "snake", "indicate the name mapping")
-	cache      = flag.Bool("cache", false, "if enable cache")
-	cluster    = flag.Bool("cluster", false, "if this is a cluster")
-	splitter   = flag.String("splitter", ";", "the splitter on connstr for cluster")
-	schema     = flag.String("schema", "", "specify the schema")
+	db                 = flag.String("db", "sqlite3", "the tested database")
+	showSQL            = flag.Bool("show_sql", true, "show generated SQLs")
+	ptrConnStr         = flag.String("conn_str", "./test.db?cache=shared&mode=rwc", "test database connection string")
+	mapType            = flag.String("map_type", "snake", "indicate the name mapping")
+	cache              = flag.Bool("cache", false, "if enable cache")
+	cluster            = flag.Bool("cluster", false, "if this is a cluster")
+	splitter           = flag.String("splitter", ";", "the splitter on connstr for cluster")
+	schema             = flag.String("schema", "", "specify the schema")
+	ignoreSelectUpdate = flag.Bool("ignore_select_update", false, "ignore select update if implementation difference, only for tidb")
 )
 
 func createEngine(dbType, connStr string) error {
@@ -35,9 +42,59 @@ func createEngine(dbType, connStr string) error {
 		var err error
 
 		if !*cluster {
+			switch strings.ToLower(dbType) {
+			case core.MSSQL:
+				db, err := sql.Open(dbType, strings.Replace(connStr, "xorm_test", "master", -1))
+				if err != nil {
+					return err
+				}
+				if _, err = db.Exec("If(db_id(N'xorm_test') IS NULL) BEGIN CREATE DATABASE xorm_test; END;"); err != nil {
+					return fmt.Errorf("db.Exec: %v", err)
+				}
+				db.Close()
+				*ignoreSelectUpdate = true
+			case core.POSTGRES:
+				db, err := sql.Open(dbType, connStr)
+				if err != nil {
+					return err
+				}
+				rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = 'xorm_test'"))
+				if err != nil {
+					return fmt.Errorf("db.Query: %v", err)
+				}
+				defer rows.Close()
+
+				if !rows.Next() {
+					if _, err = db.Exec("CREATE DATABASE xorm_test"); err != nil {
+						return fmt.Errorf("CREATE DATABASE: %v", err)
+					}
+				}
+				if *schema != "" {
+					if _, err = db.Exec("CREATE SCHEMA IF NOT EXISTS " + *schema); err != nil {
+						return fmt.Errorf("CREATE SCHEMA: %v", err)
+					}
+				}
+				db.Close()
+				*ignoreSelectUpdate = true
+			case core.MYSQL:
+				db, err := sql.Open(dbType, strings.Replace(connStr, "xorm_test", "mysql", -1))
+				if err != nil {
+					return err
+				}
+				if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS xorm_test"); err != nil {
+					return fmt.Errorf("db.Exec: %v", err)
+				}
+				db.Close()
+			default:
+				*ignoreSelectUpdate = true
+			}
+
 			testEngine, err = NewEngine(dbType, connStr)
 		} else {
 			testEngine, err = NewEngineGroup(dbType, strings.Split(connStr, *splitter))
+			if dbType != "mysql" && dbType != "mymysql" {
+				*ignoreSelectUpdate = true
+			}
 		}
 		if err != nil {
 			return err
@@ -95,7 +152,7 @@ func TestMain(m *testing.M) {
 		}
 	} else {
 		if ptrConnStr == nil {
-			fmt.Println("you should indicate conn string")
+			log.Fatal("you should indicate conn string")
 			return
 		}
 		connString = *ptrConnStr
@@ -112,7 +169,7 @@ func TestMain(m *testing.M) {
 		fmt.Println("testing", dbType, connString)
 
 		if err := prepareEngine(); err != nil {
-			fmt.Println(err)
+			log.Fatal(err)
 			return
 		}
 

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-xorm/core"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/core"
 )
 
 var colStrTests = []struct {
@@ -236,4 +236,13 @@ func TestUpdateIgnoreOnlyFromDBFields(t *testing.T) {
 	record.OnlyFromDBField = "test"
 	testEngine.Update(record)
 	assertGetRecord()
+}
+
+func TestCol2NewColsWithQuote(t *testing.T) {
+	cols := []string{"f1", "f2", "t3.f3"}
+
+	statement := createTestStatement()
+
+	quotedCols := statement.col2NewColsWithQuote(cols...)
+	assert.EqualValues(t, []string{statement.Engine.Quote("f1"), statement.Engine.Quote("f2"), statement.Engine.Quote("t3.f3")}, quotedCols)
 }

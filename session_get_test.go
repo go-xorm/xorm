@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-xorm/core"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/core"
 )
 
 func TestGetVar(t *testing.T) {
@@ -47,6 +47,12 @@ func TestGetVar(t *testing.T) {
 	assert.Equal(t, true, has)
 	assert.Equal(t, 28, age)
 
+	var ageMax int
+	has, err = testEngine.SQL("SELECT max(age) FROM "+testEngine.TableName("get_var", true)+" WHERE `id` = ?", data.Id).Get(&ageMax)
+	assert.NoError(t, err)
+	assert.Equal(t, true, has)
+	assert.Equal(t, 28, ageMax)
+
 	var age2 int64
 	has, err = testEngine.Table("get_var").Cols("age").
 		Where("age > ?", 20).
@@ -55,6 +61,69 @@ func TestGetVar(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.EqualValues(t, 28, age2)
+
+	var age3 int8
+	has, err = testEngine.Table("get_var").Cols("age").Get(&age3)
+	assert.NoError(t, err)
+	assert.Equal(t, true, has)
+	assert.EqualValues(t, 28, age3)
+
+	var age4 int16
+	has, err = testEngine.Table("get_var").Cols("age").
+		Where("age > ?", 20).
+		And("age < ?", 30).
+		Get(&age4)
+	assert.NoError(t, err)
+	assert.Equal(t, true, has)
+	assert.EqualValues(t, 28, age4)
+
+	var age5 int32
+	has, err = testEngine.Table("get_var").Cols("age").
+		Where("age > ?", 20).
+		And("age < ?", 30).
+		Get(&age5)
+	assert.NoError(t, err)
+	assert.Equal(t, true, has)
+	assert.EqualValues(t, 28, age5)
+
+	var age6 int
+	has, err = testEngine.Table("get_var").Cols("age").Get(&age6)
+	assert.NoError(t, err)
+	assert.Equal(t, true, has)
+	assert.EqualValues(t, 28, age6)
+
+	var age7 int64
+	has, err = testEngine.Table("get_var").Cols("age").
+		Where("age > ?", 20).
+		And("age < ?", 30).
+		Get(&age7)
+	assert.NoError(t, err)
+	assert.Equal(t, true, has)
+	assert.EqualValues(t, 28, age7)
+
+	var age8 int8
+	has, err = testEngine.Table("get_var").Cols("age").Get(&age8)
+	assert.NoError(t, err)
+	assert.Equal(t, true, has)
+	assert.EqualValues(t, 28, age8)
+
+	var age9 int16
+	has, err = testEngine.Table("get_var").Cols("age").
+		Where("age > ?", 20).
+		And("age < ?", 30).
+		Get(&age9)
+	assert.NoError(t, err)
+	assert.Equal(t, true, has)
+	assert.EqualValues(t, 28, age9)
+
+	var age10 int32
+	has, err = testEngine.Table("get_var").Cols("age").
+		Where("age > ?", 20).
+		And("age < ?", 30).
+		Get(&age10)
+	assert.NoError(t, err)
+	assert.Equal(t, true, has)
+	assert.EqualValues(t, 28, age10)
 
 	var id sql.NullInt64
 	has, err = testEngine.Table("get_var").Cols("id").Get(&id)
@@ -84,7 +153,11 @@ func TestGetVar(t *testing.T) {
 	assert.Equal(t, "1.5", fmt.Sprintf("%.1f", money))
 
 	var money2 float64
-	has, err = testEngine.SQL("SELECT money FROM " + testEngine.TableName("get_var", true) + " LIMIT 1").Get(&money2)
+	if testEngine.Dialect().DBType() == core.MSSQL {
+		has, err = testEngine.SQL("SELECT TOP 1 money FROM " + testEngine.TableName("get_var", true)).Get(&money2)
+	} else {
+		has, err = testEngine.SQL("SELECT money FROM " + testEngine.TableName("get_var", true) + " LIMIT 1").Get(&money2)
+	}
 	assert.NoError(t, err)
 	assert.Equal(t, true, has)
 	assert.Equal(t, "1.5", fmt.Sprintf("%.1f", money2))
@@ -156,14 +229,23 @@ func TestGetStruct(t *testing.T) {
 
 	assert.NoError(t, testEngine.Sync2(new(UserinfoGet)))
 
+	session := testEngine.NewSession()
+	defer session.Close()
+
 	var err error
 	if testEngine.Dialect().DBType() == core.MSSQL {
-		_, err = testEngine.Exec("SET IDENTITY_INSERT userinfo_get ON")
+		err = session.Begin()
+		assert.NoError(t, err)
+		_, err = session.Exec("SET IDENTITY_INSERT userinfo_get ON")
 		assert.NoError(t, err)
 	}
-	cnt, err := testEngine.Insert(&UserinfoGet{Uid: 2})
+	cnt, err := session.Insert(&UserinfoGet{Uid: 2})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
+	if testEngine.Dialect().DBType() == core.MSSQL {
+		err = session.Commit()
+		assert.NoError(t, err)
+	}
 
 	user := UserinfoGet{Uid: 2}
 	has, err := testEngine.Get(&user)
@@ -385,4 +467,120 @@ func TestContextGet2(t *testing.T) {
 	assert.True(t, has)
 	assert.EqualValues(t, 1, c3.Id)
 	assert.EqualValues(t, "1", c3.Name)
+}
+
+type GetCustomTableInterface interface {
+	TableName() string
+}
+
+type MyGetCustomTableImpletation struct {
+	Id   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+const getCustomTableName = "GetCustomTableInterface"
+
+func (m *MyGetCustomTableImpletation) TableName() string {
+	return getCustomTableName
+}
+
+func TestGetCustomTableInterface(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+	assert.NoError(t, testEngine.Table(getCustomTableName).Sync2(new(MyGetCustomTableImpletation)))
+
+	exist, err := testEngine.IsTableExist(getCustomTableName)
+	assert.NoError(t, err)
+	assert.True(t, exist)
+
+	_, err = testEngine.Insert(&MyGetCustomTableImpletation{
+		Name: "xlw",
+	})
+	assert.NoError(t, err)
+
+	var c GetCustomTableInterface = new(MyGetCustomTableImpletation)
+	has, err := testEngine.Get(c)
+	assert.NoError(t, err)
+	assert.True(t, has)
+}
+
+func TestGetNullVar(t *testing.T) {
+	type TestGetNullVarStruct struct {
+		Id   int64
+		Name string
+		Age  int
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(TestGetNullVarStruct))
+
+	affected, err := testEngine.Exec("insert into " + testEngine.TableName(new(TestGetNullVarStruct), true) + " (name,age) values (null,null)")
+	assert.NoError(t, err)
+	a, _ := affected.RowsAffected()
+	assert.EqualValues(t, 1, a)
+
+	var name string
+	has, err := testEngine.Table(new(TestGetNullVarStruct)).Where("id = ?", 1).Cols("name").Get(&name)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "", name)
+
+	var age int
+	has, err = testEngine.Table(new(TestGetNullVarStruct)).Where("id = ?", 1).Cols("age").Get(&age)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 0, age)
+
+	var age2 int8
+	has, err = testEngine.Table(new(TestGetNullVarStruct)).Where("id = ?", 1).Cols("age").Get(&age2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 0, age2)
+
+	var age3 int16
+	has, err = testEngine.Table(new(TestGetNullVarStruct)).Where("id = ?", 1).Cols("age").Get(&age3)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 0, age3)
+
+	var age4 int32
+	has, err = testEngine.Table(new(TestGetNullVarStruct)).Where("id = ?", 1).Cols("age").Get(&age4)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 0, age4)
+
+	var age5 int64
+	has, err = testEngine.Table(new(TestGetNullVarStruct)).Where("id = ?", 1).Cols("age").Get(&age5)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 0, age5)
+
+	var age6 uint
+	has, err = testEngine.Table(new(TestGetNullVarStruct)).Where("id = ?", 1).Cols("age").Get(&age6)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 0, age6)
+
+	var age7 uint8
+	has, err = testEngine.Table(new(TestGetNullVarStruct)).Where("id = ?", 1).Cols("age").Get(&age7)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 0, age7)
+
+	var age8 int16
+	has, err = testEngine.Table(new(TestGetNullVarStruct)).Where("id = ?", 1).Cols("age").Get(&age8)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 0, age8)
+
+	var age9 int32
+	has, err = testEngine.Table(new(TestGetNullVarStruct)).Where("id = ?", 1).Cols("age").Get(&age9)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 0, age9)
+
+	var age10 int64
+	has, err = testEngine.Table(new(TestGetNullVarStruct)).Where("id = ?", 1).Cols("age").Get(&age10)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 0, age10)
 }
