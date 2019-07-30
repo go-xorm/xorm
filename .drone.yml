@@ -37,10 +37,9 @@ services:
 
 matrix:
   GO_VERSION:
-    - 1.8
-    - 1.9
     - 1.10
     - 1.11
+    - 1.12
 
 pipeline:
   init_postgres:
