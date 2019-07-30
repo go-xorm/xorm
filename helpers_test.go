@@ -4,7 +4,11 @@
 
 package xorm
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestSplitTag(t *testing.T) {
 	var cases = []struct {
@@ -23,4 +27,20 @@ func TestSplitTag(t *testing.T) {
 			t.Fatalf("[%d]%v is not equal [%d]%v", len(tags), tags, len(kase.tags), kase.tags)
 		}
 	}
+}
+
+func TestEraseAny(t *testing.T) {
+	raw := "SELECT * FROM `table`.[table_name]"
+	assert.EqualValues(t, raw, eraseAny(raw))
+	assert.EqualValues(t, "SELECT * FROM table.[table_name]", eraseAny(raw, "`"))
+	assert.EqualValues(t, "SELECT * FROM table.table_name", eraseAny(raw, "`", "[", "]"))
+}
+
+func TestQuoteColumns(t *testing.T) {
+	cols := []string{"f1", "f2", "f3"}
+	quoteFunc := func(value string) string {
+		return "[" + value + "]"
+	}
+
+	assert.EqualValues(t, "[f1], [f2], [f3]", quoteColumns(cols, quoteFunc, ","))
 }

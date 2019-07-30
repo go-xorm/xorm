@@ -145,41 +145,22 @@ func TestInsert(t *testing.T) {
 	user := Userinfo{0, "xiaolunwen", "dev", "lunny", time.Now(),
 		Userdetail{Id: 1}, 1.78, []byte{1, 2, 3}, true}
 	cnt, err := testEngine.Insert(&user)
-	fmt.Println(user.Uid)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-	if cnt != 1 {
-		err = errors.New("insert not returned 1")
-		t.Error(err)
-		panic(err)
-	}
-
-	if user.Uid <= 0 {
-		err = errors.New("not return id error")
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt, "insert not returned 1")
+	assert.True(t, user.Uid > 0, "not return id error")
 
 	user.Uid = 0
 	cnt, err = testEngine.Insert(&user)
+	// Username is unique, so this should return error
+	assert.Error(t, err, "insert should fail but no error returned")
+	assert.EqualValues(t, 0, cnt, "insert not returned 1")
 	if err == nil {
-		err = errors.New("insert failed but no return error")
-		t.Error(err)
-		panic(err)
-	}
-	if cnt != 0 {
-		err = errors.New("insert not returned 1")
-		t.Error(err)
-		panic(err)
-		return
+		panic("should return err")
 	}
 }
 
 func TestInsertAutoIncr(t *testing.T) {
 	assert.NoError(t, prepareEngine())
-
 	assertSync(t, new(Userinfo))
 
 	// auto increment insert
@@ -214,20 +195,14 @@ func TestInsertDefault(t *testing.T) {
 
 	di := new(DefaultInsert)
 	err := testEngine.Sync2(di)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
 	var di2 = DefaultInsert{Name: "test"}
 	_, err = testEngine.Omit(testEngine.GetColumnMapper().Obj2Table("Status")).Insert(&di2)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
 	has, err := testEngine.Desc("(id)").Get(di)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 	if !has {
 		err = errors.New("error with no data")
 		t.Error(err)
@@ -779,4 +754,83 @@ func TestAnonymousStruct(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
+}
+
+func TestInsertMap(t *testing.T) {
+	type InsertMap struct {
+		Id     int64
+		Width  uint32
+		Height uint32
+		Name   string
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(InsertMap))
+
+	cnt, err := testEngine.Table(new(InsertMap)).Insert(map[string]interface{}{
+		"width":  20,
+		"height": 10,
+		"name":   "lunny",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var im InsertMap
+	has, err := testEngine.Get(&im)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 20, im.Width)
+	assert.EqualValues(t, 10, im.Height)
+	assert.EqualValues(t, "lunny", im.Name)
+
+	cnt, err = testEngine.Table("insert_map").Insert(map[string]interface{}{
+		"width":  30,
+		"height": 10,
+		"name":   "lunny",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var ims []InsertMap
+	err = testEngine.Find(&ims)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(ims))
+	assert.EqualValues(t, 20, ims[0].Width)
+	assert.EqualValues(t, 10, ims[0].Height)
+	assert.EqualValues(t, "lunny", ims[0].Name)
+	assert.EqualValues(t, 30, ims[1].Width)
+	assert.EqualValues(t, 10, ims[1].Height)
+	assert.EqualValues(t, "lunny", ims[1].Name)
+
+	cnt, err = testEngine.Table("insert_map").Insert([]map[string]interface{}{
+		{
+			"width":  40,
+			"height": 10,
+			"name":   "lunny",
+		},
+		{
+			"width":  50,
+			"height": 10,
+			"name":   "lunny",
+		},
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, cnt)
+
+	ims = make([]InsertMap, 0, 4)
+	err = testEngine.Find(&ims)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 4, len(ims))
+	assert.EqualValues(t, 20, ims[0].Width)
+	assert.EqualValues(t, 10, ims[0].Height)
+	assert.EqualValues(t, "lunny", ims[1].Name)
+	assert.EqualValues(t, 30, ims[1].Width)
+	assert.EqualValues(t, 10, ims[1].Height)
+	assert.EqualValues(t, "lunny", ims[1].Name)
+	assert.EqualValues(t, 40, ims[2].Width)
+	assert.EqualValues(t, 10, ims[2].Height)
+	assert.EqualValues(t, "lunny", ims[2].Name)
+	assert.EqualValues(t, 50, ims[3].Width)
+	assert.EqualValues(t, 10, ims[3].Height)
+	assert.EqualValues(t, "lunny", ims[3].Name)
 }

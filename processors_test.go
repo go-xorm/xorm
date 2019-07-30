@@ -154,118 +154,86 @@ func TestProcessors(t *testing.T) {
 	}
 
 	_, err = testEngine.Before(b4InsertFunc).After(afterInsertFunc).Insert(p)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4InsertFlag == 0 {
-			t.Error(errors.New("B4InsertFlag not set"))
-		}
-		if p.AfterInsertedFlag == 0 {
-			t.Error(errors.New("B4InsertFlag not set"))
-		}
-		if p.B4InsertViaExt == 0 {
-			t.Error(errors.New("B4InsertFlag not set"))
-		}
-		if p.AfterInsertedViaExt == 0 {
-			t.Error(errors.New("AfterInsertedViaExt not set"))
-		}
-	}
+	assert.NoError(t, err)
+	assert.True(t, p.Id > 0, "Inserted ID not set")
+	assert.True(t, p.B4InsertFlag > 0, "B4InsertFlag not set")
+	assert.True(t, p.AfterInsertedFlag > 0, "B4InsertFlag not set")
+	assert.True(t, p.B4InsertViaExt > 0, "B4InsertFlag not set")
+	assert.True(t, p.AfterInsertedViaExt > 0, "AfterInsertedViaExt not set")
 
 	p2 := &ProcessorsStruct{}
-	_, err = testEngine.ID(p.Id).Get(p2)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p2.B4InsertFlag == 0 {
-			t.Error(errors.New("B4InsertFlag not set"))
-		}
-		if p2.AfterInsertedFlag != 0 {
-			t.Error(errors.New("AfterInsertedFlag is set"))
-		}
-		if p2.B4InsertViaExt == 0 {
-			t.Error(errors.New("B4InsertViaExt not set"))
-		}
-		if p2.AfterInsertedViaExt != 0 {
-			t.Error(errors.New("AfterInsertedViaExt is set"))
-		}
-		if p2.BeforeSetFlag != 9 {
-			t.Error(fmt.Errorf("BeforeSetFlag is %d not 9", p2.BeforeSetFlag))
-		}
-		if p2.AfterSetFlag != 9 {
-			t.Error(fmt.Errorf("AfterSetFlag is %d not 9", p2.BeforeSetFlag))
-		}
-	}
+	has, err := testEngine.ID(p.Id).Get(p2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.True(t, p2.B4InsertFlag > 0, "B4InsertFlag not set")
+	assert.True(t, p2.AfterInsertedFlag == 0, "AfterInsertedFlag is set")
+	assert.True(t, p2.B4InsertViaExt > 0, "B4InsertViaExt not set")
+	assert.True(t, p2.AfterInsertedViaExt == 0, "AfterInsertedViaExt is set")
+	assert.True(t, p2.BeforeSetFlag == 9, fmt.Sprintf("BeforeSetFlag is %d not 9", p2.BeforeSetFlag))
+	assert.True(t, p2.AfterSetFlag == 9, fmt.Sprintf("AfterSetFlag is %d not 9", p2.BeforeSetFlag))
 	// --
 
 	// test find processors
 	var p2Find []*ProcessorsStruct
 	err = testEngine.Find(&p2Find)
-	if err != nil {
+	assert.NoError(t, err)
+
+	if len(p2Find) != 1 {
+		err = errors.New("Should get 1")
 		t.Error(err)
-		panic(err)
-	} else {
-		if len(p2Find) != 1 {
-			err = errors.New("Should get 1")
-			t.Error(err)
-		}
-		p21 := p2Find[0]
-		if p21.B4InsertFlag == 0 {
-			t.Error(errors.New("B4InsertFlag not set"))
-		}
-		if p21.AfterInsertedFlag != 0 {
-			t.Error(errors.New("AfterInsertedFlag is set"))
-		}
-		if p21.B4InsertViaExt == 0 {
-			t.Error(errors.New("B4InsertViaExt not set"))
-		}
-		if p21.AfterInsertedViaExt != 0 {
-			t.Error(errors.New("AfterInsertedViaExt is set"))
-		}
-		if p21.BeforeSetFlag != 9 {
-			t.Error(fmt.Errorf("BeforeSetFlag is %d not 9", p21.BeforeSetFlag))
-		}
-		if p21.AfterSetFlag != 9 {
-			t.Error(fmt.Errorf("AfterSetFlag is %d not 9", p21.BeforeSetFlag))
-		}
+	}
+	p21 := p2Find[0]
+	if p21.B4InsertFlag == 0 {
+		t.Error(errors.New("B4InsertFlag not set"))
+	}
+	if p21.AfterInsertedFlag != 0 {
+		t.Error(errors.New("AfterInsertedFlag is set"))
+	}
+	if p21.B4InsertViaExt == 0 {
+		t.Error(errors.New("B4InsertViaExt not set"))
+	}
+	if p21.AfterInsertedViaExt != 0 {
+		t.Error(errors.New("AfterInsertedViaExt is set"))
+	}
+	if p21.BeforeSetFlag != 9 {
+		t.Error(fmt.Errorf("BeforeSetFlag is %d not 9", p21.BeforeSetFlag))
+	}
+	if p21.AfterSetFlag != 9 {
+		t.Error(fmt.Errorf("AfterSetFlag is %d not 9", p21.BeforeSetFlag))
 	}
 	// --
 
 	// test find map processors
 	var p2FindMap = make(map[int64]*ProcessorsStruct)
 	err = testEngine.Find(&p2FindMap)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if len(p2FindMap) != 1 {
-			err = errors.New("Should get 1")
-			t.Error(err)
-		}
-		var p22 *ProcessorsStruct
-		for _, v := range p2FindMap {
-			p22 = v
-		}
+	assert.NoError(t, err)
 
-		if p22.B4InsertFlag == 0 {
-			t.Error(errors.New("B4InsertFlag not set"))
-		}
-		if p22.AfterInsertedFlag != 0 {
-			t.Error(errors.New("AfterInsertedFlag is set"))
-		}
-		if p22.B4InsertViaExt == 0 {
-			t.Error(errors.New("B4InsertViaExt not set"))
-		}
-		if p22.AfterInsertedViaExt != 0 {
-			t.Error(errors.New("AfterInsertedViaExt is set"))
-		}
-		if p22.BeforeSetFlag != 9 {
-			t.Error(fmt.Errorf("BeforeSetFlag is %d not 9", p22.BeforeSetFlag))
-		}
-		if p22.AfterSetFlag != 9 {
-			t.Error(fmt.Errorf("AfterSetFlag is %d not 9", p22.BeforeSetFlag))
-		}
+	if len(p2FindMap) != 1 {
+		err = errors.New("Should get 1")
+		t.Error(err)
+	}
+	var p22 *ProcessorsStruct
+	for _, v := range p2FindMap {
+		p22 = v
+	}
+
+	if p22.B4InsertFlag == 0 {
+		t.Error(errors.New("B4InsertFlag not set"))
+	}
+	if p22.AfterInsertedFlag != 0 {
+		t.Error(errors.New("AfterInsertedFlag is set"))
+	}
+	if p22.B4InsertViaExt == 0 {
+		t.Error(errors.New("B4InsertViaExt not set"))
+	}
+	if p22.AfterInsertedViaExt != 0 {
+		t.Error(errors.New("AfterInsertedViaExt is set"))
+	}
+	if p22.BeforeSetFlag != 9 {
+		t.Error(fmt.Errorf("BeforeSetFlag is %d not 9", p22.BeforeSetFlag))
+	}
+	if p22.AfterSetFlag != 9 {
+		t.Error(fmt.Errorf("AfterSetFlag is %d not 9", p22.BeforeSetFlag))
 	}
 	// --
 
@@ -289,48 +257,43 @@ func TestProcessors(t *testing.T) {
 	p = p2 // reset
 
 	_, err = testEngine.Before(b4UpdateFunc).After(afterUpdateFunc).Update(p)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4UpdateFlag == 0 {
-			t.Error(errors.New("B4UpdateFlag not set"))
-		}
-		if p.AfterUpdatedFlag == 0 {
-			t.Error(errors.New("AfterUpdatedFlag not set"))
-		}
-		if p.B4UpdateViaExt == 0 {
-			t.Error(errors.New("B4UpdateViaExt not set"))
-		}
-		if p.AfterUpdatedViaExt == 0 {
-			t.Error(errors.New("AfterUpdatedViaExt not set"))
-		}
+	assert.NoError(t, err)
+
+	if p.B4UpdateFlag == 0 {
+		t.Error(errors.New("B4UpdateFlag not set"))
+	}
+	if p.AfterUpdatedFlag == 0 {
+		t.Error(errors.New("AfterUpdatedFlag not set"))
+	}
+	if p.B4UpdateViaExt == 0 {
+		t.Error(errors.New("B4UpdateViaExt not set"))
+	}
+	if p.AfterUpdatedViaExt == 0 {
+		t.Error(errors.New("AfterUpdatedViaExt not set"))
 	}
 
 	p2 = &ProcessorsStruct{}
-	_, err = testEngine.ID(p.Id).Get(p2)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p2.B4UpdateFlag == 0 {
-			t.Error(errors.New("B4UpdateFlag not set"))
-		}
-		if p2.AfterUpdatedFlag != 0 {
-			t.Error(errors.New("AfterUpdatedFlag is set: " + string(p.AfterUpdatedFlag)))
-		}
-		if p2.B4UpdateViaExt == 0 {
-			t.Error(errors.New("B4UpdateViaExt not set"))
-		}
-		if p2.AfterUpdatedViaExt != 0 {
-			t.Error(errors.New("AfterUpdatedViaExt is set: " + string(p.AfterUpdatedViaExt)))
-		}
-		if p2.BeforeSetFlag != 9 {
-			t.Error(fmt.Errorf("BeforeSetFlag is %d not 9", p2.BeforeSetFlag))
-		}
-		if p2.AfterSetFlag != 9 {
-			t.Error(fmt.Errorf("AfterSetFlag is %d not 9", p2.BeforeSetFlag))
-		}
+	has, err = testEngine.ID(p.Id).Get(p2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+
+	if p2.B4UpdateFlag == 0 {
+		t.Error(errors.New("B4UpdateFlag not set"))
+	}
+	if p2.AfterUpdatedFlag != 0 {
+		t.Error(errors.New("AfterUpdatedFlag is set: " + string(p.AfterUpdatedFlag)))
+	}
+	if p2.B4UpdateViaExt == 0 {
+		t.Error(errors.New("B4UpdateViaExt not set"))
+	}
+	if p2.AfterUpdatedViaExt != 0 {
+		t.Error(errors.New("AfterUpdatedViaExt is set: " + string(p.AfterUpdatedViaExt)))
+	}
+	if p2.BeforeSetFlag != 9 {
+		t.Error(fmt.Errorf("BeforeSetFlag is %d not 9", p2.BeforeSetFlag))
+	}
+	if p2.AfterSetFlag != 9 {
+		t.Error(fmt.Errorf("AfterSetFlag is %d not 9", p2.BeforeSetFlag))
 	}
 	// --
 
@@ -353,22 +316,18 @@ func TestProcessors(t *testing.T) {
 
 	p = p2 // reset
 	_, err = testEngine.Before(b4DeleteFunc).After(afterDeleteFunc).Delete(p)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4DeleteFlag == 0 {
-			t.Error(errors.New("B4DeleteFlag not set"))
-		}
-		if p.AfterDeletedFlag == 0 {
-			t.Error(errors.New("AfterDeletedFlag not set"))
-		}
-		if p.B4DeleteViaExt == 0 {
-			t.Error(errors.New("B4DeleteViaExt not set"))
-		}
-		if p.AfterDeletedViaExt == 0 {
-			t.Error(errors.New("AfterDeletedViaExt not set"))
-		}
+	assert.NoError(t, err)
+	if p.B4DeleteFlag == 0 {
+		t.Error(errors.New("B4DeleteFlag not set"))
+	}
+	if p.AfterDeletedFlag == 0 {
+		t.Error(errors.New("AfterDeletedFlag not set"))
+	}
+	if p.B4DeleteViaExt == 0 {
+		t.Error(errors.New("B4DeleteViaExt not set"))
+	}
+	if p.AfterDeletedViaExt == 0 {
+		t.Error(errors.New("AfterDeletedViaExt not set"))
 	}
 	// --
 
@@ -377,54 +336,46 @@ func TestProcessors(t *testing.T) {
 	pslice = append(pslice, &ProcessorsStruct{})
 	pslice = append(pslice, &ProcessorsStruct{})
 	cnt, err := testEngine.Before(b4InsertFunc).After(afterInsertFunc).Insert(&pslice)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if cnt != 2 {
-			t.Error(errors.New("incorrect insert count"))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, cnt, "incorrect insert count")
+
+	for _, elem := range pslice {
+		if elem.B4InsertFlag == 0 {
+			t.Error(errors.New("B4InsertFlag not set"))
 		}
-		for _, elem := range pslice {
-			if elem.B4InsertFlag == 0 {
-				t.Error(errors.New("B4InsertFlag not set"))
-			}
-			if elem.AfterInsertedFlag == 0 {
-				t.Error(errors.New("B4InsertFlag not set"))
-			}
-			if elem.B4InsertViaExt == 0 {
-				t.Error(errors.New("B4InsertFlag not set"))
-			}
-			if elem.AfterInsertedViaExt == 0 {
-				t.Error(errors.New("AfterInsertedViaExt not set"))
-			}
+		if elem.AfterInsertedFlag == 0 {
+			t.Error(errors.New("B4InsertFlag not set"))
+		}
+		if elem.B4InsertViaExt == 0 {
+			t.Error(errors.New("B4InsertFlag not set"))
+		}
+		if elem.AfterInsertedViaExt == 0 {
+			t.Error(errors.New("AfterInsertedViaExt not set"))
 		}
 	}
 
 	for _, elem := range pslice {
 		p = &ProcessorsStruct{}
 		_, err = testEngine.ID(elem.Id).Get(p)
-		if err != nil {
-			t.Error(err)
-			panic(err)
-		} else {
-			if p2.B4InsertFlag == 0 {
-				t.Error(errors.New("B4InsertFlag not set"))
-			}
-			if p2.AfterInsertedFlag != 0 {
-				t.Error(errors.New("AfterInsertedFlag is set"))
-			}
-			if p2.B4InsertViaExt == 0 {
-				t.Error(errors.New("B4InsertViaExt not set"))
-			}
-			if p2.AfterInsertedViaExt != 0 {
-				t.Error(errors.New("AfterInsertedViaExt is set"))
-			}
-			if p2.BeforeSetFlag != 9 {
-				t.Error(fmt.Errorf("BeforeSetFlag is %d not 9", p2.BeforeSetFlag))
-			}
-			if p2.AfterSetFlag != 9 {
-				t.Error(fmt.Errorf("AfterSetFlag is %d not 9", p2.BeforeSetFlag))
-			}
+		assert.NoError(t, err)
+
+		if p2.B4InsertFlag == 0 {
+			t.Error(errors.New("B4InsertFlag not set"))
+		}
+		if p2.AfterInsertedFlag != 0 {
+			t.Error(errors.New("AfterInsertedFlag is set"))
+		}
+		if p2.B4InsertViaExt == 0 {
+			t.Error(errors.New("B4InsertViaExt not set"))
+		}
+		if p2.AfterInsertedViaExt != 0 {
+			t.Error(errors.New("AfterInsertedViaExt is set"))
+		}
+		if p2.BeforeSetFlag != 9 {
+			t.Error(fmt.Errorf("BeforeSetFlag is %d not 9", p2.BeforeSetFlag))
+		}
+		if p2.AfterSetFlag != 9 {
+			t.Error(fmt.Errorf("AfterSetFlag is %d not 9", p2.BeforeSetFlag))
 		}
 	}
 	// --
@@ -434,24 +385,17 @@ func TestProcessorsTx(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	err := testEngine.DropTables(&ProcessorsStruct{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	err = testEngine.CreateTables(&ProcessorsStruct{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	// test insert processors with tx rollback
 	session := testEngine.NewSession()
+	defer session.Close()
+
 	err = session.Begin()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	p := &ProcessorsStruct{}
 	b4InsertFunc := func(bean interface{}) {
@@ -470,133 +414,117 @@ func TestProcessorsTx(t *testing.T) {
 		}
 	}
 	_, err = session.Before(b4InsertFunc).After(afterInsertFunc).Insert(p)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4InsertFlag == 0 {
-			t.Error(errors.New("B4InsertFlag not set"))
-		}
-		if p.AfterInsertedFlag != 0 {
-			t.Error(errors.New("B4InsertFlag is set"))
-		}
-		if p.B4InsertViaExt == 0 {
-			t.Error(errors.New("B4InsertViaExt not set"))
-		}
-		if p.AfterInsertedViaExt != 0 {
-			t.Error(errors.New("AfterInsertedViaExt is set"))
-		}
+	assert.NoError(t, err)
+
+	if p.B4InsertFlag == 0 {
+		t.Error(errors.New("B4InsertFlag not set"))
+	}
+	if p.AfterInsertedFlag != 0 {
+		t.Error(errors.New("B4InsertFlag is set"))
+	}
+	if p.B4InsertViaExt == 0 {
+		t.Error(errors.New("B4InsertViaExt not set"))
+	}
+	if p.AfterInsertedViaExt != 0 {
+		t.Error(errors.New("AfterInsertedViaExt is set"))
 	}
 
 	err = session.Rollback()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4InsertFlag == 0 {
-			t.Error(errors.New("B4InsertFlag not set"))
-		}
-		if p.AfterInsertedFlag != 0 {
-			t.Error(errors.New("B4InsertFlag is set"))
-		}
-		if p.B4InsertViaExt == 0 {
-			t.Error(errors.New("B4InsertViaExt not set"))
-		}
-		if p.AfterInsertedViaExt != 0 {
-			t.Error(errors.New("AfterInsertedViaExt is set"))
-		}
+	assert.NoError(t, err)
+
+	if p.B4InsertFlag == 0 {
+		t.Error(errors.New("B4InsertFlag not set"))
 	}
+	if p.AfterInsertedFlag != 0 {
+		t.Error(errors.New("B4InsertFlag is set"))
+	}
+	if p.B4InsertViaExt == 0 {
+		t.Error(errors.New("B4InsertViaExt not set"))
+	}
+	if p.AfterInsertedViaExt != 0 {
+		t.Error(errors.New("AfterInsertedViaExt is set"))
+	}
+
 	session.Close()
+
 	p2 := &ProcessorsStruct{}
 	_, err = testEngine.ID(p.Id).Get(p2)
-	if err != nil {
+	assert.NoError(t, err)
+
+	if p2.Id > 0 {
+		err = errors.New("tx got committed upon insert!?")
 		t.Error(err)
 		panic(err)
-	} else {
-		if p2.Id > 0 {
-			err = errors.New("tx got committed upon insert!?")
-			t.Error(err)
-			panic(err)
-		}
 	}
 	// --
 
 	// test insert processors with tx commit
 	session = testEngine.NewSession()
+	defer session.Close()
+
 	err = session.Begin()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	p = &ProcessorsStruct{}
 	_, err = session.Before(b4InsertFunc).After(afterInsertFunc).Insert(p)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4InsertFlag == 0 {
-			t.Error(errors.New("B4InsertFlag not set"))
-		}
-		if p.AfterInsertedFlag != 0 {
-			t.Error(errors.New("AfterInsertedFlag is set"))
-		}
-		if p.B4InsertViaExt == 0 {
-			t.Error(errors.New("B4InsertViaExt not set"))
-		}
-		if p.AfterInsertedViaExt != 0 {
-			t.Error(errors.New("AfterInsertedViaExt is set"))
-		}
+	assert.NoError(t, err)
+
+	if p.B4InsertFlag == 0 {
+		t.Error(errors.New("B4InsertFlag not set"))
+	}
+	if p.AfterInsertedFlag != 0 {
+		t.Error(errors.New("AfterInsertedFlag is set"))
+	}
+	if p.B4InsertViaExt == 0 {
+		t.Error(errors.New("B4InsertViaExt not set"))
+	}
+	if p.AfterInsertedViaExt != 0 {
+		t.Error(errors.New("AfterInsertedViaExt is set"))
 	}
 
 	err = session.Commit()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4InsertFlag == 0 {
-			t.Error(errors.New("B4InsertFlag not set"))
-		}
-		if p.AfterInsertedFlag == 0 {
-			t.Error(errors.New("AfterInsertedFlag not set"))
-		}
-		if p.B4InsertViaExt == 0 {
-			t.Error(errors.New("B4InsertViaExt not set"))
-		}
-		if p.AfterInsertedViaExt == 0 {
-			t.Error(errors.New("AfterInsertedViaExt not set"))
-		}
+	assert.NoError(t, err)
+
+	if p.B4InsertFlag == 0 {
+		t.Error(errors.New("B4InsertFlag not set"))
 	}
+	if p.AfterInsertedFlag == 0 {
+		t.Error(errors.New("AfterInsertedFlag not set"))
+	}
+	if p.B4InsertViaExt == 0 {
+		t.Error(errors.New("B4InsertViaExt not set"))
+	}
+	if p.AfterInsertedViaExt == 0 {
+		t.Error(errors.New("AfterInsertedViaExt not set"))
+	}
+
 	session.Close()
 	p2 = &ProcessorsStruct{}
 	_, err = testEngine.ID(p.Id).Get(p2)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p2.B4InsertFlag == 0 {
-			t.Error(errors.New("B4InsertFlag not set"))
-		}
-		if p2.AfterInsertedFlag != 0 {
-			t.Error(errors.New("AfterInsertedFlag is set"))
-		}
-		if p2.B4InsertViaExt == 0 {
-			t.Error(errors.New("B4InsertViaExt not set"))
-		}
-		if p2.AfterInsertedViaExt != 0 {
-			t.Error(errors.New("AfterInsertedViaExt is set"))
-		}
+	assert.NoError(t, err)
+
+	if p2.B4InsertFlag == 0 {
+		t.Error(errors.New("B4InsertFlag not set"))
 	}
+	if p2.AfterInsertedFlag != 0 {
+		t.Error(errors.New("AfterInsertedFlag is set"))
+	}
+	if p2.B4InsertViaExt == 0 {
+		t.Error(errors.New("B4InsertViaExt not set"))
+	}
+	if p2.AfterInsertedViaExt != 0 {
+		t.Error(errors.New("AfterInsertedViaExt is set"))
+	}
+
 	insertedId := p2.Id
 	// --
 
 	// test update processors with tx rollback
 	session = testEngine.NewSession()
+	defer session.Close()
+
 	err = session.Begin()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	b4UpdateFunc := func(bean interface{}) {
 		if v, ok := (bean).(*ProcessorsStruct); ok {
@@ -617,183 +545,160 @@ func TestProcessorsTx(t *testing.T) {
 	p = p2 // reset
 
 	_, err = session.ID(insertedId).Before(b4UpdateFunc).After(afterUpdateFunc).Update(p)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4UpdateFlag == 0 {
-			t.Error(errors.New("B4UpdateFlag not set"))
-		}
-		if p.AfterUpdatedFlag != 0 {
-			t.Error(errors.New("AfterUpdatedFlag is set"))
-		}
-		if p.B4UpdateViaExt == 0 {
-			t.Error(errors.New("B4UpdateViaExt not set"))
-		}
-		if p.AfterUpdatedViaExt != 0 {
-			t.Error(errors.New("AfterUpdatedViaExt is set"))
-		}
+	assert.NoError(t, err)
+
+	if p.B4UpdateFlag == 0 {
+		t.Error(errors.New("B4UpdateFlag not set"))
 	}
+	if p.AfterUpdatedFlag != 0 {
+		t.Error(errors.New("AfterUpdatedFlag is set"))
+	}
+	if p.B4UpdateViaExt == 0 {
+		t.Error(errors.New("B4UpdateViaExt not set"))
+	}
+	if p.AfterUpdatedViaExt != 0 {
+		t.Error(errors.New("AfterUpdatedViaExt is set"))
+	}
+
 	err = session.Rollback()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4UpdateFlag == 0 {
-			t.Error(errors.New("B4UpdateFlag not set"))
-		}
-		if p.AfterUpdatedFlag != 0 {
-			t.Error(errors.New("AfterUpdatedFlag is set"))
-		}
-		if p.B4UpdateViaExt == 0 {
-			t.Error(errors.New("B4UpdateViaExt not set"))
-		}
-		if p.AfterUpdatedViaExt != 0 {
-			t.Error(errors.New("AfterUpdatedViaExt is set"))
-		}
+	assert.NoError(t, err)
+
+	if p.B4UpdateFlag == 0 {
+		t.Error(errors.New("B4UpdateFlag not set"))
+	}
+	if p.AfterUpdatedFlag != 0 {
+		t.Error(errors.New("AfterUpdatedFlag is set"))
+	}
+	if p.B4UpdateViaExt == 0 {
+		t.Error(errors.New("B4UpdateViaExt not set"))
+	}
+	if p.AfterUpdatedViaExt != 0 {
+		t.Error(errors.New("AfterUpdatedViaExt is set"))
 	}
 
 	session.Close()
 
 	p2 = &ProcessorsStruct{}
 	_, err = testEngine.ID(insertedId).Get(p2)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p2.B4UpdateFlag != 0 {
-			t.Error(errors.New("B4UpdateFlag is set"))
-		}
-		if p2.AfterUpdatedFlag != 0 {
-			t.Error(errors.New("AfterUpdatedFlag is set"))
-		}
-		if p2.B4UpdateViaExt != 0 {
-			t.Error(errors.New("B4UpdateViaExt not set"))
-		}
-		if p2.AfterUpdatedViaExt != 0 {
-			t.Error(errors.New("AfterUpdatedViaExt is set"))
-		}
+	assert.NoError(t, err)
+
+	if p2.B4UpdateFlag != 0 {
+		t.Error(errors.New("B4UpdateFlag is set"))
+	}
+	if p2.AfterUpdatedFlag != 0 {
+		t.Error(errors.New("AfterUpdatedFlag is set"))
+	}
+	if p2.B4UpdateViaExt != 0 {
+		t.Error(errors.New("B4UpdateViaExt not set"))
+	}
+	if p2.AfterUpdatedViaExt != 0 {
+		t.Error(errors.New("AfterUpdatedViaExt is set"))
 	}
 	// --
 
 	// test update processors with tx rollback
 	session = testEngine.NewSession()
+	defer session.Close()
+
 	err = session.Begin()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	p = &ProcessorsStruct{Id: insertedId}
 
 	_, err = session.Update(p)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4UpdateFlag == 0 {
-			t.Error(errors.New("B4UpdateFlag not set"))
-		}
-		if p.AfterUpdatedFlag != 0 {
-			t.Error(errors.New("AfterUpdatedFlag is set"))
-		}
+	assert.NoError(t, err)
+
+	if p.B4UpdateFlag == 0 {
+		t.Error(errors.New("B4UpdateFlag not set"))
 	}
+	if p.AfterUpdatedFlag != 0 {
+		t.Error(errors.New("AfterUpdatedFlag is set"))
+	}
+
 	err = session.Commit()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4UpdateFlag == 0 {
-			t.Error(errors.New("B4UpdateFlag not set"))
-		}
-		if p.AfterUpdatedFlag == 0 {
-			t.Error(errors.New("AfterUpdatedFlag not set"))
-		}
-		if p.AfterDeletedFlag != 0 {
-			t.Error(errors.New("AfterDeletedFlag set"))
-		}
-		if p.AfterInsertedFlag != 0 {
-			t.Error(errors.New("AfterInsertedFlag set"))
-		}
+	assert.NoError(t, err)
+
+	if p.B4UpdateFlag == 0 {
+		t.Error(errors.New("B4UpdateFlag not set"))
+	}
+	if p.AfterUpdatedFlag == 0 {
+		t.Error(errors.New("AfterUpdatedFlag not set"))
+	}
+	if p.AfterDeletedFlag != 0 {
+		t.Error(errors.New("AfterDeletedFlag set"))
+	}
+	if p.AfterInsertedFlag != 0 {
+		t.Error(errors.New("AfterInsertedFlag set"))
 	}
 
 	session.Close()
 
 	// test update processors with tx commit
 	session = testEngine.NewSession()
+	defer session.Close()
+
 	err = session.Begin()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	p = &ProcessorsStruct{}
 
 	_, err = session.ID(insertedId).Before(b4UpdateFunc).After(afterUpdateFunc).Update(p)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4UpdateFlag == 0 {
-			t.Error(errors.New("B4UpdateFlag not set"))
-		}
-		if p.AfterUpdatedFlag != 0 {
-			t.Error(errors.New("AfterUpdatedFlag is set"))
-		}
-		if p.B4UpdateViaExt == 0 {
-			t.Error(errors.New("B4UpdateViaExt not set"))
-		}
-		if p.AfterUpdatedViaExt != 0 {
-			t.Error(errors.New("AfterUpdatedViaExt is set"))
-		}
+	assert.NoError(t, err)
+
+	if p.B4UpdateFlag == 0 {
+		t.Error(errors.New("B4UpdateFlag not set"))
 	}
+	if p.AfterUpdatedFlag != 0 {
+		t.Error(errors.New("AfterUpdatedFlag is set"))
+	}
+	if p.B4UpdateViaExt == 0 {
+		t.Error(errors.New("B4UpdateViaExt not set"))
+	}
+	if p.AfterUpdatedViaExt != 0 {
+		t.Error(errors.New("AfterUpdatedViaExt is set"))
+	}
+
 	err = session.Commit()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4UpdateFlag == 0 {
-			t.Error(errors.New("B4UpdateFlag not set"))
-		}
-		if p.AfterUpdatedFlag == 0 {
-			t.Error(errors.New("AfterUpdatedFlag not set"))
-		}
-		if p.B4UpdateViaExt == 0 {
-			t.Error(errors.New("B4UpdateViaExt not set"))
-		}
-		if p.AfterUpdatedViaExt == 0 {
-			t.Error(errors.New("AfterUpdatedViaExt not set"))
-		}
+	assert.NoError(t, err)
+
+	if p.B4UpdateFlag == 0 {
+		t.Error(errors.New("B4UpdateFlag not set"))
 	}
+	if p.AfterUpdatedFlag == 0 {
+		t.Error(errors.New("AfterUpdatedFlag not set"))
+	}
+	if p.B4UpdateViaExt == 0 {
+		t.Error(errors.New("B4UpdateViaExt not set"))
+	}
+	if p.AfterUpdatedViaExt == 0 {
+		t.Error(errors.New("AfterUpdatedViaExt not set"))
+	}
+
 	session.Close()
 	p2 = &ProcessorsStruct{}
 	_, err = testEngine.ID(insertedId).Get(p2)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4UpdateFlag == 0 {
-			t.Error(errors.New("B4UpdateFlag not set"))
-		}
-		if p.AfterUpdatedFlag == 0 {
-			t.Error(errors.New("AfterUpdatedFlag not set"))
-		}
-		if p.B4UpdateViaExt == 0 {
-			t.Error(errors.New("B4UpdateViaExt not set"))
-		}
-		if p.AfterUpdatedViaExt == 0 {
-			t.Error(errors.New("AfterUpdatedViaExt not set"))
-		}
+	assert.NoError(t, err)
+
+	if p.B4UpdateFlag == 0 {
+		t.Error(errors.New("B4UpdateFlag not set"))
+	}
+	if p.AfterUpdatedFlag == 0 {
+		t.Error(errors.New("AfterUpdatedFlag not set"))
+	}
+	if p.B4UpdateViaExt == 0 {
+		t.Error(errors.New("B4UpdateViaExt not set"))
+	}
+	if p.AfterUpdatedViaExt == 0 {
+		t.Error(errors.New("AfterUpdatedViaExt not set"))
 	}
 	// --
 
 	// test delete processors with tx rollback
 	session = testEngine.NewSession()
+	defer session.Close()
+
 	err = session.Begin()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	b4DeleteFunc := func(bean interface{}) {
 		if v, ok := (bean).(*ProcessorsStruct); ok {
@@ -814,152 +719,131 @@ func TestProcessorsTx(t *testing.T) {
 	p = &ProcessorsStruct{} // reset
 
 	_, err = session.ID(insertedId).Before(b4DeleteFunc).After(afterDeleteFunc).Delete(p)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4DeleteFlag == 0 {
-			t.Error(errors.New("B4DeleteFlag not set"))
-		}
-		if p.AfterDeletedFlag != 0 {
-			t.Error(errors.New("AfterDeletedFlag is set"))
-		}
-		if p.B4DeleteViaExt == 0 {
-			t.Error(errors.New("B4DeleteViaExt not set"))
-		}
-		if p.AfterDeletedViaExt != 0 {
-			t.Error(errors.New("AfterDeletedViaExt is set"))
-		}
+	assert.NoError(t, err)
+
+	if p.B4DeleteFlag == 0 {
+		t.Error(errors.New("B4DeleteFlag not set"))
 	}
+	if p.AfterDeletedFlag != 0 {
+		t.Error(errors.New("AfterDeletedFlag is set"))
+	}
+	if p.B4DeleteViaExt == 0 {
+		t.Error(errors.New("B4DeleteViaExt not set"))
+	}
+	if p.AfterDeletedViaExt != 0 {
+		t.Error(errors.New("AfterDeletedViaExt is set"))
+	}
+
 	err = session.Rollback()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4DeleteFlag == 0 {
-			t.Error(errors.New("B4DeleteFlag not set"))
-		}
-		if p.AfterDeletedFlag != 0 {
-			t.Error(errors.New("AfterDeletedFlag is set"))
-		}
-		if p.B4DeleteViaExt == 0 {
-			t.Error(errors.New("B4DeleteViaExt not set"))
-		}
-		if p.AfterDeletedViaExt != 0 {
-			t.Error(errors.New("AfterDeletedViaExt is set"))
-		}
+	assert.NoError(t, err)
+	if p.B4DeleteFlag == 0 {
+		t.Error(errors.New("B4DeleteFlag not set"))
 	}
+	if p.AfterDeletedFlag != 0 {
+		t.Error(errors.New("AfterDeletedFlag is set"))
+	}
+	if p.B4DeleteViaExt == 0 {
+		t.Error(errors.New("B4DeleteViaExt not set"))
+	}
+	if p.AfterDeletedViaExt != 0 {
+		t.Error(errors.New("AfterDeletedViaExt is set"))
+	}
+
 	session.Close()
 
 	p2 = &ProcessorsStruct{}
 	_, err = testEngine.ID(insertedId).Get(p2)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p2.B4DeleteFlag != 0 {
-			t.Error(errors.New("B4DeleteFlag is set"))
-		}
-		if p2.AfterDeletedFlag != 0 {
-			t.Error(errors.New("AfterDeletedFlag is set"))
-		}
-		if p2.B4DeleteViaExt != 0 {
-			t.Error(errors.New("B4DeleteViaExt is set"))
-		}
-		if p2.AfterDeletedViaExt != 0 {
-			t.Error(errors.New("AfterDeletedViaExt is set"))
-		}
+	assert.NoError(t, err)
+
+	if p2.B4DeleteFlag != 0 {
+		t.Error(errors.New("B4DeleteFlag is set"))
+	}
+	if p2.AfterDeletedFlag != 0 {
+		t.Error(errors.New("AfterDeletedFlag is set"))
+	}
+	if p2.B4DeleteViaExt != 0 {
+		t.Error(errors.New("B4DeleteViaExt is set"))
+	}
+	if p2.AfterDeletedViaExt != 0 {
+		t.Error(errors.New("AfterDeletedViaExt is set"))
 	}
 	// --
 
 	// test delete processors with tx commit
 	session = testEngine.NewSession()
+	defer session.Close()
+
 	err = session.Begin()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	p = &ProcessorsStruct{}
 
 	_, err = session.ID(insertedId).Before(b4DeleteFunc).After(afterDeleteFunc).Delete(p)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4DeleteFlag == 0 {
-			t.Error(errors.New("B4DeleteFlag not set"))
-		}
-		if p.AfterDeletedFlag != 0 {
-			t.Error(errors.New("AfterDeletedFlag is set"))
-		}
-		if p.B4DeleteViaExt == 0 {
-			t.Error(errors.New("B4DeleteViaExt not set"))
-		}
-		if p.AfterDeletedViaExt != 0 {
-			t.Error(errors.New("AfterDeletedViaExt is set"))
-		}
+	assert.NoError(t, err)
+
+	if p.B4DeleteFlag == 0 {
+		t.Error(errors.New("B4DeleteFlag not set"))
 	}
+	if p.AfterDeletedFlag != 0 {
+		t.Error(errors.New("AfterDeletedFlag is set"))
+	}
+	if p.B4DeleteViaExt == 0 {
+		t.Error(errors.New("B4DeleteViaExt not set"))
+	}
+	if p.AfterDeletedViaExt != 0 {
+		t.Error(errors.New("AfterDeletedViaExt is set"))
+	}
+
 	err = session.Commit()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4DeleteFlag == 0 {
-			t.Error(errors.New("B4DeleteFlag not set"))
-		}
-		if p.AfterDeletedFlag == 0 {
-			t.Error(errors.New("AfterDeletedFlag not set"))
-		}
-		if p.B4DeleteViaExt == 0 {
-			t.Error(errors.New("B4DeleteViaExt not set"))
-		}
-		if p.AfterDeletedViaExt == 0 {
-			t.Error(errors.New("AfterDeletedViaExt not set"))
-		}
+	assert.NoError(t, err)
+
+	if p.B4DeleteFlag == 0 {
+		t.Error(errors.New("B4DeleteFlag not set"))
 	}
+	if p.AfterDeletedFlag == 0 {
+		t.Error(errors.New("AfterDeletedFlag not set"))
+	}
+	if p.B4DeleteViaExt == 0 {
+		t.Error(errors.New("B4DeleteViaExt not set"))
+	}
+	if p.AfterDeletedViaExt == 0 {
+		t.Error(errors.New("AfterDeletedViaExt not set"))
+	}
+
 	session.Close()
 
 	// test delete processors with tx commit
 	session = testEngine.NewSession()
+	defer session.Close()
+
 	err = session.Begin()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	p = &ProcessorsStruct{Id: insertedId}
-	fmt.Println("delete")
 	_, err = session.Delete(p)
+	assert.NoError(t, err)
 
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4DeleteFlag == 0 {
-			t.Error(errors.New("B4DeleteFlag not set"))
-		}
-		if p.AfterDeletedFlag != 0 {
-			t.Error(errors.New("AfterDeletedFlag is set"))
-		}
+	if p.B4DeleteFlag == 0 {
+		t.Error(errors.New("B4DeleteFlag not set"))
 	}
+	if p.AfterDeletedFlag != 0 {
+		t.Error(errors.New("AfterDeletedFlag is set"))
+	}
+
 	err = session.Commit()
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	} else {
-		if p.B4DeleteFlag == 0 {
-			t.Error(errors.New("B4DeleteFlag not set"))
-		}
-		if p.AfterDeletedFlag == 0 {
-			t.Error(errors.New("AfterDeletedFlag not set"))
-		}
-		if p.AfterInsertedFlag != 0 {
-			t.Error(errors.New("AfterInsertedFlag set"))
-		}
-		if p.AfterUpdatedFlag != 0 {
-			t.Error(errors.New("AfterUpdatedFlag set"))
-		}
+	assert.NoError(t, err)
+
+	if p.B4DeleteFlag == 0 {
+		t.Error(errors.New("B4DeleteFlag not set"))
+	}
+	if p.AfterDeletedFlag == 0 {
+		t.Error(errors.New("AfterDeletedFlag not set"))
+	}
+	if p.AfterInsertedFlag != 0 {
+		t.Error(errors.New("AfterInsertedFlag set"))
+	}
+	if p.AfterUpdatedFlag != 0 {
+		t.Error(errors.New("AfterUpdatedFlag set"))
 	}
 	session.Close()
 	// --

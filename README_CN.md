@@ -153,20 +153,20 @@ has, err := engine.Where("name = ?", name).Desc("id").Get(&user)
 // SELECT * FROM user WHERE name = ? ORDER BY id DESC LIMIT 1
 
 var name string
-has, err := engine.Where("id = ?", id).Cols("name").Get(&name)
+has, err := engine.Table(&user).Where("id = ?", id).Cols("name").Get(&name)
 // SELECT name FROM user WHERE id = ?
 
 var id int64
-has, err := engine.Where("name = ?", name).Cols("id").Get(&id)
+has, err := engine.Table(&user).Where("name = ?", name).Cols("id").Get(&id)
 has, err := engine.SQL("select id from user").Get(&id)
 // SELECT id FROM user WHERE name = ?
 
 var valuesMap = make(map[string]string)
-has, err := engine.Where("id = ?", id).Get(&valuesMap)
+has, err := engine.Table(&user).Where("id = ?", id).Get(&valuesMap)
 // SELECT * FROM user WHERE id = ?
 
 var valuesSlice = make([]interface{}, len(cols))
-has, err := engine.Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
+has, err := engine.Table(&user).Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
 // SELECT col1, col2, col3 FROM user WHERE id = ?
 ```
 
@@ -362,10 +362,10 @@ if _, err := session.Exec("delete from userinfo where username = ?", user2.Usern
 return session.Commit()
 ```
 
-* 事物的简写方法
+* 事务的简写方法
 
 ```Go
-res, err := engine.Transaction(func(sess *xorm.Session) (interface{}, error) {
+res, err := engine.Transaction(func(session *xorm.Session) (interface{}, error) {
     user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
     if _, err := session.Insert(&user1); err != nil {
         return nil, err
@@ -383,7 +383,7 @@ res, err := engine.Transaction(func(sess *xorm.Session) (interface{}, error) {
 })
 ```
 
-* Context Cache, if enabled, current query result will be cached on session and be used by next same statement on the same session.
+* 上下文缓存，如果启用，那么针对单个对象的查询将会被缓存到系统中，可以被下一个查询使用。
 
 ```Go
 	sess := engine.NewSession()
