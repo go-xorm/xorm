@@ -362,7 +362,7 @@ if _, err := session.Exec("delete from userinfo where username = ?", user2.Usern
 return session.Commit()
 ```
 
-* 事物的简写方法
+* 事务的简写方法
 
 ```Go
 res, err := engine.Transaction(func(session *xorm.Session) (interface{}, error) {

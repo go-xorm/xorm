@@ -28,7 +28,7 @@ Xorm is a simple and powerful ORM for Go.
 
 * Optimistic Locking support
 
-* SQL Builder support via [github.com/go-xorm/builder](https://github.com/go-xorm/builder)
+* SQL Builder support via [xorm.io/builder](https://xorm.io/builder)
 
 * Automatical Read/Write seperatelly
 
@@ -282,6 +282,13 @@ affected, err := engine.ID(2).Delete(&user)
 ```Go
 counts, err := engine.Count(&user)
 // SELECT count(*) AS total FROM user
+```
+
+* `FindAndCount` combines function `Find` with `Count` which is usually used in query by page
+
+```Go
+var users []User
+counts, err := engine.FindAndCount(&users)
 ```
 
 * `Sum` sum functions

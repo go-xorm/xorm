@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/stretchr/testify/assert"
 )
 
