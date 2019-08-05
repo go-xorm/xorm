@@ -256,7 +256,7 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bea
 		err = rows.ScanMap(bean)
 	case reflect.String, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		err = rows.Scan(&bean)
+		err = rows.Scan(bean)
 	default:
 		err = rows.Scan(bean)
 	}
