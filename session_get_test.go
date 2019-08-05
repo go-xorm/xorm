@@ -584,3 +584,37 @@ func TestGetNullVar(t *testing.T) {
 	assert.True(t, has)
 	assert.EqualValues(t, 0, age10)
 }
+
+func TestCustomTypes(t *testing.T) {
+	type MyInt int
+	type MyString string
+
+	type TestCustomizeStruct struct {
+		Id   int64
+		Name MyString
+		Age  MyInt
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(TestCustomizeStruct))
+
+	var s = TestCustomizeStruct{
+		Name: "test",
+		Age:  32,
+	}
+	_, err := testEngine.Insert(&s)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, s.Id)
+
+	var name MyString
+	has, err := testEngine.Table(new(TestCustomizeStruct)).ID(s.Id).Cols("name").Get(&name)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "test", name)
+
+	var age MyInt
+	has, err = testEngine.Table(new(TestCustomizeStruct)).ID(s.Id).Select("age").Get(&age)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 32, age)
+}
