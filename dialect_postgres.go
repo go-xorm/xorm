@@ -1018,7 +1018,6 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 		}
 
 		col.Nullable = (isNullable == "YES")
-		fmt.Println(dataType)
 		switch dataType {
 		case "character varying", "character":
 			col.SQLType = core.SQLType{Name: core.Varchar, DefaultLength: 0, DefaultLength2: 0}
