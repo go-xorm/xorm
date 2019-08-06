@@ -1018,7 +1018,7 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 		}
 
 		col.Nullable = (isNullable == "YES")
-
+		fmt.Println(dataType)
 		switch dataType {
 		case "character varying", "character":
 			col.SQLType = core.SQLType{Name: core.Varchar, DefaultLength: 0, DefaultLength2: 0}
@@ -1044,10 +1044,10 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 		col.Length = maxLen
 
 		if col.SQLType.IsText() || col.SQLType.IsTime() {
-			if col.Default != "" {
+			if col.Default != "" && col.Default != "''" && col.Default != "''::character varying"{
 				col.Default = "'" + col.Default + "'"
 			} else {
-				if col.DefaultIsEmpty {
+				if col.DefaultIsEmpty || col.Default == "''::character varying" {
 					col.Default = "''"
 				}
 			}
