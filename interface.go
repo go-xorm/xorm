@@ -86,6 +86,7 @@ type EngineInterface interface {
 	GetTableMapper() core.IMapper
 	GetTZDatabase() *time.Location
 	GetTZLocation() *time.Location
+	Logger() core.ILogger
 	MapCacher(interface{}, core.Cacher) error
 	NewSession() *Session
 	NoAutoTime() *Session
