@@ -393,7 +393,7 @@ func (db *mssql) GetColumns(tableName string) ([]string, map[string]*core.Column
 		}
 
 		if col.SQLType.IsText() || col.SQLType.IsTime() {
-			if col.Default != "" {
+			if col.Default != "" && col.Default != "''" {
 				col.Default = "'" + col.Default + "'"
 			} else {
 				if col.DefaultIsEmpty {
