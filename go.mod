@@ -4,6 +4,7 @@ require (
 	github.com/cockroachdb/apd v1.1.0 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20190707035753-2be1aa521ff4
 	github.com/go-sql-driver/mysql v1.4.1
+	github.com/ibmdb/go_ibm_db v0.1.0
 	github.com/jackc/fake v0.0.0-20150926172116-812a484cc733 // indirect
 	github.com/jackc/pgx v3.3.0+incompatible
 	github.com/kr/pretty v0.1.0 // indirect
