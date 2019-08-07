@@ -168,7 +168,19 @@ steps:
   pull: default
   image: golang:1.11
   commands:
+    - go get -u -v
     - GO111MODULE=off go build -v
+  when:
+    event:
+    - push
+    - pull_request
+
+- name: build-gomod
+  pull: default
+  image: golang:1.11
+  environment:
+    GOPROXY: "https://goproxy.cn"
+  commands:
     - GO111MODULE=on go build -v
   when:
     event:
@@ -301,10 +313,20 @@ steps:
 - name: build
   pull: default
   image: golang:1.12
+  commands:
+    - go get -u -v
+    - GO111MODULE=off go build -v
+  when:
+    event:
+    - push
+    - pull_request
+
+- name: build-gomod
+  pull: default
+  image: golang:1.12
   environment:
     GOPROXY: "https://goproxy.cn" 
   commands:
-    - GO111MODULE=off go build -v
     - GO111MODULE=on go build -v
   when:
     event:
