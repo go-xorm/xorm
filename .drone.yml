@@ -168,7 +168,9 @@ steps:
   pull: default
   image: golang:1.11
   commands:
-    - go get -u -v
+    - go get -t -d -v ./...	
+    - go get -u xorm.io/core	
+    - go get -u xorm.io/builder
     - GO111MODULE=off go build -v
   when:
     event:
@@ -314,7 +316,9 @@ steps:
   pull: default
   image: golang:1.12
   commands:
-    - go get -u -v
+    - go get -t -d -v ./...	
+    - go get -u xorm.io/core	
+    - go get -u xorm.io/builder
     - GO111MODULE=off go build -v
   when:
     event:
