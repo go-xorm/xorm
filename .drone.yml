@@ -168,10 +168,8 @@ steps:
   pull: default
   image: golang:1.11
   commands:
-  - go get -t -d -v ./...
-  - go get -u xorm.io/core
-  - go get -u xorm.io/builder
-  - go build -v
+    - GO111MODULE=off go build -v
+    - GO111MODULE=on go build -v
   when:
     event:
     - push
@@ -303,11 +301,11 @@ steps:
 - name: build
   pull: default
   image: golang:1.12
+  environment:
+    GOPROXY: "https://goproxy.cn" 
   commands:
-  - go get -t -d -v ./...
-  - go get -u xorm.io/core
-  - go get -u xorm.io/builder
-  - go build -v
+    - GO111MODULE=off go build -v
+    - GO111MODULE=on go build -v
   when:
     event:
     - push
