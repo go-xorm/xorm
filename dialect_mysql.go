@@ -411,7 +411,11 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 			col.IsAutoIncrement = true
 		}
 
-		if col.SQLType.IsText() || col.SQLType.IsTime() {
+		if col.SQLType.IsTime() && col.Default == "CURRENT_TIMESTAMP" {
+			if strings.Contains(extra, "CURRENT_TIMESTAMP") {
+				col.Default = "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+			}
+		} else if col.SQLType.IsText() || col.SQLType.IsTime() {
 			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
 			} else {
