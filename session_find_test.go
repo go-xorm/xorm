@@ -812,11 +812,15 @@ func TestFindMapCols(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(FindMapCols))
 
+	id := testEngine.GetColumnMapper().Obj2Table("Id")
+	colA := testEngine.GetColumnMapper().Obj2Table("ColA")
+	colB := testEngine.GetColumnMapper().Obj2Table("ColB")
+
 	var objs = make(map[int64]*FindMapCols)
-	err := testEngine.Cols("col_a, col_b").Find(&objs)
+	err := testEngine.Cols(colA, colB).Find(&objs)
 	assert.Error(t, err)
 	assert.True(t, IsErrPrimaryKeyNoSelected(err))
 
-	err = testEngine.Cols("id, col_a, col_b").Find(&objs)
+	err = testEngine.Cols(id, colA, colB).Find(&objs)
 	assert.NoError(t, err)
 }
