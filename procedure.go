@@ -200,7 +200,7 @@ func convertValue(fieldType reflect.Type, strValue string) (value reflect.Value,
 	case reflect.String:
 		result = strValue
 	default:
-		return defReturn, errors.New("parameter type can not convert")
+		return defReturn, errors.New("parameter type can not convert.")
 	}
 	return reflect.ValueOf(result).Convert(fieldType), nil
 }
