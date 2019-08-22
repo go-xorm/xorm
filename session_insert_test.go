@@ -834,3 +834,62 @@ func TestInsertMap(t *testing.T) {
 	assert.EqualValues(t, 10, ims[3].Height)
 	assert.EqualValues(t, "lunny", ims[3].Name)
 }
+
+/*INSERT INTO `issue` (`repo_id`, `poster_id`, ... ,`name`, `content`, ... ,`index`)
+SELECT $1, $2, ..., $14, $15, ..., MAX(`index`) + 1 FROM `issue` WHERE `repo_id` = $1;
+*/
+func TestInsertWhere(t *testing.T) {
+	type InsertWhere struct {
+		Id     int64
+		Index  int   `xorm:"unique(s) notnull"`
+		RepoId int64 `xorm:"unique(s)"`
+		Width  uint32
+		Height uint32
+		Name   string
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(InsertWhere))
+
+	var i = InsertWhere{
+		RepoId: 1,
+		Width:  10,
+		Height: 20,
+		Name:   "trest",
+	}
+
+	inserted, err := testEngine.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
+		Where("repo_id=?", 1).
+		Insert(&i)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, inserted)
+	assert.EqualValues(t, 1, i.Id)
+
+	var j InsertWhere
+	has, err := testEngine.ID(i.Id).Get(&j)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	i.Index = 1
+	assert.EqualValues(t, i, j)
+
+	inserted, err = testEngine.Table(new(InsertWhere)).Where("repo_id=?", 1).
+		SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
+		Insert(map[string]interface{}{
+			"repo_id": 1,
+			"width":   20,
+			"height":  40,
+			"name":    "trest2",
+		})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, inserted)
+
+	var j2 InsertWhere
+	has, err = testEngine.ID(2).Get(&j2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 1, j2.RepoId)
+	assert.EqualValues(t, 20, j2.Width)
+	assert.EqualValues(t, 40, j2.Height)
+	assert.EqualValues(t, "trest2", j2.Name)
+	assert.EqualValues(t, 2, j2.Index)
+}
