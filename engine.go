@@ -1643,7 +1643,7 @@ func (engine *Engine) Unscoped() *Session {
 	session.isAutoClose = true
 	return session.Unscoped()
 }
-
+// StartProcedure
 func (engine *Engine) StartProcedure(funcName string, inLen, outLen int) *Procedure {
 	session := engine.NewSession()
 	defer session.Close()

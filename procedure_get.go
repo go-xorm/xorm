@@ -1,3 +1,7 @@
+// Copyright 2015 The Xorm Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package xorm
 
 import (
@@ -5,9 +9,8 @@ import (
 	"reflect"
 )
 
-//获取结果赋值到结构体
 func get(this *Procedure, beanElem reflect.Value) (has bool, err error) {
-	//拼接SQL语句
+
 	buffer := new(bytes.Buffer)
 	buffer.WriteString("call ")
 	buffer.WriteString(this.funcName)
@@ -15,7 +18,7 @@ func get(this *Procedure, beanElem reflect.Value) (has bool, err error) {
 	sqlSlice := []interface{}{buffer.String()}
 	sqlSlice = append(sqlSlice, this.inParams...)
 	//fmt.Println("sql:", sqlSlice)
-	//执行SQL请求
+	//do Sql
 	results, err := this.engine.QueryString(sqlSlice...)
 	if err != nil {
 		return false, err
@@ -28,14 +31,14 @@ func get(this *Procedure, beanElem reflect.Value) (has bool, err error) {
 
 	elemStruct := reflect.New(beanElem.Type()).Elem()
 
-	numField := beanElem.NumField() //结构体中字段个数
-	elemType := beanElem.Type()     //结构体类型
+	numField := beanElem.NumField()
+	elemType := beanElem.Type()
 	var column string
 	for i := 0; i < numField; i++ {
-		field := elemType.Field(i) //遍历每一个字段
+		field := elemType.Field(i)
 		fieldName := field.Name
 		fieldType := field.Type
-		tag := field.Tag.Get("xorm") //获取jorm的tag
+		tag := field.Tag.Get("xorm")
 		if tag != "" {
 			column = tag
 		} else {

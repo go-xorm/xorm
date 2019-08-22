@@ -1,3 +1,7 @@
+// Copyright 2015 The Xorm Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package xorm
 
 import (
@@ -18,7 +22,7 @@ type Procedure struct {
 	inParams []interface{}
 }
 
-//设置参数
+//Input Parameter
 //    engine：engine *Engine
 //    funcName：procedure function name
 //    inLen：input parameter length
@@ -67,14 +71,14 @@ func callProcedure(engine *Engine, funcName string, inLen, outLen int) (p *Proce
 	return
 }
 
-//参数说明
-//    inParams：存储过程入参参数
+//Input Parameter
+//    inParams：Procedure input parameter
 func (this *Procedure) InParams(inParams ...interface{}) (p *Procedure) {
 	this.inParams = inParams
 	return this
 }
 
-//查询，返回String类型Map数组
+// Query runs a raw sql and return records as []map[string]string
 func (this *Procedure) Query() (result []map[string]string, err error) {
 	if len(this.inParams) != this.inLen {
 		return nil, errors.New("inLen should be the same as the input parameter length")
@@ -94,13 +98,12 @@ func (this *Procedure) Query() (result []map[string]string, err error) {
 	return strings, nil
 }
 
-//获取结果赋值到结构体（目前仅支持字段名转，后续添加根据tag标记转）
+// Get retrieve one record from database, beanPtr's non-empty fields
+// will be as conditions
 func (this *Procedure) Get(beanPtr interface{}) (has bool, err error) {
-	//验证参数
 	if len(this.inParams) != this.inLen {
 		return false, errors.New("inLen should be the same as the input parameter length")
 	}
-	//验证结构体类型
 	beanValue := reflect.ValueOf(beanPtr)
 	if beanValue.Kind() != reflect.Ptr {
 		return false, errors.New("needs a pointer to a value")
@@ -110,37 +113,37 @@ func (this *Procedure) Get(beanPtr interface{}) (has bool, err error) {
 	return get(this, beanValue.Elem())
 }
 
-//获取结果结构体列表
+// Find retrieve records from table, beanSlicePtr's non-empty fields
+// are conditions. beans could be []Struct, []*Struct
 func (this *Procedure) Find(beanSlicePtr interface{}) (err error) {
-	//验证参数个数
 	if len(this.inParams) != this.inLen {
 		return errors.New("inLen should be the same as the input parameter length")
 	}
 	beanSliceValue := reflect.ValueOf(beanSlicePtr)
-	//验证参数类型必须是指针
+
 	if beanSliceValue.Kind() != reflect.Ptr {
 		return errors.New("needs a pointer to a value")
 	}
 	sliceValue := beanSliceValue.Elem()
-	//验证interface{}类型
+
 	if sliceValue.Kind() != reflect.Slice {
 		return errors.New("intut interface{} must be Slice")
 	}
-	elemKind := sliceValue.Type().Elem().Kind() //切片的类型
-	//验证切片类型
+	elemKind := sliceValue.Type().Elem().Kind()
+
 	if elemKind != reflect.Struct && elemKind != reflect.Ptr {
 		return errors.New("slice must be struct or pointer struct")
 	}
 	return find(this, sliceValue)
 }
 
-//转换表名
+//convert column name
 func convertColumn(name string) (key string) {
 	s := []rune(name)
 	sLen := len(s)
 	buffer := new(bytes.Buffer)
 	var isFirst = true
-	//驼峰命名转换
+
 	for i := 0; i < sLen; i++ {
 		if unicode.IsUpper(s[i]) {
 			if isFirst {
@@ -160,7 +163,7 @@ func convertColumn(name string) (key string) {
 	return
 }
 
-//string值转换reflect.Value
+//string to reflect.Value
 func convertValue(fieldType reflect.Type, strValue string) (value reflect.Value, err error) {
 	var result interface{}
 	var defReturn = reflect.Zero(fieldType)
@@ -197,7 +200,7 @@ func convertValue(fieldType reflect.Type, strValue string) (value reflect.Value,
 	case reflect.String:
 		result = strValue
 	default:
-		return defReturn, errors.New("参数中含有无法转换的类型")
+		return defReturn, errors.New("parameter type can not convert")
 	}
 	return reflect.ValueOf(result).Convert(fieldType), nil
 }
