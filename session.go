@@ -60,6 +60,8 @@ type Session struct {
 
 	ctx         context.Context
 	sessionType sessionType
+
+	procedure Procedure
 }
 
 // Clone copy all the session's content and return a new session
