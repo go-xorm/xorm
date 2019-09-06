@@ -801,7 +801,7 @@ func (statement *Statement) genColumnStr() string {
 		return ""
 	}
 
-	var buf builder.StringBuilder
+	var buf strings.Builder
 	columns := statement.RefTable.Columns()
 
 	for _, col := range columns {

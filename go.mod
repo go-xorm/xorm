@@ -1,5 +1,7 @@
 module github.com/go-xorm/xorm
 
+go 1.11
+
 require (
 	github.com/cockroachdb/apd v1.1.0 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20190707035753-2be1aa521ff4
