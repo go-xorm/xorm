@@ -70,7 +70,7 @@ type Interface interface {
 // EngineInterface defines the interface which Engine, EngineGroup will implementate.
 type EngineInterface interface {
 	Interface
-
+	SetSoftDeleteHandler(SoftDelete)
 	Before(func(interface{})) *Session
 	Charset(charset string) *Session
 	ClearCache(...interface{}) error

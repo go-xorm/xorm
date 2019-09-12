@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"xorm.io/core"
 )
@@ -192,15 +193,24 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		condArgs = append(condArgs, "")
 		paramsLen := len(condArgs)
 		copy(condArgs[1:paramsLen], condArgs[0:paramsLen-1])
-
-		val, t := session.engine.nowTime(deletedColumn)
-		condArgs[0] = val
-
 		var colName = deletedColumn.Name
-		session.afterClosures = append(session.afterClosures, func(bean interface{}) {
-			col := table.GetColumn(colName)
-			setColumnTime(bean, col, t)
-		})
+		var t, val interface{}
+		if session.softDelete != nil {
+			val = session.softDelete.getDeleteValue()
+			condArgs[0] = val
+			session.afterClosures = append(session.afterClosures, func(bean interface{}) {
+				col := table.GetColumn(colName)
+				session.softDelete.setBeanConumenAttr(bean, col, val)
+			})
+		} else {
+
+			val, t = session.engine.nowTime(deletedColumn)
+			condArgs[0] = val
+			session.afterClosures = append(session.afterClosures, func(bean interface{}) {
+				col := table.GetColumn(colName)
+				setColumnTime(bean, col, t.(time.Time))
+			})
+		}
 	}
 
 	if cacher := session.engine.getCacher(tableNameNoQuote); cacher != nil && session.statement.UseCache {

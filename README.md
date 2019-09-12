@@ -275,6 +275,17 @@ affected, err := engine.Where(...).Delete(&user)
 
 affected, err := engine.ID(2).Delete(&user)
 // DELETE FROM user Where id = ?
+
+// soft delete customer
+
+eg, err := xorm.NewEngine("mysql", dns)
+if err != nil {
+    panic("failed to connect database " + err.Error())
+}
+eg.ShowSQL(true)
+	
+eg.SetSoftDeleteHandler(&xorm.DefaultSoftDeleteHandler{})
+
 ```
 
 * `Count` count records
