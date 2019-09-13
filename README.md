@@ -54,6 +54,15 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * Oracle: [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (experiment)
 
+## Newrelic integration
+
+Currently supported newrelic integration with following drivers:
+
+* Mysql: [https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmysql](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmysql)
+```Go
+engine, err := xorm.NewEngine("nrmysql", dataSourceName)
+```
+
 ## Installation
 
 	go get github.com/go-xorm/xorm
