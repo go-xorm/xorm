@@ -54,11 +54,11 @@ func createEngine(dbType, connStr string) error {
 				db.Close()
 				*ignoreSelectUpdate = true
 			case core.POSTGRES:
-				db, err := sql.Open(dbType, connStr)
+				db, err := sql.Open(dbType, strings.Replace(connStr, "xorm_test", "postgres", -1))
 				if err != nil {
 					return err
 				}
-				rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = 'xorm_test'"))
+				rows, err := db.Query("SELECT 1 FROM pg_database WHERE datname = 'xorm_test'")
 				if err != nil {
 					return fmt.Errorf("db.Query: %v", err)
 				}
@@ -70,6 +70,12 @@ func createEngine(dbType, connStr string) error {
 					}
 				}
 				if *schema != "" {
+					db.Close()
+					db, err = sql.Open(dbType, connStr)
+					if err != nil {
+						return err
+					}
+					defer db.Close()
 					if _, err = db.Exec("CREATE SCHEMA IF NOT EXISTS " + *schema); err != nil {
 						return fmt.Errorf("CREATE SCHEMA: %v", err)
 					}
