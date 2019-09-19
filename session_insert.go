@@ -268,6 +268,14 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 
 	session.cacheInsert(tableName)
 
+	var lastId int64 = 0
+	if table.AutoIncrement != ""{
+		lastId ,err = res.LastInsertId()
+		if err != nil || lastId <= 0 {
+			return 0, errors.New("insert Many no error but not returned id")
+		}
+	}
+
 	lenAfterClosures := len(session.afterClosures)
 	for i := 0; i < size; i++ {
 		elemValue := reflect.Indirect(sliceValue.Index(i)).Addr().Interface()
@@ -295,6 +303,14 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 					session.afterInsertBeans[elemValue] = nil
 				}
 			}
+		}
+		if lastId != 0 {
+			aiValue, err := table.AutoIncrColumn().ValueOf(elemValue)
+			if err != nil {
+				session.engine.logger.Error(err)
+			}
+			aiValue.Set(int64ToIntValue(lastId, aiValue.Type()))
+			lastId++
 		}
 	}
 
