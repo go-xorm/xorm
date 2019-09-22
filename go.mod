@@ -16,6 +16,6 @@ require (
 	github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24 // indirect
 	github.com/stretchr/testify v1.3.0
 	github.com/ziutek/mymysql v1.5.4
-	xorm.io/builder v0.3.6-0.20190906062455-b937eb46ecfb
+	xorm.io/builder v0.3.6
 	xorm.io/core v0.7.0
 )
