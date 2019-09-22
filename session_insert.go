@@ -7,7 +7,6 @@ package xorm
 import (
 	"errors"
 	"fmt"
-	"io"
 	"reflect"
 	"sort"
 	"strconv"
@@ -355,22 +354,22 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	}
 
 	var buf = builder.NewWriter()
-	if _, err := io.WriteString(buf, fmt.Sprintf("INSERT INTO %s", session.engine.Quote(tableName))); err != nil {
+	if _, err := buf.WriteString(fmt.Sprintf("INSERT INTO %s", session.engine.Quote(tableName))); err != nil {
 		return 0, err
 	}
 
 	if len(colPlaces) <= 0 {
 		if session.engine.dialect.DBType() == core.MYSQL {
-			if _, err := io.WriteString(buf, " VALUES ()"); err != nil {
+			if _, err := buf.WriteString(" VALUES ()"); err != nil {
 				return 0, err
 			}
 		} else {
-			if _, err := io.WriteString(buf, fmt.Sprintf("%s DEFAULT VALUES", output)); err != nil {
+			if _, err := buf.WriteString(fmt.Sprintf("%s DEFAULT VALUES", output)); err != nil {
 				return 0, err
 			}
 		}
 	} else {
-		if _, err := io.WriteString(buf, " ("); err != nil {
+		if _, err := buf.WriteString(" ("); err != nil {
 			return 0, err
 		}
 
@@ -379,9 +378,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		}
 
 		if session.statement.cond.IsValid() {
-			if _, err := io.WriteString(buf, fmt.Sprintf(")%s SELECT ",
-				output,
-			)); err != nil {
+			if _, err := buf.WriteString(fmt.Sprintf(")%s SELECT ", output)); err != nil {
 				return 0, err
 			}
 
@@ -398,7 +395,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 				return 0, err
 			}
 
-			if _, err := io.WriteString(buf, fmt.Sprintf(" FROM %v WHERE ", session.engine.Quote(tableName))); err != nil {
+			if _, err := buf.WriteString(fmt.Sprintf(" FROM %v WHERE ", session.engine.Quote(tableName))); err != nil {
 				return 0, err
 			}
 
@@ -408,7 +405,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		} else {
 			buf.Append(args...)
 
-			if _, err := io.WriteString(buf, fmt.Sprintf(")%s VALUES (%v",
+			if _, err := buf.WriteString(fmt.Sprintf(")%s VALUES (%v",
 				output,
 				colPlaces)); err != nil {
 				return 0, err
@@ -418,20 +415,20 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 				return 0, err
 			}
 
-			if _, err := io.WriteString(buf, ")"); err != nil {
+			if _, err := buf.WriteString(")"); err != nil {
 				return 0, err
 			}
 		}
 	}
 
-	sqlStr := buf.String()
-	args = buf.Args()
-
 	if len(table.AutoIncrement) > 0 && session.engine.dialect.DBType() == core.POSTGRES {
-		if _, err := io.WriteString(buf, " RETURNING "+session.engine.Quote(table.AutoIncrement)); err != nil {
+		if _, err := buf.WriteString(" RETURNING " + session.engine.Quote(table.AutoIncrement)); err != nil {
 			return 0, err
 		}
 	}
+
+	sqlStr := buf.String()
+	args = buf.Args()
 
 	handleAfterInsertProcessorFunc := func(bean interface{}) {
 		if session.isAutoCommit {

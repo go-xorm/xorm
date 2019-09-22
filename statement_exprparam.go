@@ -6,7 +6,6 @@ package xorm
 
 import (
 	"fmt"
-	"io"
 	"strings"
 
 	"xorm.io/builder"
@@ -57,7 +56,7 @@ func (exprs *exprParams) getByName(colName string) (exprParam, bool) {
 	return exprParam{}, false
 }
 
-func (exprs *exprParams) writeArgs(w builder.Writer) error {
+func (exprs *exprParams) writeArgs(w *builder.BytesWriter) error {
 	for _, expr := range exprs.args {
 		switch arg := expr.(type) {
 		case *builder.Builder:
@@ -65,7 +64,7 @@ func (exprs *exprParams) writeArgs(w builder.Writer) error {
 				return err
 			}
 		default:
-			if _, err := io.WriteString(w, fmt.Sprintf("%v", arg)); err != nil {
+			if _, err := w.WriteString(fmt.Sprintf("%v", arg)); err != nil {
 				return err
 			}
 		}
@@ -73,12 +72,12 @@ func (exprs *exprParams) writeArgs(w builder.Writer) error {
 	return nil
 }
 
-func (exprs *exprParams) writeNameArgs(w builder.Writer) error {
+func (exprs *exprParams) writeNameArgs(w *builder.BytesWriter) error {
 	for i, colName := range exprs.colNames {
-		if _, err := io.WriteString(w, colName); err != nil {
+		if _, err := w.WriteString(colName); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, "="); err != nil {
+		if _, err := w.WriteString("="); err != nil {
 			return err
 		}
 
@@ -92,7 +91,7 @@ func (exprs *exprParams) writeNameArgs(w builder.Writer) error {
 		}
 
 		if i+1 != len(exprs.colNames) {
-			if _, err := io.WriteString(w, ","); err != nil {
+			if _, err := w.WriteString(","); err != nil {
 				return err
 			}
 		}
