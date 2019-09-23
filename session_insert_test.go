@@ -892,4 +892,19 @@ func TestInsertWhere(t *testing.T) {
 	assert.EqualValues(t, 40, j2.Height)
 	assert.EqualValues(t, "trest2", j2.Name)
 	assert.EqualValues(t, 2, j2.Index)
+
+	inserted, err = testEngine.Table(new(InsertWhere)).Where("repo_id=?", 1).
+		SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
+		Insert(map[string]string{
+			"name": "trest3",
+		})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, inserted)
+
+	var j3 InsertWhere
+	has, err = testEngine.ID(3).Get(&j3)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "trest3", j3.Name)
+	assert.EqualValues(t, 3, j3.Index)
 }
