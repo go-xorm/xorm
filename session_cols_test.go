@@ -52,10 +52,10 @@ func TestSetExpr(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	tableInfo := testEngine.TableInfo(new(UserExprIssue))
+	tableName := testEngine.TableName(new(UserExprIssue), true)
 	cnt, err = testEngine.SetExpr("issue_id",
 		builder.Select("id").
-			From(tableInfo.Name).
+			From(tableName).
 			Where(builder.Eq{"id": issue.Id})).
 		ID(1).
 		Update(new(UserExpr))
