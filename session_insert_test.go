@@ -846,6 +846,7 @@ func TestInsertWhere(t *testing.T) {
 		Width  uint32
 		Height uint32
 		Name   string
+		IsTrue bool
 	}
 
 	assert.NoError(t, prepareEngine())
