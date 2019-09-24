@@ -7,8 +7,9 @@ package xorm
 import (
 	"testing"
 
-	"xorm.io/core"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/builder"
+	"xorm.io/core"
 )
 
 func TestSetExpr(t *testing.T) {
@@ -32,6 +33,15 @@ func TestSetExpr(t *testing.T) {
 		not = "~"
 	}
 	cnt, err = testEngine.SetExpr("show", not+" `show`").ID(1).Update(new(UserExpr))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	cnt, err = testEngine.SetExpr("show",
+		builder.Select("NOT show").
+			From("user_expr").
+			Where(builder.Eq{"id": 1})).
+		ID(1).
+		Update(new(UserExpr))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 }
