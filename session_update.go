@@ -100,16 +100,7 @@ func (session *Session) cacheUpdate(table *core.Table, tableName, sqlStr string,
 			for idx, kv := range kvs {
 				sps := strings.SplitN(kv, "=", 2)
 				sps2 := strings.Split(sps[0], ".")
-				colName := sps2[len(sps2)-1]
-				// treat quote prefix, suffix and '`' as quotes
-				left, right := session.engine.Quotes()
-				quotes := []string{string(left), string(right)}
-				if strings.ContainsAny(colName, strings.Join(quotes, "")) {
-					colName = strings.TrimSpace(eraseAny(colName, quotes...))
-				} else {
-					session.engine.logger.Debug("[cacheUpdate] cannot find column", tableName, colName)
-					return ErrCacheFailed
-				}
+				colName := unQuote(session.engine, sps2[len(sps2)-1])
 
 				if col := table.GetColumn(colName); col != nil {
 					fieldValue, err := col.ValueOf(bean)

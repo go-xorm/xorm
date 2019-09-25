@@ -560,10 +560,8 @@ func (statement *Statement) SetExpr(column string, expression interface{}) *Stat
 
 func (statement *Statement) col2NewColsWithQuote(columns ...string) []string {
 	newColumns := make([]string, 0)
-	left, right := statement.Engine.Quotes()
-	quotes := []string{string(left), string(right)}
 	for _, col := range columns {
-		newColumns = append(newColumns, statement.Engine.quote(eraseAny(col, quotes...), true))
+		newColumns = append(newColumns, statement.Engine.quote(col, true))
 	}
 	return newColumns
 }
