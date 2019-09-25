@@ -911,8 +911,9 @@ func TestInsertWhere(t *testing.T) {
 
 	inserted, err = testEngine.Table(new(InsertWhere)).Where("repo_id=?", 1).
 		SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
-		Insert(map[string]string{
-			"name": "10';delete * from insert_where; --",
+		Insert(map[string]interface{}{
+			"repo_id": 1,
+			"name":    "10';delete * from insert_where; --",
 		})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, inserted)
