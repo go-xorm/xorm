@@ -63,9 +63,9 @@ func (engine *Engine) tbNameNoSchema(tablename interface{}) string {
 	case []string:
 		t := tablename.([]string)
 		if len(t) > 1 {
-			return fmt.Sprintf("%v AS %v", engine.Quote(t[0]), engine.Quote(t[1]))
+			return fmt.Sprintf("%v AS %v", engine.quote(t[0], false), engine.quote(t[1], false))
 		} else if len(t) == 1 {
-			return engine.Quote(t[0])
+			return engine.quote(t[0], false)
 		}
 	case []interface{}:
 		t := tablename.([]interface{})
@@ -84,15 +84,15 @@ func (engine *Engine) tbNameNoSchema(tablename interface{}) string {
 				if t.Kind() == reflect.Struct {
 					table = engine.tbNameForMap(v)
 				} else {
-					table = engine.Quote(fmt.Sprintf("%v", f))
+					table = engine.quote(fmt.Sprintf("%v", f), false)
 				}
 			}
 		}
 		if l > 1 {
-			return fmt.Sprintf("%v AS %v", engine.Quote(table),
-				engine.Quote(fmt.Sprintf("%v", t[1])))
+			return fmt.Sprintf("%v AS %v", engine.quote(table, false),
+				engine.quote(fmt.Sprintf("%v", t[1]), false))
 		} else if l == 1 {
-			return engine.Quote(table)
+			return engine.quote(table, false)
 		}
 	case TableName:
 		return tablename.(TableName).TableName()
@@ -107,7 +107,7 @@ func (engine *Engine) tbNameNoSchema(tablename interface{}) string {
 		if t.Kind() == reflect.Struct {
 			return engine.tbNameForMap(v)
 		}
-		return engine.Quote(fmt.Sprintf("%v", tablename))
+		return engine.quote(fmt.Sprintf("%v", tablename), false)
 	}
 	return ""
 }

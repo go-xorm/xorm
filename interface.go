@@ -89,7 +89,7 @@ type EngineInterface interface {
 	MapCacher(interface{}, core.Cacher) error
 	NewSession() *Session
 	NoAutoTime() *Session
-	Quote(string) string
+	Quote(string, bool) string
 	SetCacher(string, core.Cacher)
 	SetConnMaxLifetime(time.Duration)
 	SetDefaultCacher(core.Cacher)

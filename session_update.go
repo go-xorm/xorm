@@ -102,7 +102,8 @@ func (session *Session) cacheUpdate(table *core.Table, tableName, sqlStr string,
 				sps2 := strings.Split(sps[0], ".")
 				colName := sps2[len(sps2)-1]
 				// treat quote prefix, suffix and '`' as quotes
-				quotes := append(strings.Split(session.engine.Quote(""), ""), "`")
+				left, right := session.engine.Quotes()
+				quotes := []string{string(left), string(right)}
 				if strings.ContainsAny(colName, strings.Join(quotes, "")) {
 					colName = strings.TrimSpace(eraseAny(colName, quotes...))
 				} else {
@@ -195,7 +196,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		bValue := reflect.Indirect(reflect.ValueOf(bean))
 
 		for _, v := range bValue.MapKeys() {
-			colNames = append(colNames, session.engine.Quote(v.String())+" = ?")
+			colNames = append(colNames, session.engine.quote(v.String(), true)+" = ?")
 			args = append(args, bValue.MapIndex(v).Interface())
 		}
 	} else {
@@ -207,7 +208,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	if session.statement.UseAutoTime && table != nil && table.Updated != "" {
 		if !session.statement.columnMap.contain(table.Updated) &&
 			!session.statement.omitColumnMap.contain(table.Updated) {
-			colNames = append(colNames, session.engine.Quote(table.Updated)+" = ?")
+			colNames = append(colNames, session.engine.quote(table.Updated, true)+" = ?")
 			col := table.UpdatedColumn()
 			val, t := session.engine.nowTime(col)
 			args = append(args, val)
@@ -225,13 +226,13 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	// for update action to like "column = column + ?"
 	incColumns := session.statement.incrColumns
 	for i, colName := range incColumns.colNames {
-		colNames = append(colNames, session.engine.Quote(colName)+" = "+session.engine.Quote(colName)+" + ?")
+		colNames = append(colNames, session.engine.quote(colName, true)+" = "+session.engine.quote(colName, true)+" + ?")
 		args = append(args, incColumns.args[i])
 	}
 	// for update action to like "column = column - ?"
 	decColumns := session.statement.decrColumns
 	for i, colName := range decColumns.colNames {
-		colNames = append(colNames, session.engine.Quote(colName)+" = "+session.engine.Quote(colName)+" - ?")
+		colNames = append(colNames, session.engine.quote(colName, true)+" = "+session.engine.quote(colName, true)+" - ?")
 		args = append(args, decColumns.args[i])
 	}
 	// for update action to like "column = expression"
@@ -239,13 +240,13 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	for i, colName := range exprColumns.colNames {
 		switch tp := exprColumns.args[i].(type) {
 		case string:
-			colNames = append(colNames, session.engine.Quote(colName)+" = "+tp)
+			colNames = append(colNames, session.engine.quote(colName, true)+" = "+tp)
 		case *builder.Builder:
 			subQuery, subArgs, err := builder.ToSQL(tp)
 			if err != nil {
 				return 0, err
 			}
-			colNames = append(colNames, session.engine.Quote(colName)+" = ("+subQuery+")")
+			colNames = append(colNames, session.engine.quote(colName, true)+" = ("+subQuery+")")
 			args = append(args, subArgs...)
 		}
 	}
@@ -281,7 +282,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 		if !condBeanIsStruct && table != nil {
 			if col := table.DeletedColumn(); col != nil && !session.statement.unscoped { // tag "deleted" is enabled
-				autoCond1 := session.engine.CondDeleted(session.engine.Quote(col.Name))
+				autoCond1 := session.engine.CondDeleted(session.engine.quote(col.Name, true))
 
 				if autoCond == nil {
 					autoCond = autoCond1
@@ -307,8 +308,8 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			return 0, err
 		}
 
-		cond = cond.And(builder.Eq{session.engine.Quote(table.Version): verValue.Interface()})
-		colNames = append(colNames, session.engine.Quote(table.Version)+" = "+session.engine.Quote(table.Version)+" + 1")
+		cond = cond.And(builder.Eq{session.engine.quote(table.Version, true): verValue.Interface()})
+		colNames = append(colNames, session.engine.quote(table.Version, true)+" = "+session.engine.quote(table.Version, true)+" + 1")
 	}
 
 	condSQL, condArgs, err = builder.ToSQL(cond)
@@ -333,7 +334,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		} else if st.Engine.dialect.DBType() == core.SQLITE {
 			tempCondSQL := condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
 			cond = cond.And(builder.Expr(fmt.Sprintf("rowid IN (SELECT rowid FROM %v %v)",
-				session.engine.Quote(tableName), tempCondSQL), condArgs...))
+				session.engine.quote(tableName, false), tempCondSQL), condArgs...))
 			condSQL, condArgs, err = builder.ToSQL(cond)
 			if err != nil {
 				return 0, err
@@ -344,7 +345,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		} else if st.Engine.dialect.DBType() == core.POSTGRES {
 			tempCondSQL := condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
 			cond = cond.And(builder.Expr(fmt.Sprintf("CTID IN (SELECT CTID FROM %v %v)",
-				session.engine.Quote(tableName), tempCondSQL), condArgs...))
+				session.engine.quote(tableName, false), tempCondSQL), condArgs...))
 			condSQL, condArgs, err = builder.ToSQL(cond)
 			if err != nil {
 				return 0, err
@@ -358,7 +359,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 				table != nil && len(table.PrimaryKeys) == 1 {
 				cond = builder.Expr(fmt.Sprintf("%s IN (SELECT TOP (%d) %s FROM %v%v)",
 					table.PrimaryKeys[0], st.LimitN, table.PrimaryKeys[0],
-					session.engine.Quote(tableName), condSQL), condArgs...)
+					session.engine.quote(tableName, false), condSQL), condArgs...)
 
 				condSQL, condArgs, err = builder.ToSQL(cond)
 				if err != nil {
@@ -379,7 +380,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	sqlStr = fmt.Sprintf("UPDATE %v%v SET %v %v",
 		top,
-		session.engine.Quote(tableName),
+		session.engine.quote(tableName, false),
 		strings.Join(colNames, ", "),
 		condSQL)
 
@@ -519,7 +520,7 @@ func (session *Session) genUpdateColumns(bean interface{}) ([]string, []interfac
 			args = append(args, arg)
 		}
 
-		colNames = append(colNames, session.engine.Quote(col.Name)+" = ?")
+		colNames = append(colNames, session.engine.quote(col.Name, true)+" = ?")
 	}
 	return colNames, args, nil
 }

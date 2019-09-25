@@ -44,9 +44,9 @@ func (engine *Engine) buildConds(table *core.Table, bean interface{},
 			if len(aliasName) > 0 {
 				nm = aliasName
 			}
-			colName = engine.Quote(nm) + "." + engine.Quote(col.Name)
+			colName = engine.quote(nm, false) + "." + engine.quote(col.Name, true)
 		} else {
-			colName = engine.Quote(col.Name)
+			colName = engine.quote(col.Name, true)
 		}
 
 		fieldValuePtr, err := col.ValueOf(bean)

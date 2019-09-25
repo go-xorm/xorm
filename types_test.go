@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"testing"
 
-	"xorm.io/core"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/core"
 )
 
 func TestArrayField(t *testing.T) {
@@ -305,7 +305,7 @@ func TestCustomType2(t *testing.T) {
 	assert.NoError(t, err)
 
 	tableName := testEngine.TableName(&uc, true)
-	_, err = testEngine.Exec("delete from " + testEngine.Quote(tableName))
+	_, err = testEngine.Exec("delete from " + testEngine.Quote(tableName, false))
 	assert.NoError(t, err)
 
 	session := testEngine.NewSession()

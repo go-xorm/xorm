@@ -35,7 +35,7 @@ func (session *Session) genQuerySQL(sqlOrArgs ...interface{}) (string, []interfa
 		if session.statement.JoinStr == "" {
 			if columnStr == "" {
 				if session.statement.GroupByStr != "" {
-					columnStr = session.engine.quoteColumns(session.statement.GroupByStr)
+					columnStr = quoteColumns(session.engine, session.statement.GroupByStr)
 				} else {
 					columnStr = session.statement.genColumnStr()
 				}
@@ -43,7 +43,7 @@ func (session *Session) genQuerySQL(sqlOrArgs ...interface{}) (string, []interfa
 		} else {
 			if columnStr == "" {
 				if session.statement.GroupByStr != "" {
-					columnStr = session.engine.quoteColumns(session.statement.GroupByStr)
+					columnStr = quoteColumns(session.engine, session.statement.GroupByStr)
 				} else {
 					columnStr = "*"
 				}

@@ -323,10 +323,3 @@ func eraseAny(value string, strToErase ...string) string {
 
 	return replacer.Replace(value)
 }
-
-func quoteColumns(cols []string, quoteFunc func(string) string, sep string) string {
-	for i := range cols {
-		cols[i] = quoteFunc(cols[i])
-	}
-	return strings.Join(cols, sep+" ")
-}
