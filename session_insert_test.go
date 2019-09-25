@@ -909,3 +909,41 @@ func TestInsertWhere(t *testing.T) {
 	assert.EqualValues(t, "trest3", j3.Name)
 	assert.EqualValues(t, 3, j3.Index)
 }
+
+type NightlyRate struct {
+	ID int64 `xorm:"'id' not null pk BIGINT(20)" json:"id"`
+}
+
+func (NightlyRate) TableName() string {
+	return "prd_nightly_rate"
+}
+
+func TestMultipleInsertTableName(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	trans := testEngine.NewSession()
+	defer trans.Close()
+	err := trans.Begin()
+	assert.NoError(t, err)
+
+	rtArr := []interface{}{
+		[]*NightlyRate{
+			{ID: 1},
+			{ID: 2},
+		},
+		[]*NightlyRate{
+			{ID: 3},
+			{ID: 4},
+		},
+		[]*NightlyRate{
+			{ID: 5},
+		},
+	}
+
+	tableName := `prd_nightly_rate_16`
+	assert.NoError(t, testEngine.Table(tableName).Sync2(new(NightlyRate)))
+	_, err = trans.Table(tableName).Insert(rtArr...)
+	assert.NoError(t, err)
+
+	assert.NoError(t, trans.Commit())
+}
