@@ -49,7 +49,7 @@ func quoteNeeded(a interface{}) bool {
 	return true
 }
 
-func covertArg(arg interface{}) string {
+func convertArg(arg interface{}) string {
 	if quoteNeeded(arg) {
 		argv := fmt.Sprintf("%v", arg)
 		return "'" + strings.Replace(argv, "'", "''", -1) + "'"
@@ -93,7 +93,7 @@ func (statement *Statement) writeArg(w *builder.BytesWriter, arg interface{}) er
 			return err
 		}
 	default:
-		if _, err := w.WriteString(covertArg(arg)); err != nil {
+		if _, err := w.WriteString(convertArg(arg)); err != nil {
 			return err
 		}
 	}
