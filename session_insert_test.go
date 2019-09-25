@@ -921,6 +921,9 @@ func (NightlyRate) TableName() string {
 func TestMultipleInsertTableName(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
+	tableName := `prd_nightly_rate_16`
+	assert.NoError(t, testEngine.Table(tableName).Sync2(new(NightlyRate)))
+
 	trans := testEngine.NewSession()
 	defer trans.Close()
 	err := trans.Begin()
@@ -940,8 +943,6 @@ func TestMultipleInsertTableName(t *testing.T) {
 		},
 	}
 
-	tableName := `prd_nightly_rate_16`
-	assert.NoError(t, testEngine.Table(tableName).Sync2(new(NightlyRate)))
 	_, err = trans.Table(tableName).Insert(rtArr...)
 	assert.NoError(t, err)
 
