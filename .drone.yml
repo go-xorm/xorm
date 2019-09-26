@@ -75,6 +75,17 @@ steps:
     - push
     - pull_request
 
+- name: test-mysql8
+  pull: default
+  image: golang:1.10
+  commands:
+    - go test -v -race -db="mysql" -conn_str="root:@tcp(mysql8)/xorm_test" -coverprofile=coverage2.2-1.txt -covermode=atomic
+    - go test -v -race -db="mysql" -conn_str="root:@tcp(mysql8)/xorm_test" -cache=true -coverprofile=coverage2.2-2.txt -covermode=atomic
+  when:
+    event:
+    - push
+    - pull_request
+
 - name: test-mymysql
   pull: default
   image: golang:1.10
@@ -114,7 +125,7 @@ steps:
   commands:
   - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -coverprofile=coverage6-1.txt -covermode=atomic"
   - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -cache=true -coverprofile=coverage6-2.txt -covermode=atomic"
-  - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt coverage6-1.txt coverage6-2.txt > coverage.txt
+  - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage2.2-1.txt coverage2.2-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt coverage6-1.txt coverage6-2.txt > coverage.txt
   when:
     event:
     - push
@@ -124,6 +135,18 @@ services:
 - name: mysql
   pull: default
   image: mysql:5.7
+  environment:
+    MYSQL_ALLOW_EMPTY_PASSWORD: yes
+    MYSQL_DATABASE: xorm_test
+  when:
+    event:
+    - push
+    - tag
+    - pull_request
+
+- name: mysql8
+  pull: default
+  image: mysql:8.0
   environment:
     MYSQL_ALLOW_EMPTY_PASSWORD: yes
     MYSQL_DATABASE: xorm_test
@@ -258,6 +281,17 @@ steps:
     - push
     - pull_request
 
+- name: test-mysql8
+  pull: default
+  image: golang:1.10
+  commands:
+    - go test -v -race -db="mysql" -conn_str="root:@tcp(mysql8)/xorm_test" -coverprofile=coverage2.2-1.txt -covermode=atomic
+    - go test -v -race -db="mysql" -conn_str="root:@tcp(mysql8)/xorm_test" -cache=true -coverprofile=coverage2.2-2.txt -covermode=atomic
+  when:
+    event:
+    - push
+    - pull_request
+
 - name: test-mymysql
   pull: default
   image: golang:1.11
@@ -310,7 +344,7 @@ steps:
   - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -coverprofile=coverage6-1.txt -covermode=atomic"
   - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -cache=true -coverprofile=coverage6-2.txt -covermode=atomic"
   - go get github.com/wadey/gocovmerge
-  - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt coverage6-1.txt coverage6-2.txt > coverage.txt
+  - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage2.2-1.txt coverage2.2-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt coverage6-1.txt coverage6-2.txt > coverage.txt
   when:
     event:
     - push
@@ -320,6 +354,18 @@ services:
 - name: mysql
   pull: default
   image: mysql:5.7
+  environment:
+    MYSQL_ALLOW_EMPTY_PASSWORD: yes
+    MYSQL_DATABASE: xorm_test
+  when:
+    event:
+    - push
+    - tag
+    - pull_request
+
+- name: mysql8
+  pull: default
+  image: mysql:8.0
   environment:
     MYSQL_ALLOW_EMPTY_PASSWORD: yes
     MYSQL_DATABASE: xorm_test
@@ -454,6 +500,17 @@ steps:
     - push
     - pull_request
 
+- name: test-mysql8
+  pull: default
+  image: golang:1.10
+  commands:
+    - go test -v -race -db="mysql" -conn_str="root:@tcp(mysql8)/xorm_test" -coverprofile=coverage2.2-1.txt -covermode=atomic
+    - go test -v -race -db="mysql" -conn_str="root:@tcp(mysql8)/xorm_test" -cache=true -coverprofile=coverage2.2-2.txt -covermode=atomic
+  when:
+    event:
+    - push
+    - pull_request
+
 - name: test-mymysql
   pull: default
   image: golang:1.12
@@ -506,7 +563,7 @@ steps:
   - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -coverprofile=coverage6-1.txt -covermode=atomic"
   - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -cache=true -coverprofile=coverage6-2.txt -covermode=atomic"
   - go get -u github.com/wadey/gocovmerge
-  - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt coverage6-1.txt coverage6-2.txt > coverage.txt
+  - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage2.2-1.txt coverage2.2-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt coverage6-1.txt coverage6-2.txt > coverage.txt
   when:
     event:
     - push
@@ -516,6 +573,18 @@ services:
 - name: mysql
   pull: default
   image: mysql:5.7
+  environment:
+    MYSQL_ALLOW_EMPTY_PASSWORD: yes
+    MYSQL_DATABASE: xorm_test
+  when:
+    event:
+    - push
+    - tag
+    - pull_request
+
+- name: mysql8
+  pull: default
+  image: mysql:8.0
   environment:
     MYSQL_ALLOW_EMPTY_PASSWORD: yes
     MYSQL_DATABASE: xorm_test
@@ -650,6 +719,17 @@ steps:
     - push
     - pull_request
 
+- name: test-mysql8
+  pull: default
+  image: golang:1.10
+  commands:
+    - go test -v -race -db="mysql" -conn_str="root:@tcp(mysql8)/xorm_test" -coverprofile=coverage2.2-1.txt -covermode=atomic
+    - go test -v -race -db="mysql" -conn_str="root:@tcp(mysql8)/xorm_test" -cache=true -coverprofile=coverage2.2-2.txt -covermode=atomic
+  when:
+    event:
+    - push
+    - pull_request
+
 - name: test-mymysql
   pull: default
   image: golang:1.13
@@ -702,7 +782,7 @@ steps:
   - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -coverprofile=coverage6-1.txt -covermode=atomic"
   - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -cache=true -coverprofile=coverage6-2.txt -covermode=atomic"
   - go get -u github.com/wadey/gocovmerge
-  - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt coverage6-1.txt coverage6-2.txt > coverage.txt
+  - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage2.2-1.txt coverage2.2-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt coverage6-1.txt coverage6-2.txt > coverage.txt
   when:
     event:
     - push
@@ -712,6 +792,18 @@ services:
 - name: mysql
   pull: default
   image: mysql:5.7
+  environment:
+    MYSQL_ALLOW_EMPTY_PASSWORD: yes
+    MYSQL_DATABASE: xorm_test
+  when:
+    event:
+    - push
+    - tag
+    - pull_request
+
+- name: mysql8
+  pull: default
+  image: mysql:8.0
   environment:
     MYSQL_ALLOW_EMPTY_PASSWORD: yes
     MYSQL_DATABASE: xorm_test
