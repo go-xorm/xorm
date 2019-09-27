@@ -957,3 +957,46 @@ func TestMultipleInsertTableName(t *testing.T) {
 
 	assert.NoError(t, trans.Commit())
 }
+
+func TestInsertMultiWithOmit(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type TestMultiOmit struct {
+		Id      int64  `xorm:"int(11) pk"`
+		Name    string `xorm:"varchar(255)"`
+		Omitted string `xorm:"varchar(255) 'omitted'"`
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(TestMultiOmit)))
+
+	l := []interface{}{
+		TestMultiOmit{Id: 1, Name: "1", Omitted: "1"},
+		TestMultiOmit{Id: 2, Name: "1", Omitted: "2"},
+		TestMultiOmit{Id: 3, Name: "1", Omitted: "3"},
+	}
+
+	check := func() {
+		var ls []TestMultiOmit
+		err := testEngine.Find(&ls)
+		assert.NoError(t, err)
+		assert.EqualValues(t, 3, len(ls))
+
+		for e := range ls {
+			assert.EqualValues(t, "", ls[e].Omitted)
+		}
+	}
+
+	num, err := testEngine.Omit("omitted").Insert(l...)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, num)
+	check()
+
+	num, err = testEngine.Delete(TestMultiOmit{Name: "1"})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, num)
+
+	num, err = testEngine.Omit("omitted").Insert(l)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, num)
+	check()
+}
