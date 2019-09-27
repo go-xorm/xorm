@@ -344,9 +344,6 @@ func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Colu
 				col.DefaultIsEmpty = false
 			}
 		}
-		if !col.SQLType.IsNumeric() && !col.DefaultIsEmpty {
-			col.Default = "'" + col.Default + "'"
-		}
 		cols[col.Name] = col
 		colSeq = append(colSeq, col.Name)
 	}

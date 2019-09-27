@@ -5,7 +5,6 @@
 package xorm
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -27,58 +26,27 @@ func TestCreatedAndUpdated(t *testing.T) {
 
 	u := new(UserCU)
 	err := testEngine.DropTables(u)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	err = testEngine.CreateTables(u)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	u.Name = "sss"
 	cnt, err := testEngine.Insert(u)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-	if cnt != 1 {
-		err = errors.New("insert not returned 1")
-		t.Error(err)
-		panic(err)
-		return
-	}
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
 
 	u.Name = "xxx"
 	cnt, err = testEngine.ID(u.Id).Update(u)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-	if cnt != 1 {
-		err = errors.New("update not returned 1")
-		t.Error(err)
-		panic(err)
-		return
-	}
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
 
 	u.Id = 0
 	u.Created = time.Now().Add(-time.Hour * 24 * 365)
 	u.Updated = u.Created
-	fmt.Println(u)
 	cnt, err = testEngine.NoAutoTime().Insert(u)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-	if cnt != 1 {
-		err = errors.New("insert not returned 1")
-		t.Error(err)
-		panic(err)
-		return
-	}
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
 }
 
 type StrangeName struct {
@@ -90,25 +58,17 @@ func TestStrangeName(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	err := testEngine.DropTables(new(StrangeName))
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
 	err = testEngine.CreateTables(new(StrangeName))
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
 	_, err = testEngine.Insert(&StrangeName{Name: "sfsfdsfds"})
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
 	beans := make([]StrangeName, 0)
 	err = testEngine.Find(&beans)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 }
 
 func TestCreatedUpdated(t *testing.T) {
@@ -179,29 +139,17 @@ func TestLowerCase(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
 	err := testEngine.Sync2(&Lowercase{})
-	_, err = testEngine.Where("(id) > 0").Delete(&Lowercase{})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+	_, err = testEngine.Where("id > 0").Delete(&Lowercase{})
+	assert.NoError(t, err)
+
 	_, err = testEngine.Insert(&Lowercase{ended: 1})
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	ls := make([]Lowercase, 0)
 	err = testEngine.Find(&ls)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-
-	if len(ls) != 1 {
-		err = errors.New("should be 1")
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(ls))
 }
 
 func TestAutoIncrTag(t *testing.T) {
@@ -297,6 +245,24 @@ func TestTagDefault(t *testing.T) {
 
 	assertSync(t, new(DefaultStruct))
 
+	tables, err := testEngine.DBMetas()
+	assert.NoError(t, err)
+
+	var defaultVal string
+	var isDefaultExist bool
+	tableName := testEngine.GetColumnMapper().Obj2Table("DefaultStruct")
+	for _, table := range tables {
+		if table.Name == tableName {
+			col := table.GetColumn("age")
+			assert.NotNil(t, col)
+			defaultVal = col.Default
+			isDefaultExist = !col.DefaultIsEmpty
+			break
+		}
+	}
+	assert.True(t, isDefaultExist)
+	assert.EqualValues(t, "10", defaultVal)
+
 	cnt, err := testEngine.Omit("age").Insert(&DefaultStruct{
 		Name: "test",
 		Age:  20,
@@ -310,6 +276,122 @@ func TestTagDefault(t *testing.T) {
 	assert.True(t, has)
 	assert.EqualValues(t, 10, s.Age)
 	assert.EqualValues(t, "test", s.Name)
+}
+
+func TestTagDefault2(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type DefaultStruct2 struct {
+		Id   int64
+		Name string
+	}
+
+	assertSync(t, new(DefaultStruct2))
+
+	tables, err := testEngine.DBMetas()
+	assert.NoError(t, err)
+
+	var defaultVal string
+	var isDefaultExist bool
+	tableName := testEngine.GetColumnMapper().Obj2Table("DefaultStruct2")
+	for _, table := range tables {
+		if table.Name == tableName {
+			col := table.GetColumn("name")
+			assert.NotNil(t, col)
+			defaultVal = col.Default
+			isDefaultExist = !col.DefaultIsEmpty
+			break
+		}
+	}
+	assert.False(t, isDefaultExist, fmt.Sprintf("default value is --%v--", defaultVal))
+	assert.EqualValues(t, "", defaultVal)
+}
+
+func TestTagDefault3(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type DefaultStruct3 struct {
+		Id   int64
+		Name string `xorm:"default('myname')"`
+	}
+
+	assertSync(t, new(DefaultStruct3))
+
+	tables, err := testEngine.DBMetas()
+	assert.NoError(t, err)
+
+	var defaultVal string
+	var isDefaultExist bool
+	tableName := testEngine.GetColumnMapper().Obj2Table("DefaultStruct3")
+	for _, table := range tables {
+		if table.Name == tableName {
+			col := table.GetColumn("name")
+			assert.NotNil(t, col)
+			defaultVal = col.Default
+			isDefaultExist = !col.DefaultIsEmpty
+			break
+		}
+	}
+	assert.True(t, isDefaultExist)
+	assert.EqualValues(t, "'myname'", defaultVal)
+}
+
+func TestTagDefault4(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type DefaultStruct4 struct {
+		Id      int64
+		Created time.Time `xorm:"default(CURRENT_TIMESTAMP)"`
+	}
+
+	assertSync(t, new(DefaultStruct4))
+
+	tables, err := testEngine.DBMetas()
+	assert.NoError(t, err)
+
+	var defaultVal string
+	var isDefaultExist bool
+	tableName := testEngine.GetColumnMapper().Obj2Table("DefaultStruct4")
+	for _, table := range tables {
+		if table.Name == tableName {
+			col := table.GetColumn("created")
+			assert.NotNil(t, col)
+			defaultVal = col.Default
+			isDefaultExist = !col.DefaultIsEmpty
+			break
+		}
+	}
+	assert.True(t, isDefaultExist)
+	assert.EqualValues(t, "CURRENT_TIMESTAMP", defaultVal)
+}
+
+func TestTagDefault5(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type DefaultStruct4 struct {
+		Id      int64
+		Created time.Time `xorm:"default('2006-01-02 15:04:05')"`
+	}
+
+	assertSync(t, new(DefaultStruct4))
+
+	tables, err := testEngine.DBMetas()
+	assert.NoError(t, err)
+
+	var defaultVal string
+	var isDefaultExist bool
+	tableName := testEngine.GetColumnMapper().Obj2Table("DefaultStruct4")
+	for _, table := range tables {
+		if table.Name == tableName {
+			col := table.GetColumn("created")
+			assert.NotNil(t, col)
+			defaultVal = col.Default
+			isDefaultExist = !col.DefaultIsEmpty
+			break
+		}
+	}
+	assert.True(t, isDefaultExist)
+	assert.EqualValues(t, "'2006-01-02 15:04:05'", defaultVal)
 }
 
 func TestTagsDirection(t *testing.T) {
