@@ -368,19 +368,24 @@ func TestTagDefault4(t *testing.T) {
 func TestTagDefault5(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
-	type DefaultStruct4 struct {
+	type DefaultStruct5 struct {
 		Id      int64
 		Created time.Time `xorm:"default('2006-01-02 15:04:05')"`
 	}
 
-	assertSync(t, new(DefaultStruct4))
+	assertSync(t, new(DefaultStruct5))
+	table := testEngine.TableInfo(new(DefaultStruct5))
+	createdCol := table.GetColumn("created")
+	assert.NotNil(t, createdCol)
+	assert.EqualValues(t, "'2006-01-02 15:04:05'", createdCol.Default)
+	assert.False(t, createdCol.DefaultIsEmpty)
 
 	tables, err := testEngine.DBMetas()
 	assert.NoError(t, err)
 
 	var defaultVal string
 	var isDefaultExist bool
-	tableName := testEngine.GetColumnMapper().Obj2Table("DefaultStruct4")
+	tableName := testEngine.GetColumnMapper().Obj2Table("DefaultStruct5")
 	for _, table := range tables {
 		if table.Name == tableName {
 			col := table.GetColumn("created")
@@ -392,6 +397,40 @@ func TestTagDefault5(t *testing.T) {
 	}
 	assert.True(t, isDefaultExist)
 	assert.EqualValues(t, "'2006-01-02 15:04:05'", defaultVal)
+}
+
+func TestTagDefault6(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type DefaultStruct6 struct {
+		Id    int64
+		IsMan bool `xorm:"default(true)"`
+	}
+
+	assertSync(t, new(DefaultStruct6))
+
+	tables, err := testEngine.DBMetas()
+	assert.NoError(t, err)
+
+	var defaultVal string
+	var isDefaultExist bool
+	tableName := testEngine.GetColumnMapper().Obj2Table("DefaultStruct6")
+	for _, table := range tables {
+		if table.Name == tableName {
+			col := table.GetColumn("is_man")
+			assert.NotNil(t, col)
+			defaultVal = col.Default
+			isDefaultExist = !col.DefaultIsEmpty
+			break
+		}
+	}
+	assert.True(t, isDefaultExist)
+	if defaultVal == "1" {
+		defaultVal = "true"
+	} else if defaultVal == "0" {
+		defaultVal = "false"
+	}
+	assert.EqualValues(t, "true", defaultVal)
 }
 
 func TestTagsDirection(t *testing.T) {
@@ -488,4 +527,23 @@ func TestTagTime(t *testing.T) {
 	assert.True(t, has)
 	assert.EqualValues(t, s.Created.UTC().Format("2006-01-02 15:04:05"),
 		strings.Replace(strings.Replace(tm, "T", " ", -1), "Z", "", -1))
+}
+
+func TestSplitTag(t *testing.T) {
+	var cases = []struct {
+		tag  string
+		tags []string
+	}{
+		{"not null default '2000-01-01 00:00:00' TIMESTAMP", []string{"not", "null", "default", "'2000-01-01 00:00:00'", "TIMESTAMP"}},
+		{"TEXT", []string{"TEXT"}},
+		{"default('2000-01-01 00:00:00')", []string{"default('2000-01-01 00:00:00')"}},
+		{"json  binary", []string{"json", "binary"}},
+	}
+
+	for _, kase := range cases {
+		tags := splitTag(kase.tag)
+		if !sliceEq(tags, kase.tags) {
+			t.Fatalf("[%d]%v is not equal [%d]%v", len(tags), tags, len(kase.tags), kase.tags)
+		}
+	}
 }

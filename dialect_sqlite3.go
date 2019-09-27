@@ -270,6 +270,34 @@ func (db *sqlite3) IsColumnExist(tableName, colName string) (bool, error) {
 	return false, nil
 }
 
+// splitColStr splits a sqlite col strings as fields
+func splitColStr(colStr string) []string {
+	colStr = strings.TrimSpace(colStr)
+	var results = make([]string, 0, 10)
+	var lastIdx int
+	var hasC, hasQuote bool
+	for i, c := range colStr {
+		if c == ' ' && !hasQuote {
+			if hasC {
+				results = append(results, colStr[lastIdx:i])
+				hasC = false
+			}
+		} else {
+			if c == '\'' {
+				hasQuote = !hasQuote
+			}
+			if !hasC {
+				lastIdx = i
+			}
+			hasC = true
+			if i == len(colStr)-1 {
+				results = append(results, colStr[lastIdx:i+1])
+			}
+		}
+	}
+	return results
+}
+
 func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{tableName}
 	s := "SELECT sql FROM sqlite_master WHERE type='table' and name = ?"
@@ -315,7 +343,7 @@ func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Colu
 			continue
 		}
 
-		fields := strings.Fields(strings.TrimSpace(colStr))
+		fields := splitColStr(colStr)
 		col := new(core.Column)
 		col.Indexes = make(map[string]int)
 		col.Nullable = true
