@@ -1005,16 +1005,18 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 
 		col.Name = strings.Trim(colName, `" `)
 
-		if colDefault != nil || isPK {
-			if isPK {
-				col.IsPrimaryKey = true
-			} else {
-				col.Default = *colDefault
+		if colDefault != nil {
+			col.Default = *colDefault
+			col.DefaultIsEmpty = false
+			if strings.HasPrefix(col.Default, "nextval(") {
+				col.IsAutoIncrement = true
 			}
+		} else {
+			col.DefaultIsEmpty = true
 		}
 
-		if colDefault != nil && strings.HasPrefix(*colDefault, "nextval(") {
-			col.IsAutoIncrement = true
+		if isPK {
+			col.IsPrimaryKey = true
 		}
 
 		col.Nullable = (isNullable == "YES")
@@ -1043,13 +1045,11 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 
 		col.Length = maxLen
 
-		if col.SQLType.IsText() || col.SQLType.IsTime() {
-			if col.Default != "" {
+		if !col.DefaultIsEmpty && (col.SQLType.IsText() || col.SQLType.IsTime()) {
+			if col.Default == "''::character varying" {
+				col.Default = "''"
+			} else if !strings.HasPrefix(col.Default, "'") {
 				col.Default = "'" + col.Default + "'"
-			} else {
-				if col.DefaultIsEmpty {
-					col.Default = "''"
-				}
 			}
 		}
 		cols[col.Name] = col
