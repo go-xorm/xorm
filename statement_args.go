@@ -49,10 +49,27 @@ func quoteNeeded(a interface{}) bool {
 	return true
 }
 
-func convertArg(arg interface{}) string {
+func convertStringSingleQuote(arg string) string {
+	return "'" + strings.Replace(arg, "'", "''", -1) + "'"
+}
+
+func convertString(arg string) string {
+	var buf strings.Builder
+	buf.WriteRune('\'')
+	for _, c := range arg {
+		if c == '\\' || c == '\'' {
+			buf.WriteRune('\\')
+		}
+		buf.WriteRune(c)
+	}
+	buf.WriteRune('\'')
+	return buf.String()
+}
+
+func convertArg(arg interface{}, convertFunc func(string) string) string {
 	if quoteNeeded(arg) {
 		argv := fmt.Sprintf("%v", arg)
-		return "'" + strings.Replace(strings.Replace(argv, `\`, `\\`, -1), `'`, `\'`, -1) + "'"
+		return convertFunc(argv)
 	}
 
 	return fmt.Sprintf("%v", arg)
@@ -93,7 +110,11 @@ func (statement *Statement) writeArg(w *builder.BytesWriter, arg interface{}) er
 			return err
 		}
 	default:
-		if _, err := w.WriteString(convertArg(arg)); err != nil {
+		var convertFunc = convertString
+		if statement.Engine.dialect.DBType() == core.SQLITE {
+			convertFunc = convertStringSingleQuote
+		}
+		if _, err := w.WriteString(convertArg(arg, convertFunc)); err != nil {
 			return err
 		}
 	}

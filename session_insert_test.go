@@ -896,6 +896,7 @@ func TestInsertWhere(t *testing.T) {
 
 	inserted, err = testEngine.Table(new(InsertWhere)).Where("repo_id=?", 1).
 		SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
+		SetExpr("repo_id", "1").
 		Insert(map[string]string{
 			"name": "trest3",
 		})
