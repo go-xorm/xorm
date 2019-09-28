@@ -1045,7 +1045,7 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 
 		col.Length = maxLen
 
-		if !col.DefaultIsEmpty && (col.SQLType.IsText() || col.SQLType.IsTime()) {
+		if !col.DefaultIsEmpty && col.SQLType.IsText() {
 			if strings.HasSuffix(col.Default, "::character varying") {
 				col.Default = strings.TrimRight(col.Default, "::character varying")
 			} else if !strings.HasPrefix(col.Default, "'") {
