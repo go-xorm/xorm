@@ -16,5 +16,5 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/ziutek/mymysql v1.5.4
 	xorm.io/builder v0.3.6
-	xorm.io/core v0.7.1
+	xorm.io/core v0.7.2-0.20190928055935-90aeac8d08eb
 )
