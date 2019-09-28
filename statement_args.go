@@ -110,9 +110,9 @@ func (statement *Statement) writeArg(w *builder.BytesWriter, arg interface{}) er
 			return err
 		}
 	default:
-		var convertFunc = convertString
-		if statement.Engine.dialect.DBType() == core.SQLITE {
-			convertFunc = convertStringSingleQuote
+		var convertFunc = convertStringSingleQuote
+		if statement.Engine.dialect.DBType() == core.MYSQL {
+			convertFunc = convertString
 		}
 		if _, err := w.WriteString(convertArg(arg, convertFunc)); err != nil {
 			return err
