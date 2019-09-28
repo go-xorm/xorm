@@ -75,6 +75,8 @@ func convertArg(arg interface{}, convertFunc func(string) string) string {
 	return fmt.Sprintf("%v", arg)
 }
 
+const insertSelectPlaceHolder = true
+
 func (statement *Statement) writeArg(w *builder.BytesWriter, arg interface{}) error {
 	switch argv := arg.(type) {
 	case bool:
@@ -110,12 +112,19 @@ func (statement *Statement) writeArg(w *builder.BytesWriter, arg interface{}) er
 			return err
 		}
 	default:
-		var convertFunc = convertStringSingleQuote
-		if statement.Engine.dialect.DBType() == core.MYSQL {
-			convertFunc = convertString
-		}
-		if _, err := w.WriteString(convertArg(arg, convertFunc)); err != nil {
-			return err
+		if insertSelectPlaceHolder {
+			if err := w.WriteByte('?'); err != nil {
+				return err
+			}
+			w.Append(arg)
+		} else {
+			var convertFunc = convertStringSingleQuote
+			if statement.Engine.dialect.DBType() == core.MYSQL {
+				convertFunc = convertString
+			}
+			if _, err := w.WriteString(convertArg(arg, convertFunc)); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
