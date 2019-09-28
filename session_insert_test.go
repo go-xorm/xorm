@@ -943,20 +943,6 @@ func TestInsertWhere(t *testing.T) {
 	assert.EqualValues(t, 5, j5.Index)
 }
 
-func TestInsertSelectPositionalParameter(t *testing.T) {
-	assert.NoError(t, prepareEngine())
-
-	type InsertSelect struct {
-		Id   int64
-		Name string
-	}
-
-	assertSync(t, new(InsertSelect))
-
-	_, err := testEngine.Exec("INSERT INTO insert_select (name) SELECT ?", "xlw")
-	assert.NoError(t, err)
-}
-
 type NightlyRate struct {
 	ID int64 `xorm:"'id' not null pk BIGINT(20)" json:"id"`
 }
