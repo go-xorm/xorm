@@ -4,9 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"xorm.io/core"
-	"github.com/jackc/pgx/stdlib"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/core"
 )
 
 func TestParsePostgres(t *testing.T) {
@@ -72,10 +71,7 @@ func TestParsePgx(t *testing.T) {
 		}
 
 		// Register DriverConfig
-		drvierConfig := stdlib.DriverConfig{}
-		stdlib.RegisterDriverConfig(&drvierConfig)
-		uri, err = driver.Parse("pgx",
-			drvierConfig.ConnectionString(test.in))
+		uri, err = driver.Parse("pgx", test.in)
 		if err != nil && test.valid {
 			t.Errorf("%q got unexpected error: %s", test.in, err)
 		} else if err == nil && !reflect.DeepEqual(test.expected, uri.DbName) {

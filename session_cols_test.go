@@ -7,21 +7,38 @@ package xorm
 import (
 	"testing"
 
-	"xorm.io/core"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/builder"
+	"xorm.io/core"
 )
 
 func TestSetExpr(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 
+	type UserExprIssue struct {
+		Id    int64
+		Title string
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(UserExprIssue)))
+
+	var issue = UserExprIssue{
+		Title: "my issue",
+	}
+	cnt, err := testEngine.Insert(&issue)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+	assert.EqualValues(t, 1, issue.Id)
+
 	type UserExpr struct {
-		Id   int64
-		Show bool
+		Id      int64
+		IssueId int64 `xorm:"index"`
+		Show    bool
 	}
 
 	assert.NoError(t, testEngine.Sync2(new(UserExpr)))
 
-	cnt, err := testEngine.Insert(&UserExpr{
+	cnt, err = testEngine.Insert(&UserExpr{
 		Show: true,
 	})
 	assert.NoError(t, err)
@@ -32,6 +49,16 @@ func TestSetExpr(t *testing.T) {
 		not = "~"
 	}
 	cnt, err = testEngine.SetExpr("show", not+" `show`").ID(1).Update(new(UserExpr))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	tableName := testEngine.TableName(new(UserExprIssue), true)
+	cnt, err = testEngine.SetExpr("issue_id",
+		builder.Select("id").
+			From(tableName).
+			Where(builder.Eq{"id": issue.Id})).
+		ID(1).
+		Update(new(UserExpr))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 }
