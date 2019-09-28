@@ -52,7 +52,7 @@ func quoteNeeded(a interface{}) bool {
 func convertArg(arg interface{}) string {
 	if quoteNeeded(arg) {
 		argv := fmt.Sprintf("%v", arg)
-		return "'" + strings.Replace(argv, "'", "''", -1) + "'"
+		return "'" + strings.Replace(strings.Replace(argv, `\`, `\\`, -1), `'`, `\'`, -1) + "'"
 	}
 
 	return fmt.Sprintf("%v", arg)

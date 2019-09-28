@@ -917,6 +917,29 @@ func TestInsertWhere(t *testing.T) {
 		})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, inserted)
+
+	var j4 InsertWhere
+	has, err = testEngine.ID(4).Get(&j4)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "10';delete * from insert_where; --", j4.Name)
+	assert.EqualValues(t, 4, j4.Index)
+
+	inserted, err = testEngine.Table(new(InsertWhere)).Where("repo_id=?", 1).
+		SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
+		Insert(map[string]interface{}{
+			"repo_id": 1,
+			"name":    "10\\';delete * from insert_where; --",
+		})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, inserted)
+
+	var j5 InsertWhere
+	has, err = testEngine.ID(5).Get(&j5)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "10\\';delete * from insert_where; --", j5.Name)
+	assert.EqualValues(t, 5, j5.Index)
 }
 
 type NightlyRate struct {
