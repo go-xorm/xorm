@@ -1045,11 +1045,17 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 
 		col.Length = maxLen
 
-		if !col.DefaultIsEmpty && col.SQLType.IsText() {
-			if strings.HasSuffix(col.Default, "::character varying") {
-				col.Default = strings.TrimRight(col.Default, "::character varying")
-			} else if !strings.HasPrefix(col.Default, "'") {
-				col.Default = "'" + col.Default + "'"
+		if !col.DefaultIsEmpty {
+			if col.SQLType.IsText() {
+				if strings.HasSuffix(col.Default, "::character varying") {
+					col.Default = strings.TrimRight(col.Default, "::character varying")
+				} else if !strings.HasPrefix(col.Default, "'") {
+					col.Default = "'" + col.Default + "'"
+				}
+			} else if col.SQLType.IsTime() {
+				if strings.HasSuffix(col.Default, "::timestamp without time zone") {
+					col.Default = strings.TrimRight(col.Default, "::timestamp without time zone")
+				}
 			}
 		}
 		cols[col.Name] = col

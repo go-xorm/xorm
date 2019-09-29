@@ -338,6 +338,7 @@ func (db *mssql) TableCheckSql(tableName string) (string, []interface{}) {
 func (db *mssql) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{}
 	s := `select a.name as name, b.name as ctype,a.max_length,a.precision,a.scale,a.is_nullable as nullable,
+		  "default_is_null" = (CASE WHEN c.text is null THEN 1 ELSE 0 END),
 	      replace(replace(isnull(c.text,''),'(',''),')','') as vdefault,
 		  ISNULL(i.is_primary_key, 0)
           from sys.columns a 
@@ -361,8 +362,8 @@ func (db *mssql) GetColumns(tableName string) ([]string, map[string]*core.Column
 	for rows.Next() {
 		var name, ctype, vdefault string
 		var maxLen, precision, scale int
-		var nullable, isPK bool
-		err = rows.Scan(&name, &ctype, &maxLen, &precision, &scale, &nullable, &vdefault, &isPK)
+		var nullable, isPK, defaultIsNull bool
+		err = rows.Scan(&name, &ctype, &maxLen, &precision, &scale, &nullable, &defaultIsNull, &vdefault, &isPK)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -371,7 +372,10 @@ func (db *mssql) GetColumns(tableName string) ([]string, map[string]*core.Column
 		col.Indexes = make(map[string]int)
 		col.Name = strings.Trim(name, "` ")
 		col.Nullable = nullable
-		col.Default = vdefault
+		col.DefaultIsEmpty = defaultIsNull
+		if !defaultIsNull {
+			col.Default = vdefault
+		}
 		col.IsPrimaryKey = isPK
 		ct := strings.ToUpper(ctype)
 		if ct == "DECIMAL" {
@@ -395,15 +399,6 @@ func (db *mssql) GetColumns(tableName string) ([]string, map[string]*core.Column
 			}
 		}
 
-		if col.SQLType.IsText() || col.SQLType.IsTime() {
-			if col.Default != "" {
-				col.Default = "'" + col.Default + "'"
-			} else {
-				if col.DefaultIsEmpty {
-					col.Default = "''"
-				}
-			}
-		}
 		cols[col.Name] = col
 		colSeq = append(colSeq, col.Name)
 	}

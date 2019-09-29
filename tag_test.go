@@ -362,7 +362,9 @@ func TestTagDefault4(t *testing.T) {
 		}
 	}
 	assert.True(t, isDefaultExist)
-	assert.EqualValues(t, "CURRENT_TIMESTAMP", defaultVal)
+	assert.True(t, "CURRENT_TIMESTAMP" == defaultVal ||
+		"now()" == defaultVal ||
+		"getdate" == defaultVal, defaultVal)
 }
 
 func TestTagDefault5(t *testing.T) {
