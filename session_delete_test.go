@@ -248,7 +248,7 @@ func TestSoftDeleted(t *testing.T) {
 		DeletedAt int64 `xorm:"not null default '0' comment('删除状态') deleted "`
 	}
 	testEngine.SetSoftDeleteHandler(&DefaultSoftDeleteHandler{})
-
+	defer testEngine.SetSoftDeleteHandler(nil)
 	err := testEngine.DropTables(&Deleted{})
 	assert.NoError(t, err)
 
@@ -326,4 +326,5 @@ func TestSoftDeleted(t *testing.T) {
 		Or("`"+testEngine.GetColumnMapper().Obj2Table("Id")+"` = ?", 3).Find(&records3)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(records3))
+	
 }
