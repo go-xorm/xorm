@@ -37,41 +37,40 @@ var (
 	ignoreSelectUpdate = flag.Bool("ignore_select_update", false, "ignore select update if implementation difference, only for tidb")
 )
 
-func createEngine(dbType, connStr string) error {
-	if testEngine == nil {
-		var err error
+func createEngine(dbType, connStr string) (testEngine EngineInterface,err error) {
 
+	if testEngine == nil {
 		if !*cluster {
 			switch strings.ToLower(dbType) {
 			case core.MSSQL:
 				db, err := sql.Open(dbType, strings.Replace(connStr, "xorm_test", "master", -1))
 				if err != nil {
-					return err
+					return nil,err
 				}
 				if _, err = db.Exec("If(db_id(N'xorm_test') IS NULL) BEGIN CREATE DATABASE xorm_test; END;"); err != nil {
-					return fmt.Errorf("db.Exec: %v", err)
+					return nil,fmt.Errorf("db.Exec: %v", err)
 				}
 				db.Close()
 				*ignoreSelectUpdate = true
 			case core.POSTGRES:
 				db, err := sql.Open(dbType, connStr)
 				if err != nil {
-					return err
+					return nil,err
 				}
 				rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = 'xorm_test'"))
 				if err != nil {
-					return fmt.Errorf("db.Query: %v", err)
+					return nil,fmt.Errorf("db.Query: %v", err)
 				}
 				defer rows.Close()
 
 				if !rows.Next() {
 					if _, err = db.Exec("CREATE DATABASE xorm_test"); err != nil {
-						return fmt.Errorf("CREATE DATABASE: %v", err)
+						return nil,fmt.Errorf("CREATE DATABASE: %v", err)
 					}
 				}
 				if *schema != "" {
 					if _, err = db.Exec("CREATE SCHEMA IF NOT EXISTS " + *schema); err != nil {
-						return fmt.Errorf("CREATE SCHEMA: %v", err)
+						return nil,fmt.Errorf("CREATE SCHEMA: %v", err)
 					}
 				}
 				db.Close()
@@ -79,10 +78,10 @@ func createEngine(dbType, connStr string) error {
 			case core.MYSQL:
 				db, err := sql.Open(dbType, strings.Replace(connStr, "xorm_test", "mysql", -1))
 				if err != nil {
-					return err
+					return nil,err
 				}
 				if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS xorm_test"); err != nil {
-					return fmt.Errorf("db.Exec: %v", err)
+					return nil,fmt.Errorf("db.Exec: %v", err)
 				}
 				db.Close()
 			default:
@@ -97,7 +96,7 @@ func createEngine(dbType, connStr string) error {
 			}
 		}
 		if err != nil {
-			return err
+			return nil,err
 		}
 
 		if *schema != "" {
@@ -124,20 +123,23 @@ func createEngine(dbType, connStr string) error {
 
 	tables, err := testEngine.DBMetas()
 	if err != nil {
-		return err
+		return nil,err
 	}
 	var tableNames = make([]interface{}, 0, len(tables))
 	for _, table := range tables {
 		tableNames = append(tableNames, table.Name)
 	}
 	if err = testEngine.DropTables(tableNames...); err != nil {
-		return err
+		return nil,err
 	}
-	return nil
+	return testEngine,nil
 }
 
 func prepareEngine() error {
-	return createEngine(dbType, connString)
+	var err error
+	testEngine ,err = createEngine(dbType, connString)
+
+	return err
 }
 
 func TestMain(m *testing.M) {
