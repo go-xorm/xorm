@@ -255,13 +255,13 @@ func TestSoftDeleted(t *testing.T) {
 	err = testEngine.CreateTables(&Deleted{})
 	assert.NoError(t, err)
 
-	_, err = testEngine.InsertOne(&Deleted{Id: 1, Name: "11111"})
+	_, err = testEngine.InsertOne(&Deleted{Id: 1, Name: "4444"})
 	assert.NoError(t, err)
 
-	_, err = testEngine.InsertOne(&Deleted{Id: 2, Name: "22222"})
+	_, err = testEngine.InsertOne(&Deleted{Id: 2, Name: "5555"})
 	assert.NoError(t, err)
 
-	_, err = testEngine.InsertOne(&Deleted{Id: 3, Name: "33333"})
+	_, err = testEngine.InsertOne(&Deleted{Id: 3, Name: "6666"})
 	assert.NoError(t, err)
 
 	// Test normal Find()
