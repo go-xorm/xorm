@@ -283,8 +283,9 @@ func TestTimeUserDeleted(t *testing.T) {
 	assert.True(t, isTimeZero(user2.DeletedAt))
 	fmt.Println("user2", user2.CreatedAt, user2.UpdatedAt, user2.DeletedAt)
 
+	idName := "`" + mapper.Obj2Table("Id") + "`"
 	var user3 UserDeleted
-	cnt, err = testEngine.Where("id = ?", "lunny").Delete(&user3)
+	cnt, err = testEngine.Where(idName+" = ?", "lunny").Delete(&user3)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 	assert.True(t, !isTimeZero(user3.DeletedAt))
@@ -337,7 +338,8 @@ func TestTimeUserDeletedDiffLoc(t *testing.T) {
 	fmt.Println("user2", user2.CreatedAt, user2.UpdatedAt, user2.DeletedAt)
 
 	var user3 UserDeleted2
-	cnt, err = testEngine.Where("id = ?", "lunny").Delete(&user3)
+	idName := "`" + mapper.Obj2Table("Id") + "`"
+	cnt, err = testEngine.Where(idName+" = ?", "lunny").Delete(&user3)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 	assert.True(t, !isTimeZero(user3.DeletedAt))
@@ -408,7 +410,8 @@ func TestCustomTimeUserDeleted(t *testing.T) {
 	fmt.Println("user2", user2.CreatedAt, user2.UpdatedAt, user2.DeletedAt)
 
 	var user3 UserDeleted3
-	cnt, err = testEngine.Where("id = ?", "lunny").Delete(&user3)
+	idName := "`" + mapper.Obj2Table("Id") + "`"
+	cnt, err = testEngine.Where(idName+" = ?", "lunny").Delete(&user3)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 	assert.True(t, !isTimeZero(time.Time(user3.DeletedAt)))
@@ -461,7 +464,8 @@ func TestCustomTimeUserDeletedDiffLoc(t *testing.T) {
 	fmt.Println("user2", user2.CreatedAt, user2.UpdatedAt, user2.DeletedAt)
 
 	var user3 UserDeleted4
-	cnt, err = testEngine.Where("id = ?", "lunny").Delete(&user3)
+	idName := "`" + mapper.Obj2Table("Id") + "`"
+	cnt, err = testEngine.Where(idName+" = ?", "lunny").Delete(&user3)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 	assert.True(t, !isTimeZero(time.Time(user3.DeletedAt)))

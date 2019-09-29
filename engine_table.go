@@ -20,7 +20,7 @@ func (engine *Engine) tbNameWithSchema(v string) string {
 		engine.dialect.URI().Schema != "" &&
 		engine.dialect.URI().Schema != postgresPublicSchema &&
 		strings.Index(v, ".") == -1 {
-		return engine.dialect.URI().Schema + "." + v
+		return engine.Quote(engine.dialect.URI().Schema) + "." + v
 	}
 	return v
 }

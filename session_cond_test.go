@@ -36,63 +36,67 @@ func TestBuilder(t *testing.T) {
 	_, err = testEngine.Insert(&Condition{TableName: "table1", ColName: "col1", Op: OpEqual, Value: "1"})
 	assert.NoError(t, err)
 
+	colNameName := "`" + mapper.Obj2Table("ColName") + "`"
+	opName := "`" + mapper.Obj2Table("Op") + "`"
+	valueName := "`" + mapper.Obj2Table("Value") + "`"
+
 	var cond Condition
-	has, err := testEngine.Where(builder.Eq{"col_name": "col1"}).Get(&cond)
+	has, err := testEngine.Where(builder.Eq{colNameName: "col1"}).Get(&cond)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has, "records should exist")
 
-	has, err = testEngine.Where(builder.Eq{"col_name": "col1"}.
-		And(builder.Eq{"op": OpEqual})).
+	has, err = testEngine.Where(builder.Eq{colNameName: "col1"}.
+		And(builder.Eq{opName: OpEqual})).
 		NoAutoCondition().
 		Get(&cond)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has, "records should exist")
 
-	has, err = testEngine.Where(builder.Eq{"col_name": "col1", "op": OpEqual, "value": "1"}).
+	has, err = testEngine.Where(builder.Eq{colNameName: "col1", opName: OpEqual, valueName: "1"}).
 		NoAutoCondition().
 		Get(&cond)
 	assert.NoError(t, err)
 	assert.Equal(t, true, has, "records should exist")
 
-	has, err = testEngine.Where(builder.Eq{"col_name": "col1"}.
-		And(builder.Neq{"op": OpEqual})).
+	has, err = testEngine.Where(builder.Eq{colNameName: "col1"}.
+		And(builder.Neq{opName: OpEqual})).
 		NoAutoCondition().
 		Get(&cond)
 	assert.NoError(t, err)
 	assert.Equal(t, false, has, "records should not exist")
 
 	var conds []Condition
-	err = testEngine.Where(builder.Eq{"col_name": "col1"}.
-		And(builder.Eq{"op": OpEqual})).
+	err = testEngine.Where(builder.Eq{colNameName: "col1"}.
+		And(builder.Eq{opName: OpEqual})).
 		Find(&conds)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(conds), "records should exist")
 
 	conds = make([]Condition, 0)
-	err = testEngine.Where(builder.Like{"col_name", "col"}).Find(&conds)
+	err = testEngine.Where(builder.Like{colNameName, "col"}).Find(&conds)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(conds), "records should exist")
 
 	conds = make([]Condition, 0)
-	err = testEngine.Where(builder.Expr("col_name = ?", "col1")).Find(&conds)
+	err = testEngine.Where(builder.Expr(colNameName+" = ?", "col1")).Find(&conds)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(conds), "records should exist")
 
 	conds = make([]Condition, 0)
-	err = testEngine.Where(builder.In("col_name", "col1", "col2")).Find(&conds)
+	err = testEngine.Where(builder.In(colNameName, "col1", "col2")).Find(&conds)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(conds), "records should exist")
 
 	conds = make([]Condition, 0)
-	err = testEngine.NotIn("col_name", "col1", "col2").Find(&conds)
+	err = testEngine.NotIn(colNameName, "col1", "col2").Find(&conds)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, len(conds), "records should not exist")
 
 	// complex condtions
 	var where = builder.NewCond()
 	if true {
-		where = where.And(builder.Eq{"col_name": "col1"})
-		where = where.Or(builder.And(builder.In("col_name", "col1", "col2"), builder.Expr("col_name = ?", "col1")))
+		where = where.And(builder.Eq{colNameName: "col1"})
+		where = where.Or(builder.And(builder.In(colNameName, "col1", "col2"), builder.Expr(colNameName+" = ?", "col1")))
 	}
 
 	conds = make([]Condition, 0)
@@ -219,7 +223,8 @@ func TestFindAndCount(t *testing.T) {
 	assert.NoError(t, err)
 
 	var results []FindAndCount
-	sess := testEngine.Where("name = ?", "test1")
+	nameName := mapper.Obj2Table("Name")
+	sess := testEngine.Where("`"+nameName+"` = ?", "test1")
 	conds := sess.Conds()
 	err = sess.Find(&results)
 	assert.NoError(t, err)

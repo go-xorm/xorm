@@ -140,7 +140,8 @@ func TestLowerCase(t *testing.T) {
 
 	err := testEngine.Sync2(&Lowercase{})
 	assert.NoError(t, err)
-	_, err = testEngine.Where("id > 0").Delete(&Lowercase{})
+	idName := mapper.Obj2Table("Id")
+	_, err = testEngine.Where("`" + idName + "` > 0").Delete(&Lowercase{})
 	assert.NoError(t, err)
 
 	_, err = testEngine.Insert(&Lowercase{ended: 1})
@@ -159,12 +160,14 @@ func TestAutoIncrTag(t *testing.T) {
 		Id int64
 	}
 
+	idName := mapper.Obj2Table("Id")
+
 	tb := testEngine.TableInfo(new(TestAutoIncr1))
 	cols := tb.Columns()
 	assert.EqualValues(t, 1, len(cols))
 	assert.True(t, cols[0].IsAutoIncrement)
 	assert.True(t, cols[0].IsPrimaryKey)
-	assert.Equal(t, "id", cols[0].Name)
+	assert.Equal(t, idName, cols[0].Name)
 
 	type TestAutoIncr2 struct {
 		Id int64 `xorm:"id"`
@@ -197,7 +200,7 @@ func TestAutoIncrTag(t *testing.T) {
 	assert.EqualValues(t, 1, len(cols))
 	assert.False(t, cols[0].IsAutoIncrement)
 	assert.True(t, cols[0].IsPrimaryKey)
-	assert.Equal(t, "id", cols[0].Name)
+	assert.Equal(t, idName, cols[0].Name)
 }
 
 func TestTagComment(t *testing.T) {
@@ -524,7 +527,8 @@ func TestTagTime(t *testing.T) {
 	assert.EqualValues(t, s.Created.Format("2006-01-02 15:04:05"), u.Created.Format("2006-01-02 15:04:05"))
 
 	var tm string
-	has, err = testEngine.Table("tag_u_t_c_struct").Cols("created").Get(&tm)
+	createdName := "`" + mapper.Obj2Table("Created") + "`"
+	has, err = testEngine.Table(&s).Cols(createdName).Get(&tm)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, s.Created.UTC().Format("2006-01-02 15:04:05"),

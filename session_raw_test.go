@@ -21,17 +21,21 @@ func TestExecAndQuery(t *testing.T) {
 
 	assert.NoError(t, testEngine.Sync2(new(UserinfoQuery)))
 
-	res, err := testEngine.Exec("INSERT INTO "+testEngine.TableName("`userinfo_query`", true)+" (uid, name) VALUES (?, ?)", 1, "user")
+	tableName := mapper.Obj2Table("UserinfoQuery")
+	uidName := mapper.Obj2Table("Uid")
+	nameName := mapper.Obj2Table("Name")
+
+	res, err := testEngine.Exec("INSERT INTO `"+testEngine.TableName(tableName, true)+"` (`"+uidName+"`, `"+nameName+"`) VALUES (?, ?)", 1, "user")
 	assert.NoError(t, err)
 	cnt, err := res.RowsAffected()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	results, err := testEngine.Query("select * from " + testEngine.TableName("userinfo_query", true))
+	results, err := testEngine.Query("select * from `" + testEngine.TableName(tableName, true) + "`")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))
-	id, err := strconv.Atoi(string(results[0]["uid"]))
+	id, err := strconv.Atoi(string(results[0][uidName]))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, id)
-	assert.Equal(t, "user", string(results[0]["name"]))
+	assert.Equal(t, "user", string(results[0][nameName]))
 }

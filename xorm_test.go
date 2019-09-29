@@ -35,6 +35,8 @@ var (
 	splitter           = flag.String("splitter", ";", "the splitter on connstr for cluster")
 	schema             = flag.String("schema", "", "specify the schema")
 	ignoreSelectUpdate = flag.Bool("ignore_select_update", false, "ignore select update if implementation difference, only for tidb")
+
+	mapper core.IMapper
 )
 
 func createEngine(dbType, connStr string) error {
@@ -113,11 +115,14 @@ func createEngine(dbType, connStr string) error {
 		if len(*mapType) > 0 {
 			switch *mapType {
 			case "snake":
-				testEngine.SetMapper(core.SnakeMapper{})
+				mapper = core.SnakeMapper{}
 			case "same":
-				testEngine.SetMapper(core.SameMapper{})
+				mapper = core.SameMapper{}
 			case "gonic":
-				testEngine.SetMapper(core.LintGonicMapper)
+				mapper = core.LintGonicMapper
+			}
+			if mapper != nil {
+				testEngine.SetMapper(mapper)
 			}
 		}
 	}

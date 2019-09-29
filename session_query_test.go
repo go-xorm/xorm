@@ -37,14 +37,22 @@ func TestQueryString(t *testing.T) {
 	_, err := testEngine.InsertOne(data)
 	assert.NoError(t, err)
 
-	records, err := testEngine.QueryString("select * from " + testEngine.TableName("get_var2", true))
+	tableName := mapper.Obj2Table("GetVar2")
+
+	records, err := testEngine.QueryString("select * from `" + testEngine.TableName(tableName, true) + "`")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(records))
 	assert.Equal(t, 5, len(records[0]))
-	assert.Equal(t, "1", records[0]["id"])
-	assert.Equal(t, "hi", records[0]["msg"])
-	assert.Equal(t, "28", records[0]["age"])
-	assert.Equal(t, "1.5", records[0]["money"])
+
+	idName := mapper.Obj2Table("Id")
+	ageName := mapper.Obj2Table("Age")
+	msgName := mapper.Obj2Table("Msg")
+	moneyName := mapper.Obj2Table("Money")
+
+	assert.Equal(t, "1", records[0][idName])
+	assert.Equal(t, "hi", records[0][msgName])
+	assert.Equal(t, "28", records[0][ageName])
+	assert.Equal(t, "1.5", records[0][moneyName])
 }
 
 func TestQueryString2(t *testing.T) {
@@ -63,12 +71,17 @@ func TestQueryString2(t *testing.T) {
 	_, err := testEngine.Insert(data)
 	assert.NoError(t, err)
 
-	records, err := testEngine.QueryString("select * from " + testEngine.TableName("get_var3", true))
+	tableName := "`" + mapper.Obj2Table("GetVar3") + "`"
+
+	idName := mapper.Obj2Table("Id")
+	msgName := mapper.Obj2Table("Msg")
+
+	records, err := testEngine.QueryString("select * from " + testEngine.TableName(tableName, true))
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(records))
 	assert.Equal(t, 2, len(records[0]))
-	assert.Equal(t, "1", records[0]["id"])
-	assert.True(t, "0" == records[0]["msg"] || "false" == records[0]["msg"])
+	assert.Equal(t, "1", records[0][idName])
+	assert.True(t, "0" == records[0][msgName] || "false" == records[0][msgName])
 }
 
 func toString(i interface{}) string {
@@ -128,14 +141,20 @@ func TestQueryInterface(t *testing.T) {
 	_, err := testEngine.InsertOne(data)
 	assert.NoError(t, err)
 
-	records, err := testEngine.QueryInterface("select * from " + testEngine.TableName("get_var_interface", true))
+	tableName := "`" + mapper.Obj2Table("GetVarInterface") + "`"
+	idName := mapper.Obj2Table("Id")
+	msgName := mapper.Obj2Table("Msg")
+	ageName := mapper.Obj2Table("Age")
+	moneyName := mapper.Obj2Table("Money")
+
+	records, err := testEngine.QueryInterface("select * from " + testEngine.TableName(tableName, true))
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(records))
 	assert.Equal(t, 5, len(records[0]))
-	assert.EqualValues(t, 1, toInt64(records[0]["id"]))
-	assert.Equal(t, "hi", toString(records[0]["msg"]))
-	assert.EqualValues(t, 28, toInt64(records[0]["age"]))
-	assert.EqualValues(t, 1.5, toFloat64(records[0]["money"]))
+	assert.EqualValues(t, 1, toInt64(records[0][idName]))
+	assert.Equal(t, "hi", toString(records[0][msgName]))
+	assert.EqualValues(t, 28, toInt64(records[0][ageName]))
+	assert.EqualValues(t, 1.5, toFloat64(records[0][moneyName]))
 }
 
 func TestQueryNoParams(t *testing.T) {
@@ -162,27 +181,33 @@ func TestQueryNoParams(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
+	idName := mapper.Obj2Table("Id")
+	msgName := mapper.Obj2Table("Msg")
+	ageName := mapper.Obj2Table("Age")
+	moneyName := mapper.Obj2Table("Money")
+
 	assertResult := func(t *testing.T, results []map[string][]byte) {
 		assert.EqualValues(t, 1, len(results))
-		id, err := strconv.ParseInt(string(results[0]["id"]), 10, 64)
+		id, err := strconv.ParseInt(string(results[0][idName]), 10, 64)
 		assert.NoError(t, err)
 		assert.EqualValues(t, 1, id)
-		assert.Equal(t, "message", string(results[0]["msg"]))
+		assert.Equal(t, "message", string(results[0][msgName]))
 
-		age, err := strconv.Atoi(string(results[0]["age"]))
+		age, err := strconv.Atoi(string(results[0][ageName]))
 		assert.NoError(t, err)
 		assert.EqualValues(t, 20, age)
 
-		money, err := strconv.ParseFloat(string(results[0]["money"]), 32)
+		money, err := strconv.ParseFloat(string(results[0][moneyName]), 32)
 		assert.NoError(t, err)
 		assert.EqualValues(t, 3000, money)
 	}
 
-	results, err := testEngine.Table("query_no_params").Limit(10).Query()
+	tableName := "`" + mapper.Obj2Table("QueryNoParams") + "`"
+	results, err := testEngine.Table(tableName).Limit(10).Query()
 	assert.NoError(t, err)
 	assertResult(t, results)
 
-	results, err = testEngine.SQL("select * from " + testEngine.TableName("query_no_params", true)).Query()
+	results, err = testEngine.SQL("select * from " + testEngine.TableName(tableName, true)).Query()
 	assert.NoError(t, err)
 	assertResult(t, results)
 }
@@ -203,24 +228,29 @@ func TestQueryStringNoParam(t *testing.T) {
 	_, err := testEngine.Insert(data)
 	assert.NoError(t, err)
 
-	records, err := testEngine.Table("get_var4").Limit(1).QueryString()
+	tableName := "`" + mapper.Obj2Table("GetVar4") + "`"
+
+	idName := mapper.Obj2Table("Id")
+	msgName := mapper.Obj2Table("Msg")
+
+	records, err := testEngine.Table(tableName).Limit(1).QueryString()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(records))
-	assert.EqualValues(t, "1", records[0]["id"])
+	assert.EqualValues(t, "1", records[0][idName])
 	if testEngine.Dialect().DBType() == core.POSTGRES || testEngine.Dialect().DBType() == core.MSSQL {
-		assert.EqualValues(t, "false", records[0]["msg"])
+		assert.EqualValues(t, "false", records[0][msgName])
 	} else {
-		assert.EqualValues(t, "0", records[0]["msg"])
+		assert.EqualValues(t, "0", records[0][msgName])
 	}
 
-	records, err = testEngine.Table("get_var4").Where(builder.Eq{"id": 1}).QueryString()
+	records, err = testEngine.Table(tableName).Where(builder.Eq{"`" + idName + "`": 1}).QueryString()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(records))
-	assert.EqualValues(t, "1", records[0]["id"])
+	assert.EqualValues(t, "1", records[0][idName])
 	if testEngine.Dialect().DBType() == core.POSTGRES || testEngine.Dialect().DBType() == core.MSSQL {
-		assert.EqualValues(t, "false", records[0]["msg"])
+		assert.EqualValues(t, "false", records[0][msgName])
 	} else {
-		assert.EqualValues(t, "0", records[0]["msg"])
+		assert.EqualValues(t, "0", records[0][msgName])
 	}
 }
 
@@ -240,7 +270,9 @@ func TestQuerySliceStringNoParam(t *testing.T) {
 	_, err := testEngine.Insert(data)
 	assert.NoError(t, err)
 
-	records, err := testEngine.Table("get_var6").Limit(1).QuerySliceString()
+	tableName := "`" + mapper.Obj2Table("GetVar6") + "`"
+
+	records, err := testEngine.Table(tableName).Limit(1).QuerySliceString()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(records))
 	assert.EqualValues(t, "1", records[0][0])
@@ -250,7 +282,8 @@ func TestQuerySliceStringNoParam(t *testing.T) {
 		assert.EqualValues(t, "0", records[0][1])
 	}
 
-	records, err = testEngine.Table("get_var6").Where(builder.Eq{"id": 1}).QuerySliceString()
+	idName := mapper.Obj2Table("Id")
+	records, err = testEngine.Table(tableName).Where(builder.Eq{"`" + idName + "`": 1}).QuerySliceString()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(records))
 	assert.EqualValues(t, "1", records[0][0])
@@ -277,17 +310,21 @@ func TestQueryInterfaceNoParam(t *testing.T) {
 	_, err := testEngine.Insert(data)
 	assert.NoError(t, err)
 
-	records, err := testEngine.Table("get_var5").Limit(1).QueryInterface()
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, len(records))
-	assert.EqualValues(t, 1, toInt64(records[0]["id"]))
-	assert.EqualValues(t, 0, toInt64(records[0]["msg"]))
+	tableName := "`" + mapper.Obj2Table("GetVar5") + "`"
+	idName := mapper.Obj2Table("Id")
+	msgName := mapper.Obj2Table("Msg")
 
-	records, err = testEngine.Table("get_var5").Where(builder.Eq{"id": 1}).QueryInterface()
+	records, err := testEngine.Table(tableName).Limit(1).QueryInterface()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(records))
-	assert.EqualValues(t, 1, toInt64(records[0]["id"]))
-	assert.EqualValues(t, 0, toInt64(records[0]["msg"]))
+	assert.EqualValues(t, 1, toInt64(records[0][idName]))
+	assert.EqualValues(t, 0, toInt64(records[0][msgName]))
+
+	records, err = testEngine.Table(tableName).Where(builder.Eq{"`" + idName + "`": 1}).QueryInterface()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(records))
+	assert.EqualValues(t, 1, toInt64(records[0][idName]))
+	assert.EqualValues(t, 0, toInt64(records[0][msgName]))
 }
 
 func TestQueryWithBuilder(t *testing.T) {
@@ -314,23 +351,29 @@ func TestQueryWithBuilder(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
+	idName := mapper.Obj2Table("Id")
+	msgName := mapper.Obj2Table("Msg")
+	ageName := mapper.Obj2Table("Age")
+	moneyName := mapper.Obj2Table("Money")
+
 	assertResult := func(t *testing.T, results []map[string][]byte) {
 		assert.EqualValues(t, 1, len(results))
-		id, err := strconv.ParseInt(string(results[0]["id"]), 10, 64)
+		id, err := strconv.ParseInt(string(results[0][idName]), 10, 64)
 		assert.NoError(t, err)
 		assert.EqualValues(t, 1, id)
-		assert.Equal(t, "message", string(results[0]["msg"]))
+		assert.Equal(t, "message", string(results[0][msgName]))
 
-		age, err := strconv.Atoi(string(results[0]["age"]))
+		age, err := strconv.Atoi(string(results[0][ageName]))
 		assert.NoError(t, err)
 		assert.EqualValues(t, 20, age)
 
-		money, err := strconv.ParseFloat(string(results[0]["money"]), 32)
+		money, err := strconv.ParseFloat(string(results[0][moneyName]), 32)
 		assert.NoError(t, err)
 		assert.EqualValues(t, 3000, money)
 	}
 
-	results, err := testEngine.Query(builder.Select("*").From(testEngine.TableName("query_with_builder", true)))
+	tableName := mapper.Obj2Table("QueryWithBuilder")
+	results, err := testEngine.Query(builder.Select("*").From("`" + testEngine.TableName(tableName, true) + "`"))
 	assert.NoError(t, err)
 	assertResult(t, results)
 }
@@ -371,9 +414,15 @@ func TestJoinWithSubQuery(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
+	tableName := "`" + mapper.Obj2Table("JoinWithSubQueryDepart") + "`"
+	tableName1 := "`" + mapper.Obj2Table("JoinWithSubQuery1") + "`"
+
+	departID := "`" + mapper.Obj2Table("DepartId") + "`"
+	idName := "`" + mapper.Obj2Table("Id") + "`"
+
 	var querys []JoinWithSubQuery1
-	err = testEngine.Join("INNER", builder.Select("id").From(testEngine.Quote(testEngine.TableName("join_with_sub_query_depart", true))),
-		"join_with_sub_query_depart.id = join_with_sub_query1.depart_id").Find(&querys)
+	err = testEngine.Join("INNER", builder.Select(idName).From(testEngine.Quote(testEngine.TableName(tableName, true))),
+		tableName+"."+idName+" = "+tableName1+"."+departID).Find(&querys)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(querys))
 	assert.EqualValues(t, q, querys[0])

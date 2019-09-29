@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"xorm.io/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -53,10 +52,18 @@ func TestJoinLimit(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
+	tableName := "`" + mapper.Obj2Table("CheckList") + "`"
+	tableName2 := "`" + mapper.Obj2Table("Salary") + "`"
+	tableName3 := "`" + mapper.Obj2Table("Empsetting") + "`"
+
+	idName := "`" + mapper.Obj2Table("Id") + "`"
+	lIDName := "`" + mapper.Obj2Table("Lid") + "`"
+	eIDName := "`" + mapper.Obj2Table("Eid") + "`"
+
 	var salaries []Salary
-	err = testEngine.Table("salary").
-		Join("INNER", "check_list", "check_list.id = salary.lid").
-		Join("LEFT", "empsetting", "empsetting.id = check_list.eid").
+	err = testEngine.Table(tableName2).
+		Join("INNER", tableName, tableName+"."+idName+" = "+tableName2+"."+lIDName).
+		Join("LEFT", tableName3, tableName3+"."+idName+" = "+tableName+"."+eIDName).
 		Limit(10, 0).
 		Find(&salaries)
 	assert.NoError(t, err)
@@ -133,7 +140,7 @@ type TeamUser struct {
 }
 
 func (TeamUser) TableName() string {
-	return "team_user"
+	return mapper.Obj2Table("TeamUser")
 }
 
 func TestFind3(t *testing.T) {
@@ -142,51 +149,58 @@ func TestFind3(t *testing.T) {
 	err := testEngine.Sync2(new(Team), teamUser)
 	assert.NoError(t, err)
 
+	tableName := mapper.Obj2Table("TeamUser")
+	teamTableName := mapper.Obj2Table("Team")
+	idName := "`" + mapper.Obj2Table("Id") + "`"
+	orgIDName := "`" + mapper.Obj2Table("OrgId") + "`"
+	uidName := "`" + mapper.Obj2Table("Uid") + "`"
+	teamIDName := "`" + mapper.Obj2Table("TeamId") + "`"
+
 	var teams []Team
-	err = testEngine.Cols("`team`.id").
-		Where("`team_user`.org_id=?", 1).
-		And("`team_user`.uid=?", 2).
-		Join("INNER", "`team_user`", "`team_user`.team_id=`team`.id").
+	err = testEngine.Cols("`"+teamTableName+"`."+idName).
+		Where("`"+tableName+"`."+orgIDName+"=?", 1).
+		And("`"+tableName+"`."+uidName+"=?", 2).
+		Join("INNER", "`"+tableName+"`", "`"+tableName+"`."+teamIDName+"=`"+teamTableName+"`."+idName).
 		Find(&teams)
 	assert.NoError(t, err)
 
 	teams = make([]Team, 0)
-	err = testEngine.Cols("`team`.id").
-		Where("`team_user`.org_id=?", 1).
-		And("`team_user`.uid=?", 2).
-		Join("INNER", teamUser, "`team_user`.team_id=`team`.id").
+	err = testEngine.Cols("`"+teamTableName+"`."+idName).
+		Where("`"+tableName+"`."+orgIDName+"=?", 1).
+		And("`"+tableName+"`."+uidName+"=?", 2).
+		Join("INNER", teamUser, "`"+tableName+"`."+teamIDName+"=`"+teamTableName+"`."+idName).
 		Find(&teams)
 	assert.NoError(t, err)
 
 	teams = make([]Team, 0)
-	err = testEngine.Cols("`team`.id").
-		Where("`team_user`.org_id=?", 1).
-		And("`team_user`.uid=?", 2).
-		Join("INNER", []interface{}{teamUser}, "`team_user`.team_id=`team`.id").
+	err = testEngine.Cols("`"+teamTableName+"`."+idName).
+		Where("`"+tableName+"`."+orgIDName+"=?", 1).
+		And("`"+tableName+"`."+uidName+"=?", 2).
+		Join("INNER", []interface{}{teamUser}, "`"+tableName+"`."+teamIDName+"=`"+teamTableName+"`."+idName).
 		Find(&teams)
 	assert.NoError(t, err)
 
 	teams = make([]Team, 0)
-	err = testEngine.Cols("`team`.id").
-		Where("`tu`.org_id=?", 1).
-		And("`tu`.uid=?", 2).
-		Join("INNER", []string{"team_user", "tu"}, "`tu`.team_id=`team`.id").
+	err = testEngine.Cols("`"+teamTableName+"`."+idName).
+		Where("`tu`."+orgIDName+"=?", 1).
+		And("`tu`."+uidName+"=?", 2).
+		Join("INNER", []string{tableName, "tu"}, "`tu`."+teamIDName+"=`"+teamTableName+"`."+idName).
 		Find(&teams)
 	assert.NoError(t, err)
 
 	teams = make([]Team, 0)
-	err = testEngine.Cols("`team`.id").
-		Where("`tu`.org_id=?", 1).
-		And("`tu`.uid=?", 2).
-		Join("INNER", []interface{}{"team_user", "tu"}, "`tu`.team_id=`team`.id").
+	err = testEngine.Cols("`"+teamTableName+"`."+idName).
+		Where("`tu`."+orgIDName+"=?", 1).
+		And("`tu`."+uidName+"=?", 2).
+		Join("INNER", []interface{}{tableName, "tu"}, "`tu`."+teamIDName+"=`"+teamTableName+"`."+idName).
 		Find(&teams)
 	assert.NoError(t, err)
 
 	teams = make([]Team, 0)
-	err = testEngine.Cols("`team`.id").
-		Where("`tu`.org_id=?", 1).
-		And("`tu`.uid=?", 2).
-		Join("INNER", []interface{}{teamUser, "tu"}, "`tu`.team_id=`team`.id").
+	err = testEngine.Cols("`"+teamTableName+"`."+idName).
+		Where("`tu`."+orgIDName+"=?", 1).
+		And("`tu`."+uidName+"=?", 2).
+		Join("INNER", []interface{}{teamUser, "tu"}, "`tu`."+teamIDName+"=`"+teamTableName+"`."+idName).
 		Find(&teams)
 	assert.NoError(t, err)
 }
@@ -197,10 +211,8 @@ func TestFindMap(t *testing.T) {
 
 	users := make(map[int64]Userinfo)
 	err := testEngine.Find(&users)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+
 	for _, user := range users {
 		fmt.Println(user)
 	}
@@ -212,10 +224,8 @@ func TestFindMap2(t *testing.T) {
 
 	users := make(map[int64]*Userinfo)
 	err := testEngine.Find(&users)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
+
 	for id, user := range users {
 		fmt.Println(id, user)
 	}
@@ -257,13 +267,17 @@ func TestOrder(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
 
+	idName := "id"
+	userName := mapper.Obj2Table("Username")
+	heightName := mapper.Obj2Table("Height")
+
 	users := make([]Userinfo, 0)
-	err := testEngine.OrderBy("id desc").Find(&users)
+	err := testEngine.OrderBy(idName + " desc").Find(&users)
 	assert.NoError(t, err)
 	fmt.Println(users)
 
 	users2 := make([]Userinfo, 0)
-	err = testEngine.Asc("id", "username").Desc("height").Find(&users2)
+	err = testEngine.Asc(idName, userName).Desc(heightName).Find(&users2)
 	assert.NoError(t, err)
 	fmt.Println(users2)
 }
@@ -272,8 +286,11 @@ func TestGroupBy(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
 
+	idName := "`id`"
+	userName := mapper.Obj2Table("Username")
+
 	users := make([]Userinfo, 0)
-	err := testEngine.GroupBy("id, username").Find(&users)
+	err := testEngine.GroupBy(idName + ", `" + userName + "`").Find(&users)
 	assert.NoError(t, err)
 }
 
@@ -281,8 +298,10 @@ func TestHaving(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
 
+	userName := "`" + mapper.Obj2Table("Username") + "`"
+
 	users := make([]Userinfo, 0)
-	err := testEngine.GroupBy("username").Having("username='xlw'").Find(&users)
+	err := testEngine.GroupBy(userName).Having(userName + "='xlw'").Find(&users)
 	assert.NoError(t, err)
 	fmt.Println(users)
 
@@ -295,79 +314,36 @@ func TestHaving(t *testing.T) {
 	fmt.Println(users)*/
 }
 
-func TestOrderSameMapper(t *testing.T) {
-	assert.NoError(t, prepareEngine())
-	testEngine.UnMapType(rValue(new(Userinfo)).Type())
-
-	mapper := testEngine.GetTableMapper()
-	testEngine.SetMapper(core.SameMapper{})
-
-	defer func() {
-		testEngine.UnMapType(rValue(new(Userinfo)).Type())
-		testEngine.SetMapper(mapper)
-	}()
-
-	assertSync(t, new(Userinfo))
-
-	users := make([]Userinfo, 0)
-	err := testEngine.OrderBy("(id) desc").Find(&users)
-	assert.NoError(t, err)
-	fmt.Println(users)
-
-	users2 := make([]Userinfo, 0)
-	err = testEngine.Asc("(id)", "Username").Desc("Height").Find(&users2)
-	assert.NoError(t, err)
-	fmt.Println(users2)
-}
-
-func TestHavingSameMapper(t *testing.T) {
-	assert.NoError(t, prepareEngine())
-	testEngine.UnMapType(rValue(new(Userinfo)).Type())
-
-	mapper := testEngine.GetTableMapper()
-	testEngine.SetMapper(core.SameMapper{})
-	defer func() {
-		testEngine.UnMapType(rValue(new(Userinfo)).Type())
-		testEngine.SetMapper(mapper)
-	}()
-	assertSync(t, new(Userinfo))
-
-	users := make([]Userinfo, 0)
-	err := testEngine.GroupBy("`Username`").Having("`Username`='xlw'").Find(&users)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println(users)
-}
-
 func TestFindInts(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(Userinfo))
 
 	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
+	idName := "id"
+
 	var idsInt64 []int64
-	err := testEngine.Table(userinfo).Cols("id").Desc("id").Find(&idsInt64)
+	err := testEngine.Table(userinfo).Cols(idName).Desc(idName).Find(&idsInt64)
 	if err != nil {
 		t.Fatal(err)
 	}
 	fmt.Println(idsInt64)
 
 	var idsInt32 []int32
-	err = testEngine.Table(userinfo).Cols("id").Desc("id").Find(&idsInt32)
+	err = testEngine.Table(userinfo).Cols(idName).Desc(idName).Find(&idsInt32)
 	if err != nil {
 		t.Fatal(err)
 	}
 	fmt.Println(idsInt32)
 
 	var idsInt []int
-	err = testEngine.Table(userinfo).Cols("id").Desc("id").Find(&idsInt)
+	err = testEngine.Table(userinfo).Cols(idName).Desc(idName).Find(&idsInt)
 	if err != nil {
 		t.Fatal(err)
 	}
 	fmt.Println(idsInt)
 
 	var idsUint []uint
-	err = testEngine.Table(userinfo).Cols("id").Desc("id").Find(&idsUint)
+	err = testEngine.Table(userinfo).Cols(idName).Desc(idName).Find(&idsUint)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -375,7 +351,7 @@ func TestFindInts(t *testing.T) {
 
 	type MyInt int
 	var idsMyInt []MyInt
-	err = testEngine.Table(userinfo).Cols("id").Desc("id").Find(&idsMyInt)
+	err = testEngine.Table(userinfo).Cols(idName).Desc(idName).Find(&idsMyInt)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -387,8 +363,10 @@ func TestFindStrings(t *testing.T) {
 	assertSync(t, new(Userinfo))
 	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
 	username := testEngine.GetColumnMapper().Obj2Table("Username")
+	idName := "id"
+
 	var idsString []string
-	err := testEngine.Table(userinfo).Cols(username).Desc("id").Find(&idsString)
+	err := testEngine.Table(userinfo).Cols(username).Desc(idName).Find(&idsString)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -400,9 +378,10 @@ func TestFindMyString(t *testing.T) {
 	assertSync(t, new(Userinfo))
 	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
 	username := testEngine.GetColumnMapper().Obj2Table("Username")
+	idName := "id"
 
 	var idsMyString []MyString
-	err := testEngine.Table(userinfo).Cols(username).Desc("id").Find(&idsMyString)
+	err := testEngine.Table(userinfo).Cols(username).Desc(idName).Find(&idsMyString)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -415,8 +394,10 @@ func TestFindInterface(t *testing.T) {
 
 	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
 	username := testEngine.GetColumnMapper().Obj2Table("Username")
+	idName := "id"
+
 	var idsInterface []interface{}
-	err := testEngine.Table(userinfo).Cols(username).Desc("id").Find(&idsInterface)
+	err := testEngine.Table(userinfo).Cols(username).Desc(idName).Find(&idsInterface)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -428,8 +409,10 @@ func TestFindSliceBytes(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
+	idName := "id"
+
 	var ids [][][]byte
-	err := testEngine.Table(userinfo).Desc("id").Find(&ids)
+	err := testEngine.Table(userinfo).Desc(idName).Find(&ids)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -443,8 +426,10 @@ func TestFindSlicePtrString(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
+	idName := "id"
+
 	var ids [][]*string
-	err := testEngine.Table(userinfo).Desc("id").Find(&ids)
+	err := testEngine.Table(userinfo).Desc(idName).Find(&ids)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -458,8 +443,10 @@ func TestFindMapBytes(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
+	idName := "id"
+
 	var ids []map[string][]byte
-	err := testEngine.Table(userinfo).Desc("id").Find(&ids)
+	err := testEngine.Table(userinfo).Desc(idName).Find(&ids)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -473,8 +460,10 @@ func TestFindMapPtrString(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	userinfo := testEngine.GetTableMapper().Obj2Table("Userinfo")
+	idName := "id"
+
 	var ids []map[string]*string
-	err := testEngine.Table(userinfo).Desc("id").Find(&ids)
+	err := testEngine.Table(userinfo).Desc(idName).Find(&ids)
 	assert.NoError(t, err)
 	for _, record := range ids {
 		fmt.Println(record)
@@ -508,7 +497,6 @@ func TestFindBit(t *testing.T) {
 }
 
 func TestFindMark(t *testing.T) {
-
 	type Mark struct {
 		Mark1 string `xorm:"VARCHAR(1)"`
 		Mark2 string `xorm:"VARCHAR(1)"`
@@ -568,27 +556,31 @@ func TestFindAndCountOneFunc(t *testing.T) {
 	assert.EqualValues(t, 2, len(results))
 	assert.EqualValues(t, 2, cnt)
 
+	idName := "`" + mapper.Obj2Table("Id") + "`"
+	msgName := "`" + mapper.Obj2Table("Msg") + "`"
+	contentName := "`" + mapper.Obj2Table("Content") + "`"
+
 	results = make([]FindAndCountStruct, 0, 1)
-	cnt, err = testEngine.Where("msg = ?", true).FindAndCount(&results)
+	cnt, err = testEngine.Where(msgName+" = ?", true).FindAndCount(&results)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))
 	assert.EqualValues(t, 1, cnt)
 
 	results = make([]FindAndCountStruct, 0, 1)
-	cnt, err = testEngine.Where("msg = ?", true).Limit(1).FindAndCount(&results)
+	cnt, err = testEngine.Where(msgName+" = ?", true).Limit(1).FindAndCount(&results)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))
 	assert.EqualValues(t, 1, cnt)
 
 	results = make([]FindAndCountStruct, 0, 1)
-	cnt, err = testEngine.Where("msg = ?", true).Select("id, content, msg").
+	cnt, err = testEngine.Where(msgName+" = ?", true).Select(idName + ", " + contentName + ", " + msgName).
 		Limit(1).FindAndCount(&results)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))
 	assert.EqualValues(t, 1, cnt)
 
 	results = make([]FindAndCountStruct, 0, 1)
-	cnt, err = testEngine.Where("msg = ?", true).Desc("id").
+	cnt, err = testEngine.Where(msgName+" = ?", true).Desc(idName).
 		Limit(1).FindAndCount(&results)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))
@@ -617,17 +609,20 @@ func TestFindMapStringId(t *testing.T) {
 
 	deviceIDs := []string{"1"}
 
+	deviceIDName := "`" + mapper.Obj2Table("Deviceid") + "`"
+	statusName := "`" + mapper.Obj2Table("Status") + "`"
+
 	deviceMaps := make(map[string]*FindMapDevice, len(deviceIDs))
 	err = testEngine.
-		Where("status = ?", 1).
-		In("deviceid", deviceIDs).
+		Where(statusName+" = ?", 1).
+		In(deviceIDName, deviceIDs).
 		Find(&deviceMaps)
 	assert.NoError(t, err)
 
 	deviceMaps2 := make(map[string]FindMapDevice, len(deviceIDs))
 	err = testEngine.
-		Where("status = ?", 1).
-		In("deviceid", deviceIDs).
+		Where(statusName+" = ?", 1).
+		In(deviceIDName, deviceIDs).
 		Find(&deviceMaps2)
 	assert.NoError(t, err)
 
@@ -658,7 +653,7 @@ func TestFindMapStringId(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	sum, err := testEngine.SumInt(new(FindMapDevice), "status")
+	sum, err := testEngine.SumInt(new(FindMapDevice), statusName)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, sum)
 
@@ -791,13 +786,20 @@ func TestFindJoin(t *testing.T) {
 	assert.NoError(t, prepareEngine())
 	assertSync(t, new(SceneItem), new(DeviceUserPrivrels))
 
+	tableName1 := "`" + mapper.Obj2Table("SceneItem") + "`"
+	tableName2 := "`" + mapper.Obj2Table("DeviceUserPrivrels") + "`"
+
+	deviceIDName := "`" + mapper.Obj2Table("DeviceId") + "`"
+	userIDName := "`" + mapper.Obj2Table("UserId") + "`"
+	typeName := "`" + mapper.Obj2Table("Type") + "`"
+
 	var scenes []SceneItem
-	err := testEngine.Join("LEFT OUTER", "device_user_privrels", "device_user_privrels.device_id=scene_item.device_id").
-		Where("scene_item.type=?", 3).Or("device_user_privrels.user_id=?", 339).Find(&scenes)
+	err := testEngine.Join("LEFT OUTER", tableName2, tableName1+"."+deviceIDName+"="+tableName2+"."+deviceIDName).
+		Where(tableName1+"."+typeName+"=?", 3).Or(tableName2+"."+userIDName+"=?", 339).Find(&scenes)
 	assert.NoError(t, err)
 
 	scenes = make([]SceneItem, 0)
-	err = testEngine.Join("LEFT OUTER", new(DeviceUserPrivrels), "device_user_privrels.device_id=scene_item.device_id").
-		Where("scene_item.type=?", 3).Or("device_user_privrels.user_id=?", 339).Find(&scenes)
+	err = testEngine.Join("LEFT OUTER", new(DeviceUserPrivrels), tableName1+"."+deviceIDName+"="+tableName2+"."+deviceIDName).
+		Where(tableName1+"."+typeName+"=?", 3).Or(tableName2+"."+userIDName+"=?", 339).Find(&scenes)
 	assert.NoError(t, err)
 }
