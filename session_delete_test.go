@@ -248,7 +248,7 @@ func TestSoftDeleted(t *testing.T) {
 		DeletedAt int64 `xorm:"not null default '0' comment('删除状态') deleted "`
 	}
 	testEngine.SetSoftDeleteHandler(&DefaultSoftDeleteHandler{})
-	defer testEngine.SetSoftDeleteHandler(nil)
+	// defer testEngine.SetSoftDeleteHandler(nil)
 	err := testEngine.DropTables(&YySoftDeleted{})
 	assert.NoError(t, err)
 
