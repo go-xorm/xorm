@@ -846,6 +846,7 @@ func TestInsertWhere(t *testing.T) {
 		Width  uint32
 		Height uint32
 		Name   string
+		IsTrue bool
 	}
 
 	assert.NoError(t, prepareEngine())
@@ -892,4 +893,134 @@ func TestInsertWhere(t *testing.T) {
 	assert.EqualValues(t, 40, j2.Height)
 	assert.EqualValues(t, "trest2", j2.Name)
 	assert.EqualValues(t, 2, j2.Index)
+
+	inserted, err = testEngine.Table(new(InsertWhere)).Where("repo_id=?", 1).
+		SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
+		SetExpr("repo_id", "1").
+		Insert(map[string]string{
+			"name": "trest3",
+		})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, inserted)
+
+	var j3 InsertWhere
+	has, err = testEngine.ID(3).Get(&j3)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "trest3", j3.Name)
+	assert.EqualValues(t, 3, j3.Index)
+
+	inserted, err = testEngine.Table(new(InsertWhere)).Where("repo_id=?", 1).
+		SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
+		Insert(map[string]interface{}{
+			"repo_id": 1,
+			"name":    "10';delete * from insert_where; --",
+		})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, inserted)
+
+	var j4 InsertWhere
+	has, err = testEngine.ID(4).Get(&j4)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "10';delete * from insert_where; --", j4.Name)
+	assert.EqualValues(t, 4, j4.Index)
+
+	inserted, err = testEngine.Table(new(InsertWhere)).Where("repo_id=?", 1).
+		SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
+		Insert(map[string]interface{}{
+			"repo_id": 1,
+			"name":    "10\\';delete * from insert_where; --",
+		})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, inserted)
+
+	var j5 InsertWhere
+	has, err = testEngine.ID(5).Get(&j5)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "10\\';delete * from insert_where; --", j5.Name)
+	assert.EqualValues(t, 5, j5.Index)
+}
+
+type NightlyRate struct {
+	ID int64 `xorm:"'id' not null pk BIGINT(20)" json:"id"`
+}
+
+func (NightlyRate) TableName() string {
+	return "prd_nightly_rate"
+}
+
+func TestMultipleInsertTableName(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	tableName := `prd_nightly_rate_16`
+	assert.NoError(t, testEngine.Table(tableName).Sync2(new(NightlyRate)))
+
+	trans := testEngine.NewSession()
+	defer trans.Close()
+	err := trans.Begin()
+	assert.NoError(t, err)
+
+	rtArr := []interface{}{
+		[]*NightlyRate{
+			{ID: 1},
+			{ID: 2},
+		},
+		[]*NightlyRate{
+			{ID: 3},
+			{ID: 4},
+		},
+		[]*NightlyRate{
+			{ID: 5},
+		},
+	}
+
+	_, err = trans.Table(tableName).Insert(rtArr...)
+	assert.NoError(t, err)
+
+	assert.NoError(t, trans.Commit())
+}
+
+func TestInsertMultiWithOmit(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type TestMultiOmit struct {
+		Id      int64  `xorm:"int(11) pk"`
+		Name    string `xorm:"varchar(255)"`
+		Omitted string `xorm:"varchar(255) 'omitted'"`
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(TestMultiOmit)))
+
+	l := []interface{}{
+		TestMultiOmit{Id: 1, Name: "1", Omitted: "1"},
+		TestMultiOmit{Id: 2, Name: "1", Omitted: "2"},
+		TestMultiOmit{Id: 3, Name: "1", Omitted: "3"},
+	}
+
+	check := func() {
+		var ls []TestMultiOmit
+		err := testEngine.Find(&ls)
+		assert.NoError(t, err)
+		assert.EqualValues(t, 3, len(ls))
+
+		for e := range ls {
+			assert.EqualValues(t, "", ls[e].Omitted)
+		}
+	}
+
+	num, err := testEngine.Omit("omitted").Insert(l...)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, num)
+	check()
+
+	num, err = testEngine.Delete(TestMultiOmit{Name: "1"})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, num)
+
+	num, err = testEngine.Omit("omitted").Insert(l)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, num)
+	check()
 }
