@@ -907,8 +907,15 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 		fieldType := fieldValue.Type()
 
 		if ormTagStr != "" {
-			col = &core.Column{FieldName: t.Field(i).Name, Nullable: true, IsPrimaryKey: false,
-				IsAutoIncrement: false, MapType: core.TWOSIDES, Indexes: make(map[string]int)}
+			col = &core.Column{
+				FieldName:       t.Field(i).Name,
+				Nullable:        true,
+				IsPrimaryKey:    false,
+				IsAutoIncrement: false,
+				MapType:         core.TWOSIDES,
+				Indexes:         make(map[string]int),
+				DefaultIsEmpty:  true,
+			}
 			tags := splitTag(ormTagStr)
 
 			if len(tags) > 0 {
