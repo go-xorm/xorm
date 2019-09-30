@@ -549,3 +549,27 @@ func TestSplitTag(t *testing.T) {
 		}
 	}
 }
+
+func TestTagAutoIncr(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type TagAutoIncr struct {
+		Id   int64
+		Name string
+	}
+
+	assertSync(t, new(TagAutoIncr))
+
+	mapper := testEngine.GetTableMapper()
+	cmapper := testEngine.GetColumnMapper()
+
+	tables, err := testEngine.DBMetas()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(tables))
+	assert.EqualValues(t, mapper.Obj2Table("TagAutoIncr"), tables[0].Name)
+	col := tables[0].GetColumn(cmapper.Obj2Table("Name"))
+	assert.NotNil(t, col)
+	assert.True(t, col.IsPrimaryKey)
+	assert.True(t, col.IsAutoIncrement)
+	assert.EqualValues(t, 255, col.SQLType.DefaultLength)
+}
