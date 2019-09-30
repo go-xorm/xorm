@@ -56,8 +56,8 @@ type Engine struct {
 
 	defaultContext context.Context
 
-	quotePolicy QuotePolicy
-	quoteMode   QuoteMode
+	colQuoter   Quoter
+	tableQuoter Quoter
 }
 
 func (engine *Engine) setCacher(tableName string, cacher core.Cacher) {
@@ -419,7 +419,7 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 		return err
 	}
 
-	quoter := newQuoter(dialect, engine.quoteMode, engine.quotePolicy)
+	colQuoter := newQuoter(dialect, engine.colQuoter.QuotePolicy())
 
 	for i, table := range tables {
 		if i > 0 {
@@ -440,8 +440,8 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 		}
 
 		cols := table.ColumnsSeq()
-		colNames := quoteJoin(engine, cols)
-		destColNames := quoteJoin(quoter, cols)
+		colNames := quoteJoin(engine.colQuoter, cols)
+		destColNames := quoteJoin(colQuoter, cols)
 
 		rows, err := engine.DB().Query("SELECT " + colNames + " FROM " + engine.quote(table.Name, false))
 		if err != nil {

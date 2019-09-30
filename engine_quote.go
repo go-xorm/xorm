@@ -21,34 +21,21 @@ const (
 	QuoteAddReserved
 )
 
-// QuoteMode quote on which types
-type QuoteMode int
-
-// All QuoteModes
-const (
-	QuoteTableAndColumns QuoteMode = iota
-	QuoteTableOnly
-	QuoteColumnsOnly
-)
-
 // Quoter represents an object has Quote method
 type Quoter interface {
 	Quotes() (byte, byte)
 	QuotePolicy() QuotePolicy
-	QuoteMode() QuoteMode
 	IsReserved(string) bool
 }
 
 type quoter struct {
 	dialect     core.Dialect
-	quoteMode   QuoteMode
 	quotePolicy QuotePolicy
 }
 
-func newQuoter(dialect core.Dialect, quoteMode QuoteMode, quotePolicy QuotePolicy) Quoter {
+func newQuoter(dialect core.Dialect, quotePolicy QuotePolicy) Quoter {
 	return &quoter{
 		dialect:     dialect,
-		quoteMode:   quoteMode,
 		quotePolicy: quotePolicy,
 	}
 }
@@ -62,10 +49,6 @@ func (q *quoter) QuotePolicy() QuotePolicy {
 	return q.quotePolicy
 }
 
-func (q *quoter) QuoteMode() QuoteMode {
-	return q.quoteMode
-}
-
 func (q *quoter) IsReserved(value string) bool {
 	return q.dialect.IsReserved(value)
 }
@@ -77,21 +60,24 @@ func quoteColumns(quoter Quoter, columnStr string) string {
 
 func quoteJoin(quoter Quoter, columns []string) string {
 	for i := 0; i < len(columns); i++ {
-		columns[i] = quote(quoter, columns[i], true)
+		columns[i] = quote(quoter, columns[i])
 	}
 	return strings.Join(columns, ",")
 }
 
 // quote Use QuoteStr quote the string sql
-func quote(quoter Quoter, value string, isColumn bool) string {
+func quote(quoter Quoter, value string) string {
 	buf := strings.Builder{}
-	quoteTo(quoter, &buf, value, isColumn)
+	quoteTo(quoter, &buf, value)
 	return buf.String()
 }
 
 // Quote add quotes to the value
 func (engine *Engine) quote(value string, isColumn bool) string {
-	return quote(engine, value, isColumn)
+	if isColumn {
+		return quote(engine.colQuoter, value)
+	}
+	return quote(engine.tableQuoter, value)
 }
 
 // Quote add quotes to the value
@@ -105,53 +91,25 @@ func (engine *Engine) Quotes() (byte, byte) {
 	return quotes[0], quotes[1]
 }
 
-// QuoteMode returns quote mode
-func (engine *Engine) QuoteMode() QuoteMode {
-	return engine.quoteMode
-}
-
-// QuotePolicy returns quote policy
-func (engine *Engine) QuotePolicy() QuotePolicy {
-	return engine.quotePolicy
-}
-
 // IsReserved return true if the value is a reserved word of the database
 func (engine *Engine) IsReserved(value string) bool {
 	return engine.dialect.IsReserved(value)
 }
 
 // quoteTo quotes string and writes into the buffer
-func quoteTo(quoter Quoter, buf *strings.Builder, value string, isColumn bool) {
-	if isColumn {
-		if quoter.QuoteMode() == QuoteTableAndColumns ||
-			quoter.QuoteMode() == QuoteColumnsOnly {
-			if quoter.QuotePolicy() == QuoteAddAlways {
-				realQuoteTo(quoter, buf, value)
-				return
-			} else if quoter.QuotePolicy() == QuoteAddReserved && quoter.IsReserved(value) {
-				realQuoteTo(quoter, buf, value)
-				return
-			}
-		}
-		buf.WriteString(value)
+func quoteTo(quoter Quoter, buf *strings.Builder, value string) {
+	left, right := quoter.Quotes()
+	if quoter.QuotePolicy() == QuoteAddAlways {
+		realQuoteTo(left, right, buf, value)
+		return
+	} else if quoter.QuotePolicy() == QuoteAddReserved && quoter.IsReserved(value) {
+		realQuoteTo(left, right, buf, value)
 		return
 	}
-
-	if quoter.QuoteMode() == QuoteTableAndColumns ||
-		quoter.QuoteMode() == QuoteTableOnly {
-		if quoter.QuotePolicy() == QuoteAddAlways {
-			realQuoteTo(quoter, buf, value)
-			return
-		} else if quoter.QuotePolicy() == QuoteAddReserved && quoter.IsReserved(value) {
-			realQuoteTo(quoter, buf, value)
-			return
-		}
-	}
 	buf.WriteString(value)
-	return
 }
 
-func realQuoteTo(quoter Quoter, buf *strings.Builder, value string) {
+func realQuoteTo(quoteLeft, quoteRight byte, buf *strings.Builder, value string) {
 	if buf == nil {
 		return
 	}
@@ -163,8 +121,6 @@ func realQuoteTo(quoter Quoter, buf *strings.Builder, value string) {
 		buf.WriteString("*")
 		return
 	}
-
-	quoteLeft, quoteRight := quoter.Quotes()
 
 	if value[0] == '`' || value[0] == quoteLeft { // no quote
 		_, _ = buf.WriteString(value)

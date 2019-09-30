@@ -100,7 +100,7 @@ func (session *Session) cacheUpdate(table *core.Table, tableName, sqlStr string,
 			for idx, kv := range kvs {
 				sps := strings.SplitN(kv, "=", 2)
 				sps2 := strings.Split(sps[0], ".")
-				colName := unQuote(session.engine, sps2[len(sps2)-1])
+				colName := unQuote(session.engine.colQuoter, sps2[len(sps2)-1])
 
 				if col := table.GetColumn(colName); col != nil {
 					fieldValue, err := col.ValueOf(bean)

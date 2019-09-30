@@ -249,15 +249,15 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 	if session.engine.dialect.DBType() == core.ORACLE {
 		temp := fmt.Sprintf(") INTO %s (%v) VALUES (",
 			session.engine.quote(tableName, false),
-			quoteJoin(session.engine, colNames))
+			quoteJoin(session.engine.colQuoter, colNames))
 		sql = fmt.Sprintf("INSERT ALL INTO %s (%v) VALUES (%v) SELECT 1 FROM DUAL",
 			session.engine.quote(tableName, false),
-			quoteJoin(session.engine, colNames),
+			quoteJoin(session.engine.colQuoter, colNames),
 			strings.Join(colMultiPlaces, temp))
 	} else {
 		sql = fmt.Sprintf("INSERT INTO %s (%v) VALUES (%v)",
 			session.engine.quote(tableName, false),
-			quoteJoin(session.engine, colNames),
+			quoteJoin(session.engine.colQuoter, colNames),
 			strings.Join(colMultiPlaces, "),("))
 	}
 	res, err := session.exec(sql, args...)
@@ -855,7 +855,7 @@ func (session *Session) insertMapString(m map[string]string) (int64, error) {
 
 		if _, err := w.WriteString(fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
 			session.engine.quote(tableName, false),
-			quoteJoin(session.engine, columns), qm)); err != nil {
+			quoteJoin(session.engine.colQuoter, columns), qm)); err != nil {
 			return 0, err
 		}
 		w.Append(args...)

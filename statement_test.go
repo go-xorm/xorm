@@ -243,6 +243,9 @@ func TestCol2NewColsWithQuote(t *testing.T) {
 
 	statement := createTestStatement()
 
-	quotedCols := quoteJoin(statement.Engine, cols)
-	assert.EqualValues(t, []string{statement.Engine.Quote("f1", true), statement.Engine.Quote("f2", true), statement.Engine.Quote("t3.f3", true)}, quotedCols)
+	quotedCols := quoteJoin(statement.Engine.colQuoter, cols)
+	assert.EqualValues(t, statement.Engine.Quote("f1", true)+","+
+		statement.Engine.Quote("f2", true)+","+
+		statement.Engine.Quote("t3.f3", true),
+		quotedCols)
 }
