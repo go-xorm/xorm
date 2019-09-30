@@ -340,7 +340,7 @@ func (db *mssql) GetColumns(tableName string) ([]string, map[string]*core.Column
 	s := `select a.name as name, b.name as ctype,a.max_length,a.precision,a.scale,a.is_nullable as nullable,
 		  "default_is_null" = (CASE WHEN c.text is null THEN 1 ELSE 0 END),
 	      replace(replace(isnull(c.text,''),'(',''),')','') as vdefault,
-		  ISNULL(i.is_primary_key, 0)
+		  ISNULL(i.is_primary_key, 0), a.is_identity as is_identity
           from sys.columns a 
 		  left join sys.types b on a.user_type_id=b.user_type_id
           left join sys.syscomments c on a.default_object_id=c.id
@@ -362,8 +362,8 @@ func (db *mssql) GetColumns(tableName string) ([]string, map[string]*core.Column
 	for rows.Next() {
 		var name, ctype, vdefault string
 		var maxLen, precision, scale int
-		var nullable, isPK, defaultIsNull bool
-		err = rows.Scan(&name, &ctype, &maxLen, &precision, &scale, &nullable, &defaultIsNull, &vdefault, &isPK)
+		var nullable, isPK, defaultIsNull, isIncrement bool
+		err = rows.Scan(&name, &ctype, &maxLen, &precision, &scale, &nullable, &defaultIsNull, &vdefault, &isPK, &isIncrement)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -377,6 +377,7 @@ func (db *mssql) GetColumns(tableName string) ([]string, map[string]*core.Column
 			col.Default = vdefault
 		}
 		col.IsPrimaryKey = isPK
+		col.IsAutoIncrement = isIncrement
 		ct := strings.ToUpper(ctype)
 		if ct == "DECIMAL" {
 			col.Length = precision

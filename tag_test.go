@@ -549,3 +549,52 @@ func TestSplitTag(t *testing.T) {
 		}
 	}
 }
+
+func TestTagAutoIncr(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type TagAutoIncr struct {
+		Id   int64
+		Name string
+	}
+
+	assertSync(t, new(TagAutoIncr))
+
+	tables, err := testEngine.DBMetas()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(tables))
+	assert.EqualValues(t, tableMapper.Obj2Table("TagAutoIncr"), tables[0].Name)
+	col := tables[0].GetColumn(colMapper.Obj2Table("Id"))
+	assert.NotNil(t, col)
+	assert.True(t, col.IsPrimaryKey)
+	assert.True(t, col.IsAutoIncrement)
+
+	col2 := tables[0].GetColumn(colMapper.Obj2Table("Name"))
+	assert.NotNil(t, col2)
+	assert.False(t, col2.IsPrimaryKey)
+	assert.False(t, col2.IsAutoIncrement)
+}
+
+func TestTagPrimarykey(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+	type TagPrimaryKey struct {
+		Id   int64  `xorm:"pk"`
+		Name string `xorm:"VARCHAR(20) pk"`
+	}
+
+	assertSync(t, new(TagPrimaryKey))
+
+	tables, err := testEngine.DBMetas()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(tables))
+	assert.EqualValues(t, tableMapper.Obj2Table("TagPrimaryKey"), tables[0].Name)
+	col := tables[0].GetColumn(colMapper.Obj2Table("Id"))
+	assert.NotNil(t, col)
+	assert.True(t, col.IsPrimaryKey)
+	assert.False(t, col.IsAutoIncrement)
+
+	col2 := tables[0].GetColumn(colMapper.Obj2Table("Name"))
+	assert.NotNil(t, col2)
+	assert.True(t, col2.IsPrimaryKey)
+	assert.False(t, col2.IsAutoIncrement)
+}

@@ -15,10 +15,10 @@ import (
 
 	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
-	"xorm.io/core"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/ziutek/mymysql/godrv"
+	"xorm.io/core"
 )
 
 var (
@@ -35,6 +35,9 @@ var (
 	splitter           = flag.String("splitter", ";", "the splitter on connstr for cluster")
 	schema             = flag.String("schema", "", "specify the schema")
 	ignoreSelectUpdate = flag.Bool("ignore_select_update", false, "ignore select update if implementation difference, only for tidb")
+
+	tableMapper core.IMapper
+	colMapper   core.IMapper
 )
 
 func createEngine(dbType, connStr string) error {
@@ -121,6 +124,9 @@ func createEngine(dbType, connStr string) error {
 			}
 		}
 	}
+
+	tableMapper = testEngine.GetTableMapper()
+	colMapper = testEngine.GetColumnMapper()
 
 	tables, err := testEngine.DBMetas()
 	if err != nil {

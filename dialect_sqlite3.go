@@ -298,6 +298,40 @@ func splitColStr(colStr string) []string {
 	return results
 }
 
+func parseString(colStr string) (*core.Column, error) {
+	fields := splitColStr(colStr)
+	col := new(core.Column)
+	col.Indexes = make(map[string]int)
+	col.Nullable = true
+	col.DefaultIsEmpty = true
+
+	for idx, field := range fields {
+		if idx == 0 {
+			col.Name = strings.Trim(strings.Trim(field, "`[] "), `"`)
+			continue
+		} else if idx == 1 {
+			col.SQLType = core.SQLType{Name: field, DefaultLength: 0, DefaultLength2: 0}
+			continue
+		}
+		switch field {
+		case "PRIMARY":
+			col.IsPrimaryKey = true
+		case "AUTOINCREMENT":
+			col.IsAutoIncrement = true
+		case "NULL":
+			if fields[idx-1] == "NOT" {
+				col.Nullable = false
+			} else {
+				col.Nullable = true
+			}
+		case "DEFAULT":
+			col.Default = fields[idx+1]
+			col.DefaultIsEmpty = false
+		}
+	}
+	return col, nil
+}
+
 func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{tableName}
 	s := "SELECT sql FROM sqlite_master WHERE type='table' and name = ?"
@@ -327,6 +361,7 @@ func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Colu
 	colCreates := reg.FindAllString(name[nStart+1:nEnd], -1)
 	cols := make(map[string]*core.Column)
 	colSeq := make([]string, 0)
+
 	for _, colStr := range colCreates {
 		reg = regexp.MustCompile(`,\s`)
 		colStr = reg.ReplaceAllString(colStr, ",")
@@ -343,35 +378,11 @@ func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Colu
 			continue
 		}
 
-		fields := splitColStr(colStr)
-		col := new(core.Column)
-		col.Indexes = make(map[string]int)
-		col.Nullable = true
-		col.DefaultIsEmpty = true
-
-		for idx, field := range fields {
-			if idx == 0 {
-				col.Name = strings.Trim(strings.Trim(field, "`[] "), `"`)
-				continue
-			} else if idx == 1 {
-				col.SQLType = core.SQLType{Name: field, DefaultLength: 0, DefaultLength2: 0}
-			}
-			switch field {
-			case "PRIMARY":
-				col.IsPrimaryKey = true
-			case "AUTOINCREMENT":
-				col.IsAutoIncrement = true
-			case "NULL":
-				if fields[idx-1] == "NOT" {
-					col.Nullable = false
-				} else {
-					col.Nullable = true
-				}
-			case "DEFAULT":
-				col.Default = fields[idx+1]
-				col.DefaultIsEmpty = false
-			}
+		col, err := parseString(colStr)
+		if err != nil {
+			return colSeq, cols, err
 		}
+
 		cols[col.Name] = col
 		colSeq = append(colSeq, col.Name)
 	}
