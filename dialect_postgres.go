@@ -854,7 +854,7 @@ func (db *postgres) SupportInsertMany() bool {
 }
 
 func (db *postgres) IsReserved(name string) bool {
-	_, ok := postgresReservedWords[name]
+	_, ok := postgresReservedWords[strings.ToUpper(name)]
 	return ok
 }
 

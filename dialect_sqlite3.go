@@ -194,7 +194,7 @@ func (db *sqlite3) SupportInsertMany() bool {
 }
 
 func (db *sqlite3) IsReserved(name string) bool {
-	_, ok := sqlite3ReservedWords[name]
+	_, ok := sqlite3ReservedWords[strings.ToUpper(name)]
 	return ok
 }
 

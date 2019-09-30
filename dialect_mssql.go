@@ -281,7 +281,7 @@ func (db *mssql) SupportInsertMany() bool {
 }
 
 func (db *mssql) IsReserved(name string) bool {
-	_, ok := mssqlReservedWords[name]
+	_, ok := mssqlReservedWords[strings.ToUpper(name)]
 	return ok
 }
 

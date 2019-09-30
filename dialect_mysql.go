@@ -270,7 +270,7 @@ func (db *mysql) SupportInsertMany() bool {
 }
 
 func (db *mysql) IsReserved(name string) bool {
-	_, ok := mysqlReservedWords[name]
+	_, ok := mysqlReservedWords[strings.ToUpper(name)]
 	return ok
 }
 

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"xorm.io/builder"
 	"xorm.io/core"
 )
 
@@ -26,6 +27,7 @@ type Quoter interface {
 	Quotes() (byte, byte)
 	QuotePolicy() QuotePolicy
 	IsReserved(string) bool
+	WriteTo(w *builder.BytesWriter, value string) error
 }
 
 type quoter struct {
@@ -51,6 +53,29 @@ func (q *quoter) QuotePolicy() QuotePolicy {
 
 func (q *quoter) IsReserved(value string) bool {
 	return q.dialect.IsReserved(value)
+}
+
+func (q *quoter) needQuote(value string) bool {
+	return q.quotePolicy == QuoteAddAlways || (q.quotePolicy == QuoteAddReserved && q.IsReserved(value))
+}
+
+func (q *quoter) WriteTo(w *builder.BytesWriter, name string) error {
+	leftQuote, rightQuote := q.Quotes()
+	needQuote := q.needQuote(name)
+	if needQuote && name[0] != '`' {
+		if err := w.WriteByte(leftQuote); err != nil {
+			return err
+		}
+	}
+	if _, err := w.WriteString(name); err != nil {
+		return err
+	}
+	if needQuote && name[len(name)-1] != '`' {
+		if err := w.WriteByte(rightQuote); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func quoteColumns(quoter Quoter, columnStr string) string {
@@ -96,13 +121,21 @@ func (engine *Engine) IsReserved(value string) bool {
 	return engine.dialect.IsReserved(value)
 }
 
+// SetTableQuotePolicy set table quote policy
+func (engine *Engine) SetTableQuotePolicy(policy QuotePolicy) {
+	engine.tableQuoter = newQuoter(engine.dialect, policy)
+}
+
+// SetColumnQuotePolicy set column quote policy
+func (engine *Engine) SetColumnQuotePolicy(policy QuotePolicy) {
+	engine.colQuoter = newQuoter(engine.dialect, policy)
+}
+
 // quoteTo quotes string and writes into the buffer
 func quoteTo(quoter Quoter, buf *strings.Builder, value string) {
 	left, right := quoter.Quotes()
-	if quoter.QuotePolicy() == QuoteAddAlways {
-		realQuoteTo(left, right, buf, value)
-		return
-	} else if quoter.QuotePolicy() == QuoteAddReserved && quoter.IsReserved(value) {
+	if (quoter.QuotePolicy() == QuoteAddAlways) ||
+		(quoter.QuotePolicy() == QuoteAddReserved && quoter.IsReserved(value)) {
 		realQuoteTo(left, right, buf, value)
 		return
 	}

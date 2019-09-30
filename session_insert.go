@@ -377,7 +377,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			return 0, err
 		}
 
-		if err := writeStrings(buf, append(colNames, exprs.colNames...), "`", "`"); err != nil {
+		if err := writeStrings(buf, append(colNames, exprs.colNames...), session.engine.colQuoter); err != nil {
 			return 0, err
 		}
 
@@ -735,7 +735,7 @@ func (session *Session) insertMapInterface(m map[string]interface{}) (int64, err
 			return 0, err
 		}
 
-		if err := writeStrings(w, append(columns, exprs.colNames...), "`", "`"); err != nil {
+		if err := writeStrings(w, append(columns, exprs.colNames...), session.engine.colQuoter); err != nil {
 			return 0, err
 		}
 
@@ -821,7 +821,7 @@ func (session *Session) insertMapString(m map[string]string) (int64, error) {
 			return 0, err
 		}
 
-		if err := writeStrings(w, append(columns, exprs.colNames...), "`", "`"); err != nil {
+		if err := writeStrings(w, append(columns, exprs.colNames...), session.engine.colQuoter); err != nil {
 			return 0, err
 		}
 
