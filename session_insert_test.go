@@ -280,7 +280,7 @@ func TestInsertCreated(t *testing.T) {
 	_, err = testEngine.Insert(ci)
 	assert.NoError(t, err)
 
-	idStr := testEngine.Quote("Id", true)
+	idStr := testEngine.Quote(colMapper.Obj2Table("Id"), true)
 	has, err := testEngine.Desc(idStr).Get(di)
 	assert.NoError(t, err)
 	if !has {

@@ -649,7 +649,7 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 				// !<winxxp>! 增加支持sql.Scanner接口的结构，如sql.NullString
 				hasAssigned = true
 				if err := nulVal.Scan(vv.Interface()); err != nil {
-					session.engine.logger.Error("sql.Sanner error:", err.Error())
+					session.engine.logger.Error("sql.Scanner error:", err.Error())
 					hasAssigned = false
 				}
 			} else if col.SQLType.IsJson() {
