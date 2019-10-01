@@ -245,7 +245,12 @@ func (session *Session) Sync2(beans ...interface{}) error {
 		if err != nil {
 			return err
 		}
-		tbName := engine.TableName(bean)
+		var tbName string
+		if len(session.statement.AltTableName) > 0 {
+			tbName = session.statement.AltTableName
+		} else {
+			tbName = engine.TableName(bean)
+		}
 		tbNameWithSchema := engine.TableName(tbName, true)
 
 		var oriTable *core.Table
