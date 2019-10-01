@@ -95,8 +95,8 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		tagHandlers:    defaultTagHandlers,
 		cachers:        make(map[string]core.Cacher),
 		defaultContext: context.Background(),
-		colQuoter:      newQuoter(dialect, QuoteAddAlways),
-		tableQuoter:    newQuoter(dialect, QuoteAddAlways),
+		colQuoter:      newQuoter(dialect, QuotePolicyAlways),
+		tableQuoter:    newQuoter(dialect, QuotePolicyAlways),
 	}
 
 	if uri.DbType == core.SQLITE {

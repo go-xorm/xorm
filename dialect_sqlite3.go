@@ -477,7 +477,7 @@ func (db *sqlite3) GetIndexes(tableName string) (map[string]*core.Index, error) 
 }
 
 func (db *sqlite3) Filters() []core.Filter {
-	return []core.Filter{&core.IdFilter{}}
+	return []core.Filter{}
 }
 
 type sqlite3Driver struct {

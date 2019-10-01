@@ -48,6 +48,8 @@ steps:
   - go get -u github.com/wadey/gocovmerge
   - "go test -v -race -db=\"sqlite3\" -conn_str=\"./test.db\" -coverprofile=coverage1-1.txt -covermode=atomic"
   - "go test -v -race -db=\"sqlite3\" -conn_str=\"./test.db\" -cache=true -coverprofile=coverage1-2.txt -covermode=atomic"
+  - "go test -v -race -db=\"sqlite3\" -conn_str=\"./test.db\" -col_quote=reserved -coverprofile=coverage1-3.txt -covermode=atomic"
+  - "go test -v -race -db=\"sqlite3\" -conn_str=\"./test.db\" -col_quote=reserved -cache=true -coverprofile=coverage1-4.txt -covermode=atomic"
   when:
     event:
     - push
@@ -59,6 +61,8 @@ steps:
   commands:
   - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test\" -coverprofile=coverage2-1.txt -covermode=atomic"
   - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test\" -cache=true -coverprofile=coverage2-2.txt -covermode=atomic"
+  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test\" -col_quote=reserved -coverprofile=coverage2-3.txt -covermode=atomic"
+  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test\" -col_quote=reserved -cache=true -coverprofile=coverage2-4.txt -covermode=atomic"
   when:
     event:
     - push
@@ -70,6 +74,8 @@ steps:
   commands:
   - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test?charset=utf8mb4\" -coverprofile=coverage2.1-1.txt -covermode=atomic"
   - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test?charset=utf8mb4\" -cache=true -coverprofile=coverage2.1-2.txt -covermode=atomic"
+  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test?charset=utf8mb4\" -col_quote=reserved -coverprofile=coverage2.1-3.txt -covermode=atomic"
+  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test?charset=utf8mb4\" -col_quote=reserved -cache=true -coverprofile=coverage2.1-4.txt -covermode=atomic"
   when:
     event:
     - push
@@ -81,6 +87,8 @@ steps:
   commands:
   - "go test -v -race -db=\"mymysql\" -conn_str=\"tcp:mysql:3306*xorm_test/root/\" -coverprofile=coverage3-1.txt -covermode=atomic"
   - "go test -v -race -db=\"mymysql\" -conn_str=\"tcp:mysql:3306*xorm_test/root/\" -cache=true -coverprofile=coverage3-2.txt -covermode=atomic"
+  - "go test -v -race -db=\"mymysql\" -conn_str=\"tcp:mysql:3306*xorm_test/root/\" -col_quote=reserved -coverprofile=coverage3-3.txt -covermode=atomic"
+  - "go test -v -race -db=\"mymysql\" -conn_str=\"tcp:mysql:3306*xorm_test/root/\" -col_quote=reserved -cache=true -coverprofile=coverage3-4.txt -covermode=atomic"
   when:
     event:
     - push
@@ -92,6 +100,8 @@ steps:
   commands:
   - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -coverprofile=coverage4-1.txt -covermode=atomic"
   - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -cache=true -coverprofile=coverage4-2.txt -covermode=atomic"
+  - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -col_quote=reserved -coverprofile=coverage4-3.txt -covermode=atomic"
+  - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -col_quote=reserved -cache=true -coverprofile=coverage4-4.txt -covermode=atomic"
   when:
     event:
     - push
@@ -103,6 +113,8 @@ steps:
   commands:
   - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -schema=xorm -coverprofile=coverage5-1.txt -covermode=atomic"
   - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -schema=xorm -cache=true -coverprofile=coverage5-2.txt -covermode=atomic"
+  - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -col_quote=reserved -schema=xorm -coverprofile=coverage5-3.txt -covermode=atomic"
+  - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -col_quote=reserved -schema=xorm -cache=true -coverprofile=coverage5-4.txt -covermode=atomic"
   when:
     event:
     - push
@@ -114,6 +126,8 @@ steps:
   commands:
   - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -coverprofile=coverage6-1.txt -covermode=atomic"
   - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -cache=true -coverprofile=coverage6-2.txt -covermode=atomic"
+  - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -col_quote=reserved -coverprofile=coverage6-3.txt -covermode=atomic"
+  - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -col_quote=reserved -cache=true -coverprofile=coverage6-4.txt -covermode=atomic"
   when:
     event:
     - push
@@ -125,7 +139,17 @@ steps:
   commands:
   - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(tidb:4000)/xorm_test\" -ignore_select_update=true -coverprofile=coverage7-1.txt -covermode=atomic"
   - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(tidb:4000)/xorm_test\" -ignore_select_update=true -cache=true -coverprofile=coverage7-2.txt -covermode=atomic"
-  - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt coverage6-1.txt coverage6-2.txt coverage7-1.txt coverage7-2.txt > coverage.txt
+  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(tidb:4000)/xorm_test\" -col_quote=reserved -ignore_select_update=true -coverprofile=coverage7-3.txt -covermode=atomic"
+  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(tidb:4000)/xorm_test\" -col_quote=reserved -ignore_select_update=true -cache=true -coverprofile=coverage7-4.txt -covermode=atomic"
+  - >
+    gocovmerge coverage1-1.txt coverage1-2.txt coverage1-3.txt coverage1-4.txt
+    coverage2-1.txt coverage2-2.txt coverage2-3.txt coverage2-4.txt
+    coverage2.1-1.txt coverage2.1-2.txt coverage2.1-3.txt coverage2.1-4.txt
+    coverage3-1.txt coverage3-2.txt coverage3-3.txt coverage3-4.txt
+    coverage4-1.txt coverage4-2.txt coverage4-3.txt coverage4-4.txt
+    coverage5-1.txt coverage5-2.txt coverage5-3.txt coverage5-4.txt
+    coverage6-1.txt coverage6-2.txt coverage6-3.txt coverage6-4.txt
+    coverage7-1.txt coverage7-2.txt coverage7-3.txt coverage7-4.txt > coverage.txt
   when:
     event:
     - push

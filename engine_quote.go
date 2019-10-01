@@ -17,9 +17,9 @@ type QuotePolicy int
 
 // All QuotePolicies
 const (
-	QuoteAddAlways QuotePolicy = iota
-	QuoteNoAdd
-	QuoteAddReserved
+	QuotePolicyAlways QuotePolicy = iota
+	QuotePolicyNone
+	QuotePolicyReserved
 )
 
 // Quoter represents an object has Quote method
@@ -56,7 +56,7 @@ func (q *quoter) IsReserved(value string) bool {
 }
 
 func (q *quoter) needQuote(value string) bool {
-	return q.quotePolicy == QuoteAddAlways || (q.quotePolicy == QuoteAddReserved && q.IsReserved(value))
+	return q.quotePolicy == QuotePolicyAlways || (q.quotePolicy == QuotePolicyReserved && q.IsReserved(value))
 }
 
 func (q *quoter) WriteTo(w *builder.BytesWriter, name string) error {
@@ -134,8 +134,8 @@ func (engine *Engine) SetColumnQuotePolicy(policy QuotePolicy) {
 // quoteTo quotes string and writes into the buffer
 func quoteTo(quoter Quoter, buf *strings.Builder, value string) {
 	left, right := quoter.Quotes()
-	if (quoter.QuotePolicy() == QuoteAddAlways) ||
-		(quoter.QuotePolicy() == QuoteAddReserved && quoter.IsReserved(value)) {
+	if (quoter.QuotePolicy() == QuotePolicyAlways) ||
+		(quoter.QuotePolicy() == QuotePolicyReserved && quoter.IsReserved(value)) {
 		realQuoteTo(left, right, buf, value)
 		return
 	}

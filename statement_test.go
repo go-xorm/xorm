@@ -18,18 +18,23 @@ var colStrTests = []struct {
 	onlyToDBColumnNdx int
 	expected          string
 }{
-	{"", -1, "`ID`, `IsDeleted`, `Caption`, `Code1`, `Code2`, `Code3`, `ParentID`, `Latitude`, `Longitude`"},
-	{"Code2", -1, "`ID`, `IsDeleted`, `Caption`, `Code1`, `Code3`, `ParentID`, `Latitude`, `Longitude`"},
-	{"", 1, "`ID`, `Caption`, `Code1`, `Code2`, `Code3`, `ParentID`, `Latitude`, `Longitude`"},
-	{"Code3", 1, "`ID`, `Caption`, `Code1`, `Code2`, `ParentID`, `Latitude`, `Longitude`"},
-	{"Longitude", 1, "`ID`, `Caption`, `Code1`, `Code2`, `Code3`, `ParentID`, `Latitude`"},
-	{"", 8, "`ID`, `IsDeleted`, `Caption`, `Code1`, `Code2`, `Code3`, `ParentID`, `Latitude`"},
+	{"", -1, "ID, IsDeleted, Caption, Code1, Code2, Code3, ParentID, Latitude, Longitude"},
+	{"Code2", -1, "ID, IsDeleted, Caption, Code1, Code3, ParentID, Latitude, Longitude"},
+	{"", 1, "ID, Caption, Code1, Code2, Code3, ParentID, Latitude, Longitude"},
+	{"Code3", 1, "ID, Caption, Code1, Code2, ParentID, Latitude, Longitude"},
+	{"Longitude", 1, "ID, Caption, Code1, Code2, Code3, ParentID, Latitude"},
+	{"", 8, "ID, IsDeleted, Caption, Code1, Code2, Code3, ParentID, Latitude"},
 }
 
 func TestColumnsStringGeneration(t *testing.T) {
 	if dbType == "postgres" || dbType == "mssql" {
 		return
 	}
+
+	testEngine.SetColumnQuotePolicy(QuotePolicyNone)
+	defer func() {
+		testEngine.SetColumnQuotePolicy(colQuotePolicy)
+	}()
 
 	var statement *Statement
 

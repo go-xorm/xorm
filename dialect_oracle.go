@@ -847,7 +847,7 @@ func (db *oracle) GetIndexes(tableName string) (map[string]*core.Index, error) {
 }
 
 func (db *oracle) Filters() []core.Filter {
-	return []core.Filter{&core.QuoteFilter{}, &core.SeqFilter{Prefix: ":", Start: 1}, &core.IdFilter{}}
+	return []core.Filter{&core.QuoteFilter{}, &core.SeqFilter{Prefix: ":", Start: 1}}
 }
 
 type goracleDriver struct {

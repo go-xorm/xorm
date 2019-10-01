@@ -35,9 +35,11 @@ var (
 	splitter           = flag.String("splitter", ";", "the splitter on connstr for cluster")
 	schema             = flag.String("schema", "", "specify the schema")
 	ignoreSelectUpdate = flag.Bool("ignore_select_update", false, "ignore select update if implementation difference, only for tidb")
+	colQuotePolicyStr  = flag.String("col_quote", "always", "quote could be always, none, reversed")
 
-	tableMapper core.IMapper
-	colMapper   core.IMapper
+	tableMapper    core.IMapper
+	colMapper      core.IMapper
+	colQuotePolicy QuotePolicy
 )
 
 func createEngine(dbType, connStr string) error {
@@ -123,6 +125,15 @@ func createEngine(dbType, connStr string) error {
 				testEngine.SetMapper(core.LintGonicMapper)
 			}
 		}
+
+		if *colQuotePolicyStr == "none" {
+			colQuotePolicy = QuotePolicyNone
+		} else if *colQuotePolicyStr == "reserved" {
+			colQuotePolicy = QuotePolicyReserved
+		} else {
+			colQuotePolicy = QuotePolicyAlways
+		}
+		testEngine.SetColumnQuotePolicy(colQuotePolicy)
 	}
 
 	tableMapper = testEngine.GetTableMapper()

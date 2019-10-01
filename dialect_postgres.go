@@ -1160,7 +1160,7 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error)
 }
 
 func (db *postgres) Filters() []core.Filter {
-	return []core.Filter{&core.IdFilter{}, &core.QuoteFilter{}, &core.SeqFilter{Prefix: "$", Start: 1}}
+	return []core.Filter{&core.QuoteFilter{}, &core.SeqFilter{Prefix: "$", Start: 1}}
 }
 
 type pqDriver struct {

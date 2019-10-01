@@ -560,7 +560,7 @@ func (db *mysql) CreateTableSql(table *core.Table, tableName, storeEngine, chars
 }
 
 func (db *mysql) Filters() []core.Filter {
-	return []core.Filter{&core.IdFilter{}}
+	return []core.Filter{}
 }
 
 type mymysqlDriver struct {

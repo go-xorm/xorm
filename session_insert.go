@@ -260,6 +260,8 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 			quoteJoin(session.engine.colQuoter, colNames),
 			strings.Join(colMultiPlaces, "),("))
 	}
+
+	fmt.Println("====", sql)
 	res, err := session.exec(sql, args...)
 	if err != nil {
 		return 0, err

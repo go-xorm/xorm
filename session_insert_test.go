@@ -201,28 +201,13 @@ func TestInsertDefault(t *testing.T) {
 	_, err = testEngine.Omit(testEngine.GetColumnMapper().Obj2Table("Status")).Insert(&di2)
 	assert.NoError(t, err)
 
-	has, err := testEngine.Desc("(id)").Get(di)
+	idStr := colMapper.Obj2Table("Id")
+	has, err := testEngine.Desc(idStr).Get(di)
 	assert.NoError(t, err)
-	if !has {
-		err = errors.New("error with no data")
-		t.Error(err)
-		panic(err)
-	}
-	if di.Status != -1 {
-		err = errors.New("inserted error data")
-		t.Error(err)
-		panic(err)
-	}
-	if di2.Updated.Unix() != di.Updated.Unix() {
-		err = errors.New("updated should equal")
-		t.Error(err, di.Updated, di2.Updated)
-		panic(err)
-	}
-	if di2.Created.Unix() != di.Created.Unix() {
-		err = errors.New("created should equal")
-		t.Error(err, di.Created, di2.Created)
-		panic(err)
-	}
+	assert.True(t, has, "error with no data")
+	assert.EqualValues(t, -1, di.Status, "inserted error data")
+	assert.EqualValues(t, di.Updated.Unix(), di2.Updated.Unix(), "updated should equal")
+	assert.EqualValues(t, di.Created.Unix(), di2.Created.Unix())
 }
 
 type DefaultInsert2 struct {
@@ -237,53 +222,21 @@ func TestInsertDefault2(t *testing.T) {
 
 	di := new(DefaultInsert2)
 	err := testEngine.Sync2(di)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
 	var di2 = DefaultInsert2{Name: "test"}
 	_, err = testEngine.Omit(testEngine.GetColumnMapper().Obj2Table("CheckTime")).Insert(&di2)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
-	has, err := testEngine.Desc("(id)").Get(di)
-	if err != nil {
-		t.Error(err)
-	}
-	if !has {
-		err = errors.New("error with no data")
-		t.Error(err)
-		panic(err)
-	}
+	idStr := testEngine.Quote(testEngine.GetColumnMapper().Obj2Table("Id"), true)
+	has, err := testEngine.Desc(idStr).Get(di)
+	assert.NoError(t, err)
+	assert.True(t, has, "error with no data")
 
-	has, err = testEngine.NoAutoCondition().Desc("(id)").Get(&di2)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if !has {
-		err = errors.New("error with no data")
-		t.Error(err)
-		panic(err)
-	}
-
-	if *di != di2 {
-		err = fmt.Errorf("%v is not equal to %v", di, di2)
-		t.Error(err)
-		panic(err)
-	}
-
-	/*if di2.Updated.Unix() != di.Updated.Unix() {
-		err = errors.New("updated should equal")
-		t.Error(err, di.Updated, di2.Updated)
-		panic(err)
-	}
-	if di2.Created.Unix() != di.Created.Unix() {
-		err = errors.New("created should equal")
-		t.Error(err, di.Created, di2.Created)
-		panic(err)
-	}*/
+	has, err = testEngine.NoAutoCondition().Desc(idStr).Get(&di2)
+	assert.NoError(t, err)
+	assert.True(t, has, "error with no data")
+	assert.EqualValues(t, *di, di2, fmt.Errorf("%v is not equal to %v", di, di2))
 }
 
 type CreatedInsert struct {
@@ -321,19 +274,15 @@ func TestInsertCreated(t *testing.T) {
 
 	di := new(CreatedInsert)
 	err := testEngine.Sync2(di)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
 	ci := &CreatedInsert{}
 	_, err = testEngine.Insert(ci)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
-	has, err := testEngine.Desc("(id)").Get(di)
-	if err != nil {
-		t.Fatal(err)
-	}
+	idStr := testEngine.Quote("Id", true)
+	has, err := testEngine.Desc(idStr).Get(di)
+	assert.NoError(t, err)
 	if !has {
 		t.Fatal(ErrNotExist)
 	}
@@ -344,18 +293,14 @@ func TestInsertCreated(t *testing.T) {
 
 	di2 := new(CreatedInsert2)
 	err = testEngine.Sync2(di2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
 	ci2 := &CreatedInsert2{}
 	_, err = testEngine.Insert(ci2)
-	if err != nil {
-		t.Fatal(err)
-	}
-	has, err = testEngine.Desc("(id)").Get(di2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
+	has, err = testEngine.Desc(idStr).Get(di2)
+	assert.NoError(t, err)
 	if !has {
 		t.Fatal(ErrNotExist)
 	}
@@ -366,18 +311,14 @@ func TestInsertCreated(t *testing.T) {
 
 	di3 := new(CreatedInsert3)
 	err = testEngine.Sync2(di3)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
 	ci3 := &CreatedInsert3{}
 	_, err = testEngine.Insert(ci3)
-	if err != nil {
-		t.Fatal(err)
-	}
-	has, err = testEngine.Desc("(id)").Get(di3)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
+	has, err = testEngine.Desc(idStr).Get(di3)
+	assert.NoError(t, err)
 	if !has {
 		t.Fatal(ErrNotExist)
 	}
@@ -388,18 +329,14 @@ func TestInsertCreated(t *testing.T) {
 
 	di4 := new(CreatedInsert4)
 	err = testEngine.Sync2(di4)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
 	ci4 := &CreatedInsert4{}
 	_, err = testEngine.Insert(ci4)
-	if err != nil {
-		t.Fatal(err)
-	}
-	has, err = testEngine.Desc("(id)").Get(di4)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
+	has, err = testEngine.Desc(idStr).Get(di4)
+	assert.NoError(t, err)
 	if !has {
 		t.Fatal(ErrNotExist)
 	}
@@ -410,18 +347,14 @@ func TestInsertCreated(t *testing.T) {
 
 	di5 := new(CreatedInsert5)
 	err = testEngine.Sync2(di5)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
 	ci5 := &CreatedInsert5{}
 	_, err = testEngine.Insert(ci5)
-	if err != nil {
-		t.Fatal(err)
-	}
-	has, err = testEngine.Desc("(id)").Get(di5)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
+	has, err = testEngine.Desc(idStr).Get(di5)
+	assert.NoError(t, err)
 	if !has {
 		t.Fatal(ErrNotExist)
 	}
@@ -432,20 +365,15 @@ func TestInsertCreated(t *testing.T) {
 
 	di6 := new(CreatedInsert6)
 	err = testEngine.Sync2(di6)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
 	oldTime := time.Now().Add(-time.Hour)
 	ci6 := &CreatedInsert6{Created: oldTime}
 	_, err = testEngine.Insert(ci6)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
-	has, err = testEngine.Desc("(id)").Get(di6)
-	if err != nil {
-		t.Fatal(err)
-	}
+	has, err = testEngine.Desc(idStr).Get(di6)
+	assert.NoError(t, err)
 	if !has {
 		t.Fatal(ErrNotExist)
 	}
@@ -476,8 +404,7 @@ func (j JsonTime) MarshalJSON() ([]byte, error) {
 
 func TestDefaultTime3(t *testing.T) {
 	type PrepareTask struct {
-		Id int `xorm:"not null pk autoincr INT(11)" json:"id"`
-		// ...
+		Id        int      `xorm:"not null pk autoincr INT(11)" json:"id"`
 		StartTime JsonTime `xorm:"not null default '2006-01-02 15:04:05' TIMESTAMP index" json:"start_time"`
 		EndTime   JsonTime `xorm:"not null default '2006-01-02 15:04:05' TIMESTAMP" json:"end_time"`
 		Cuser     string   `xorm:"not null default '' VARCHAR(64) index" json:"cuser"`
@@ -509,31 +436,22 @@ func TestCreatedJsonTime(t *testing.T) {
 
 	di5 := new(MyJsonTime)
 	err := testEngine.Sync2(di5)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
 	ci5 := &MyJsonTime{}
 	_, err = testEngine.Insert(ci5)
-	if err != nil {
-		t.Fatal(err)
-	}
-	has, err := testEngine.Desc("(id)").Get(di5)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !has {
-		t.Fatal(ErrNotExist)
-	}
-	if time.Time(ci5.Created).Unix() != time.Time(di5.Created).Unix() {
-		t.Fatal("should equal:", time.Time(ci5.Created).Unix(), time.Time(di5.Created).Unix())
-	}
-	fmt.Println("ci5:", ci5, "di5:", di5)
+	assert.NoError(t, err)
+
+	idStr := testEngine.Quote(colMapper.Obj2Table("Id"), true)
+	has, err := testEngine.Desc(idStr).Get(di5)
+	assert.NoError(t, err)
+	assert.True(t, has, ErrNotExist.Error())
+	assert.EqualValues(t, time.Time(ci5.Created).Unix(), time.Time(di5.Created).Unix(),
+		fmt.Sprintf("should equal: %v %v", time.Time(ci5.Created).Unix(), time.Time(di5.Created).Unix()))
 
 	var dis = make([]MyJsonTime, 0)
 	err = testEngine.Find(&dis)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 }
 
 func TestInsertMulti2(t *testing.T) {
@@ -548,10 +466,7 @@ func TestInsertMulti2(t *testing.T) {
 		{Username: "xlw22", Departname: "dev", Alias: "lunny3", Created: time.Now()},
 	}
 	cnt, err := testEngine.Insert(&users)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 	if cnt != int64(len(users)) {
 		err = errors.New("insert not returned 1")
 		t.Error(err)
@@ -567,10 +482,7 @@ func TestInsertMulti2(t *testing.T) {
 	}
 
 	cnt, err = testEngine.Insert(&users2)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	if cnt != int64(len(users2)) {
 		err = errors.New(fmt.Sprintf("insert not returned %v", len(users2)))
@@ -588,10 +500,7 @@ func TestInsertTwoTable(t *testing.T) {
 	userinfo := Userinfo{Username: "xlw3", Departname: "dev", Alias: "lunny4", Created: time.Now(), Detail: userdetail}
 
 	cnt, err := testEngine.Insert(&userinfo, &userdetail)
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
+	assert.NoError(t, err)
 
 	if userinfo.Uid <= 0 {
 		err = errors.New("not return id error")

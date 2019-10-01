@@ -27,7 +27,11 @@ func TestChangeQuotePolicy(t *testing.T) {
 		Name string
 	}
 
-	testEngine.SetColumnQuotePolicy(QuoteNoAdd)
+	testEngine.SetColumnQuotePolicy(QuotePolicyNone)
+	defer func() {
+		testEngine.SetColumnQuotePolicy(colQuotePolicy)
+	}()
+
 	assertSync(t, new(ChangeQuotePolicy))
 
 	var obj1 = ChangeQuotePolicy{
@@ -63,7 +67,11 @@ func TestChangeQuotePolicy2(t *testing.T) {
 		Index int
 	}
 
-	testEngine.SetColumnQuotePolicy(QuoteAddReserved)
+	testEngine.SetColumnQuotePolicy(QuotePolicyReserved)
+	defer func() {
+		testEngine.SetColumnQuotePolicy(colQuotePolicy)
+	}()
+
 	assertSync(t, new(ChangeQuotePolicy2))
 
 	var obj1 = ChangeQuotePolicy2{
