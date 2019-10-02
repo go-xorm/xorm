@@ -332,3 +332,16 @@ func TestSync2_2(t *testing.T) {
 		assert.True(t, tableNames[table.Name])
 	}
 }
+
+func TestSync2_Default(t *testing.T) {
+	type TestSync2Default struct {
+		Id       int64
+		UserId   int64  `xorm:"default(1)"`
+		IsMember bool   `xorm:"default(true)"`
+		Name     string `xorm:"default('my_name')"`
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(TestSync2Default))
+	assert.NoError(t, testEngine.Sync2(new(TestSync2Default)))
+}

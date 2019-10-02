@@ -344,9 +344,15 @@ func (session *Session) Sync2(beans ...interface{}) error {
 					}
 				}
 			}
+
 			if col.Default != oriCol.Default {
-				engine.logger.Warnf("Table %s Column %s db default is %s, struct default is %s",
-					tbName, col.Name, oriCol.Default, col.Default)
+				if (col.SQLType.Name == core.Bool || col.SQLType.Name == core.Boolean) &&
+					((strings.EqualFold(col.Default, "true") && oriCol.Default == "1") ||
+						(strings.EqualFold(col.Default, "false") && oriCol.Default == "0")) {
+				} else {
+					engine.logger.Warnf("Table %s Column %s db default is %s, struct default is %s",
+						tbName, col.Name, oriCol.Default, col.Default)
+				}
 			}
 			if col.Nullable != oriCol.Nullable {
 				engine.logger.Warnf("Table %s Column %s db nullable is %v, struct nullable is %v",
