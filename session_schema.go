@@ -342,8 +342,8 @@ func (session *Session) Sync2(beans ...interface{}) error {
 
 			if col.Default != oriCol.Default {
 				if (col.SQLType.Name == core.Bool || col.SQLType.Name == core.Boolean) &&
-					((col.Default == "true" && oriCol.Default == "1") ||
-						(col.Default == "false" && oriCol.Default == "0")) {
+					((strings.EqualFold(col.Default, "true") && oriCol.Default == "1") ||
+						(strings.EqualFold(col.Default, "false") && oriCol.Default == "0")) {
 				} else {
 					engine.logger.Warnf("Table %s Column %s db default is %s, struct default is %s",
 						tbName, col.Name, oriCol.Default, col.Default)
