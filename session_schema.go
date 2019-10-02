@@ -255,7 +255,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 
 		var oriTable *core.Table
 		for _, tb := range tables {
-			if strings.EqualFold(tb.Name, tbName) {
+			if strings.EqualFold(engine.TableName(tb.Name, true), tbName) {
 				oriTable = tb
 				break
 			}
