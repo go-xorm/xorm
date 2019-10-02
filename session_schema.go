@@ -251,11 +251,11 @@ func (session *Session) Sync2(beans ...interface{}) error {
 		} else {
 			tbName = engine.TableName(bean)
 		}
-		tbNameWithSchema := engine.TableName(tbName, true)
+		tbNameWithSchema := engine.tbNameWithSchema(tbName)
 
 		var oriTable *core.Table
 		for _, tb := range tables {
-			if strings.EqualFold(engine.TableName(tb.Name, true), tbName) {
+			if strings.EqualFold(engine.tbNameWithSchema(tb.Name), engine.tbNameWithSchema(tbName)) {
 				oriTable = tb
 				break
 			}
