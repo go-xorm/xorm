@@ -1390,3 +1390,34 @@ func TestUpdateDeleted(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 }
+
+func TestUpdateExprs(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type UpdateExprs struct {
+		Id        int64
+		NumIssues int
+		Name      string
+	}
+
+	assertSync(t, new(UpdateExprs))
+
+	_, err := testEngine.Insert(&UpdateExprs{
+		NumIssues: 1,
+		Name:      "lunny",
+	})
+	assert.NoError(t, err)
+
+	_, err = testEngine.SetExpr("num_issues", "num_issues+1").AllCols().Update(&UpdateExprs{
+		NumIssues: 3,
+		Name:      "lunny xiao",
+	})
+	assert.NoError(t, err)
+
+	var ue UpdateExprs
+	has, err := testEngine.Get(&ue)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 2, ue.NumIssues)
+	assert.EqualValues(t, "lunny xiao", ue.Name)
+}
