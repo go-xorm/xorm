@@ -618,3 +618,28 @@ func TestCustomTypes(t *testing.T) {
 	assert.True(t, has)
 	assert.EqualValues(t, 32, age)
 }
+
+func TestGetViaMapCond(t *testing.T) {
+	type GetViaMapCond struct {
+		Id       int64
+		Platform int
+		Index    int
+	}
+
+	assert.NoError(t, prepareEngine())
+	assertSync(t, new(GetViaMapCond))
+
+	var (
+		r           GetViaMapCond
+		platformStr = colMapper.Obj2Table("Platform")
+		indexStr    = colMapper.Obj2Table("Index")
+		query       = map[string]interface{}{
+			platformStr: 1,
+			indexStr:    1,
+		}
+	)
+
+	has, err := testEngine.Where(query).Get(&r)
+	assert.NoError(t, err)
+	assert.False(t, has)
+}
