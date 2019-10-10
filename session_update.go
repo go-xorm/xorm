@@ -379,7 +379,12 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	var tableAlias = session.engine.Quote(tableName)
 	if session.statement.TableAlias != "" {
-		tableAlias = fmt.Sprintf("%s AS %s", tableAlias, session.statement.TableAlias)
+		switch session.engine.dialect.DBType() {
+		case core.MSSQL:
+			tableAlias = fmt.Sprintf("%s %s", tableAlias, session.statement.TableAlias)
+		default:
+			tableAlias = fmt.Sprintf("%s AS %s", tableAlias, session.statement.TableAlias)
+		}
 	}
 
 	sqlStr = fmt.Sprintf("UPDATE %v%v SET %v %v",
