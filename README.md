@@ -1,4 +1,4 @@
-# xorm
+# xorm HAS BEEN MOVED TO https://gitea.com/xorm/xorm . THIS REPOSITORY WILL NOT BE UPDATED ANY MORE.
 
 [中文](https://github.com/go-xorm/xorm/blob/master/README_CN.md)
 
