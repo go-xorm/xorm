@@ -22,9 +22,27 @@ func (session *Session) queryPreprocess(sqlStr *string, paramStr ...interface{})
 	session.lastSQLArgs = paramStr
 }
 
+func (session *Session) argsConverter(args ...interface{}) []interface{} {
+	if session.engine.DatabaseTZ == nil {
+		return args
+	}
+	for i, arg := range args {
+		switch t := arg.(type) {
+		case time.Time:
+			args[i] = t.In(session.engine.DatabaseTZ)
+		case *time.Time:
+			if t != nil {
+				args[i] = t.In(session.engine.DatabaseTZ)
+			}
+		}
+	}
+	return args
+}
+
 func (session *Session) queryRows(sqlStr string, args ...interface{}) (*core.Rows, error) {
 	defer session.resetStatement()
 
+	args = session.argsConverter(args)
 	session.queryPreprocess(&sqlStr, args...)
 
 	if session.engine.showSQL {
@@ -151,7 +169,7 @@ func (session *Session) queryBytes(sqlStr string, args ...interface{}) ([]map[st
 
 func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, error) {
 	defer session.resetStatement()
-
+	args = session.argsConverter(args)
 	session.queryPreprocess(&sqlStr, args...)
 
 	if session.engine.showSQL {
