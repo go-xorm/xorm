@@ -30,6 +30,10 @@ func (session *Session) Count(bean ...interface{}) (int64, error) {
 		args = session.statement.RawParams
 	}
 
+	if len(session.statement.selectStr) > 0 {
+		sqlStr = "SELECT COUNT(*) FROM ("+sqlStr+") _TEMP_"
+	}
+
 	var total int64
 	err = session.queryRow(sqlStr, args...).Scan(&total)
 	if err == sql.ErrNoRows || err == nil {
