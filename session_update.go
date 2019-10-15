@@ -377,9 +377,19 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		return 0, errors.New("No content found to be updated")
 	}
 
+	var tableAlias = session.engine.Quote(tableName)
+	if session.statement.TableAlias != "" {
+		switch session.engine.dialect.DBType() {
+		case core.MSSQL:
+			tableAlias = fmt.Sprintf("%s %s", tableAlias, session.statement.TableAlias)
+		default:
+			tableAlias = fmt.Sprintf("%s AS %s", tableAlias, session.statement.TableAlias)
+		}
+	}
+
 	sqlStr = fmt.Sprintf("UPDATE %v%v SET %v %v",
 		top,
-		session.engine.Quote(tableName),
+		tableAlias,
 		strings.Join(colNames, ", "),
 		condSQL)
 

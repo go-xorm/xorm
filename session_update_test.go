@@ -1421,3 +1421,34 @@ func TestUpdateExprs(t *testing.T) {
 	assert.EqualValues(t, 2, ue.NumIssues)
 	assert.EqualValues(t, "lunny xiao", ue.Name)
 }
+
+func TestUpdateAlias(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type UpdateAlias struct {
+		Id        int64
+		NumIssues int
+		Name      string
+	}
+
+	assertSync(t, new(UpdateAlias))
+
+	_, err := testEngine.Insert(&UpdateAlias{
+		NumIssues: 1,
+		Name:      "lunny",
+	})
+	assert.NoError(t, err)
+
+	_, err = testEngine.Alias("ua").Where("ua.id = ?", 1).Update(&UpdateAlias{
+		NumIssues: 2,
+		Name:      "lunny xiao",
+	})
+	assert.NoError(t, err)
+
+	var ue UpdateAlias
+	has, err := testEngine.Get(&ue)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, 2, ue.NumIssues)
+	assert.EqualValues(t, "lunny xiao", ue.Name)
+}
