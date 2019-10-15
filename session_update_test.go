@@ -1421,3 +1421,45 @@ func TestUpdateExprs(t *testing.T) {
 	assert.EqualValues(t, 2, ue.NumIssues)
 	assert.EqualValues(t, "lunny xiao", ue.Name)
 }
+
+func TestUpdateMap3(t *testing.T) {
+	assert.NoError(t, prepareEngine())
+
+	type UpdateMapUser struct {
+		Id   uint64 `xorm:"PK"`
+		Name string `xorm:""`
+		Ver  uint64 `xorm:"version"`
+	}
+
+	oldMapper := testEngine.GetColumnMapper()
+	defer func() {
+		testEngine.SetColumnMapper(oldMapper)
+	}()
+
+	mapper := core.NewPrefixMapper(core.SnakeMapper{}, "F")
+	testEngine.SetColumnMapper(mapper)
+
+	assertSync(t, new(UpdateMapUser))
+
+	_, err := testEngine.Table(new(UpdateMapUser)).Insert(map[string]interface{}{
+		"Fname": "first user name",
+		"Fver":  1,
+	})
+	assert.NoError(t, err)
+
+	update := map[string]interface{}{
+		"Fname": "user name",
+		"Fver":  1,
+	}
+	rows, err := testEngine.Table(new(UpdateMapUser)).ID(1).Update(update)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, rows)
+
+	update = map[string]interface{}{
+		"Name": "user name",
+		"Ver":  1,
+	}
+	rows, err = testEngine.Table(new(UpdateMapUser)).ID(1).Update(update)
+	assert.Error(t, err)
+	assert.EqualValues(t, 0, rows)
+}

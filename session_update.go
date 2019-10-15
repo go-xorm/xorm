@@ -294,21 +294,25 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	st := &session.statement
 
-	var sqlStr string
-	var condArgs []interface{}
-	var condSQL string
-	cond := session.statement.cond.And(autoCond)
+	var (
+		sqlStr   string
+		condArgs []interface{}
+		condSQL  string
+		cond     = session.statement.cond.And(autoCond)
 
-	var doIncVer = (table != nil && table.Version != "" && session.statement.checkVersion)
-	var verValue *reflect.Value
+		doIncVer = isStruct && (table != nil && table.Version != "" && session.statement.checkVersion)
+		verValue *reflect.Value
+	)
 	if doIncVer {
 		verValue, err = table.VersionColumn().ValueOf(bean)
 		if err != nil {
 			return 0, err
 		}
 
-		cond = cond.And(builder.Eq{session.engine.Quote(table.Version): verValue.Interface()})
-		colNames = append(colNames, session.engine.Quote(table.Version)+" = "+session.engine.Quote(table.Version)+" + 1")
+		if verValue != nil {
+			cond = cond.And(builder.Eq{session.engine.Quote(table.Version): verValue.Interface()})
+			colNames = append(colNames, session.engine.Quote(table.Version)+" = "+session.engine.Quote(table.Version)+" + 1")
+		}
 	}
 
 	condSQL, condArgs, err = builder.ToSQL(cond)
