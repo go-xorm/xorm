@@ -28,6 +28,10 @@ var (
 	ErrConditionType = errors.New("Unsupported condition type")
 	// ErrUnSupportedSQLType parameter of SQL is not supported
 	ErrUnSupportedSQLType = errors.New("unsupported sql type")
+	// ErrNoPrimaryKey represents an error lack of primary key
+	ErrNoPrimaryKey = errors.New("Current table has no necessary primary key")
+	// ErrMapKeyIsNotValid represents an error map key is not valid
+	ErrMapKeyIsNotValid = errors.New("Map key type must be a slice because the table have serval primary keys")
 )
 
 // ErrFieldIsNotExist columns does not exist
@@ -48,4 +52,19 @@ type ErrFieldIsNotValid struct {
 
 func (e ErrFieldIsNotValid) Error() string {
 	return fmt.Sprintf("field %s is not valid on table %s", e.FieldName, e.TableName)
+}
+
+// ErrPrimaryKeyNoSelected represents an error primary key not selected
+type ErrPrimaryKeyNoSelected struct {
+	PrimaryKey string
+}
+
+func (e ErrPrimaryKeyNoSelected) Error() string {
+	return fmt.Sprintf("primary key %s is not selected", e.PrimaryKey)
+}
+
+// IsErrPrimaryKeyNoSelected returns true is err is  ErrPrimaryKeyNoSelected
+func IsErrPrimaryKeyNoSelected(err error) bool {
+	_, ok := err.(ErrPrimaryKeyNoSelected)
+	return ok
 }

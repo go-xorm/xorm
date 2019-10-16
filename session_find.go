@@ -250,10 +250,21 @@ func (session *Session) noCacheFind(table *core.Table, containerValue reflect.Va
 	} else {
 		keyType := containerValue.Type().Key()
 		if len(table.PrimaryKeys) == 0 {
-			return errors.New("don't support multiple primary key's map has non-slice key type")
+			return ErrNoPrimaryKey
 		}
 		if len(table.PrimaryKeys) > 1 && keyType.Kind() != reflect.Slice {
-			return errors.New("don't support multiple primary key's map has non-slice key type")
+			return ErrMapKeyIsNotValid
+		}
+
+		var found bool
+		for _, field := range fields {
+			if strings.EqualFold(field, table.PrimaryKeys[0]) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return ErrPrimaryKeyNoSelected{table.PrimaryKeys[0]}
 		}
 
 		containerValueSetFunc = func(newValue *reflect.Value, pk core.PK) error {
