@@ -330,7 +330,7 @@ func (engine *Engine) Ping() error {
 	return session.Ping()
 }
 
-// logging sql
+// logSQL save sql
 func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
 	if engine.showSQL && !engine.showExecTime {
 		if len(sqlArgs) > 0 {
