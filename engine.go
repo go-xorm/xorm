@@ -1583,7 +1583,10 @@ func (engine *Engine) formatColTime(col *core.Column, t time.Time) (v interface{
 		if col.Nullable {
 			return nil
 		}
-		return ""
+		if col.Default != "" {
+			return col.Default
+		}
+		return engine.formatTime(col.SQLType.Name, t)
 	}
 
 	if col.TimeZone != nil {
