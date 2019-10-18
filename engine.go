@@ -1580,7 +1580,7 @@ func (engine *Engine) nowTime(col *core.Column) (interface{}, time.Time) {
 
 func (engine *Engine) formatColTime(col *core.Column, t time.Time) (v interface{}) {
 	if t.IsZero() {
-		if col.Nullable {
+		if col.Nullable || !col.DefaultIsEmpty {
 			return nil
 		}
 		return ""
