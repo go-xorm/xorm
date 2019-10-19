@@ -60,6 +60,7 @@ type Session struct {
 
 	ctx         context.Context
 	sessionType sessionType
+	softDelete SoftDelete
 }
 
 // Clone copy all the session's content and return a new session
@@ -67,7 +68,10 @@ func (session *Session) Clone() *Session {
 	var sess = *session
 	return &sess
 }
-
+func (session *Session) setSoftDelete(softDelete SoftDelete) *Session {
+	session.softDelete = softDelete
+	return session
+}
 // Init reset the session as the init status.
 func (session *Session) Init() {
 	session.statement.Init()

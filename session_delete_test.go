@@ -5,11 +5,12 @@
 package xorm
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
-	"xorm.io/core"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/core"
 )
 
 func TestDelete(t *testing.T) {
@@ -236,4 +237,95 @@ func TestUnscopeDelete(t *testing.T) {
 	has, err = testEngine.ID(1).Unscoped().Get(&s4)
 	assert.NoError(t, err)
 	assert.False(t, has)
+}
+
+func TestSoftDeleted(t *testing.T) {
+	type YySoftDeleted struct {
+		Id        int64 `xorm:"pk"`
+		Name      string
+		DeletedAt int64 `xorm:"not null default '0' comment('删除状态') deleted "`
+	}
+	testSoftEngine, err := createEngine(dbType, connString)
+	assert.NoError(t, err)
+
+	testSoftEngine.SetSoftDeleteHandler(&DefaultSoftDeleteHandler{})
+	defer testSoftEngine.SetSoftDeleteHandler(nil)
+	err = testSoftEngine.DropTables(&YySoftDeleted{})
+	assert.NoError(t, err)
+
+	err = testSoftEngine.CreateTables(&YySoftDeleted{})
+	assert.NoError(t, err)
+
+	_, err = testSoftEngine.InsertOne(&YySoftDeleted{Id: 1, Name: "4444"})
+	assert.NoError(t, err)
+
+	_, err = testSoftEngine.InsertOne(&YySoftDeleted{Id: 2, Name: "5555"})
+	assert.NoError(t, err)
+
+	_, err = testSoftEngine.InsertOne(&YySoftDeleted{Id: 3, Name: "6666"})
+	assert.NoError(t, err)
+
+	// Test normal Find()
+	var records1 []YySoftDeleted
+	err = testSoftEngine.Where("`"+testSoftEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").Find(&records1, &YySoftDeleted{})
+	fmt.Printf("%+v", records1)
+	assert.EqualValues(t, 3, len(records1))
+	// Test normal Get()
+	record1 := &YySoftDeleted{}
+	has, err := testSoftEngine.ID(1).Get(record1)
+	assert.NoError(t, err)
+	assert.True(t, has)
+
+	// Test Delete() with deleted
+	affected, err := testSoftEngine.ID(1).Delete(&YySoftDeleted{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, affected)
+
+	has, err = testSoftEngine.ID(1).Get(&YySoftDeleted{})
+	assert.NoError(t, err)
+	assert.False(t, has)
+
+	var records2 []YySoftDeleted
+	err = testSoftEngine.Where("`" + testSoftEngine.GetColumnMapper().Obj2Table("Id") + "` > 0").Find(&records2)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(records2))
+
+	// Test no rows affected after Delete() again.
+	affected, err = testSoftEngine.ID(1).Delete(&YySoftDeleted{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, affected)
+
+	// Deleted.DeletedAt must not be updated.
+	affected, err = testSoftEngine.ID(2).Update(&YySoftDeleted{Name: "23", DeletedAt: 1})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, affected)
+
+	record2 := &YySoftDeleted{}
+	has, err = testSoftEngine.ID(2).Get(record2)
+	assert.NoError(t, err)
+	// fmt.Printf("%+v", reco)
+	assert.True(t, record2.DeletedAt == 0)
+
+	// Test find all records whatever `deleted`.
+	var unscopedRecords1 []YySoftDeleted
+	err = testSoftEngine.Unscoped().Where("`"+testSoftEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").Find(&unscopedRecords1, &YySoftDeleted{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, len(unscopedRecords1))
+
+	// Delete() must really delete a record with Unscoped()
+	affected, err = testSoftEngine.Unscoped().ID(1).Delete(&YySoftDeleted{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, affected)
+
+	var unscopedRecords2 []YySoftDeleted
+	err = testSoftEngine.Unscoped().Where("`"+testSoftEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").Find(&unscopedRecords2, &YySoftDeleted{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(unscopedRecords2))
+
+	var records3 []YySoftDeleted
+	err = testSoftEngine.Where("`"+testSoftEngine.GetColumnMapper().Obj2Table("Id")+"` > 0").And("`"+testSoftEngine.GetColumnMapper().Obj2Table("Id")+"`> 1").
+		Or("`"+testSoftEngine.GetColumnMapper().Obj2Table("Id")+"` = ?", 3).Find(&records3)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(records3))
+	
 }

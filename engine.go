@@ -55,6 +55,7 @@ type Engine struct {
 	cacherLock sync.RWMutex
 
 	defaultContext context.Context
+	softDelete     SoftDelete
 }
 
 func (engine *Engine) setCacher(tableName string, cacher core.Cacher) {
@@ -94,6 +95,9 @@ func (engine *Engine) BufferSize(size int) *Session {
 func (engine *Engine) CondDeleted(colName string) builder.Cond {
 	if engine.dialect.DBType() == core.MSSQL {
 		return builder.IsNull{colName}
+	}
+	if engine.softDelete != nil {
+		return engine.softDelete.getSelectFilter(colName)
 	}
 	return builder.IsNull{colName}.Or(builder.Eq{colName: zeroTime1})
 }
@@ -315,7 +319,13 @@ func (engine *Engine) Dialect() core.Dialect {
 func (engine *Engine) NewSession() *Session {
 	session := &Session{engine: engine}
 	session.Init()
+	if engine.softDelete != nil {
+		session.setSoftDelete(engine.softDelete)
+	}
 	return session
+}
+func (engine *Engine) SetSoftDeleteHandler(handler SoftDelete) {
+	engine.softDelete = handler
 }
 
 // Close the engine
