@@ -1600,7 +1600,7 @@ func (engine *Engine) formatTime(sqlTypeName string, t time.Time) (v interface{}
 		v = s[11:19]
 	case core.Date:
 		v = t.Format("2006-01-02")
-	case core.DateTime, core.TimeStamp:
+	case core.DateTime, core.TimeStamp, core.Varchar: // !DarthPestilane! format time when sqlTypeName is core.Varchar.
 		v = t.Format("2006-01-02 15:04:05")
 	case core.TimeStampz:
 		if engine.dialect.DBType() == core.MSSQL {
