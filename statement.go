@@ -319,7 +319,9 @@ func (statement *Statement) buildUpdates(bean interface{},
 				if err != nil {
 					engine.logger.Error(err)
 				} else {
-					val = data
+					if data != nil {
+						val = data
+					}
 				}
 				goto APPEND
 			}
@@ -330,7 +332,9 @@ func (statement *Statement) buildUpdates(bean interface{},
 			if err != nil {
 				engine.logger.Error(err)
 			} else {
-				val = data
+				if data != nil {
+					val = data
+				}
 			}
 			goto APPEND
 		}
