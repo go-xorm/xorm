@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"xorm.io/core"
+	"github.com/go-xorm/core"
 )
 
 var (
@@ -220,7 +220,7 @@ func (db *mysql) SqlType(c *core.Column) string {
 	case core.TimeStampz:
 		res = core.Char
 		c.Length = 64
-	case core.Enum: // mysql enum
+	case core.Enum: //mysql enum
 		res = core.Enum
 		res += "("
 		opts := ""
@@ -229,7 +229,7 @@ func (db *mysql) SqlType(c *core.Column) string {
 		}
 		res += strings.TrimLeft(opts, ",")
 		res += ")"
-	case core.Set: // mysql set
+	case core.Set: //mysql set
 		res = core.Set
 		res += "("
 		opts := ""
@@ -276,6 +276,10 @@ func (db *mysql) IsReserved(name string) bool {
 
 func (db *mysql) Quote(name string) string {
 	return "`" + name + "`"
+}
+
+func (db *mysql) QuoteStr() string {
+	return "`"
 }
 
 func (db *mysql) SupportEngine() bool {
@@ -345,9 +349,9 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 
 		if colDefault != nil {
 			col.Default = *colDefault
-			col.DefaultIsEmpty = false
-		} else {
-			col.DefaultIsEmpty = true
+			if col.Default == "" {
+				col.DefaultIsEmpty = true
+			}
 		}
 
 		cts := strings.Split(colType, "(")
@@ -356,7 +360,7 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 		var len1, len2 int
 		if len(cts) == 2 {
 			idx := strings.Index(cts[1], ")")
-			if colType == core.Enum && cts[1][0] == '\'' { // enum
+			if colType == core.Enum && cts[1][0] == '\'' { //enum
 				options := strings.Split(cts[1][0:idx], ",")
 				col.EnumOptions = make(map[string]int)
 				for k, v := range options {
@@ -389,9 +393,6 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 		if colType == "FLOAT UNSIGNED" {
 			colType = "FLOAT"
 		}
-		if colType == "DOUBLE UNSIGNED" {
-			colType = "DOUBLE"
-		}
 		col.Length = len1
 		col.Length2 = len2
 		if _, ok := core.SqlTypes[colType]; ok {
@@ -404,18 +405,20 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 			col.IsPrimaryKey = true
 		}
 		if colKey == "UNI" {
-			// col.is
+			//col.is
 		}
 
 		if extra == "auto_increment" {
 			col.IsAutoIncrement = true
 		}
 
-		if !col.DefaultIsEmpty {
-			if col.SQLType.IsText() {
+		if col.SQLType.IsText() || col.SQLType.IsTime() {
+			if col.Default != "" {
 				col.Default = "'" + col.Default + "'"
-			} else if col.SQLType.IsTime() && col.Default != "CURRENT_TIMESTAMP" {
-				col.Default = "'" + col.Default + "'"
+			} else {
+				if col.DefaultIsEmpty {
+					col.Default = "''"
+				}
 			}
 		}
 		cols[col.Name] = col
@@ -507,11 +510,13 @@ func (db *mysql) GetIndexes(tableName string) (map[string]*core.Index, error) {
 
 func (db *mysql) CreateTableSql(table *core.Table, tableName, storeEngine, charset string) string {
 	var sql string
-	sql = "CREATE TABLE IF NOT EXISTS "
+	//sql = "CREATE TABLE IF NOT EXISTS "
+	sql = "DROP TABLE IF EXISTS "
 	if tableName == "" {
 		tableName = table.Name
 	}
-
+	sql += db.Quote(tableName) + ";\n"
+	sql += "CREATE TABLE IF NOT EXISTS "
 	sql += db.Quote(tableName)
 	sql += " ("
 
@@ -557,6 +562,36 @@ func (db *mysql) CreateTableSql(table *core.Table, tableName, storeEngine, chars
 		sql += " ROW_FORMAT=" + db.rowFormat
 	}
 	return sql
+}
+
+func RemoveRepeatedElement(arr []string) (newArr []string) {
+	newArr = make([]string, 0)
+	for i := 0; i < len(arr); i++ {
+		repeat := false
+		for j := i + 1; j < len(arr); j++ {
+			if arr[i] == arr[j] {
+				repeat = true
+				break
+			}
+		}
+		if !repeat {
+			newArr = append(newArr, arr[i])
+		}
+	}
+	return
+}
+func (db *mysql) CreateIndexSql(tableName string, index *core.Index) string {
+	quote := db.Quote
+	var unique string
+	var idxName string
+	if index.Type == core.UniqueType {
+		unique = " UNIQUE"
+	}
+	//idxName = index.XName(tableName)
+	idxName = index.Name
+	return fmt.Sprintf("CREATE%s INDEX %v ON %v (%v)", unique,
+		quote(idxName), quote(tableName),
+		quote(strings.Join(RemoveRepeatedElement(index.Cols), quote(","))))
 }
 
 func (db *mysql) Filters() []core.Filter {
@@ -625,7 +660,7 @@ func (p *mysqlDriver) Parse(driverName, dataSourceName string) (*core.Uri, error
 			`\/(?P<dbname>.*?)` + // /dbname
 			`(?:\?(?P<params>[^\?]*))?$`) // [?param1=value1&paramN=valueN]
 	matches := dsnPattern.FindStringSubmatch(dataSourceName)
-	// tlsConfigRegister := make(map[string]*tls.Config)
+	//tlsConfigRegister := make(map[string]*tls.Config)
 	names := dsnPattern.SubexpNames()
 
 	uri := &core.Uri{DbType: core.MYSQL}
