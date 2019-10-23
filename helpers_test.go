@@ -16,12 +16,3 @@ func TestEraseAny(t *testing.T) {
 	assert.EqualValues(t, "SELECT * FROM table.[table_name]", eraseAny(raw, "`"))
 	assert.EqualValues(t, "SELECT * FROM table.table_name", eraseAny(raw, "`", "[", "]"))
 }
-
-func TestQuoteColumns(t *testing.T) {
-	cols := []string{"f1", "f2", "f3"}
-	quoteFunc := func(value string) string {
-		return "[" + value + "]"
-	}
-
-	assert.EqualValues(t, "[f1], [f2], [f3]", quoteColumns(cols, quoteFunc, ","))
-}

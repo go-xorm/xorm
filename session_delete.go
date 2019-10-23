@@ -106,7 +106,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	}
 
 	var tableNameNoQuote = session.statement.TableName()
-	var tableName = session.engine.Quote(tableNameNoQuote)
+	var tableName = session.engine.quote(tableNameNoQuote, false)
 	var table = session.statement.RefTable
 	var deleteSQL string
 	if len(condSQL) > 0 {
@@ -160,8 +160,8 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 
 		deletedColumn := table.DeletedColumn()
 		realSQL = fmt.Sprintf("UPDATE %v SET %v = ? WHERE %v",
-			session.engine.Quote(session.statement.TableName()),
-			session.engine.Quote(deletedColumn.Name),
+			session.engine.quote(session.statement.TableName(), false),
+			session.engine.quote(deletedColumn.Name, true),
 			condSQL)
 
 		if len(orderSQL) > 0 {

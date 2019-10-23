@@ -168,7 +168,7 @@ func (session *Session) IsTableEmpty(bean interface{}) (bool, error) {
 
 func (session *Session) isTableEmpty(tableName string) (bool, error) {
 	var total int64
-	sqlStr := fmt.Sprintf("select count(*) from %s", session.engine.Quote(session.engine.TableName(tableName, true)))
+	sqlStr := fmt.Sprintf("select count(*) from %s", session.engine.quote(session.engine.TableName(tableName, true), false))
 	err := session.queryRow(sqlStr).Scan(&total)
 	if err != nil {
 		if err == sql.ErrNoRows {

@@ -22,7 +22,7 @@ type NullType struct {
 	Age          sql.NullInt64
 	Height       sql.NullFloat64
 	IsMan        sql.NullBool `xorm:"null"`
-	CustomStruct CustomStruct `xorm:"valchar(64) null"`
+	CustomStruct CustomStruct `xorm:"varchar(64) null"`
 }
 
 type CustomStruct struct {

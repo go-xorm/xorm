@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"xorm.io/core"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/core"
 )
 
 func TestJoinLimit(t *testing.T) {
@@ -103,7 +103,7 @@ func TestFind(t *testing.T) {
 	}
 
 	users2 := make([]Userinfo, 0)
-	var tbName = testEngine.Quote(testEngine.TableName(new(Userinfo), true))
+	var tbName = testEngine.Quote(testEngine.TableName(new(Userinfo), true), false)
 	err = testEngine.SQL("select * from " + tbName).Find(&users2)
 	assert.NoError(t, err)
 }
@@ -309,13 +309,14 @@ func TestOrderSameMapper(t *testing.T) {
 
 	assertSync(t, new(Userinfo))
 
+	idStr := testEngine.Quote("id", true)
 	users := make([]Userinfo, 0)
-	err := testEngine.OrderBy("(id) desc").Find(&users)
+	err := testEngine.OrderBy(idStr + " desc").Find(&users)
 	assert.NoError(t, err)
 	fmt.Println(users)
 
 	users2 := make([]Userinfo, 0)
-	err = testEngine.Asc("(id)", "Username").Desc("Height").Find(&users2)
+	err = testEngine.Asc(idStr, "Username").Desc("Height").Find(&users2)
 	assert.NoError(t, err)
 	fmt.Println(users2)
 }

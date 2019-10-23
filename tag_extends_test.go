@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"xorm.io/core"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/core"
 )
 
 type tempUser struct {
@@ -157,7 +157,7 @@ func TestExtends(t *testing.T) {
 	uiid := testEngine.GetColumnMapper().Obj2Table("Id")
 	udid := "detail_id"
 	sql := fmt.Sprintf("select * from %s, %s where %s.%s = %s.%s",
-		qt(ui), qt(ud), qt(ui), qt(udid), qt(ud), qt(uiid))
+		qt(ui, false), qt(ud, false), qt(ui, false), qt(udid, true), qt(ud, false), qt(uiid, true))
 	b, err := testEngine.SQL(sql).NoCascade().Get(&info)
 	assert.NoError(t, err)
 	if !b {
@@ -175,7 +175,7 @@ func TestExtends(t *testing.T) {
 	fmt.Println("----join--info2")
 	var info2 UserAndDetail
 	b, err = testEngine.Table(&Userinfo{}).
-		Join("LEFT", qt(ud), qt(ui)+"."+qt("detail_id")+" = "+qt(ud)+"."+qt(uiid)).
+		Join("LEFT", qt(ud, false), qt(ui, false)+"."+qt("detail_id", true)+" = "+qt(ud, false)+"."+qt(uiid, true)).
 		NoCascade().Get(&info2)
 	if err != nil {
 		t.Error(err)
@@ -196,7 +196,7 @@ func TestExtends(t *testing.T) {
 	fmt.Println("----join--infos2")
 	var infos2 = make([]UserAndDetail, 0)
 	err = testEngine.Table(&Userinfo{}).
-		Join("LEFT", qt(ud), qt(ui)+"."+qt("detail_id")+" = "+qt(ud)+"."+qt(uiid)).
+		Join("LEFT", qt(ud, false), qt(ui, false)+"."+qt("detail_id", true)+" = "+qt(ud, false)+"."+qt(uiid, true)).
 		NoCascade().
 		Find(&infos2)
 	assert.NoError(t, err)
@@ -286,9 +286,9 @@ func TestExtends2(t *testing.T) {
 
 	var mapper = testEngine.GetTableMapper().Obj2Table
 	var quote = testEngine.Quote
-	userTableName := quote(testEngine.TableName(mapper("MessageUser"), true))
-	typeTableName := quote(testEngine.TableName(mapper("MessageType"), true))
-	msgTableName := quote(testEngine.TableName(mapper("Message"), true))
+	userTableName := quote(testEngine.TableName(mapper("MessageUser"), true), false)
+	typeTableName := quote(testEngine.TableName(mapper("MessageType"), true), false)
+	msgTableName := quote(testEngine.TableName(mapper("Message"), true), false)
 
 	list := make([]Message, 0)
 	err = session.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").
@@ -355,9 +355,9 @@ func TestExtends3(t *testing.T) {
 
 	var mapper = testEngine.GetTableMapper().Obj2Table
 	var quote = testEngine.Quote
-	userTableName := quote(testEngine.TableName(mapper("MessageUser"), true))
-	typeTableName := quote(testEngine.TableName(mapper("MessageType"), true))
-	msgTableName := quote(testEngine.TableName(mapper("Message"), true))
+	userTableName := quote(testEngine.TableName(mapper("MessageUser"), true), false)
+	typeTableName := quote(testEngine.TableName(mapper("MessageType"), true), false)
+	msgTableName := quote(testEngine.TableName(mapper("Message"), true), false)
 
 	list := make([]MessageExtend3, 0)
 	err = session.Table(msgTableName).Join("LEFT", []string{userTableName, "sender"}, "`sender`.`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").
@@ -449,9 +449,9 @@ func TestExtends4(t *testing.T) {
 
 	var mapper = testEngine.GetTableMapper().Obj2Table
 	var quote = testEngine.Quote
-	userTableName := quote(testEngine.TableName(mapper("MessageUser"), true))
-	typeTableName := quote(testEngine.TableName(mapper("MessageType"), true))
-	msgTableName := quote(testEngine.TableName(mapper("Message"), true))
+	userTableName := quote(testEngine.TableName(mapper("MessageUser"), true), false)
+	typeTableName := quote(testEngine.TableName(mapper("MessageType"), true), false)
+	msgTableName := quote(testEngine.TableName(mapper("Message"), true), false)
 
 	list := make([]MessageExtend4, 0)
 	err = session.Table(msgTableName).Join("LEFT", userTableName, userTableName+".`"+mapper("Id")+"`="+msgTableName+".`"+mapper("Uid")+"`").
@@ -549,21 +549,21 @@ func TestExtends5(t *testing.T) {
 
 	var mapper = testEngine.GetTableMapper().Obj2Table
 	var quote = testEngine.Quote
-	bookTableName := quote(testEngine.TableName(mapper("Book"), true))
-	sizeTableName := quote(testEngine.TableName(mapper("Size"), true))
+	bookTableName := quote(testEngine.TableName(mapper("Book"), true), false)
+	sizeTableName := quote(testEngine.TableName(mapper("Size"), true), false)
 
 	list := make([]Book, 0)
 	err = session.
 		Select(fmt.Sprintf(
 			"%s.%s, sc.%s AS %s, sc.%s AS %s, s.%s, s.%s",
-			quote(bookTableName),
-			quote("id"),
-			quote("Width"),
-			quote("ClosedWidth"),
-			quote("Height"),
-			quote("ClosedHeight"),
-			quote("Width"),
-			quote("Height"),
+			quote(bookTableName, false),
+			quote("id", true),
+			quote("Width", true),
+			quote("ClosedWidth", true),
+			quote("Height", true),
+			quote("ClosedHeight", true),
+			quote("Width", true),
+			quote("Height", true),
 		)).
 		Table(bookTableName).
 		Join(

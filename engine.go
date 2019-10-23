@@ -55,6 +55,9 @@ type Engine struct {
 	cacherLock sync.RWMutex
 
 	defaultContext context.Context
+
+	colQuoter   Quoter
+	tableQuoter Quoter
 }
 
 func (engine *Engine) setCacher(tableName string, cacher core.Cacher) {
@@ -173,64 +176,6 @@ func (engine *Engine) SetColumnMapper(mapper core.IMapper) {
 // generate batch sql and exeute.
 func (engine *Engine) SupportInsertMany() bool {
 	return engine.dialect.SupportInsertMany()
-}
-
-func (engine *Engine) quoteColumns(columnStr string) string {
-	columns := strings.Split(columnStr, ",")
-	for i := 0; i < len(columns); i++ {
-		columns[i] = engine.Quote(strings.TrimSpace(columns[i]))
-	}
-	return strings.Join(columns, ",")
-}
-
-// Quote Use QuoteStr quote the string sql
-func (engine *Engine) Quote(value string) string {
-	value = strings.TrimSpace(value)
-	if len(value) == 0 {
-		return value
-	}
-
-	buf := strings.Builder{}
-	engine.QuoteTo(&buf, value)
-
-	return buf.String()
-}
-
-// QuoteTo quotes string and writes into the buffer
-func (engine *Engine) QuoteTo(buf *strings.Builder, value string) {
-	if buf == nil {
-		return
-	}
-
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return
-	}
-
-	quotePair := engine.dialect.Quote("")
-
-	if value[0] == '`' || len(quotePair) < 2 || value[0] == quotePair[0] { // no quote
-		_, _ = buf.WriteString(value)
-		return
-	} else {
-		prefix, suffix := quotePair[0], quotePair[1]
-
-		_ = buf.WriteByte(prefix)
-		for i := 0; i < len(value); i++ {
-			if value[i] == '.' {
-				_ = buf.WriteByte(suffix)
-				_ = buf.WriteByte('.')
-				_ = buf.WriteByte(prefix)
-			} else {
-				_ = buf.WriteByte(value[i])
-			}
-		}
-		_ = buf.WriteByte(suffix)
-	}
-}
-
-func (engine *Engine) quote(sql string) string {
-	return engine.dialect.Quote(sql)
 }
 
 // SqlType will be deprecated, please use SQLType instead
@@ -474,6 +419,8 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 		return err
 	}
 
+	colQuoter := newQuoter(dialect, engine.colQuoter.QuotePolicy())
+
 	for i, table := range tables {
 		if i > 0 {
 			_, err = io.WriteString(w, "\n")
@@ -493,10 +440,10 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 		}
 
 		cols := table.ColumnsSeq()
-		colNames := engine.dialect.Quote(strings.Join(cols, engine.dialect.Quote(", ")))
-		destColNames := dialect.Quote(strings.Join(cols, dialect.Quote(", ")))
+		colNames := quoteJoin(engine.colQuoter, cols)
+		destColNames := quoteJoin(colQuoter, cols)
 
-		rows, err := engine.DB().Query("SELECT " + colNames + " FROM " + engine.Quote(table.Name))
+		rows, err := engine.DB().Query("SELECT " + colNames + " FROM " + engine.quote(table.Name, false))
 		if err != nil {
 			return err
 		}

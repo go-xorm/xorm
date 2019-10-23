@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"testing"
 
-	"xorm.io/builder"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/builder"
 )
 
 func TestBuilder(t *testing.T) {
@@ -122,7 +122,8 @@ func TestIn(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, cnt)
 
-	department := "`" + testEngine.GetColumnMapper().Obj2Table("Departname") + "`"
+	department := testEngine.Quote(colMapper.Obj2Table("Departname"), true)
+	idStr := testEngine.Quote(colMapper.Obj2Table("Id"), true)
 	var usrs []Userinfo
 	err = testEngine.Where(department+" = ?", "dev").Limit(3).Find(&usrs)
 	assert.NoError(t, err)
@@ -137,13 +138,13 @@ func TestIn(t *testing.T) {
 	idsStr = idsStr[:len(idsStr)-1]
 
 	users := make([]Userinfo, 0)
-	err = testEngine.In("(id)", ids[0], ids[1], ids[2]).Find(&users)
+	err = testEngine.In(idStr, ids[0], ids[1], ids[2]).Find(&users)
 	assert.NoError(t, err)
 	fmt.Println(users)
 	assert.EqualValues(t, 3, len(users))
 
 	users = make([]Userinfo, 0)
-	err = testEngine.In("(id)", ids).Find(&users)
+	err = testEngine.In(idStr, ids).Find(&users)
 	assert.NoError(t, err)
 	fmt.Println(users)
 	assert.EqualValues(t, 3, len(users))
@@ -161,7 +162,7 @@ func TestIn(t *testing.T) {
 		idsInterface = append(idsInterface, id)
 	}
 
-	err = testEngine.Where(department+" = ?", "dev").In("(id)", idsInterface...).Find(&users)
+	err = testEngine.Where(department+" = ?", "dev").In(idStr, idsInterface...).Find(&users)
 	assert.NoError(t, err)
 	fmt.Println(users)
 	assert.EqualValues(t, 3, len(users))
@@ -175,11 +176,11 @@ func TestIn(t *testing.T) {
 
 	dev := testEngine.GetColumnMapper().Obj2Table("Dev")
 
-	err = testEngine.In("(id)", 1).In("(id)", 2).In(department, dev).Find(&users)
+	err = testEngine.In(idStr, 1).In(idStr, 2).In(department, dev).Find(&users)
 	assert.NoError(t, err)
 	fmt.Println(users)
 
-	cnt, err = testEngine.In("(id)", ids[0]).Update(&Userinfo{Departname: "dev-"})
+	cnt, err = testEngine.In(idStr, ids[0]).Update(&Userinfo{Departname: "dev-"})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
@@ -189,11 +190,11 @@ func TestIn(t *testing.T) {
 	assert.True(t, has)
 	assert.EqualValues(t, "dev-", user.Departname)
 
-	cnt, err = testEngine.In("(id)", ids[0]).Update(&Userinfo{Departname: "dev"})
+	cnt, err = testEngine.In(idStr, ids[0]).Update(&Userinfo{Departname: "dev"})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	cnt, err = testEngine.In("(id)", ids[1]).Delete(&Userinfo{})
+	cnt, err = testEngine.In(idStr, ids[1]).Delete(&Userinfo{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 }

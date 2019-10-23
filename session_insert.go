@@ -248,18 +248,20 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 	var sql string
 	if session.engine.dialect.DBType() == core.ORACLE {
 		temp := fmt.Sprintf(") INTO %s (%v) VALUES (",
-			session.engine.Quote(tableName),
-			quoteColumns(colNames, session.engine.Quote, ","))
+			session.engine.quote(tableName, false),
+			quoteJoin(session.engine.colQuoter, colNames))
 		sql = fmt.Sprintf("INSERT ALL INTO %s (%v) VALUES (%v) SELECT 1 FROM DUAL",
-			session.engine.Quote(tableName),
-			quoteColumns(colNames, session.engine.Quote, ","),
+			session.engine.quote(tableName, false),
+			quoteJoin(session.engine.colQuoter, colNames),
 			strings.Join(colMultiPlaces, temp))
 	} else {
 		sql = fmt.Sprintf("INSERT INTO %s (%v) VALUES (%v)",
-			session.engine.Quote(tableName),
-			quoteColumns(colNames, session.engine.Quote, ","),
+			session.engine.quote(tableName, false),
+			quoteJoin(session.engine.colQuoter, colNames),
 			strings.Join(colMultiPlaces, "),("))
 	}
+
+	fmt.Println("====", sql)
 	res, err := session.exec(sql, args...)
 	if err != nil {
 		return 0, err
@@ -358,7 +360,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	}
 
 	var buf = builder.NewWriter()
-	if _, err := buf.WriteString(fmt.Sprintf("INSERT INTO %s", session.engine.Quote(tableName))); err != nil {
+	if _, err := buf.WriteString(fmt.Sprintf("INSERT INTO %s", session.engine.quote(tableName, false))); err != nil {
 		return 0, err
 	}
 
@@ -377,7 +379,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			return 0, err
 		}
 
-		if err := writeStrings(buf, append(colNames, exprs.colNames...), "`", "`"); err != nil {
+		if err := writeStrings(buf, append(colNames, exprs.colNames...), session.engine.colQuoter); err != nil {
 			return 0, err
 		}
 
@@ -399,7 +401,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 				return 0, err
 			}
 
-			if _, err := buf.WriteString(fmt.Sprintf(" FROM %v WHERE ", session.engine.Quote(tableName))); err != nil {
+			if _, err := buf.WriteString(fmt.Sprintf(" FROM %v WHERE ", session.engine.quote(tableName, false))); err != nil {
 				return 0, err
 			}
 
@@ -426,7 +428,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	}
 
 	if len(table.AutoIncrement) > 0 && session.engine.dialect.DBType() == core.POSTGRES {
-		if _, err := buf.WriteString(" RETURNING " + session.engine.Quote(table.AutoIncrement)); err != nil {
+		if _, err := buf.WriteString(" RETURNING " + session.engine.quote(table.AutoIncrement, true)); err != nil {
 			return 0, err
 		}
 	}
@@ -731,11 +733,11 @@ func (session *Session) insertMapInterface(m map[string]interface{}) (int64, err
 
 	w := builder.NewWriter()
 	if session.statement.cond.IsValid() {
-		if _, err := w.WriteString(fmt.Sprintf("INSERT INTO %s (", session.engine.Quote(tableName))); err != nil {
+		if _, err := w.WriteString(fmt.Sprintf("INSERT INTO %s (", session.engine.quote(tableName, false))); err != nil {
 			return 0, err
 		}
 
-		if err := writeStrings(w, append(columns, exprs.colNames...), "`", "`"); err != nil {
+		if err := writeStrings(w, append(columns, exprs.colNames...), session.engine.colQuoter); err != nil {
 			return 0, err
 		}
 
@@ -756,7 +758,7 @@ func (session *Session) insertMapInterface(m map[string]interface{}) (int64, err
 			}
 		}
 
-		if _, err := w.WriteString(fmt.Sprintf(" FROM %s WHERE ", session.engine.Quote(tableName))); err != nil {
+		if _, err := w.WriteString(fmt.Sprintf(" FROM %s WHERE ", session.engine.quote(tableName, false))); err != nil {
 			return 0, err
 		}
 
@@ -767,7 +769,7 @@ func (session *Session) insertMapInterface(m map[string]interface{}) (int64, err
 		qm := strings.Repeat("?,", len(columns))
 		qm = qm[:len(qm)-1]
 
-		if _, err := w.WriteString(fmt.Sprintf("INSERT INTO %s (`%s`) VALUES (%s)", session.engine.Quote(tableName), strings.Join(columns, "`,`"), qm)); err != nil {
+		if _, err := w.WriteString(fmt.Sprintf("INSERT INTO %s (`%s`) VALUES (%s)", session.engine.quote(tableName, false), strings.Join(columns, "`,`"), qm)); err != nil {
 			return 0, err
 		}
 		w.Append(args...)
@@ -817,11 +819,11 @@ func (session *Session) insertMapString(m map[string]string) (int64, error) {
 
 	w := builder.NewWriter()
 	if session.statement.cond.IsValid() {
-		if _, err := w.WriteString(fmt.Sprintf("INSERT INTO %s (", session.engine.Quote(tableName))); err != nil {
+		if _, err := w.WriteString(fmt.Sprintf("INSERT INTO %s (", session.engine.quote(tableName, false))); err != nil {
 			return 0, err
 		}
 
-		if err := writeStrings(w, append(columns, exprs.colNames...), "`", "`"); err != nil {
+		if err := writeStrings(w, append(columns, exprs.colNames...), session.engine.colQuoter); err != nil {
 			return 0, err
 		}
 
@@ -842,7 +844,7 @@ func (session *Session) insertMapString(m map[string]string) (int64, error) {
 			}
 		}
 
-		if _, err := w.WriteString(fmt.Sprintf(" FROM %s WHERE ", session.engine.Quote(tableName))); err != nil {
+		if _, err := w.WriteString(fmt.Sprintf(" FROM %s WHERE ", session.engine.quote(tableName, false))); err != nil {
 			return 0, err
 		}
 
@@ -853,7 +855,9 @@ func (session *Session) insertMapString(m map[string]string) (int64, error) {
 		qm := strings.Repeat("?,", len(columns))
 		qm = qm[:len(qm)-1]
 
-		if _, err := w.WriteString(fmt.Sprintf("INSERT INTO %s (`%s`) VALUES (%s)", session.engine.Quote(tableName), strings.Join(columns, "`,`"), qm)); err != nil {
+		if _, err := w.WriteString(fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
+			session.engine.quote(tableName, false),
+			quoteJoin(session.engine.colQuoter, columns), qm)); err != nil {
 			return 0, err
 		}
 		w.Append(args...)

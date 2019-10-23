@@ -195,14 +195,14 @@ func (statement *Statement) Or(query interface{}, args ...interface{}) *Statemen
 
 // In generate "Where column IN (?) " statement
 func (statement *Statement) In(column string, args ...interface{}) *Statement {
-	in := builder.In(statement.Engine.Quote(column), args...)
+	in := builder.In(statement.Engine.quote(column, true), args...)
 	statement.cond = statement.cond.And(in)
 	return statement
 }
 
 // NotIn generate "Where column NOT IN (?) " statement
 func (statement *Statement) NotIn(column string, args ...interface{}) *Statement {
-	notIn := builder.NotIn(statement.Engine.Quote(column), args...)
+	notIn := builder.NotIn(statement.Engine.quote(column, true), args...)
 	statement.cond = statement.cond.And(notIn)
 	return statement
 }
@@ -339,7 +339,7 @@ func (statement *Statement) buildUpdates(bean interface{},
 			if fieldValue.IsNil() {
 				if includeNil {
 					args = append(args, nil)
-					colNames = append(colNames, fmt.Sprintf("%v=?", engine.Quote(col.Name)))
+					colNames = append(colNames, fmt.Sprintf("%v=?", engine.quote(col.Name, true)))
 				}
 				continue
 			} else if !fieldValue.IsValid() {
@@ -486,7 +486,7 @@ func (statement *Statement) buildUpdates(bean interface{},
 		if col.IsPrimaryKey && engine.dialect.DBType() == "ql" {
 			continue
 		}
-		colNames = append(colNames, fmt.Sprintf("%v = ?", engine.Quote(col.Name)))
+		colNames = append(colNames, fmt.Sprintf("%v = ?", engine.quote(col.Name, true)))
 	}
 
 	return colNames, args
@@ -502,9 +502,9 @@ func (statement *Statement) colName(col *core.Column, tableName string) string {
 		if len(statement.TableAlias) > 0 {
 			nm = statement.TableAlias
 		}
-		return statement.Engine.Quote(nm) + "." + statement.Engine.Quote(col.Name)
+		return statement.Engine.quote(nm, false) + "." + statement.Engine.quote(col.Name, true)
 	}
-	return statement.Engine.Quote(col.Name)
+	return statement.Engine.quote(col.Name, true)
 }
 
 // TableName return current tableName
@@ -572,9 +572,8 @@ func (statement *Statement) SetExpr(column string, expression interface{}) *Stat
 
 func (statement *Statement) col2NewColsWithQuote(columns ...string) []string {
 	newColumns := make([]string, 0)
-	quotes := append(strings.Split(statement.Engine.Quote(""), ""), "`")
 	for _, col := range columns {
-		newColumns = append(newColumns, statement.Engine.Quote(eraseAny(col, quotes...)))
+		newColumns = append(newColumns, statement.Engine.quote(col, true))
 	}
 	return newColumns
 }
@@ -583,7 +582,7 @@ func (statement *Statement) colmap2NewColsWithQuote() []string {
 	newColumns := make([]string, len(statement.columnMap), len(statement.columnMap))
 	copy(newColumns, statement.columnMap)
 	for i := 0; i < len(statement.columnMap); i++ {
-		newColumns[i] = statement.Engine.Quote(newColumns[i])
+		newColumns[i] = statement.Engine.quote(newColumns[i], true)
 	}
 	return newColumns
 }
@@ -616,8 +615,7 @@ func (statement *Statement) Cols(columns ...string) *Statement {
 
 	newColumns := statement.colmap2NewColsWithQuote()
 
-	statement.ColumnStr = strings.Join(newColumns, ", ")
-	statement.ColumnStr = strings.Replace(statement.ColumnStr, statement.Engine.quote("*"), "*", -1)
+	statement.ColumnStr = quoteJoin(statement.Engine.colQuoter, newColumns)
 	return statement
 }
 
@@ -652,7 +650,7 @@ func (statement *Statement) Omit(columns ...string) {
 	for _, nc := range newColumns {
 		statement.omitColumnMap = append(statement.omitColumnMap, nc)
 	}
-	statement.OmitStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
+	statement.OmitStr = quoteJoin(statement.Engine.colQuoter, newColumns)
 }
 
 // Nullable Update use only: update columns to null when value is nullable and zero-value
@@ -745,9 +743,8 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 			return statement
 		}
 		tbs := strings.Split(tp.TableName(), ".")
-		quotes := append(strings.Split(statement.Engine.Quote(""), ""), "`")
 
-		var aliasName = strings.Trim(tbs[len(tbs)-1], strings.Join(quotes, ""))
+		var aliasName = unQuote(statement.Engine.tableQuoter, tbs[len(tbs)-1])
 		fmt.Fprintf(&buf, "(%s) %s ON %v", subSQL, aliasName, condition)
 		statement.joinArgs = append(statement.joinArgs, subQueryArgs...)
 	case *builder.Builder:
@@ -757,9 +754,8 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 			return statement
 		}
 		tbs := strings.Split(tp.TableName(), ".")
-		quotes := append(strings.Split(statement.Engine.Quote(""), ""), "`")
 
-		var aliasName = strings.Trim(tbs[len(tbs)-1], strings.Join(quotes, ""))
+		var aliasName = unQuote(statement.Engine.tableQuoter, tbs[len(tbs)-1])
 		fmt.Fprintf(&buf, "(%s) %s ON %v", subSQL, aliasName, condition)
 		statement.joinArgs = append(statement.joinArgs, subQueryArgs...)
 	default:
@@ -825,7 +821,7 @@ func (statement *Statement) genColumnStr() string {
 			buf.WriteString(".")
 		}
 
-		statement.Engine.QuoteTo(&buf, col.Name)
+		quoteTo(statement.Engine.colQuoter, &buf, col.Name)
 	}
 
 	return buf.String()
@@ -880,9 +876,9 @@ func (statement *Statement) genDelIndexSQL() []string {
 		} else if index.Type == core.IndexType {
 			rIdxName = indexName(idxPrefixName, idxName)
 		}
-		sql := fmt.Sprintf("DROP INDEX %v", statement.Engine.Quote(statement.Engine.TableName(rIdxName, true)))
+		sql := fmt.Sprintf("DROP INDEX %v", statement.Engine.quote(statement.Engine.TableName(rIdxName, true), false))
 		if statement.Engine.dialect.IndexOnTable() {
-			sql += fmt.Sprintf(" ON %v", statement.Engine.Quote(tbName))
+			sql += fmt.Sprintf(" ON %v", statement.Engine.quote(tbName, false))
 		}
 		sqls = append(sqls, sql)
 	}
@@ -890,8 +886,8 @@ func (statement *Statement) genDelIndexSQL() []string {
 }
 
 func (statement *Statement) genAddColumnStr(col *core.Column) (string, []interface{}) {
-	quote := statement.Engine.Quote
-	sql := fmt.Sprintf("ALTER TABLE %v ADD %v", quote(statement.TableName()),
+	quote := statement.Engine.quote
+	sql := fmt.Sprintf("ALTER TABLE %v ADD %v", quote(statement.TableName(), false),
 		col.String(statement.Engine.dialect))
 	if statement.Engine.dialect.DBType() == core.MYSQL && len(col.Comment) > 0 {
 		sql += " COMMENT '" + col.Comment + "'"
@@ -944,7 +940,7 @@ func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}, 
 		if len(statement.JoinStr) == 0 {
 			if len(columnStr) == 0 {
 				if len(statement.GroupByStr) > 0 {
-					columnStr = statement.Engine.quoteColumns(statement.GroupByStr)
+					columnStr = quoteColumns(statement.Engine.colQuoter, statement.GroupByStr)
 				} else {
 					columnStr = statement.genColumnStr()
 				}
@@ -952,7 +948,7 @@ func (statement *Statement) genGetSQL(bean interface{}) (string, []interface{}, 
 		} else {
 			if len(columnStr) == 0 {
 				if len(statement.GroupByStr) > 0 {
-					columnStr = statement.Engine.quoteColumns(statement.GroupByStr)
+					columnStr = quoteColumns(statement.Engine.colQuoter, statement.GroupByStr)
 				}
 			}
 		}
@@ -1020,7 +1016,7 @@ func (statement *Statement) genSumSQL(bean interface{}, columns ...string) (stri
 	var sumStrs = make([]string, 0, len(columns))
 	for _, colName := range columns {
 		if !strings.Contains(colName, " ") && !strings.Contains(colName, "(") {
-			colName = statement.Engine.Quote(colName)
+			colName = statement.Engine.quote(colName, true)
 		}
 		sumStrs = append(sumStrs, fmt.Sprintf("COALESCE(sum(%s),0)", colName))
 	}
@@ -1043,7 +1039,7 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit, n
 	var (
 		distinct                  string
 		dialect                   = statement.Engine.Dialect()
-		quote                     = statement.Engine.Quote
+		quote                     = statement.Engine.quote
 		fromStr                   = " FROM "
 		top, mssqlCondi, whereStr string
 	)
@@ -1057,14 +1053,14 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit, n
 	if dialect.DBType() == core.MSSQL && strings.Contains(statement.TableName(), "..") {
 		fromStr += statement.TableName()
 	} else {
-		fromStr += quote(statement.TableName())
+		fromStr += quote(statement.TableName(), false)
 	}
 
 	if statement.TableAlias != "" {
 		if dialect.DBType() == core.ORACLE {
-			fromStr += " " + quote(statement.TableAlias)
+			fromStr += " " + quote(statement.TableAlias, false)
 		} else {
-			fromStr += " AS " + quote(statement.TableAlias)
+			fromStr += " AS " + quote(statement.TableAlias, false)
 		}
 	}
 	if statement.JoinStr != "" {
@@ -1181,10 +1177,10 @@ func (statement *Statement) joinColumns(cols []*core.Column, includeTableName bo
 	var colnames = make([]string, len(cols))
 	for i, col := range cols {
 		if includeTableName {
-			colnames[i] = statement.Engine.Quote(statement.TableName()) +
-				"." + statement.Engine.Quote(col.Name)
+			colnames[i] = statement.Engine.quote(statement.TableName(), false) +
+				"." + statement.Engine.quote(col.Name, true)
 		} else {
-			colnames[i] = statement.Engine.Quote(col.Name)
+			colnames[i] = statement.Engine.quote(col.Name, true)
 		}
 	}
 	return strings.Join(colnames, ", ")
@@ -1224,7 +1220,7 @@ func (statement *Statement) convertUpdateSQL(sqlStr string) (string, string) {
 	if len(sqls) != 2 {
 		if len(sqls) == 1 {
 			return sqls[0], fmt.Sprintf("SELECT %v FROM %v",
-				colstrs, statement.Engine.Quote(statement.TableName()))
+				colstrs, statement.Engine.quote(statement.TableName(), false))
 		}
 		return "", ""
 	}
@@ -1251,6 +1247,6 @@ func (statement *Statement) convertUpdateSQL(sqlStr string) (string, string) {
 	}
 
 	return sqls[0], fmt.Sprintf("SELECT %v FROM %v WHERE %v",
-		colstrs, statement.Engine.Quote(statement.TableName()),
+		colstrs, statement.Engine.quote(statement.TableName(), false),
 		whereStr)
 }

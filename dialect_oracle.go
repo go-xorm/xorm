@@ -547,7 +547,7 @@ func (db *oracle) SupportInsertMany() bool {
 }
 
 func (db *oracle) IsReserved(name string) bool {
-	_, ok := oracleReservedWords[name]
+	_, ok := oracleReservedWords[strings.ToUpper(name)]
 	return ok
 }
 
@@ -847,7 +847,7 @@ func (db *oracle) GetIndexes(tableName string) (map[string]*core.Index, error) {
 }
 
 func (db *oracle) Filters() []core.Filter {
-	return []core.Filter{&core.QuoteFilter{}, &core.SeqFilter{Prefix: ":", Start: 1}, &core.IdFilter{}}
+	return []core.Filter{&core.QuoteFilter{}, &core.SeqFilter{Prefix: ":", Start: 1}}
 }
 
 type goracleDriver struct {

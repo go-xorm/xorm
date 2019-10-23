@@ -89,8 +89,9 @@ type EngineInterface interface {
 	MapCacher(interface{}, core.Cacher) error
 	NewSession() *Session
 	NoAutoTime() *Session
-	Quote(string) string
+	Quote(string, bool) string
 	SetCacher(string, core.Cacher)
+	SetColumnQuotePolicy(policy QuotePolicy)
 	SetConnMaxLifetime(time.Duration)
 	SetDefaultCacher(core.Cacher)
 	SetLogger(logger core.ILogger)
@@ -99,6 +100,7 @@ type EngineInterface interface {
 	SetMaxOpenConns(int)
 	SetMaxIdleConns(int)
 	SetSchema(string)
+	SetTableQuotePolicy(policy QuotePolicy)
 	SetTZDatabase(tz *time.Location)
 	SetTZLocation(tz *time.Location)
 	ShowExecTime(...bool)

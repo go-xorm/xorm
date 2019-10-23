@@ -250,7 +250,7 @@ func TestTagDefault(t *testing.T) {
 
 	var defaultVal string
 	var isDefaultExist bool
-	tableName := testEngine.GetColumnMapper().Obj2Table("DefaultStruct")
+	tableName := tableMapper.Obj2Table("DefaultStruct")
 	for _, table := range tables {
 		if table.Name == tableName {
 			col := table.GetColumn("age")
@@ -293,7 +293,7 @@ func TestTagDefault2(t *testing.T) {
 
 	var defaultVal string
 	var isDefaultExist bool
-	tableName := testEngine.GetColumnMapper().Obj2Table("DefaultStruct2")
+	tableName := tableMapper.Obj2Table("DefaultStruct2")
 	for _, table := range tables {
 		if table.Name == tableName {
 			col := table.GetColumn("name")
@@ -322,7 +322,7 @@ func TestTagDefault3(t *testing.T) {
 
 	var defaultVal string
 	var isDefaultExist bool
-	tableName := testEngine.GetColumnMapper().Obj2Table("DefaultStruct3")
+	tableName := tableMapper.Obj2Table("DefaultStruct3")
 	for _, table := range tables {
 		if table.Name == tableName {
 			col := table.GetColumn("name")
@@ -351,7 +351,7 @@ func TestTagDefault4(t *testing.T) {
 
 	var defaultVal string
 	var isDefaultExist bool
-	tableName := testEngine.GetColumnMapper().Obj2Table("DefaultStruct4")
+	tableName := tableMapper.Obj2Table("DefaultStruct4")
 	for _, table := range tables {
 		if table.Name == tableName {
 			col := table.GetColumn("created")
@@ -387,7 +387,7 @@ func TestTagDefault5(t *testing.T) {
 
 	var defaultVal string
 	var isDefaultExist bool
-	tableName := testEngine.GetColumnMapper().Obj2Table("DefaultStruct5")
+	tableName := colMapper.Obj2Table("DefaultStruct5")
 	for _, table := range tables {
 		if table.Name == tableName {
 			col := table.GetColumn("created")

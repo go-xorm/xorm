@@ -112,13 +112,13 @@ func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{})
 			// !oinume! Add "<col> IS NULL" to WHERE whatever condiBean is given.
 			// See https://github.com/go-xorm/xorm/issues/179
 			if col := table.DeletedColumn(); col != nil && !session.statement.unscoped { // tag "deleted" is enabled
-				var colName = session.engine.Quote(col.Name)
+				var colName = session.engine.quote(col.Name, true)
 				if addedTableName {
 					var nm = session.statement.TableName()
 					if len(session.statement.TableAlias) > 0 {
 						nm = session.statement.TableAlias
 					}
-					colName = session.engine.Quote(nm) + "." + colName
+					colName = session.engine.quote(nm, false) + "." + colName
 				}
 
 				autoCond = session.engine.CondDeleted(colName)
@@ -141,7 +141,7 @@ func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{})
 			if session.statement.JoinStr == "" {
 				if columnStr == "" {
 					if session.statement.GroupByStr != "" {
-						columnStr = session.engine.quoteColumns(session.statement.GroupByStr)
+						columnStr = quoteColumns(session.engine.colQuoter, session.statement.GroupByStr)
 					} else {
 						columnStr = session.statement.genColumnStr()
 					}
@@ -149,7 +149,7 @@ func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{})
 			} else {
 				if columnStr == "" {
 					if session.statement.GroupByStr != "" {
-						columnStr = session.engine.quoteColumns(session.statement.GroupByStr)
+						columnStr = quoteColumns(session.engine.colQuoter, session.statement.GroupByStr)
 					} else {
 						columnStr = "*"
 					}

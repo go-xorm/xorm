@@ -145,20 +145,10 @@ func (statement *Statement) writeArgs(w *builder.BytesWriter, args []interface{}
 	return nil
 }
 
-func writeStrings(w *builder.BytesWriter, cols []string, leftQuote, rightQuote string) error {
+func writeStrings(w *builder.BytesWriter, cols []string, quoter Quoter) error {
 	for i, colName := range cols {
-		if len(leftQuote) > 0 && colName[0] != '`' {
-			if _, err := w.WriteString(leftQuote); err != nil {
-				return err
-			}
-		}
-		if _, err := w.WriteString(colName); err != nil {
+		if err := quoter.WriteTo(w, colName); err != nil {
 			return err
-		}
-		if len(rightQuote) > 0 && colName[len(colName)-1] != '`' {
-			if _, err := w.WriteString(rightQuote); err != nil {
-				return err
-			}
 		}
 		if i+1 != len(cols) {
 			if _, err := w.WriteString(","); err != nil {

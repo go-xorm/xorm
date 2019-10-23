@@ -281,7 +281,7 @@ func (db *mssql) SupportInsertMany() bool {
 }
 
 func (db *mssql) IsReserved(name string) bool {
-	_, ok := mssqlReservedWords[name]
+	_, ok := mssqlReservedWords[strings.ToUpper(name)]
 	return ok
 }
 
@@ -533,7 +533,7 @@ func (db *mssql) ForUpdateSql(query string) string {
 }
 
 func (db *mssql) Filters() []core.Filter {
-	return []core.Filter{&core.IdFilter{}, &core.QuoteFilter{}}
+	return []core.Filter{&core.QuoteFilter{}}
 }
 
 type odbcDriver struct {

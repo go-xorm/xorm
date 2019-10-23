@@ -194,7 +194,7 @@ func (db *sqlite3) SupportInsertMany() bool {
 }
 
 func (db *sqlite3) IsReserved(name string) bool {
-	_, ok := sqlite3ReservedWords[name]
+	_, ok := sqlite3ReservedWords[strings.ToUpper(name)]
 	return ok
 }
 
@@ -477,7 +477,7 @@ func (db *sqlite3) GetIndexes(tableName string) (map[string]*core.Index, error) 
 }
 
 func (db *sqlite3) Filters() []core.Filter {
-	return []core.Filter{&core.IdFilter{}}
+	return []core.Filter{}
 }
 
 type sqlite3Driver struct {
