@@ -57,6 +57,7 @@ type Session struct {
 	//beforeSQLExec func(string, ...interface{})
 	lastSQL     string
 	lastSQLArgs []interface{}
+	comment     string
 
 	ctx         context.Context
 	sessionType sessionType
@@ -154,6 +155,12 @@ func (session *Session) After(closures func(interface{})) *Session {
 // Table can input a string or pointer to struct for special a table to operate.
 func (session *Session) Table(tableNameOrBean interface{}) *Session {
 	session.statement.Table(tableNameOrBean)
+	return session
+}
+
+// Set comment for select statement
+func (session *Session) Comment(comment string) *Session {
+	session.comment = comment
 	return session
 }
 
