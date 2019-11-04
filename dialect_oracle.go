@@ -738,7 +738,7 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Colum
 			col.SQLType = core.SQLType{Name: core.TimeStampz, DefaultLength: 0, DefaultLength2: 0}
 		case "NUMBER":
 			col.SQLType = core.SQLType{Name: core.Double, DefaultLength: len1, DefaultLength2: len2}
-		case "LONG", "LONG RAW":
+		case "LONG", "LONG RAW", "NCLOB", "CLOB":
 			col.SQLType = core.SQLType{Name: core.Text, DefaultLength: 0, DefaultLength2: 0}
 		case "RAW":
 			col.SQLType = core.SQLType{Name: core.Binary, DefaultLength: 0, DefaultLength2: 0}
