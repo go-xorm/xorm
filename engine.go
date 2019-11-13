@@ -92,10 +92,14 @@ func (engine *Engine) BufferSize(size int) *Session {
 
 // CondDeleted returns the conditions whether a record is soft deleted.
 func (engine *Engine) CondDeleted(colName string) builder.Cond {
-	if engine.dialect.DBType() == core.MSSQL {
+	switch engine.dialect.DBType() {
+	case core.MSSQL:
 		return builder.IsNull{colName}
+	case core.POSTGRES:
+		return builder.IsNull{colName}
+	default:
+		return builder.IsNull{colName}.Or(builder.Eq{colName: zeroTime1})
 	}
-	return builder.IsNull{colName}.Or(builder.Eq{colName: zeroTime1})
 }
 
 // ShowSQL show SQL statement or not on logger if log level is great than INFO
