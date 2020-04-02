@@ -1,4 +1,4 @@
-module github.com/go-xorm/xorm
+module github.com/rosbit/xorm
 
 go 1.11
 
